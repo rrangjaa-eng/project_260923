@@ -15,7 +15,8 @@ import {
 import { buildFrameReport, createCollector, type Item } from '@/page/collector/collector';
 import { synthesizePress } from '@/page/click/press';
 import { createInputPipeline } from '@/page/input/pipeline';
-import { hideModeIndicator, showModeIndicator, showTransientMessage } from '@/page/overlay/mode-indicator';
+import { currentMode } from '@/page/input/mode';
+import { hideModeIndicator, setMode, showModeIndicator, showTransientMessage } from '@/page/overlay/mode-indicator';
 import { hideHints, showHints, showNextCard } from '@/page/overlay/hints';
 import { hideRing, showRing } from '@/page/overlay/ring';
 import { parseMessage } from '@/shared/messages';
@@ -81,6 +82,12 @@ export default defineContentScript({
     let latestReportEntries: Array<{ frameId: number; report: RawFrameReport }> = [];
     let composedItemsCache: ComposedItem[] = [];
 
+    // Task 3(D-03): 자식 프레임만 쓴다 — 번호표가 떠 있는지(맨 위가 방송) 알아야 숫자·0·Esc를
+    // 삼킬지 판단한다. 맨 위만 쓴다: 초점이 위임된 iframe이 있을 때 보여 줄, 가장 최근 자식의
+    // mode/report(refreshModeDisplay).
+    let childHintsVisible = false;
+    let lastChildMode: 'helper' | 'typing' | null = null;
+
     // 자석 커서(D-10, D-04): 이 프레임에서 바로 계산한다(D-02) — collector가 모은 요소를 grid로
     // 색인하고, pointermove마다 가장 가까운 요소를 잡아 테두리를 보여 준다.
     const magnetController = new AbortController();
@@ -125,8 +132,58 @@ export default defineContentScript({
         return undefined;
       }
 
+      if (message.type === 'hints/state') {
+        // Task 3: 자식 프레임이 숫자·0·Esc를 삼킬지 판단하는 데 쓴다(맨 위는 hintsActive를
+        // 직접 관리하므로 이 값이 따로 필요 없지만 받아도 무해하다).
+        childHintsVisible = message.visible;
+        return undefined;
+      }
+
+      if (message.type === 'hints/key' && isTopFrame) {
+        // Task 3: 초점이 자식 프레임 안에 있어 그 프레임이 삼켜 보낸 키 — 판단은 여기(맨 위)서.
+        if (currentEnabled) {
+          handleTopHintKey(message.code);
+        }
+        return undefined;
+      }
+
+      if (message.type === 'mode/report' && isTopFrame) {
+        // Task 3: 자식 프레임 자신의 입력 모드 — 초점이 그 프레임에 위임돼 있을 때만 화면에 쓴다.
+        lastChildMode = message.mode;
+        refreshModeDisplay();
+        return undefined;
+      }
+
       return undefined;
     });
+
+    // Task 3(D-03): 자식 프레임의 입력 모드를 맨 위에 알린다 — 맨 위 모드 표시가 초점이 위임된
+    // iframe이 있으면 이 값을, 없으면 자기 모드를 쓴다(refreshModeDisplay, 맨 위 쪽에서 정의).
+    function sendModeReport(): void {
+      if (!currentEnabled) {
+        return;
+      }
+      void chrome.runtime.sendMessage({ type: 'mode/report', mode: currentMode() });
+    }
+
+    // 맨 위 모드 표시 갱신(Task 3): document.activeElement가 iframe 자신이면(그 프레임 안에
+    // 초점이 있다는 뜻, 교차 출처라도 이 검사는 늘 가능) 가장 최근 자식의 mode/report를,
+    // 아니면(초점이 맨 위 자기 문서 안) 맨 위 자신의 모드를 쓴다.
+    function refreshModeDisplay(): void {
+      if (!isTopFrame || !currentEnabled) {
+        return;
+      }
+      const delegatedToChild = document.activeElement instanceof HTMLIFrameElement;
+      setMode(delegatedToChild && lastChildMode !== null ? lastChildMode : currentMode());
+    }
+
+    if (!isTopFrame) {
+      window.addEventListener('focusin', sendModeReport, { capture: true, signal: magnetController.signal });
+      window.addEventListener('focusout', sendModeReport, { capture: true, signal: magnetController.signal });
+    } else {
+      window.addEventListener('focusin', refreshModeDisplay, { capture: true, signal: magnetController.signal });
+      window.addEventListener('focusout', refreshModeDisplay, { capture: true, signal: magnetController.signal });
+    }
 
     function evaluateMagnet(cursor: { x: number; y: number }): void {
       if (!currentEnabled) {
@@ -380,11 +437,10 @@ export default defineContentScript({
       openChapter(0);
     }
 
-    inputPipeline.onKey(({ code }) => {
-      if (!currentEnabled || !isTopFrame) {
-        return false;
-      }
-
+    // 번호표 키 판단은 언제나 맨 위에서만 한다 — inputPipeline.onKey(맨 위 자신의 keydown)와
+    // hints/key 메시지(Task 3: 초점이 자식 프레임 안에 있을 때 그 프레임이 삼켜 보낸 키) 둘 다
+    // 이 함수를 부른다.
+    function handleTopHintKey(code: string): boolean {
       if (code === currentSettings.data.keymap.toggleHints) {
         if (hintsActive) {
           closeHints();
@@ -419,6 +475,38 @@ export default defineContentScript({
           pressHintEntry(entry.itemId);
         }
         closeHints();
+        return true;
+      }
+
+      return false;
+    }
+
+    inputPipeline.onKey(({ code }) => {
+      if (!currentEnabled || !isTopFrame) {
+        return false;
+      }
+      return handleTopHintKey(code);
+    });
+
+    // 자식 프레임에서 번호표 키 삼키기(Task 3, D-03, D-09): 초점이 자식 프레임 안에 있으면 F는
+    // 언제나(맨 위가 번호표를 열지 닫을지 정한다), 숫자·0·Esc는 번호표가 떠 있을 때만 삼켜
+    // hints/key로 맨 위에 보낸다. 번호표가 안 떠 있으면 그 프레임의 페이지에 그대로 보낸다.
+    inputPipeline.onKey(({ code }) => {
+      if (isTopFrame || !currentEnabled) {
+        return false;
+      }
+
+      if (code === currentSettings.data.keymap.toggleHints) {
+        void chrome.runtime.sendMessage({ type: 'hints/key', code });
+        return true;
+      }
+
+      if (!childHintsVisible) {
+        return false;
+      }
+
+      if (code === currentSettings.data.keymap.cancel || code === 'Digit0' || DIGIT_TO_NUMBER[code] !== undefined) {
+        void chrome.runtime.sendMessage({ type: 'hints/key', code });
         return true;
       }
 

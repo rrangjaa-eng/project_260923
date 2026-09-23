@@ -21,6 +21,10 @@ function childrenSignature(children: FrameReportWire['children']): string {
     .join(',');
 }
 
+function isPrefixOf(prefix: number[], path: number[]): boolean {
+  return prefix.length <= path.length && prefix.every((value, i) => path[i] === value);
+}
+
 export function createRelay(): Relay {
   const reportsByTab = new Map<number, Map<number, FrameReportWire>>();
 
@@ -55,6 +59,27 @@ export function createRelay(): Relay {
         const tabReports = reportsFor(tabId);
         const previous = tabReports.get(senderFrameId);
         const topologyChanged = !previous || childrenSignature(previous.children) !== childrenSignature(message.report.children);
+
+        if (previous && topologyChanged) {
+          // 지워진 자식(예전엔 있었는데 이번 보고엔 없는 pathKey)의 옛 경로(부모 경로+옛 순번)를
+          // 탭 보고에서 통째로 지운다 — 안 지우면 뒤에 남은 형제가 순번이 당겨져 그 옛 경로를
+          // 새로 차지했을 때(예: 지워진 형이 순번 1이었고 동생이 그 뒤를 이어 순번 1이 됨)
+          // resolveReports가 selfPath 문자열이 같은 두 보고 중 죽은 쪽을 골라 죽은 가지로
+          // 잘못 연결한다(재현 확인됨) — 살아있는 형제는 곧 자기 새 경로로 다시 보고한다.
+          const newPathKeys = new Set(message.report.children.map((c) => c.pathKey));
+          for (const oldChild of previous.children) {
+            if (newPathKeys.has(oldChild.pathKey)) {
+              continue;
+            }
+            const deadPrefix = [...previous.selfPath, oldChild.index];
+            for (const [frameId, report] of tabReports) {
+              if (isPrefixOf(deadPrefix, report.selfPath)) {
+                tabReports.delete(frameId);
+              }
+            }
+          }
+        }
+
         tabReports.set(senderFrameId, { ...message.report, frameId: senderFrameId });
         const reports = Array.from(tabReports.entries()).map(([frameId, report]) => ({ frameId, report }));
         void chrome.tabs.sendMessage(tabId, { type: 'frames/reports', reports }, { frameId: 0 });
@@ -82,6 +107,17 @@ export function createRelay(): Relay {
       if (message.type === 'hints/state') {
         // frameId를 생략하면 탭의 모든 프레임에 간다.
         void chrome.tabs.sendMessage(tabId, { type: 'hints/state', visible: message.visible });
+        return;
+      }
+
+      if (message.type === 'hints/key') {
+        // Task 3: 어느 프레임에서 왔든 판단은 언제나 맨 위(frameId 0)가 한다.
+        void chrome.tabs.sendMessage(tabId, { type: 'hints/key', code: message.code }, { frameId: 0 });
+        return;
+      }
+
+      if (message.type === 'mode/report') {
+        void chrome.tabs.sendMessage(tabId, { type: 'mode/report', mode: message.mode }, { frameId: 0 });
       }
     },
   };

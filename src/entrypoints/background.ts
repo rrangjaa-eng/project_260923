@@ -43,7 +43,9 @@ export default defineBackground(() => {
     if (
       message.type === 'frame/report' ||
       message.type === 'hints/press' ||
-      message.type === 'hints/state'
+      message.type === 'hints/state' ||
+      message.type === 'hints/key' ||
+      message.type === 'mode/report'
     ) {
       relay.handle(message, sender);
       return undefined;

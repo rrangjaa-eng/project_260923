@@ -78,6 +78,22 @@ const FrameRefreshMessage = z.object({
   type: z.literal('frame/refresh'),
 });
 
+// 자식 프레임 → SW → 맨 위(Task 3, D-03, D-09): 초점이 자식 프레임 안에 있으면 F·숫자·Esc·0이
+// 그 프레임의 keydown으로 먼저 온다. 자식은 그 키를 삼키고 여기 실어 보낸다 — 번호표를
+// 열지/닫을지, 어느 항목을 누를지는 언제나 맨 위(모든 프레임의 보고를 모은 쪽)가 정한다.
+const HintsKeyMessage = z.object({
+  type: z.literal('hints/key'),
+  code: z.string(),
+});
+
+// 자식 프레임 → SW → 맨 위(Task 3): 자식 프레임 자신의 입력 모드(초점이 입력칸인지)가 바뀔 때마다
+// 보낸다. 맨 위 모드 표시는 초점이 위임된 iframe이 있으면(activeElement가 그 iframe 자신) 가장
+// 최근 이 보고를, 없으면 자기 모드를 쓴다(content.ts refreshModeDisplay).
+const ModeReportMessage = z.object({
+  type: z.literal('mode/report'),
+  mode: z.enum(['helper', 'typing']),
+});
+
 const SetEnabledOp = z.object({
   kind: z.literal('setEnabled'),
   enabled: z.boolean(),
@@ -112,6 +128,8 @@ export const Message = z.discriminatedUnion('type', [
   PressRequestMessage,
   HintsStateMessage,
   FrameRefreshMessage,
+  HintsKeyMessage,
+  ModeReportMessage,
 ]);
 export type Message = z.infer<typeof Message>;
 
