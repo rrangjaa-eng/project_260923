@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-09-PLAN.md
-last_updated: "2026-09-23T21:22:52.169Z"
+stopped_at: Completed 01-10-PLAN.md
+last_updated: "2026-09-23T21:48:05.033Z"
 last_activity: 2026-09-23
 last_activity_desc: Phase 1 execution started
-state_head: 1b1f661b29197b22d4f75ed9ba7e11376eb0cc06
+state_head: 1ceadbe31efb0dd728b6de291255c3a463ded213
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 16
-  completed_plans: 9
+  completed_plans: 10
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 ## Current Position
 
 Phase: 1 (클릭 도우미 기반) — EXECUTING
-Plan: 10 of 16
+Plan: 11 of 16
 Status: Ready to execute
 Last activity: 2026-09-23 — Phase 1 execution started
 
@@ -67,6 +67,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P07 | 75min | 3 tasks | 15 files |
 | Phase 01 P08 | 24min | 2 tasks | 9 files |
 | Phase 01 P09 | 31min | 3 tasks | 11 files |
+| Phase 01 P10 | 22min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,9 @@ Recent decisions affecting current work:
 - [Phase 1]: 확인 버튼에는 클릭 리스너를 아예 달지 않아 포인터로는 절대 확인되지 않게 했다(T-01-25) — 취소 버튼만 isTrusted+보호 시간 통과 뒤 클릭을 받는다
 - [Phase 1]: 다른 프레임 항목의 확인 화면 이름은 frame/report에 name이 실리지 않아 fingerprint(buttonText→labelText→aria→id) 순으로 최선 추정한다
 - [Phase 1]: 확인 화면은 항상 맨 위 프레임에서 열리고 보호·누르고 있기 시간도 맨 위 시계로만 잰다 — 자식 프레임은 confirm/state·confirm/key로 판단 없이 중계만 한다
+- [Phase 1]: rAF 루프 정지 시 dwellTimer.update({targetId:null,...})를 명시적으로 먹여 재무장 보장(Rule 1 버그 수정)
+- [Phase 1]: updateSettings patch는 dwellEnabled·dragTwoPress만 허용하는 zod strict — dwellMs 등 수치 설정은 이 op 범위 밖
+- [Phase 1]: popup 카드 생성 로직을 createCard 팩토리로 추출해 카드 2개 이상에서 재사용
 
 ### Pending Todos
 
@@ -129,6 +133,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-23T21:22:52.122Z
-Stopped at: Completed 01-09-PLAN.md
+Last session: 2026-09-23T21:48:04.986Z
+Stopped at: Completed 01-10-PLAN.md
 Resume file: None
