@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-09-23T15:52:25.168Z"
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-09-23T17:45:37.333Z"
 last_activity: 2026-09-23
 last_activity_desc: Phase 1 execution started
-state_head: 187e0adedc24cf003dd880bac7ce235254361ce9
+state_head: c446850c6ea6ca55d712ca510bcb7e2f5894ebd6
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 16
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 ## Current Position
 
 Phase: 1 (클릭 도우미 기반) — EXECUTING
-Plan: 4 of 16
+Plan: 5 of 16
 Status: Ready to execute
 Last activity: 2026-09-23 — Phase 1 execution started
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 25min | 3 tasks | 12 files |
 | Phase 01 P02 | 12min | 2 tasks | 11 files |
 | Phase 01 P03 | 11min | 3 tasks | 9 files |
+| Phase 01 P04 | 40min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,10 @@ Recent decisions affecting current work:
 - [Phase 1]: TDD RED 확인은 check tdd-red-evidence 대신 수동 확인 — 그 도구는 node --test TAP 출력만 파싱해 Playwright e2e에는 적용 불가
 - [Phase 1]: 떨림 필터·입력 파이프라인·모드 판정을 순수 함수/window capture로 구현, vitest.config.ts 신설(첫 단위 시험 추가 계획)
 - [Phase 1]: Task 3 behavior 목록의 모드 표시 비키기 60px은 같은 계획의 다른 근거(must_haves·action·SYSTEM.md·D-26)와 모순되는 오타로 판단, 80px로 구현
+- [Phase 1]: collector.ts는 NAMED_SELECTOR(항상 후보)와 CURSOR_TAGS(cursor:pointer 필요)를 분리해 role=button div가 pointer 스타일 없이도 잡히게 했다
+- [Phase 1]: ring.ts는 --ring-offset을 하드코딩하지 않고 계산된 스타일에서 읽어 tokens.css와 항상 같은 값을 쓰게 했다
+- [Phase 1]: content.ts의 자석 pointermove 처리는 타임스탬프 스로틀 대신 rAF 코얼레싱으로 바꿨다 — 스로틀은 간격 안 여러 이벤트 중 마지막 자리를 영영 놓치는 실제 버그가 있었다(Rule 1)
+- [Phase 1]: 선행 조치: skeleton.e2e.ts 재시작 보존 시험의 간헐적 실패 두 근본 원인(서비스워커 API 바인딩 경쟁, onInstalled 기본값 쓰기 경쟁)을 systematic-debugging으로 찾아 고쳤다(fix(01-01))
 
 ### Pending Todos
 
@@ -105,6 +110,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-23T15:52:25.124Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-09-23T17:45:37.292Z
+Stopped at: Completed 01-04-PLAN.md
 Resume file: None
