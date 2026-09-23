@@ -76,3 +76,29 @@ describe('pickTarget', () => {
     expect(pick(cursor, [outer, inner], null)).toBe('inner');
   });
 });
+
+describe('pickTarget — 위험한 버튼 예외(D-18, Plan 01-08)', () => {
+  it('danger 후보는 커서가 그 사각형 안(거리 0)일 때만 잡힌다', () => {
+    const danger: Candidate = { id: 'd', rect: { x: 0, y: 0, w: 10, h: 10 }, danger: true };
+
+    // 커서가 사각형 안(거리 0) — 잡힌다.
+    expect(pick({ x: 5, y: 5 }, [danger], null)).toBe('d');
+    // 커서가 사각형 밖(거리 5, 잡는 범위 48px 안이지만 danger는 거리 0에서만 잡힌다) — null.
+    expect(pick({ x: 15, y: 5 }, [danger], null)).toBeNull();
+  });
+
+  it('잡힌 위험 후보는 커서가 사각형 밖으로 나가면 히스테리시스 없이 놓인다', () => {
+    const danger: Candidate = { id: 'd', rect: { x: 0, y: 0, w: 1, h: 1 }, danger: true };
+
+    // 커서가 사각형 밖으로 5px만 나가도(히스테리시스 24px 미만) 곧바로 놓인다.
+    expect(pick({ x: 5, y: 0 }, [danger], 'd')).toBeNull();
+  });
+
+  it('위험 후보가 가장 가까워도 범위 안 다른 일반 후보가 있으면 일반 후보를 잡는다', () => {
+    const danger: Candidate = { id: 'd', rect: { x: 0, y: 0, w: 1, h: 1 }, danger: true };
+    const normal: Candidate = { id: 'n', rect: { x: 40, y: 0, w: 1, h: 1 } };
+
+    // 커서가 danger 안(거리 0)이라도 normal이 범위 안(거리 39)이면 normal을 잡는다.
+    expect(pick({ x: 0, y: 0 }, [danger, normal], null)).toBe('n');
+  });
+});
