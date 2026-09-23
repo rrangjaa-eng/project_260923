@@ -16,9 +16,9 @@
 
 ### 떨림 걸러내기 (FILT)
 
-- [ ] **FILT-01**: 같은 키·같은 자리 클릭이 설정한 간격 안에 다시 들어오면 한 번으로 처리된다 (5)
-- [ ] **FILT-02**: 키를 오래 눌러도 한 번만 입력된다(자동 반복 끔) (5)
-- [ ] **FILT-03**: 의도치 않게 들어온 더블클릭이 한 번 클릭으로 줄어든다 (5)
+- [x] **FILT-01**: 같은 키·같은 자리 클릭이 설정한 간격 안에 다시 들어오면 한 번으로 처리된다 (5)
+- [x] **FILT-02**: 키를 오래 눌러도 한 번만 입력된다(자동 반복 끔) (5)
+- [x] **FILT-03**: 의도치 않게 들어온 더블클릭이 한 번 클릭으로 줄어든다 (5)
 - [ ] **FILT-04**: 이용자가 버튼을 계속 누르지 않고 "끌기 시작 → 놓을 곳 누르기" 두 번 누르기로 끌어서 놓기를 할 수 있다 (5)
 
 ### 클릭 도우미 (CLICK)
@@ -31,7 +31,7 @@
 
 ### 키와 입력 모드 (KEY)
 
-- [ ] **KEY-01**: 커서가 입력칸이나 글쓰기 편집기(contenteditable) 안에 있으면 숫자·스페이스바가 원래대로 글자를 입력하고, Esc로 빠져나오면 도우미 키로 돌아가며, 지금 "입력 중 / 도우미"인지 화면 구석에 크게 표시된다 (5)
+- [x] **KEY-01**: 커서가 입력칸이나 글쓰기 편집기(contenteditable) 안에 있으면 숫자·스페이스바가 원래대로 글자를 입력하고, Esc로 빠져나오면 도우미 키로 돌아가며, 지금 "입력 중 / 도우미"인지 화면 구석에 크게 표시된다 (5)
 - [ ] **KEY-02**: 숫자·스페이스바를 자체 단축키로 쓰는 사이트에서도 도우미 모드일 때는 도우미 키가 먼저 동작한다 (11-④)
 
 ### 안전장치 (SAFE)
@@ -189,16 +189,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ELEM-02 | Phase 1 | Pending |
 | ELEM-03 | Phase 1 | Pending |
 | ELEM-04 | Phase 1 | Pending |
-| FILT-01 | Phase 1 | Pending |
-| FILT-02 | Phase 1 | Pending |
-| FILT-03 | Phase 1 | Pending |
+| FILT-01 | Phase 1 | Complete |
+| FILT-02 | Phase 1 | Complete |
+| FILT-03 | Phase 1 | Complete |
 | FILT-04 | Phase 1 | Pending |
 | CLICK-01 | Phase 1 | Pending |
 | CLICK-02 | Phase 1 | Pending |
 | CLICK-03 | Phase 1 | Pending |
 | CLICK-04 | Phase 1 | Pending |
 | CLICK-05 | Phase 3 | Pending |
-| KEY-01 | Phase 1 | Pending |
+| KEY-01 | Phase 1 | Complete |
 | KEY-02 | Phase 1 | Pending |
 | SAFE-01 | Phase 1 | Pending |
 | SAFE-02 | Phase 1 | Pending |
@@ -265,6 +265,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DIST-02 | Phase 2 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 78 total
 - Mapped to phases: 78
 - Unmapped: 0 ✓
