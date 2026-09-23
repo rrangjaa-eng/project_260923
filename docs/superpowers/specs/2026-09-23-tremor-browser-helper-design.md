@@ -110,7 +110,7 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
 
 ### 6.5 키 스크롤·명령판·되돌리기
 - **스크롤:** ↑↓로 한 화면의 80%씩 부드럽게 움직인다. 페이지 안에 스크롤 영역이 여러 개면 자석 커서가 있는 영역을 움직인다.
-- **명령판(0):** 뒤로, 앞으로, 새로고침, 탭 닫기, 새 탭, 작업판, 틀 실행, 틀 기록, 번호 고정, 조작 방식 바꾸기, 컨디션 모드, 화면 정리(AI), 도우미 끄기(8장)를 큰 번호 카드로 보여 준다. 첫 화면에는 키 안내 카드(스페이스바·1~9·0·↑↓·Esc, 그리고 브라우저 알림 창은 Enter=확인·Esc=취소)를 둔다.
+- **명령판(0):** 뒤로, 앞으로, 새로고침, 탭 닫기, 새 탭, 작업판, 틀 실행, 틀 기록, 번호 고정, 조작 방식 바꾸기, 컨디션 모드, 화면 정리(AI), 도우미 끄기(8장)를 큰 번호 카드로 보여 준다. 카드 자리는 고정이다: 첫 장 1~8에 자주 쓰는 명령을 늘 같은 자리에 두고 9는 다음 장(자리 목록은 `docs/design/SYSTEM.md`, 설정에서 바꿀 수 있음). 첫 화면에는 키 안내 카드(스페이스바·1~9·0·↑↓·Esc, 그리고 브라우저 알림 창은 Enter=확인·Esc=취소)를 둔다.
 - **되돌리기:** 번호·자석 커서로 링크를 눌러 페이지가 바뀐 직후 Esc를 누르면 뒤로 간다. 입력칸에 방금 넣은 값은 명령판의 "입력 되돌리기"로 되돌린다.
 
 ### 6.6 입력 줄이기
@@ -154,6 +154,8 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
 - 뒤에서 도는 틀의 진행 상황
 - 확인 대기 목록 (번호로 불러와 처리)
 
+확인 대기가 생기면 모드 표시 옆에 "확인 대기 1" 같은 숫자와 확장 아이콘 배지로 알린다. 하던 입력을 끊지 않도록 확인 창을 바로 띄우지 않는다.
+
 ### 6.10 화면 정리 (AI, 키를 누를 때만)
 처음 보는 복잡한 화면에서 명령판 → "화면 정리"를 누르면, 요소 수집기가 만든 요소 목록(종류, 보이는 글자, 대략의 위치)을 AI에 보내 이 화면에서 중요한 요소 9개를 고르게 한다. 고른 요소에 1~9 번호표를 붙이고, 결과를 사이트 + 페이지 주소 형태로 저장해 같은 화면에서는 다시 AI를 부르지 않는다.
 - 입력칸의 값은 보내지 않는다. 요소 글자 중 이메일·전화번호·숫자 긴 줄 같은 개인정보 모양은 가려서 보낸다.
@@ -163,10 +165,15 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
 - AI 답은 검사한다. 고른 요소가 보낸 목록에 있는 것만 받아들이고, 하나라도 맞지 않으면 그 답을 버리고 자주 누른 순서 번호표로 대신한다. AI는 번호만 붙이고 **절대 직접 누르지 않는다.**
 
 ### 6.11 컨디션 모드
-"좋은 날 / 힘든 날" 두 가지 설정 묶음이다. 각 묶음에 조작 방식(자석 커서 / 번호표 / 자동 순서 강조), 떨림 간격, 머무르기 시간, 강조 속도, 번호표·테두리 크기를 저장해 두고, 명령판에서 한 번에 바꾼다.
+"좋은 날 / 힘든 날" 두 가지 설정 묶음이다. 각 묶음에 조작 방식(자석 커서 / 번호표 / 자동 순서 강조), 떨림 간격, 머무르기 시간, 강조 속도, 번호표·테두리 크기를 저장해 두고(번호표·테두리 크기는 브라우저 확대와 상관없이 고정되고 이 설정으로만 바뀐다), 명령판에서 한 번에 바꾼다.
 
 ### 6.12 처음 설치할 때의 맞춤 설정
-큰 버튼 몇 개를 차례로 누르게 해서 이용자의 떨림 간격(같은 키가 의도치 않게 다시 눌리는 간격)과 편한 머무르기 시간을 재고, 두 컨디션 모드의 기본값을 정한다. 나중에 명령판에서 다시 할 수 있다.
+세 단계로 한다(디자인 검토 3번). 단계마다 "Esc 건너뛰기"가 있고, 건너뛴 단계는 기본값을 쓴다. 나중에 명령판에서 다시 할 수 있다.
+1. **키 안내:** 스페이스바·1~9·0·↑↓·Esc, 그리고 "브라우저 알림 창은 Enter=확인, Esc=취소"를 큰 카드로 보여 준다.
+2. **떨림 간격 재기:** 큰 버튼을 몇 번 누르게 해서 같은 키가 의도치 않게 다시 눌리는 간격을 잰다.
+3. **머무르기 시간 재기:** 큰 버튼 위에 커서를 올려 두게 해서 편한 머무르기 시간을 잰다.
+
+잰 값으로 두 컨디션 모드의 기본값을 정한다. 각 불러오기·비어 있음·실패 상태의 화면은 `docs/design/SYSTEM.md`의 상태 표를 따른다.
 
 ### 6.13 활동 기록
 최근 2주 동안의 동작(무엇을 눌렀는지, 틀이 어디까지 갔는지, 알림 창 내용, 막힘·확인 필요)을 이 PC에만 남긴다. **입력한 값은 남기지 않는다.** 문제가 생겼을 때 이용자가 명령판에서 "기록 내보내기"를 누르면, 내보낼 내용을 먼저 보여 주고 확인한 뒤 파일로 저장한다.
@@ -253,13 +260,13 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
 |--------|------|--------|----------|
 | CEO review (`/plan-ceo-review`, approach C, HOLD SCOPE) | 1 | CLEAR | 8 gaps found, all 8 approved by the user and applied |
 | Outside voice (Claude subagent; Codex not installed) | 1 | CLEAR | 6 issues; user approved 2-6 and applied, rejected 1 (widening danger buttons to 결재·상신 words and magnet-cursor confirmation). User added: every sensitive field, password inputs included, can be unlocked per site after a warning |
-| Design review (`/plan-design-review`) | 0 | PENDING | |
+| Design review (`/plan-design-review`) | 1 | CLEAR | Rated 6/10 before. Design system settled first (`docs/design/`: brief, 3 ideas, user chose A 등대). 6 gaps, all approved as recommended and applied: fixed command-menu slots, state table, 3-step setup, mode indicator moves away, overlay size fixed under page zoom, waiting-count badge instead of popups |
 | Eng review (`/plan-eng-review`) | 0 | PENDING | |
 
 - **Not in scope (held):** windows resident program, Excel/other-site transfer, batch entry, Android/iPhone helper, AI writing and AI template repair (3장 "다음 버전").
 - **What already exists:** Vimium-style link hints (번호표), Automa-style recorders (틀), Steady Clicks-style click filtering (떨림 걸러내기). None combine them for one tremor user with submit safety, so this is built from scratch with those as reference.
 - **Error and failure registry:** 9장 table.
 
-**VERDICT:** CEO review CLEARED. Design and eng review still to run.
+**VERDICT:** CEO and design review CLEARED. Eng review still to run.
 
 NO UNRESOLVED DECISIONS
