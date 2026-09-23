@@ -126,7 +126,7 @@ async function ringHidden(page: Page): Promise<boolean> {
 
 interface DangerLabelState {
   visible: boolean;
-  text: string;
+  text: string | null;
 }
 
 async function readDangerLabel(page: Page): Promise<DangerLabelState | null> {
@@ -136,7 +136,7 @@ async function readDangerLabel(page: Page): Promise<DangerLabelState | null> {
     if (!el) {
       return null;
     }
-    return { visible: el.getAttribute('data-visible') === 'true', text: el.textContent ?? '' };
+    return { visible: el.getAttribute('data-visible') === 'true', text: el.textContent };
   });
 }
 

@@ -91,7 +91,10 @@ export default defineContentScript({
     // 자석 커서(D-10, D-04): 이 프레임에서 바로 계산한다(D-02) — collector가 모은 요소를 grid로
     // 색인하고, pointermove마다 가장 가까운 요소를 잡아 테두리를 보여 준다.
     const magnetController = new AbortController();
-    const collector = createCollector({ signal: magnetController.signal });
+    const collector = createCollector({
+      signal: magnetController.signal,
+      getDangerWords: () => currentSettings.data.dangerWords,
+    });
     const grid = createGridIndex<Item>();
     let currentTargetId: string | null = null;
     let lastCursorPos: { x: number; y: number } | null = null;
@@ -203,7 +206,7 @@ export default defineContentScript({
       }
       const item = collector.items().find((candidate) => candidate.id === currentTargetId);
       if (item) {
-        showRing(item.rect);
+        showRing(item.rect, { danger: item.danger });
       } else {
         hideRing();
       }
@@ -218,7 +221,7 @@ export default defineContentScript({
           currentTargetId = null;
           hideRing();
         } else if (currentEnabled) {
-          showRing(stillThere.rect);
+          showRing(stillThere.rect, { danger: stillThere.danger });
         }
       } else if (lastCursorPos) {
         // 늦게 나타난 요소도 마지막 커서 위치 기준으로 곧바로 잡아 본다(추가 pointermove 없이).
@@ -472,6 +475,12 @@ export default defineContentScript({
         const chapter = hintChapters[hintChapterIndex];
         const entry = chapter?.find((candidate) => candidate.number === number);
         if (entry) {
+          const composed = composedItemsCache.find((c) => hintKey(c.frameId, c.itemId) === entry.itemId);
+          if (composed?.danger) {
+            // T-01-23: 위험한 버튼은 번호로 바로 누르지 않는다 — 확인 화면이 생기기 전까지(Plan
+            // 01-09) 번호표를 그대로 둔다.
+            return true;
+          }
           pressHintEntry(entry.itemId);
         }
         closeHints();
@@ -518,6 +527,8 @@ export default defineContentScript({
       if (parsed.success) {
         currentSettings = parsed.data;
         applyEnabled(parsed.data.data.enabled);
+        // D-18: dangerWords가 기본값과 다를 수 있다 — 이미 모은 항목의 danger를 다시 계산한다.
+        collector.refresh();
       }
     });
 
@@ -533,6 +544,8 @@ export default defineContentScript({
       if (parsed.success) {
         currentSettings = parsed.data;
         applyEnabled(parsed.data.data.enabled);
+        // D-18: dangerWords가 바뀌면 곧바로 반영한다 — 다시 모아 danger를 새로 계산한다.
+        collector.refresh();
       }
     });
   },

@@ -1,3 +1,4 @@
+import { isDanger } from '@/core/danger';
 import type { Fingerprint } from '@/core/fingerprint';
 import type { RawFrameReport } from '@/core/frame-tree';
 import { framePathOf, type FrameLike } from '@/core/frame-path';
@@ -7,7 +8,8 @@ import type { Rect } from '@/core/grid-index';
 // 목록으로 만든다. 화면 변화(MutationObserver)·스크롤·크기 변경은 requestAnimationFrame 하나로
 // 모아 한 번에 다시 모은다. 페이지 리스너(addEventListener)는 content script에서 보이지 않으므로
 // "클릭 이벤트가 걸린 이미지"는 onclick 속성·role·tabindex·계산된 cursor: pointer로 판정한다(가정
-// 문단 참고).
+// 문단 참고). danger(D-18, Plan 01-08): 이름에 settings.dangerWords가 들어 있으면 true —
+// 목록이 바뀌면 refresh()로 다시 계산한다.
 
 export interface Item {
   id: string;
@@ -15,6 +17,7 @@ export interface Item {
   name: string;
   kind: string;
   fingerprint: Fingerprint;
+  danger: boolean;
 }
 
 export interface Collector {
@@ -333,7 +336,7 @@ function frameIndexOf(iframeEl: HTMLIFrameElement): number {
 }
 
 export function buildFrameReport(items: Item[]): RawFrameReport {
-  const wireItems = items.map((item) => ({ id: item.id, rect: item.rect, fingerprint: item.fingerprint }));
+  const wireItems = items.map((item) => ({ id: item.id, rect: item.rect, fingerprint: item.fingerprint, danger: item.danger }));
 
   // D-03: 창 접근(parent·frames·contentWindow)이 예상 밖으로 실패해도(교차 출처 제약 등) 이
   // 함수 하나가 content script main() 전체를 죽이면 안 된다(자석·번호표 등 이 프레임의 다른
@@ -366,8 +369,8 @@ export function buildFrameReport(items: Item[]): RawFrameReport {
   }
 }
 
-export function createCollector(opts: { signal: AbortSignal }): Collector {
-  const { signal } = opts;
+export function createCollector(opts: { signal: AbortSignal; getDangerWords: () => readonly string[] }): Collector {
+  const { signal, getDangerWords } = opts;
 
   const idMap = new WeakMap<Element, string>();
   let nextId = 0;
@@ -418,12 +421,14 @@ export function createCollector(opts: { signal: AbortSignal }): Collector {
       }
       const id = idFor(el);
       nextById.set(id, el);
+      const name = computeName(el);
       next.push({
         id,
         rect: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
-        name: computeName(el),
+        name,
         kind: kindOf(el),
         fingerprint: computeFingerprint(el),
+        danger: isDanger(name, getDangerWords()),
       });
     }
     currentItems = next;
