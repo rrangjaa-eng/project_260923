@@ -30,11 +30,19 @@ interface Fixtures {
   servePage: (routePath: string, html: string) => void;
   // practice.test(같은 출처)와 other.test(다른 출처) iframe을 담은 연습 페이지를 등록한다(D-28).
   serveFramedPracticePage: () => void;
+  // D-14, D-31, Plan 01-12: practice.test·other.test·확장 페이지 밖으로 나가는 요청의 URL 목록.
+  blockedRequests: string[];
+  // 선택 도우미(Plan 01-12) — 이 시험이 연습 사이트 밖으로 나가지 않았음을 확인한다.
+  expectNoExternalRequests: () => void;
 }
 
 export const test = base.extend<Fixtures>({
   servedPages: async ({}, use) => {
     await use(new Map());
+  },
+
+  blockedRequests: async ({}, use) => {
+    await use([]);
   },
 
   context: async ({ servedPages }, use) => {
@@ -115,6 +123,12 @@ export const test = base.extend<Fixtures>({
         'http://other.test/frame-other.html',
         '<!doctype html><html><body><p>다른 출처 프레임</p></body></html>',
       );
+    });
+  },
+
+  expectNoExternalRequests: async ({ blockedRequests }, use) => {
+    await use(() => {
+      expect(blockedRequests).toEqual([]);
     });
   },
 });

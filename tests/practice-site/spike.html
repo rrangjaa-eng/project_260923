@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>대신 누르기 한계 스파이크</title>
+    <style>
+      body {
+        margin: 0;
+        position: relative;
+      }
+      [data-el] {
+        position: absolute;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 선택 목록(D-13, Plan 01-12 Task 1): 이용자의 실제 키 입력(스페이스바) 처리 안에서
+         showPicker()로 열고(마우스 순서 대신), ArrowDown·Enter로 값이 바뀌면 change가
+         기록된다(목록이 열렸다는 근거). sel-click-count는 대신 누르기가 이제 마우스 순서를
+         보내지 않고 focus()+showPicker()만 부른다는 근거(0으로 남아야 한다). -->
+    <select id="sel" data-el style="left: 150px; top: 40px; width: 140px">
+      <option value="apple">사과</option>
+      <option value="banana">바나나</option>
+      <option value="cherry">체리</option>
+    </select>
+    <span id="sel-change-count">0</span>
+    <span id="sel-value">apple</span>
+    <span id="sel-click-count">0</span>
+
+    <!-- 파일 선택(D-13, Plan 01-12 Task 1): 스페이스바로 잡으면 Playwright의 filechooser 이벤트가
+         오는지로 열렸는지 판정한다. file-click-count도 select와 같은 근거(0으로 남아야 한다). -->
+    <input id="file" type="file" data-el style="left: 150px; top: 110px" />
+    <span id="file-click-count">0</span>
+
+    <script>
+      var selEl = document.getElementById('sel');
+      var selChangeCountEl = document.getElementById('sel-change-count');
+      var selValueEl = document.getElementById('sel-value');
+      var selChangeCount = 0;
+      selEl.addEventListener('change', function () {
+        selChangeCount += 1;
+        selChangeCountEl.textContent = String(selChangeCount);
+        selValueEl.textContent = selEl.value;
+      });
+
+      var selClickCountEl = document.getElementById('sel-click-count');
+      var selClickCount = 0;
+      selEl.addEventListener('click', function () {
+        selClickCount += 1;
+        selClickCountEl.textContent = String(selClickCount);
+      });
+
+      var fileEl = document.getElementById('file');
+      var fileClickCountEl = document.getElementById('file-click-count');
+      var fileClickCount = 0;
+      fileEl.addEventListener('click', function () {
+        fileClickCount += 1;
+        fileClickCountEl.textContent = String(fileClickCount);
+      });
+    </script>
+  </body>
+</html>
