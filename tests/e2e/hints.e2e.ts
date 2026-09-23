@@ -33,7 +33,7 @@ async function labelTexts(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const host = document.querySelector('tremor-helper-root');
     const labels = host?.shadowRoot?.querySelectorAll('.hint-label');
-    return labels ? Array.from(labels).map((el) => el.textContent ?? '') : [];
+    return labels ? Array.from(labels).map((el) => el.textContent) : [];
   });
 }
 
@@ -66,6 +66,12 @@ async function indicatorText(page: Page): Promise<string> {
   });
 }
 
+// content script의 storage.sync.get(설정 읽기)이 끝나 도우미가 실제로 켜진 뒤에야 F가 뜻대로
+// 먹는다 — 고정 시간 대기 대신 모드 표시가 "도우미"로 뜨는 것을 직접 확인해 경합을 없앤다.
+async function waitForHelperReady(page: Page): Promise<void> {
+  await expect.poll(() => indicatorText(page)).toBe('도우미');
+}
+
 function boxesOverlap(a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }): boolean {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
@@ -73,6 +79,7 @@ function boxesOverlap(a: { x: number; y: number; width: number; height: number }
 test('F를 누르면 번호표가 보이는 요소에 붙고 번호는 1부터 중복 없이, 각 번호표 상자가 28×28px 이상이다', async ({ context }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/targets.html');
+  await waitForHelperReady(page);
 
   await page.keyboard.press('KeyF');
   await page.waitForTimeout(50);
@@ -93,6 +100,7 @@ test('F를 누르면 번호표가 보이는 요소에 붙고 번호는 1부터 �
 test('번호표가 떠 있을 때 숫자 키를 누르면 그 번호의 요소가 눌리고 번호표가 사라진다', async ({ context }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/targets.html');
+  await waitForHelperReady(page);
 
   const box = await page.locator('#btn-tiny').boundingBox();
   if (!box) {
@@ -118,15 +126,19 @@ test('번호표가 떠 있을 때 숫자 키를 누르면 그 번호의 요소�
 test('번호표가 떠 있을 때 F 또는 Esc를 누르면 번호표가 사라진다', async ({ context }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/targets.html');
+  await waitForHelperReady(page);
 
   await page.keyboard.press('KeyF');
   await page.waitForTimeout(50);
   expect((await labelTexts(page)).length).toBeGreaterThan(0);
 
+  // 같은 키(KeyF)의 두 번째 입력이므로 떨림 간격(기본 300ms, D-07)보다 넉넉히 띄운다.
+  await page.waitForTimeout(350);
   await page.keyboard.press('KeyF');
   await page.waitForTimeout(50);
   expect((await labelTexts(page)).length).toBe(0);
 
+  await page.waitForTimeout(350);
   await page.keyboard.press('KeyF');
   await page.waitForTimeout(50);
   expect((await labelTexts(page)).length).toBeGreaterThan(0);
@@ -140,6 +152,11 @@ test('번호표 상자끼리 서로 겹치지 않는다', async ({ context, serv
   servePage('http://practice.test/hints-many.html', MANY_BUTTONS_HTML);
   const page = await context.newPage();
   await page.goto('http://practice.test/hints-many.html');
+  await waitForHelperReady(page);
+  // 이 페이지는 <script>가 만든 버튼을 collector의 MutationObserver(rAF 코얼레싱)가 한 번 더
+  // 모아야 잡힌다 — 정적 파일 두 곳(targets.html·shortcuts.html)은 자연 지연으로 이미 충분하지만
+  // 여기는 명시로 기다린다.
+  await page.waitForTimeout(100);
 
   await page.keyboard.press('KeyF');
   await page.waitForTimeout(50);
@@ -165,6 +182,7 @@ test('요소가 하나도 없는 페이지에서 F를 누르면 모드 표시에
   servePage('http://practice.test/empty.html', '<!doctype html><html><body></body></html>');
   const page = await context.newPage();
   await page.goto('http://practice.test/empty.html');
+  await waitForHelperReady(page);
 
   await page.keyboard.press('KeyF');
   await page.waitForTimeout(50);
@@ -178,6 +196,8 @@ test('요소가 9개 넘는 페이지에서 F → "0 다음 번호" 카드가 �
   servePage('http://practice.test/hints-many.html', MANY_BUTTONS_HTML);
   const page = await context.newPage();
   await page.goto('http://practice.test/hints-many.html');
+  await waitForHelperReady(page);
+  await page.waitForTimeout(100);
 
   await page.keyboard.press('KeyF');
   await page.waitForTimeout(50);
@@ -201,6 +221,7 @@ test('shortcuts.html에서 번호표가 떠 있을 때 1은 사이트 단축키 
 }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/shortcuts.html');
+  await waitForHelperReady(page);
 
   await page.keyboard.press('KeyF');
   await page.waitForTimeout(50);
@@ -208,6 +229,8 @@ test('shortcuts.html에서 번호표가 떠 있을 때 1은 사이트 단축키 
   await page.waitForTimeout(50);
   await expect(page.locator('#site-keydown')).toHaveText('0');
 
+  // 같은 키(Digit1)의 두 번째 입력이므로 떨림 간격(기본 300ms, D-07)보다 넉넉히 띄운다.
+  await page.waitForTimeout(350);
   await page.keyboard.press('Digit1');
   await page.waitForTimeout(50);
   await expect(page.locator('#site-keydown')).toHaveText('1');

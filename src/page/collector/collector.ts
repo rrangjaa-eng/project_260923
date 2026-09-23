@@ -1,3 +1,4 @@
+import type { Fingerprint } from '@/core/fingerprint';
 import type { Rect } from '@/core/grid-index';
 
 // 요소 수집기(D-04, ELEM-01, ELEM-03): 프레임 안에서 누를 수 있는 요소를 모아 위치·이름·종류
@@ -11,6 +12,7 @@ export interface Item {
   rect: Rect;
   name: string;
   kind: string;
+  fingerprint: Fingerprint;
 }
 
 export interface Collector {
@@ -127,6 +129,89 @@ function computeName(el: Element): string {
   return normalizeText(el.getAttribute('title'));
 }
 
+// 요소 식별 묶음(D-11, 설계 6.8): id·name·라벨 글자·버튼 글자·aria·문서 안 위치 경로를 함께
+// 기억한다. framePath는 이 계획에서는 항상 []([] — 프레임 경로는 Plan 01-07이 채운다).
+
+function textOrUndefined(text: string | null | undefined): string | undefined {
+  const trimmed = normalizeText(text);
+  return trimmed || undefined;
+}
+
+function ariaOf(el: Element): string | undefined {
+  const ariaLabel = textOrUndefined(el.getAttribute('aria-label'));
+  if (ariaLabel) {
+    return ariaLabel;
+  }
+  const labelledBy = el.getAttribute('aria-labelledby');
+  if (!labelledBy) {
+    return undefined;
+  }
+  const text = labelledBy
+    .split(/\s+/)
+    .map((id) => normalizeText(document.getElementById(id)?.textContent))
+    .filter((part) => part.length > 0)
+    .join(' ');
+  return textOrUndefined(text);
+}
+
+function labelTextOf(el: Element): string | undefined {
+  if (!('labels' in el)) {
+    return undefined;
+  }
+  const labels = (el as HTMLInputElement).labels;
+  if (!labels || labels.length === 0) {
+    return undefined;
+  }
+  return textOrUndefined(labels[0]?.textContent);
+}
+
+function buttonTextOf(el: Element): string | undefined {
+  const tag = el.tagName.toLowerCase();
+  if (tag === 'button' || el.getAttribute('role') === 'button') {
+    return textOrUndefined(el.textContent);
+  }
+  if (el instanceof HTMLInputElement && (el.type === 'submit' || el.type === 'button' || el.type === 'reset')) {
+    return textOrUndefined(el.value);
+  }
+  return undefined;
+}
+
+const DOM_PATH_MAX_DEPTH = 12;
+
+function domPathOf(el: Element): string {
+  const parts: string[] = [];
+  let node: Element | null = el;
+  let depth = 0;
+  while (node && depth < DOM_PATH_MAX_DEPTH) {
+    const current: Element = node;
+    const tag: string = current.tagName.toLowerCase();
+    const parent: Element | null = current.parentElement;
+    let index = 1;
+    if (parent) {
+      const siblings: Element[] = Array.from(parent.children).filter(
+        (child: Element) => child.tagName === current.tagName,
+      );
+      index = siblings.indexOf(current) + 1;
+    }
+    parts.unshift(`${tag}:nth-of-type(${index.toString()})`);
+    node = parent;
+    depth += 1;
+  }
+  return parts.join('>');
+}
+
+function computeFingerprint(el: Element): Fingerprint {
+  return {
+    id: textOrUndefined(el.id),
+    name: textOrUndefined(el.getAttribute('name')),
+    labelText: labelTextOf(el),
+    buttonText: buttonTextOf(el),
+    aria: ariaOf(el),
+    domPath: domPathOf(el),
+    framePath: [],
+  };
+}
+
 function kindOf(el: Element): string {
   const tag = el.tagName.toLowerCase();
   if (tag === 'button' || tag === 'a' || tag === 'input' || tag === 'select' || tag === 'textarea' || tag === 'summary') {
@@ -189,6 +274,7 @@ export function createCollector(opts: { signal: AbortSignal }): Collector {
         rect: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
         name: computeName(el),
         kind: kindOf(el),
+        fingerprint: computeFingerprint(el),
       });
     }
     currentItems = next;

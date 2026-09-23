@@ -20,6 +20,7 @@ let indicatorElement: HTMLDivElement | null = null;
 let mode: Mode = 'helper';
 let side: Side = 'left';
 let wasNearIndicator = false;
+let transientTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 export function ensureOverlayRoot(): ShadowRoot {
   if (shadowRoot) {
@@ -82,6 +83,10 @@ export function destroyOverlayRoot(): void {
   mode = 'helper';
   side = 'left';
   wasNearIndicator = false;
+  if (transientTimeoutId !== null) {
+    clearTimeout(transientTimeoutId);
+    transientTimeoutId = null;
+  }
 }
 
 function renderIndicatorContent(): void {
@@ -124,6 +129,22 @@ export function setMode(next: Mode): void {
   }
   hostElement.dataset.mode = mode;
   renderIndicatorContent();
+}
+
+// 상태 표(D-27): 모드 표시에 잠깐 다른 글자를 보여 준 뒤 ms 뒤에 원래 모드 글자로 되돌린다.
+// (번호표 "누를 곳이 없어요" 2초 등). 도우미가 켜져 있어야(showModeIndicator 호출됨) 뜬다.
+export function showTransientMessage(text: string, ms: number): void {
+  if (!hostElement || !indicatorElement) {
+    return;
+  }
+  if (transientTimeoutId !== null) {
+    clearTimeout(transientTimeoutId);
+  }
+  indicatorElement.textContent = text;
+  transientTimeoutId = setTimeout(() => {
+    transientTimeoutId = null;
+    renderIndicatorContent();
+  }, ms);
 }
 
 // 맨 위 프레임의 pointermove(pipeline.ts, D-04)가 부른다.

@@ -1,11 +1,34 @@
 import { createGridIndex } from '@/core/grid-index';
+import { orderHints, placeLabels, type HintEntry } from '@/core/hint-order';
 import { pickTarget } from '@/core/magnet';
 import { defaultSettings, SETTINGS_KEY, SettingsV1 } from '@/core/settings-schema';
 import { createCollector, type Item } from '@/page/collector/collector';
 import { synthesizePress } from '@/page/click/press';
 import { createInputPipeline } from '@/page/input/pipeline';
-import { hideModeIndicator, showModeIndicator } from '@/page/overlay/mode-indicator';
+import { hideModeIndicator, showModeIndicator, showTransientMessage } from '@/page/overlay/mode-indicator';
+import { hideHints, showHints, showNextCard } from '@/page/overlay/hints';
 import { hideRing, showRing } from '@/page/overlay/ring';
+
+const DIGIT_TO_NUMBER: Record<string, number> = {
+  Digit1: 1,
+  Digit2: 2,
+  Digit3: 3,
+  Digit4: 4,
+  Digit5: 5,
+  Digit6: 6,
+  Digit7: 7,
+  Digit8: 8,
+  Digit9: 9,
+  Numpad1: 1,
+  Numpad2: 2,
+  Numpad3: 3,
+  Numpad4: 4,
+  Numpad5: 5,
+  Numpad6: 6,
+  Numpad7: 7,
+  Numpad8: 8,
+  Numpad9: 9,
+};
 
 function pointInRect(x: number, y: number, rect: { x: number; y: number; w: number; h: number }): boolean {
   return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
@@ -112,9 +135,10 @@ export default defineContentScript({
       currentEnabled = enabled;
 
       if (!enabled) {
-        // 도우미가 꺼지면 테두리도 지운다(D-27).
+        // 도우미가 꺼지면 테두리·번호표도 지운다(D-27).
         currentTargetId = null;
         hideRing();
+        closeHints();
       }
 
       if (window.top === window) {
@@ -174,6 +198,105 @@ export default defineContentScript({
       }
       synthesizePress(el);
       return true;
+    });
+
+    // 번호표(D-11, D-15, CLICK-03): keymap.toggleHints(기본 F)로 켜고 끈다. 번호 순서는 이
+    // 계획에서는 고정 번호·누른 횟수 없이 커서 근처만(Task 3이 pins·presses를 채운다). 떠 있을
+    // 때만 숫자·0(다음 장)·Esc를 도우미가 쓴다.
+    let hintChapters: HintEntry[][] = [];
+    let hintChapterIndex = 0;
+    let hintsActive = false;
+
+    function closeHints(): void {
+      hintsActive = false;
+      hintChapters = [];
+      hintChapterIndex = 0;
+      hideHints();
+    }
+
+    function openChapter(index: number): void {
+      const chapter = hintChapters[index];
+      if (!chapter) {
+        return;
+      }
+      const rectByItemId = new Map(collector.items().map((item) => [item.id, item.rect]));
+      const placementEntries = chapter
+        .map((entry) => {
+          const rect = rectByItemId.get(entry.itemId);
+          return rect ? { itemId: entry.itemId, rect } : null;
+        })
+        .filter((entry): entry is { itemId: string; rect: Item['rect'] } => entry !== null);
+      const placements = new Map(placeLabels(placementEntries).map((p) => [p.itemId, p]));
+      const labels = chapter
+        .map((entry) => {
+          const placement = placements.get(entry.itemId);
+          return placement ? { number: entry.number, x: placement.x, y: placement.y } : null;
+        })
+        .filter((label): label is { number: number; x: number; y: number } => label !== null);
+
+      hideHints();
+      showHints(labels);
+      if (hintChapters.length > index + 1) {
+        showNextCard();
+      }
+    }
+
+    function openHints(): void {
+      const items = collector.items();
+      if (items.length === 0) {
+        showTransientMessage('누를 곳이 없어요', 2000);
+        return;
+      }
+      hintChapters = orderHints({ items, pins: [], presses: [], cursor: lastCursorPos ?? { x: 0, y: 0 } });
+      hintChapterIndex = 0;
+      hintsActive = true;
+      openChapter(0);
+    }
+
+    inputPipeline.onKey(({ code }) => {
+      if (!currentEnabled) {
+        return false;
+      }
+
+      if (code === currentSettings.data.keymap.toggleHints) {
+        if (hintsActive) {
+          closeHints();
+        } else {
+          openHints();
+        }
+        return true;
+      }
+
+      if (!hintsActive) {
+        return false;
+      }
+
+      if (code === currentSettings.data.keymap.cancel) {
+        closeHints();
+        return true;
+      }
+
+      if (code === 'Digit0') {
+        if (hintChapterIndex + 1 < hintChapters.length) {
+          hintChapterIndex += 1;
+          openChapter(hintChapterIndex);
+        }
+        return true;
+      }
+
+      const number = DIGIT_TO_NUMBER[code];
+      if (number !== undefined) {
+        const chapter = hintChapters[hintChapterIndex];
+        const entry = chapter?.find((candidate) => candidate.number === number);
+        const el = entry ? collector.get(entry.itemId) : undefined;
+        if (el) {
+          synthesizePress(el);
+        }
+        closeHints();
+        return true;
+      }
+
+      return false;
     });
 
     void chrome.storage.sync.get(SETTINGS_KEY).then((stored) => {
