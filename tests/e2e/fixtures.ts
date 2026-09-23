@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { test as base, chromium, type BrowserContext, type Page, type Worker } from '@playwright/test';
+import { test as base, expect, chromium, type BrowserContext, type Page, type Worker } from '@playwright/test';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const EXTENSION_PATH = path.resolve(__dirname, '../../.output/chrome-mv3');
@@ -68,6 +68,9 @@ export const test = base.extend<Fixtures>({
 
   serviceWorker: async ({ context }, use) => {
     const serviceWorker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
+    // skeleton.e2e.ts의 launchExtension()과 같은 이유: service worker 대상이 알려지는 시점과
+    // chrome.storage 같은 확장 API 바인딩이 실제로 주입되는 시점 사이의 짧은 틈을 기다린다.
+    await expect.poll(() => serviceWorker.evaluate(() => typeof chrome.storage !== 'undefined')).toBe(true);
     await use(serviceWorker);
   },
 

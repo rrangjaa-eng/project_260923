@@ -19,6 +19,11 @@ async function launchExtension(userDataDir = ''): Promise<{ context: BrowserCont
     args: [`--disable-extensions-except=${EXTENSION_PATH}`, `--load-extension=${EXTENSION_PATH}`],
   });
   const serviceWorker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
+  // Playwright가 service worker 대상을 알아채는 시점과 chrome.storage 같은 확장 API 바인딩이
+  // 실제로 그 worker의 전역에 주입되는 시점 사이에 짧은 틈이 있다(재현: 40회 중 1회, evaluate가
+  // "Cannot read properties of undefined (reading 'sync')"로 실패 — chrome.storage가 undefined).
+  // 바인딩이 갖춰질 때까지 기다린 뒤 넘긴다.
+  await expect.poll(() => serviceWorker.evaluate(() => typeof chrome.storage !== 'undefined')).toBe(true);
   return { context, serviceWorker };
 }
 
@@ -52,6 +57,17 @@ test('설치 직후 기본 설정이 형식 버전 1과 함께 storage.sync에 �
 test('이미 settings 값이 있으면 설치 처리가 덮어쓰지 않는다', async () => {
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tremor-helper-e2e-'));
   let launched = await launchExtension(userDataDir);
+
+  // 이 launchExtension() 자체가 첫 설치라 onInstalled → ensureDefaultSettings()의 비동기
+  // get→set 체인이 이미 백그라운드에서 돌고 있다(위 시험의 같은 사유). 그 체인이 자기 몫의
+  // set()을 끝내기 전에 여기서 sentinel을 곧바로 쓰면, 나중에 끝나는 백그라운드 set()이 sentinel을
+  // 덮어써 버리는 경쟁이 간헐적으로 생긴다(재현 확인됨) — 값이 먼저 나타나길 기다린 뒤에 덮어쓴다.
+  await expect
+    .poll(async () => {
+      const stored = await launched.serviceWorker.evaluate(async () => chrome.storage.sync.get('settings'));
+      return stored.settings;
+    })
+    .toBeDefined();
 
   const sentinel = { schemaVersion: 1, data: { marker: 'existing-value-should-survive' } };
   await launched.serviceWorker.evaluate(async (v) => {
