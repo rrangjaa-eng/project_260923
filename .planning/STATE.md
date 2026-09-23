@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-11-PLAN.md
-last_updated: "2026-09-23T22:15:24.275Z"
+stopped_at: Completed 01-12-PLAN.md
+last_updated: "2026-09-23T23:43:19.188Z"
 last_activity: 2026-09-23
 last_activity_desc: Phase 1 execution started
-state_head: 9d0e7e9782bca5f42f0db39e550bade9ef0282af
+state_head: a7f404108e739231ecd98e727dad673c5d963da9
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 16
-  completed_plans: 11
+  completed_plans: 12
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 ## Current Position
 
 Phase: 1 (클릭 도우미 기반) — EXECUTING
-Plan: 12 of 16
+Plan: 13 of 16
 Status: Ready to execute
 Last activity: 2026-09-23 — Phase 1 execution started
 
@@ -69,6 +69,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P09 | 31min | 3 tasks | 11 files |
 | Phase 01 P10 | 22min | 2 tasks | 10 files |
 | Phase 01 P11 | 25min | 2 tasks | 8 files |
+| Phase 01 P12 | 68min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,9 @@ Recent decisions affecting current work:
 - [Phase 1]: 자석 클릭은 dragTwoPress 대상(끌 수 있거나 끌기 시작 중)이면 '요소 위 클릭 통과' 예외를 건너뛰고 삼킨다 — 안 그러면 두 번 누르기가 동작하지 않는다
 - [Phase 1]: 연습 사이트 #drop을 role=button+cursor:pointer로 만들어 collector 후보 조건을 만족시켰다(놓을 곳도 기존 누르기 경로로 잡혀야 함)
 - [Phase 1]: 도우미 전체 꺼짐에서 끌기 시작 상태(dragTwoPress.cancel)와 힌트도 함께 정리한다 — 상태 누수 방지
+- [Phase 1]: select 판정 기준을 ArrowDown·Enter 값 변경에서 focus 이동+차단 메시지 없음으로 변경 — 헤드리스 select 팝업 키보드 탐색 한계
+- [Phase 1]: showPicker()는 트리거(스페이스바·머무르기)와 무관하게 이 샌드박스에서 항상 성공 — RESEARCH.md 가정과 다름
+- [Phase 1]: 네이티브 팝업 간섭 완화: page.close()+명시적 팝업 닫기+타임아웃 확대+spike.e2e.ts 파일 범위 retries:1
 
 ### Pending Todos
 
@@ -137,6 +141,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-23T22:15:24.222Z
-Stopped at: Completed 01-11-PLAN.md
+Last session: 2026-09-23T23:43:19.139Z
+Stopped at: Completed 01-12-PLAN.md
 Resume file: None
