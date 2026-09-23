@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-09-23T15:04:31.320Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-09-23T15:30:07.412Z"
 last_activity: 2026-09-23
 last_activity_desc: Phase 1 execution started
-state_head: 39925212e1a2ce8d116fce809dc2e7242cca8444
+state_head: 1a8f37572bd63c57ad1f478638c38d59701c8737
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 16
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 ## Current Position
 
 Phase: 1 (클릭 도우미 기반) — EXECUTING
-Plan: 2 of 16
+Plan: 3 of 16
 Status: Ready to execute
 Last activity: 2026-09-23 — Phase 1 execution started
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 01 P01 | 25min | 3 tasks | 12 files |
+| Phase 01 P02 | 12min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,8 @@ Recent decisions affecting current work:
 - [Phase 1]: playwright.config.ts 빌드는 별도 globalSetup 파일로(워커 재-import당 반복 빌드 방지), process.env.CI 분기는 forbidOnly로 config 자신에도 유지
 - [Phase 1]: chrome.runtime.reload()가 이 샌드박스 헤드리스 크로미움에서 새 SW를 관찰 가능하게 깨우지 않아, 재시작 보존 e2e는 같은 user-data-dir로 close+relaunch하는 방식 사용
 - [Phase 1]: @types/chrome 미승인 — src/types/chrome.d.ts에 이 계획이 쓰는 chrome.runtime/storage 표면만 최소 ambient 선언
+- [Phase 1]: frameStates는 Map이 아니라 평범한 중첩 객체로 구현 — Playwright serviceWorker.evaluate 직렬화가 Map을 보존하지 않음
+- [Phase 1]: TDD RED 확인은 check tdd-red-evidence 대신 수동 확인 — 그 도구는 node --test TAP 출력만 파싱해 Playwright e2e에는 적용 불가
 
 ### Pending Todos
 
@@ -99,6 +102,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-23T15:04:31.285Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-09-23T15:30:07.376Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None
