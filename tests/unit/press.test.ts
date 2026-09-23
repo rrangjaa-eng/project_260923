@@ -17,7 +17,7 @@ function stubRect(el: Element, rect: { x: number; y: number; width: number; heig
     toJSON() {
       return this;
     },
-  } as DOMRect);
+  });
 }
 
 const PRESS_EVENT_TYPES = ['pointerover', 'pointerenter', 'mouseover', 'pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
@@ -101,7 +101,9 @@ describe('synthesizePress', () => {
     const input = document.createElement('input');
     document.body.append(input);
     stubRect(input, { x: 0, y: 0, width: 100, height: 20 });
-    input.addEventListener('mousedown', (e) => e.preventDefault());
+    input.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+    });
 
     const focusHandler = vi.fn();
     input.addEventListener('focus', focusHandler);
@@ -117,19 +119,22 @@ describe('synthesizePress', () => {
     document.body.append(el);
     stubRect(el, { x: 0, y: 0, width: 20, height: 20 });
 
-    let clickEvent: MouseEvent | null = null;
+    const clicks: MouseEvent[] = [];
     el.addEventListener('click', (e) => {
-      clickEvent = e as MouseEvent;
+      clicks.push(e);
     });
 
     synthesizePress(el);
 
-    expect(clickEvent).not.toBeNull();
-    const evt = clickEvent as unknown as MouseEvent;
-    expect(evt.bubbles).toBe(true);
-    expect(evt.cancelable).toBe(true);
-    expect(evt.composed).toBe(true);
-    expect(evt.button).toBe(0);
-    expect(evt.detail).toBe(1);
+    expect(clicks).toHaveLength(1);
+    const clickEvent = clicks[0];
+    if (!clickEvent) {
+      throw new Error('click 이벤트가 도착하지 않았다');
+    }
+    expect(clickEvent.bubbles).toBe(true);
+    expect(clickEvent.cancelable).toBe(true);
+    expect(clickEvent.composed).toBe(true);
+    expect(clickEvent.button).toBe(0);
+    expect(clickEvent.detail).toBe(1);
   });
 });
