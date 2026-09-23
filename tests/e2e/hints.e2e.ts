@@ -1,16 +1,20 @@
 import { test, expect } from './fixtures';
-import type { Page } from '@playwright/test';
+import type { Page, Worker } from '@playwright/test';
 
-// D-11·D-15·CLICK-03: keymap.toggleHints(기본 F)로 번호표를 켜고 끄고, 떠 있을 때만 숫자·0·Esc를
-// 도우미가 쓴다. 번호는 1부터 중복 없이, 28×28px 이상, 서로 겹치지 않는다. 누를 곳이 없으면 모드
-// 표시에 "누를 곳이 없어요" 2초, 9개 넘으면 "0 다음 번호" 카드로 다음 9개를 본다. 연습 사이트는
+// D-11·D-15·D-23·D-24·CLICK-03: keymap.toggleHints(기본 F)로 번호표를 켜고 끄고, 떠 있을 때만
+// 숫자·0·Esc를 도우미가 쓴다. 번호는 1부터 중복 없이, 28×28px 이상, 서로 겹치지 않는다. 누를 곳이
+// 없으면 모드 표시에 "누를 곳이 없어요" 2초, 9개 넘으면 "0 다음 번호" 카드로 다음 9개를 본다.
+// 자주 누른 기록(storage.local)·고정 번호(storage.sync)가 번호 순서에 반영된다. 연습 사이트는
 // tests/practice-site/targets.html·shortcuts.html(D-28) + 이 파일이 등록하는 11개 버튼 페이지.
 
+// name=id도 함께 달아 둔다 — Task 3의 고정 번호 시험이 domPath 없이도(id+name 2개 일치)
+// isSameElement를 만족시켜 실제 collector의 domPath 계산 방식을 시험이 몰라도 되게 한다.
 const MANY_BUTTONS_HTML = `<!doctype html><html><body style="margin:0">
 <script>
   function makeBtn(id, x) {
     var b = document.createElement('button');
     b.id = id;
+    b.name = id;
     b.textContent = id;
     b.dataset.count = '0';
     b.style.position = 'absolute';
@@ -70,6 +74,68 @@ async function indicatorText(page: Page): Promise<string> {
 // 먹는다 — 고정 시간 대기 대신 모드 표시가 "도우미"로 뜨는 것을 직접 확인해 경합을 없앤다.
 async function waitForHelperReady(page: Page): Promise<void> {
   await expect.poll(() => indicatorText(page)).toBe('도우미');
+}
+
+// 어떤 요소가 몇 번 번호표를 받았는지: 그 요소의 기본 배치 자리(왼쪽 위 바깥 −14px,−14px)에
+// 가장 가까운 번호표를 찾는다. 이 페이지의 버튼은 서로 60px 떨어져 있어 겹침 대안 자리로 옮겨도
+// 다른 버튼의 자리보다는 항상 가깝다.
+async function numberForElement(page: Page, elementId: string): Promise<string> {
+  const box = await page.locator(`#${elementId}`).boundingBox();
+  if (!box) {
+    throw new Error(`요소를 찾지 못했다: ${elementId}`);
+  }
+  return page.evaluate(
+    ({ x, y }) => {
+      const host = document.querySelector('tremor-helper-root');
+      const labels = host?.shadowRoot?.querySelectorAll('.hint-label');
+      if (!labels) {
+        return '';
+      }
+      let closestText = '';
+      let closestDistance = Number.POSITIVE_INFINITY;
+      for (const label of Array.from(labels)) {
+        const rect = label.getBoundingClientRect();
+        const distance = Math.hypot(rect.x - (x - 14), rect.y - (y - 14));
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestText = label.textContent;
+        }
+      }
+      return closestText;
+    },
+    { x: box.x, y: box.y },
+  );
+}
+
+interface PressesShape {
+  schemaVersion: number;
+  isArray: boolean;
+}
+
+async function readPressesShape(serviceWorker: Worker, origin: string): Promise<PressesShape | null> {
+  const key = `presses:${origin}`;
+  return serviceWorker.evaluate(async (storageKey) => {
+    const result = await chrome.storage.local.get(storageKey);
+    const stored = result[storageKey] as { schemaVersion?: number; data?: { counts?: unknown } } | undefined;
+    if (!stored) {
+      return null;
+    }
+    return { schemaVersion: stored.schemaVersion ?? -1, isArray: Array.isArray(stored.data?.counts) };
+  }, key);
+}
+
+async function readPressesCount(serviceWorker: Worker, origin: string, elementId: string): Promise<number> {
+  return serviceWorker.evaluate(
+    async ({ storageKey, id }) => {
+      const result = await chrome.storage.local.get(storageKey);
+      const stored = result[storageKey] as
+        | { data: { counts: Array<{ fingerprint: { id?: string }; count: number }> } }
+        | undefined;
+      const entry = stored?.data.counts.find((c) => c.fingerprint.id === id);
+      return entry?.count ?? 0;
+    },
+    { storageKey: `presses:${origin}`, id: elementId },
+  );
 }
 
 function boxesOverlap(a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }): boolean {
@@ -246,4 +312,104 @@ test('입력칸에 초점이 있으면 F는 글자로 들어간다(번호표 안
 
   await expect(page.locator('#text-input')).toHaveValue('f');
   expect((await labelTexts(page)).length).toBe(0);
+});
+
+test('번호표로 같은 요소를 3번 누른 뒤 새로 고치고 F → 그 요소가 1번(고정 번호 없음)', async ({ context, servePage }) => {
+  servePage('http://practice.test/hints-many.html', MANY_BUTTONS_HTML);
+  const page = await context.newPage();
+  await page.goto('http://practice.test/hints-many.html');
+  await waitForHelperReady(page);
+  await page.waitForTimeout(100);
+
+  for (let i = 0; i < 3; i += 1) {
+    await page.keyboard.press('KeyF');
+    await page.waitForTimeout(50);
+    const number = await numberForElement(page, 'btn-1');
+    await page.keyboard.press(`Digit${number}`);
+    // recordPress(content→SW→storage.local) 왕복과 다음 F까지 떨림 간격(300ms, D-07) 확보.
+    await page.waitForTimeout(450);
+  }
+
+  await page.reload();
+  await waitForHelperReady(page);
+  await page.waitForTimeout(100);
+
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(50);
+
+  expect(await numberForElement(page, 'btn-1')).toBe('1');
+});
+
+test('SW가 site:<origin>에 고정 번호를 쓰면 F에서 그 요소가 그 번호가 된다', async ({ context, servePage, serviceWorker }) => {
+  servePage('http://practice.test/hints-many.html', MANY_BUTTONS_HTML);
+  const page = await context.newPage();
+  await page.goto('http://practice.test/hints-many.html');
+  await waitForHelperReady(page);
+  await page.waitForTimeout(100);
+
+  await serviceWorker.evaluate(async () => {
+    await chrome.storage.sync.set({
+      'site:http://practice.test': {
+        schemaVersion: 1,
+        data: {
+          disabled: false,
+          pins: [
+            {
+              number: 5,
+              fingerprint: { id: 'btn-2', name: 'btn-2', domPath: 'pinned', framePath: [] },
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(50);
+
+  expect(await numberForElement(page, 'btn-2')).toBe('5');
+});
+
+test('누르기 뒤 storage.local의 presses가 형식대로 저장되고 그 요소의 count가 는다', async ({
+  context,
+  servePage,
+  serviceWorker,
+}) => {
+  servePage('http://practice.test/hints-many.html', MANY_BUTTONS_HTML);
+  const page = await context.newPage();
+  await page.goto('http://practice.test/hints-many.html');
+  await waitForHelperReady(page);
+  await page.waitForTimeout(100);
+
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(50);
+  const number = await numberForElement(page, 'btn-0');
+  await page.keyboard.press(`Digit${number}`);
+  await page.waitForTimeout(200);
+
+  const shape = await readPressesShape(serviceWorker, 'http://practice.test');
+  expect(shape).toEqual({ schemaVersion: 1, isArray: true });
+
+  const count = await readPressesCount(serviceWorker, 'http://practice.test', 'btn-0');
+  expect(count).toBeGreaterThanOrEqual(1);
+});
+
+test('자석 커서로 누른 요소도 누른 횟수에 들어간다', async ({ context, serviceWorker }) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/targets.html');
+  await waitForHelperReady(page);
+
+  const box = await page.locator('#btn-tiny').boundingBox();
+  if (!box) {
+    throw new Error('버튼을 찾지 못했다');
+  }
+  const x = box.x - 30;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.waitForTimeout(50);
+  await page.mouse.click(x, y);
+  await page.waitForTimeout(200);
+
+  const count = await readPressesCount(serviceWorker, 'http://practice.test', 'btn-tiny');
+  expect(count).toBeGreaterThanOrEqual(1);
 });
