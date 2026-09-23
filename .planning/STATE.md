@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-05-PLAN.md
-last_updated: "2026-09-23T18:15:20.043Z"
+stopped_at: Completed 01-06-PLAN.md
+last_updated: "2026-09-23T19:03:13.126Z"
 last_activity: 2026-09-23
 last_activity_desc: Phase 1 execution started
-state_head: 19ace102494d26521fb3e687b8301ebd94a7dc66
+state_head: d489d0575fe0e0dc8bd21e1becaebbd3be9ca767
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 16
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 ## Current Position
 
 Phase: 1 (클릭 도우미 기반) — EXECUTING
-Plan: 6 of 16
+Plan: 7 of 16
 Status: Ready to execute
 Last activity: 2026-09-23 — Phase 1 execution started
 
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P03 | 11min | 3 tasks | 9 files |
 | Phase 01 P04 | 40min | 2 tasks | 11 files |
 | Phase 01 P05 | 26min | 2 tasks | 8 files |
+| Phase 1 P06 | 36min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,9 @@ Recent decisions affecting current work:
 - [Phase 1]: 선행 조치: skeleton.e2e.ts 재시작 보존 시험의 간헐적 실패 두 근본 원인(서비스워커 API 바인딩 경쟁, onInstalled 기본값 쓰기 경쟁)을 systematic-debugging으로 찾아 고쳤다(fix(01-01))
 - [Phase 1]: [Phase 1] shortcuts.html은 keydown을 window capture 한 곳에만 등록(도우미 꺼짐 시 카운터 이중 계수를 피하려는 설계 재량, plan '가정' 문단 범위 안)
 - [Phase 1]: [Phase 1] onPress는 pointerdown 좌표로 evaluateMagnet()을 동기 재호출해, rAF로 미뤄진 자석 재계산 지연 경합(이동 직후 클릭 시 이전 요소가 대신 눌림)을 고쳤다(Rule 1)
+- [Phase 1]: 핑거프린트 매치스코어(6키 중 2+ 일치, framePath 불일치시 0)로 요소 동일성 판정
+- [Phase 1]: 힌트 순서: 핀 번호 우선 → 누른 횟수 내림차순 → 커서 거리 오름차순, 9개씩 페이지네이션
+- [Phase 1]: recordPress는 sender.url 기반 origin과 요청 origin을 대조해 위조 방지(T-01-16), press 기록은 200건 상한
 
 ### Pending Todos
 
@@ -113,6 +117,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-23T18:15:11.816Z
-Stopped at: Completed 01-05-PLAN.md
+Last session: 2026-09-23T19:03:13.083Z
+Stopped at: Completed 01-06-PLAN.md
 Resume file: None
