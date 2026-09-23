@@ -16,8 +16,9 @@
     </style>
   </head>
   <body>
-    <!-- 아주 작은 버튼(D-28) — 커서가 대충 가져가도 잡히는지 시험 -->
+    <!-- 아주 작은 버튼(D-28) — 커서가 대충 가져가도 잡히는지 시험. 카운터는 대신 누르기(Plan 01-05) -->
     <button id="btn-tiny" data-el style="left: 50px; top: 50px; width: 12px; height: 12px; padding: 0"></button>
+    <span id="btn-tiny-count">0</span>
 
     <!-- 히스테리시스 시험용 A·B, 60px 간격(왼쪽 끝 기준) -->
     <button id="btn-a" data-el style="left: 300px; top: 50px; width: 12px; height: 12px; padding: 0"></button>
@@ -69,6 +70,15 @@
     <!-- 늦게 나타나는 입력칸(1초 뒤) -->
     <div id="late-container" style="position: absolute; left: 300px; top: 150px; width: 150px; height: 30px"></div>
 
+    <!-- 대신 누르기 시험(Plan 01-05, CLICK-02·KEY-02) -->
+    <!-- 체크박스: 스페이스바로 대신 눌러 상태가 바뀌는지 -->
+    <input id="chk-space" type="checkbox" data-el style="left: 850px; top: 50px; width: 20px; height: 20px" />
+    <!-- 링크: 대신 눌러 다음 페이지로 이동하는지 -->
+    <a id="nav-link" href="next.html" data-el style="left: 850px; top: 100px; width: 80px; height: 30px; background: #ddd">다음</a>
+    <!-- 바탕(요소가 없는 곳) 클릭 카운터 — 잡힌 요소가 없을 때 원래 클릭이 그대로 가는지,
+         잡힌 요소 밖 클릭이 바탕까지 새지 않는지 확인한다 -->
+    <span id="bg-click-count">0</span>
+
     <script>
       var form = document.getElementById('long-form');
       for (var i = 0; i < 20; i += 1) {
@@ -94,6 +104,23 @@
         late.style.height = '30px';
         document.getElementById('late-container').appendChild(late);
       }, 1000);
+
+      var btnTinyCountEl = document.getElementById('btn-tiny-count');
+      var btnTinyCount = 0;
+      document.getElementById('btn-tiny').addEventListener('click', function (e) {
+        btnTinyCount += 1;
+        btnTinyCountEl.textContent = String(btnTinyCount);
+        btnTinyCountEl.setAttribute('data-last-trusted', String(e.isTrusted));
+      });
+
+      var bgClickCountEl = document.getElementById('bg-click-count');
+      var bgClickCount = 0;
+      document.body.addEventListener('click', function (e) {
+        if (e.target === document.body || e.target === document.documentElement) {
+          bgClickCount += 1;
+          bgClickCountEl.textContent = String(bgClickCount);
+        }
+      });
     </script>
   </body>
 </html>
