@@ -33,6 +33,14 @@
 # Node
 node_modules/
 
+# WXT build output / prepared types (Plan 01-01)
+.output/
+.wxt/
+
+# Playwright test artifacts (Plan 01-01)
+test-results/
+playwright-report/
+
 # Local env (scripts/dev-db.sh writes .env.local)
 .env
 .env.*
