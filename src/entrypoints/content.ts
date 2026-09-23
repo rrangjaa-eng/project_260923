@@ -15,7 +15,7 @@ import {
 } from '@/core/settings-schema';
 import { buildFrameReport, createCollector, type Item } from '@/page/collector/collector';
 import { synthesizePress } from '@/page/click/press';
-import { createInputPipeline } from '@/page/input/pipeline';
+import { createInputPipeline, type ModalEvent } from '@/page/input/pipeline';
 import { currentMode } from '@/page/input/mode';
 import { closeConfirm, openConfirm } from '@/page/overlay/confirm-dialog';
 import { hideModeIndicator, setMode, showModeIndicator, showTransientMessage } from '@/page/overlay/mode-indicator';
@@ -90,6 +90,10 @@ export default defineContentScript({
     let childHintsVisible = false;
     let lastChildMode: 'helper' | 'typing' | null = null;
 
+    // 확인 화면(Plan 01-09 Task 3, D-03, D-09): 맨 위만 쓴다 — 현재 열린 확인의 guard로 보내는
+    // 함수(confirm/key로 자식이 전달한 키도 이 함수를 부른다, t는 맨 위 시계로 다시 잰다).
+    let activeConfirmKeyHandler: ((e: ModalEvent) => void) | null = null;
+
     // 자석 커서(D-10, D-04): 이 프레임에서 바로 계산한다(D-02) — collector가 모은 요소를 grid로
     // 색인하고, pointermove마다 가장 가까운 요소를 잡아 테두리를 보여 준다.
     const magnetController = new AbortController();
@@ -156,6 +160,30 @@ export default defineContentScript({
         // Task 3: 자식 프레임 자신의 입력 모드 — 초점이 그 프레임에 위임돼 있을 때만 화면에 쓴다.
         lastChildMode = message.mode;
         refreshModeDisplay();
+        return undefined;
+      }
+
+      if (message.type === 'confirm/state' && !isTopFrame) {
+        // Task 3(D-09, T-01-24): 맨 위가 확인 화면을 열고 닫을 때 자식 프레임에 방송한다 — 이
+        // 프레임도 자기 isTrusted 키를 모두 삼켜 confirm/key로 맨 위에 보낸다(직접 판단하지 않음).
+        if (message.open) {
+          inputPipeline.setModal((e) => {
+            if (e.type === 'tick') {
+              // 보호·누르고 있기 시간은 언제나 맨 위 시계 기준(맨 위가 잰다) — 여기선 무시.
+              return;
+            }
+            void chrome.runtime.sendMessage({ type: 'confirm/key', kind: e.type, code: e.code, repeat: e.repeat });
+          });
+        } else {
+          inputPipeline.setModal(null);
+        }
+        return undefined;
+      }
+
+      if (message.type === 'confirm/key' && isTopFrame) {
+        // Task 3(D-03, D-09): 자식 프레임이 삼켜 보낸 키 — 판단은 맨 위에서, 시각은 맨 위 시계로
+        // 다시 잰다(보호 시간이 어느 프레임의 시계를 신뢰하는지 뒤섞이지 않게).
+        activeConfirmKeyHandler?.({ type: message.kind, code: message.code, repeat: message.repeat, t: performance.now() });
         return undefined;
       }
 
@@ -447,7 +475,10 @@ export default defineContentScript({
 
       function finish(result: 'confirm' | 'cancel'): void {
         inputPipeline.setModal(null);
+        activeConfirmKeyHandler = null;
         closeConfirm();
+        // T-01-26: 자식 프레임에 확인 화면이 닫혔음을 알려 그 프레임의 pipeline.setModal도 풀어준다.
+        void chrome.runtime.sendMessage({ type: 'confirm/state', open: false });
         if (result === 'confirm') {
           pressHintEntry(itemId);
         }
@@ -459,13 +490,15 @@ export default defineContentScript({
           finish('cancel');
         },
       });
+      void chrome.runtime.sendMessage({ type: 'confirm/state', open: true });
 
-      inputPipeline.setModal((e) => {
+      activeConfirmKeyHandler = (e) => {
         const result = e.type === 'tick' ? guard.tick(e.t) : guard.handle(e);
         if (result === 'confirm' || result === 'cancel') {
           finish(result);
         }
-      });
+      };
+      inputPipeline.setModal(activeConfirmKeyHandler);
     }
 
     async function openHints(): Promise<void> {

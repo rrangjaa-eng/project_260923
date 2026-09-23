@@ -119,6 +119,23 @@ const FrameStateMessage = z.object({
   enabled: z.boolean(),
 });
 
+// 맨 위 → SW → 탭의 모든 프레임(방송, Plan 01-09 Task 3, D-09): sender.frameId === 0일 때만
+// relay가 받는다(T-01-26) — 자식 프레임은 이 값으로 자기 pipeline.setModal을 켜고 끈다.
+const ConfirmStateMessage = z.object({
+  type: z.literal('confirm/state'),
+  open: z.boolean(),
+});
+
+// 자식 프레임 → SW → 맨 위(Plan 01-09 Task 3, D-03, D-09): 초점이 자식 프레임 안에 있을 때 그
+// 프레임이 삼킨 keydown·keyup을 실어 보낸다. 시각(t)은 싣지 않는다 — 보호 시간은 언제나 맨 위
+// 시계(performance.now(), 메시지가 도착한 시각) 기준이다.
+const ConfirmKeyMessage = z.object({
+  type: z.literal('confirm/key'),
+  kind: z.enum(['keydown', 'keyup']),
+  code: z.string(),
+  repeat: z.boolean(),
+});
+
 export const Message = z.discriminatedUnion('type', [
   StorageRequestMessage,
   FrameStateMessage,
@@ -130,6 +147,8 @@ export const Message = z.discriminatedUnion('type', [
   FrameRefreshMessage,
   HintsKeyMessage,
   ModeReportMessage,
+  ConfirmStateMessage,
+  ConfirmKeyMessage,
 ]);
 export type Message = z.infer<typeof Message>;
 

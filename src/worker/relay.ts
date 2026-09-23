@@ -118,6 +118,26 @@ export function createRelay(): Relay {
 
       if (message.type === 'mode/report') {
         void chrome.tabs.sendMessage(tabId, { type: 'mode/report', mode: message.mode }, { frameId: 0 });
+        return;
+      }
+
+      if (message.type === 'confirm/state') {
+        if (senderFrameId !== 0) {
+          // T-01-26: 확인 화면을 열고 닫는 결정은 언제나 맨 위만 한다.
+          return;
+        }
+        // frameId를 생략하면 탭의 모든 프레임에 간다(자식이 자기 pipeline.setModal을 켜고 끈다).
+        void chrome.tabs.sendMessage(tabId, { type: 'confirm/state', open: message.open });
+        return;
+      }
+
+      if (message.type === 'confirm/key') {
+        // 어느 프레임에서 왔든 guard 판단은 언제나 맨 위(frameId 0)가 한다(hints/key와 같은 이유).
+        void chrome.tabs.sendMessage(
+          tabId,
+          { type: 'confirm/key', kind: message.kind, code: message.code, repeat: message.repeat },
+          { frameId: 0 },
+        );
       }
     },
   };
