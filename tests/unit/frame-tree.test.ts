@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { composeTree, type FrameReport } from '../../src/core/frame-tree';
+import { composeTree, resolveReports, type FrameReport, type RawFrameReport } from '../../src/core/frame-tree';
 import type { Fingerprint } from '../../src/core/fingerprint';
 
 // D-03(RESEARCH Pattern 2): 각 프레임이 보고한 요소·자식 iframe 오프셋·잘림(clip)을 맨 위
@@ -165,5 +165,77 @@ describe('composeTree', () => {
     expect(() => composeTree(reports)).not.toThrow();
     const result = composeTree(reports);
     expect(result.map((r) => r.itemId)).toEqual(['looped']);
+  });
+});
+
+// RESEARCH A2 정정: chrome.runtime.getFrameId가 Chrome에 없어(Firefox 전용이었다) 자식
+// frameId를 직접 물어볼 수 없다. 각 프레임이 스스로 계산한 창 위치 경로(selfPath, D-03)와
+// 부모가 보고하는 자식의 상대 순번(index)만으로, 실제 frameId(sender.frameId, 신뢰값)를
+// 맞춰 composeTree가 그대로 쓸 수 있는 형태로 바꾼다.
+function rawReport(overrides: Partial<RawFrameReport> & { frameId: number; selfPath: number[] }): RawFrameReport {
+  return { items: [], children: [], ...overrides };
+}
+
+describe('resolveReports', () => {
+  it('경로가 일치하는 자식을 실제 frameId로 바꾼다', () => {
+    const entries = [
+      {
+        frameId: 0,
+        report: rawReport({
+          frameId: 0,
+          selfPath: [],
+          children: [{ index: 2, offset: { x: 10, y: 10 }, clip: { x: 0, y: 0, w: 100, h: 100 }, pathKey: 'child' }],
+        }),
+      },
+      { frameId: 7, report: rawReport({ frameId: 7, selfPath: [2] }) },
+    ];
+
+    const resolved = resolveReports(entries);
+
+    expect(resolved.get(0)?.children).toEqual([
+      { childFrameId: 7, offset: { x: 10, y: 10 }, clip: { x: 0, y: 0, w: 100, h: 100 }, pathKey: 'child' },
+    ]);
+  });
+
+  it('경로가 아직 알려지지 않은 자식은 건너뛴다(오류 없음)', () => {
+    const entries = [
+      {
+        frameId: 0,
+        report: rawReport({
+          frameId: 0,
+          selfPath: [],
+          children: [{ index: 5, offset: { x: 0, y: 0 }, clip: { x: 0, y: 0, w: 10, h: 10 }, pathKey: 'unknown' }],
+        }),
+      },
+    ];
+
+    expect(() => resolveReports(entries)).not.toThrow();
+    expect(resolveReports(entries).get(0)?.children).toEqual([]);
+  });
+
+  it('결과는 frame-tree의 composeTree가 그대로 쓸 수 있는 FrameReport 모양이다', () => {
+    const entries = [
+      {
+        frameId: 0,
+        report: rawReport({
+          frameId: 0,
+          selfPath: [],
+          items: [{ id: 'top', rect: { x: 0, y: 0, w: 10, h: 10 }, fingerprint: fp() }],
+          children: [{ index: 0, offset: { x: 5, y: 5 }, clip: { x: 0, y: 0, w: 50, h: 50 }, pathKey: 'c' }],
+        }),
+      },
+      {
+        frameId: 3,
+        report: rawReport({
+          frameId: 3,
+          selfPath: [0],
+          items: [{ id: 'child', rect: { x: 1, y: 1, w: 1, h: 1 }, fingerprint: fp() }],
+        }),
+      },
+    ];
+
+    const composed = composeTree(resolveReports(entries));
+
+    expect(composed.find((r) => r.itemId === 'child')?.fingerprint.framePath).toEqual(['c']);
   });
 });
