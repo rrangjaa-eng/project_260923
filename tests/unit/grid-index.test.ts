@@ -62,7 +62,7 @@ describe('createGridIndex', () => {
     const items: Item[] = [];
     for (let i = 0; i < 5000; i += 1) {
       items.push({
-        id: `item-${i}`,
+        id: `item-${i.toString()}`,
         rect: {
           x: rand() * 10000,
           y: rand() * 10000,
