@@ -8,7 +8,9 @@ import { setMode, updateIndicatorProximity } from '@/page/overlay/mode-indicator
 // Pattern 1(RESEARCH.md) — document_start에서 등록해야 사이트 스크립트보다 앞선다.
 
 export type KeyHandler = (input: { code: string }) => boolean;
-export type PressHandler = (input: { x: number; y: number }) => boolean;
+// true를 돌려주면 그 누름 묶음(pointerdown~click)을 삼킨다. 함수를 돌려주면 같은 뜻이면서,
+// 묶음의 click 시점에("누름·뗌이 끝난 뒤 누르기") 그 함수를 "실행" 신호로 부른다(D-13, D-17).
+export type PressHandler = (input: { x: number; y: number }) => boolean | (() => void);
 
 // D-04: 마우스 움직임 계산은 1초 60번까지만.
 const POINTER_MOVE_MIN_INTERVAL_MS = 1000 / 60;
@@ -26,6 +28,7 @@ export function createInputPipeline(opts: { getSettings: () => SettingsV1; signa
   let filterSameSpotPx = -1;
   const swallowedKeyCodes = new Set<string>();
   let pressSwallowed = false;
+  let pendingPressExecute: (() => void) | null = null;
   let lastPointerMoveAt = 0;
   const keyHandlers: KeyHandler[] = [];
   const pressHandlers: PressHandler[] = [];
@@ -92,10 +95,27 @@ export function createInputPipeline(opts: { getSettings: () => SettingsV1; signa
 
       for (const handler of keyHandlers) {
         if (handler({ code: event.code })) {
+          // 도우미가 이 키를 썼다(D-17) — 같은 code의 뒤따르는 keypress·keyup도 삼켜야
+          // 사이트 단축키(keydown 대신 keypress·keyup을 쓰는 것 포함)보다 도우미가 앞선다.
+          swallowedKeyCodes.add(event.code);
           event.preventDefault();
           event.stopImmediatePropagation();
           return;
         }
+      }
+    },
+    { capture: true, signal },
+  );
+
+  window.addEventListener(
+    'keypress',
+    (event) => {
+      if (!event.isTrusted || !isHelperEnabled()) {
+        return;
+      }
+      if (swallowedKeyCodes.has(event.code)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
       }
     },
     { capture: true, signal },
@@ -130,8 +150,10 @@ export function createInputPipeline(opts: { getSettings: () => SettingsV1; signa
         return;
       }
       for (const handler of pressHandlers) {
-        if (handler({ x: event.clientX, y: event.clientY })) {
+        const result = handler({ x: event.clientX, y: event.clientY });
+        if (result) {
           pressSwallowed = true;
+          pendingPressExecute = typeof result === 'function' ? result : null;
           event.preventDefault();
           event.stopImmediatePropagation();
           return;
@@ -156,7 +178,20 @@ export function createInputPipeline(opts: { getSettings: () => SettingsV1; signa
   window.addEventListener('mousedown', swallowIfPressRejected, { capture: true, signal });
   window.addEventListener('pointerup', swallowIfPressRejected, { capture: true, signal });
   window.addEventListener('mouseup', swallowIfPressRejected, { capture: true, signal });
-  window.addEventListener('click', swallowIfPressRejected, { capture: true, signal });
+  window.addEventListener(
+    'click',
+    (event) => {
+      swallowIfPressRejected(event);
+      // 누름 묶음이 끝났다(뗌 뒤 누르기, D-13) — 도우미가 대신 누르기로 받아들인 경우에만
+      // 처리기에 "실행" 신호를 준다(필터가 거절한 묶음은 실행하지 않는다).
+      if (event.isTrusted && isHelperEnabled() && pendingPressExecute) {
+        const execute = pendingPressExecute;
+        pendingPressExecute = null;
+        execute();
+      }
+    },
+    { capture: true, signal },
+  );
 
   window.addEventListener(
     'dblclick',
