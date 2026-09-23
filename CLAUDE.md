@@ -54,11 +54,11 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 > 여기엔 "몇 달 뒤에도 그대로인 것"만. 진행 상황·날짜·TODO는 GSD `.planning/`에.
 
 ## 프로젝트
-- 이름 / 한 줄 설명: PLANT8 ERP — BTL 광고대행사의 프로젝트·지출결의·법인카드·손익 관리 시스템(PHP 인트라넷 대체, 10→30명)
-- 스택: Next.js 16(App Router, RSC + Server Actions via next-safe-action) + TypeScript 6 strict · domain/·repositories/ 4계층 + Drizzle ORM · PostgreSQL(Cloud SQL, 서울) · Cloud Run(서울, 회사 GCP) + Cloud Scheduler + GCS + Secret Manager
+- 이름 / 한 줄 설명: 손 떨림 브라우저 도우미(이름 미정) — 뇌병변 장애로 손 떨림이 있는 이용자 한 사람이 기존 브라우저(크롬·엣지·웨일)에서 빠르게 누르고, 반복 업무 양식을 틀로 처리하게 돕는 MV3 확장
+- 스택(예정, 의존성은 승인 후 도입): WXT(Vite) + TypeScript strict + Preact(Shadow DOM 오버레이) + zod · 테스트 Vitest + Playwright(확장 로드) · 서버 없음(브라우저 저장소만) · AI는 "화면 정리"에서만 Claude Haiku
 - 패키지 매니저: pnpm (다른 것 금지)
-- 명령: dev `pnpm dev` · test `pnpm test`(단위→통합→E2E) · lint `pnpm lint`(+ `pnpm typecheck` · `pnpm lint:sql`) · build `pnpm build` — 통합·E2E는 로컬 DB가 필요하다(`pnpm db:dev`)
-- 구조: `docs/ARCHITECTURE.md` · 디자인: `docs/DESIGN.md` — 둘 다 필요할 때 Read (import 금지)
+- 명령(1단계에서 만든다): dev `pnpm dev` · test `pnpm test`(단위→확장 E2E) · lint `pnpm lint`(+ `pnpm typecheck`) · build `pnpm build`
+- 설계: `docs/superpowers/specs/2026-09-23-tremor-browser-helper-design.md` · 계획: `.planning/` · 디자인: `docs/DESIGN.md`, 기준 `docs/design/SYSTEM.md` — 필요할 때 Read (import 금지)
 
 ## 워크플로: Pre-build(gstack) → Build(GSD+Superpowers) → Post-build(gstack)
 
