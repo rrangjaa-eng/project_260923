@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-07-PLAN.md
-last_updated: "2026-09-23T20:24:03.292Z"
+stopped_at: Completed 01-08-PLAN.md
+last_updated: "2026-09-23T20:50:03.187Z"
 last_activity: 2026-09-23
 last_activity_desc: Phase 1 execution started
-state_head: 5ecbbb71b126f5a723041d1c39db12b924934b4e
+state_head: 8746a2bcaf1a54a3b75afeba4023340868c39b81
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 16
-  completed_plans: 7
+  completed_plans: 8
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 ## Current Position
 
 Phase: 1 (클릭 도우미 기반) — EXECUTING
-Plan: 8 of 16
+Plan: 9 of 16
 Status: Ready to execute
 Last activity: 2026-09-23 — Phase 1 execution started
 
@@ -65,6 +65,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P05 | 26min | 2 tasks | 8 files |
 | Phase 1 P06 | 36min | 3 tasks | 14 files |
 | Phase 01 P07 | 75min | 3 tasks | 15 files |
+| Phase 01 P08 | 24min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,8 @@ Recent decisions affecting current work:
 - [Phase 1]: RESEARCH A2 정정: chrome.runtime.getFrameId는 Chrome에 없다(Firefox 전용) — 각 프레임이 스스로 계산하는 창 위치 경로(selfPath)와 부모의 상대 순번(index)을 relay.ts가 맞추는 방식으로 프레임 식별을 재설계
 - [Phase 1]: relay.ts: 형제 iframe이 지워져 순번이 당겨지면 옛 경로의 보고를 지우고 frame/refresh를 방송해 모든 프레임이 즉시 다시 계산·보고하게 한다
 - [Phase 1]: 번호표 키 판단은 항상 맨 위 프레임에서만 — 자식 프레임은 hints/key로 전달만 한다
+- [Phase 1]: danger 후보 우선순위: 범위 안 일반 후보가 있으면 항상 그것을 먼저 잡는다 — danger는 일반 후보가 전혀 없을 때만, 거리 0(커서가 사각형 안)에서만, 히스테리시스 없이 본다
+- [Phase 1]: 배경 없는 오버레이 글자('! 위험')의 흰 후광은 box-shadow 대신 text-shadow 네 방향 오프셋으로 흉내낸다
 
 ### Pending Todos
 
@@ -121,6 +124,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-23T20:24:03.205Z
-Stopped at: Completed 01-07-PLAN.md
+Last session: 2026-09-23T20:50:03.142Z
+Stopped at: Completed 01-08-PLAN.md
 Resume file: None
