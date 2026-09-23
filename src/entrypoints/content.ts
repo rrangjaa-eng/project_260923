@@ -1,4 +1,5 @@
 import { createConfirmGuard, type ConfirmGuard } from '@/core/confirm-guard';
+import { createDragTwoPress, type DragTwoPress } from '@/core/drag-two-press';
 import { createDwellTimer, type DwellTimer } from '@/core/dwell-timer';
 import type { Fingerprint } from '@/core/fingerprint';
 import { composeTree, resolveReports, type ComposedItem, type RawFrameReport } from '@/core/frame-tree';
@@ -15,14 +16,30 @@ import {
   siteKey,
 } from '@/core/settings-schema';
 import { buildFrameReport, createCollector, type Item } from '@/page/collector/collector';
+import { synthesizeDrag } from '@/page/click/drag';
 import { synthesizePress } from '@/page/click/press';
 import { createInputPipeline, type ModalEvent } from '@/page/input/pipeline';
 import { currentMode } from '@/page/input/mode';
 import { closeConfirm, openConfirm } from '@/page/overlay/confirm-dialog';
-import { hideModeIndicator, setMode, showModeIndicator, showTransientMessage } from '@/page/overlay/mode-indicator';
+import { hideModeIndicator, setHint, setMode, showModeIndicator, showTransientMessage } from '@/page/overlay/mode-indicator';
 import { hideHints, showHints, showNextCard } from '@/page/overlay/hints';
 import { hideRing, setDwellProgress, showRing } from '@/page/overlay/ring';
 import { parseMessage } from '@/shared/messages';
+
+// 끌어서 놓기 두 번 누르기 힌트 문구(D-08, SYSTEM.md 카피 규칙): 키 이름은 영어 그대로.
+const DRAG_ARM_HINT = '놓을 곳을 누르세요 · Esc 취소';
+
+// 끌 수 있는 요소 판정(D-08 RESOLVED): 요소 자신이나 조상이 draggable="true"다.
+function isDraggableElement(el: Element): boolean {
+  let node: Element | null = el;
+  while (node) {
+    if (node instanceof HTMLElement && node.draggable) {
+      return true;
+    }
+    node = node.parentElement;
+  }
+  return false;
+}
 
 const DIGIT_TO_NUMBER: Record<string, number> = {
   Digit1: 1,
@@ -111,6 +128,41 @@ export default defineContentScript({
     }
     rebuildGrid();
 
+    // 끌어서 놓기 두 번 누르기(D-08, FILT-04): 이 프레임 안의 모든 누르기 경로(자석 클릭·
+    // 스페이스바·번호표 숫자·머무르기)가 공유하는 상태 기계 하나. id는 이 프레임의 collector
+    // 로컬 id — 끌기는 같은 프레임 안만 다룬다(가정 문단).
+    const dragTwoPress: DragTwoPress = createDragTwoPress();
+
+    // 위험한 버튼은 끌기 대상이 아니다(T-01-32) — dragTwoPress가 꺼져 있거나 위험한 버튼이면
+    // 그냥 누른다. 켜져 있으면 상태 기계 결과(arm/drop/cancel/pass)에 따라 힌트를 보여 주거나
+    // synthesizeDrag로 대신 끌어서 놓는다.
+    function pressOrDrag(id: string, el: Element, fingerprint: Fingerprint, danger: boolean): void {
+      if (!currentSettings.data.dragTwoPress || danger) {
+        synthesizePress(el);
+        sendRecordPress(fingerprint);
+        return;
+      }
+      const result = dragTwoPress.press({ id, draggable: isDraggableElement(el) });
+      if (result.action === 'pass') {
+        synthesizePress(el);
+        sendRecordPress(fingerprint);
+        return;
+      }
+      if (result.action === 'arm') {
+        setHint(DRAG_ARM_HINT);
+        return;
+      }
+      if (result.action === 'cancel') {
+        setHint(null);
+        return;
+      }
+      setHint(null);
+      const sourceEl = collector.get(result.sourceId);
+      if (sourceEl) {
+        synthesizeDrag(sourceEl, el);
+      }
+    }
+
     // 머무르기 클릭(D-12, CLICK-04): dwellEnabled일 때 잡힌 요소가 있는 동안만 rAF 루프를
     // 돌린다. dwellMs가 바뀌면(settings 갱신) 새 타이머로 바꿔 새 시간으로 다시 잰다.
     let dwellTimer: DwellTimer = createDwellTimer({ dwellMs: currentSettings.data.dwellMs });
@@ -141,8 +193,7 @@ export default defineContentScript({
       if (result.fire) {
         const el = collector.get(currentTargetId);
         if (el) {
-          synthesizePress(el);
-          sendRecordPress(item.fingerprint);
+          pressOrDrag(currentTargetId, el, item.fingerprint, item.danger);
         }
       }
       requestAnimationFrame(dwellTick);
@@ -176,8 +227,7 @@ export default defineContentScript({
         const item = collector.items().find((candidate) => candidate.id === message.itemId);
         const el = collector.get(message.itemId);
         if (item && el) {
-          synthesizePress(el);
-          sendRecordPress({ ...item.fingerprint, framePath: message.framePath });
+          pressOrDrag(message.itemId, el, { ...item.fingerprint, framePath: message.framePath }, item.danger);
         }
         return undefined;
       }
@@ -347,11 +397,14 @@ export default defineContentScript({
       currentEnabled = enabled;
 
       if (!enabled) {
-        // 도우미가 꺼지면 테두리·번호표·머무르기 진행도 지운다(D-27).
+        // 도우미가 꺼지면 테두리·번호표·머무르기 진행·끌기 시작 상태도 지운다(D-27) — 그렇지
+        // 않으면 다시 켰을 때 옛 끌기 시작 상태가 남아 다음 누름이 뜬금없이 drop이 된다.
         currentTargetId = null;
         hideRing();
         closeHints();
         syncDwellLoop();
+        dragTwoPress.cancel();
+        setHint(null);
       }
 
       if (window.top === window) {
@@ -371,9 +424,22 @@ export default defineContentScript({
     const pipelineController = new AbortController();
     const inputPipeline = createInputPipeline({ getSettings: () => currentSettings, signal: pipelineController.signal });
 
+    // 끌기 시작 상태에서 Esc(D-08, D-15 keymap.cancel): 도우미가 끌기를 취소한다. 끌기 시작이
+    // 아니면(armed() === null) 통과해 사이트·다른 기능(번호표 닫기 등)이 그대로 Esc를 쓰게 둔다.
+    inputPipeline.onKey(({ code }) => {
+      if (!currentEnabled || code !== currentSettings.data.keymap.cancel || dragTwoPress.armed() === null) {
+        return false;
+      }
+      dragTwoPress.cancel();
+      setHint(null);
+      return true;
+    });
+
     // 대신 누르기(D-10, D-13): 커서가 잡힌 요소 밖이면 삼키고 click 시점에 대신 누른다. 커서가
     // 이미 잡힌 요소 안이면 원래 클릭을 그대로 통과시킨다(isTrusted 클릭이 호환성이 가장 좋다).
-    // 잡힌 것이 없으면 통과(D-27 "잡힌 것 없음 = 원래대로").
+    // 잡힌 것이 없으면 통과(D-27 "잡힌 것 없음 = 원래대로"). dragTwoPress가 켜져 있고 끌기
+    // 시작 중이거나 대상이 끌 수 있는 요소면, 커서가 요소 위라도 삼켜 pressOrDrag로 보낸다 —
+    // 그렇지 않으면 끌기 시작·놓기가 그냥 사이트의 원래 클릭이 되어 버린다(D-08).
     inputPipeline.onPress(({ x, y }) => {
       if (!currentEnabled) {
         return false;
@@ -391,12 +457,13 @@ export default defineContentScript({
       if (!item || !el) {
         return false;
       }
-      if (pointInRect(x, y, item.rect)) {
+      const needsDragIntercept =
+        currentSettings.data.dragTwoPress && !item.danger && (dragTwoPress.armed() !== null || isDraggableElement(el));
+      if (pointInRect(x, y, item.rect) && !needsDragIntercept) {
         return false;
       }
       return () => {
-        synthesizePress(el);
-        sendRecordPress(item.fingerprint);
+        pressOrDrag(item.id, el, item.fingerprint, item.danger);
       };
     });
 
@@ -411,8 +478,7 @@ export default defineContentScript({
       if (!item || !el) {
         return false;
       }
-      synthesizePress(el);
-      sendRecordPress(item.fingerprint);
+      pressOrDrag(item.id, el, item.fingerprint, item.danger);
       return true;
     });
 
@@ -487,8 +553,7 @@ export default defineContentScript({
         const item = collector.items().find((candidate) => candidate.id === targetItemId);
         const el = collector.get(targetItemId);
         if (item && el) {
-          synthesizePress(el);
-          sendRecordPress(item.fingerprint);
+          pressOrDrag(targetItemId, el, item.fingerprint, item.danger);
         }
         return;
       }

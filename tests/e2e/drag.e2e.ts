@@ -108,6 +108,9 @@ test('스페이스바로도 같은 두 번 누르기가 된다', async ({ contex
   await page.keyboard.press('Space');
 
   await expect.poll(() => indicatorText(page)).toContain('놓을 곳을 누르세요');
+  // D-07(떨림 필터): 같은 키(Space)는 tremorIntervalMs(기본 300ms) 안의 재입력을 무시한다 —
+  // 두 번째 누름이 다른 대상을 향해도 키 자체는 같으므로 간격을 넘겨야 한다.
+  await page.waitForTimeout(400);
 
   const drop = center(await boxOf(page, '#drop'));
   await page.mouse.move(drop.x, drop.y);
@@ -149,6 +152,9 @@ test('A로 끌기 시작 뒤 A를 다시 누르면 취소된다', async ({ conte
   await page.waitForTimeout(50);
   await page.mouse.click(a.x, a.y);
   await expect.poll(() => indicatorText(page)).toContain('놓을 곳을 누르세요');
+  // D-07(떨림 필터): 같은 자리 재클릭은 tremorIntervalMs(기본 300ms) 안에서는 떨림으로 걸러진다
+  // — "같은 대상을 다시 누르면 취소"는 걸러지지 않을 만큼 간격을 두고 눌러야 도달한다.
+  await page.waitForTimeout(400);
 
   await page.mouse.click(a.x, a.y);
   await expect.poll(() => indicatorText(page)).toBe('도우미');

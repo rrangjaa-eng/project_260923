@@ -21,6 +21,8 @@ let mode: Mode = 'helper';
 let side: Side = 'left';
 let wasNearIndicator = false;
 let transientTimeoutId: ReturnType<typeof setTimeout> | null = null;
+// 끌어서 놓기 두 번 누르기(D-08): 끌기 시작 상태일 때 모드 표시 둘째 줄에 다음 행동을 안내한다.
+let hintText: string | null = null;
 
 export function ensureOverlayRoot(): ShadowRoot {
   if (shadowRoot) {
@@ -41,7 +43,8 @@ ${tokensCss}
   left: var(--space-4);
   bottom: var(--space-4);
   display: inline-flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   padding: var(--space-2) var(--space-3);
   background: var(--accent);
   color: var(--bg);
@@ -54,6 +57,14 @@ ${tokensCss}
   box-shadow: 0 0 0 var(--halo-width) var(--halo);
   pointer-events: none;
   transition: left var(--motion-appear);
+}
+.${MODE_INDICATOR_CLASS}__row {
+  display: inline-flex;
+  align-items: center;
+}
+.${MODE_INDICATOR_CLASS}__drag-hint {
+  font-size: var(--text-label);
+  font-weight: var(--weight-regular);
 }
 :host([data-side="right"]) .${MODE_INDICATOR_CLASS} {
   left: calc(100vw - 100% - var(--space-4));
@@ -83,6 +94,7 @@ export function destroyOverlayRoot(): void {
   mode = 'helper';
   side = 'left';
   wasNearIndicator = false;
+  hintText = null;
   if (transientTimeoutId !== null) {
     clearTimeout(transientTimeoutId);
     transientTimeoutId = null;
@@ -94,17 +106,28 @@ function renderIndicatorContent(): void {
     return;
   }
   indicatorElement.textContent = '';
+
+  const row = document.createElement('div');
+  row.className = `${MODE_INDICATOR_CLASS}__row`;
   if (mode === 'helper') {
-    indicatorElement.textContent = '도우미';
-    return;
+    row.textContent = '도우미';
+  } else {
+    const label = document.createElement('span');
+    label.className = `${MODE_INDICATOR_CLASS}__label`;
+    label.textContent = '입력 중';
+    const hint = document.createElement('span');
+    hint.className = `${MODE_INDICATOR_CLASS}__hint`;
+    hint.textContent = ' · Esc로 도우미';
+    row.append(label, hint);
   }
-  const label = document.createElement('span');
-  label.className = `${MODE_INDICATOR_CLASS}__label`;
-  label.textContent = '입력 중';
-  const hint = document.createElement('span');
-  hint.className = `${MODE_INDICATOR_CLASS}__hint`;
-  hint.textContent = ' · Esc로 도우미';
-  indicatorElement.append(label, hint);
+  indicatorElement.append(row);
+
+  if (hintText !== null) {
+    const dragHint = document.createElement('div');
+    dragHint.className = `${MODE_INDICATOR_CLASS}__drag-hint`;
+    dragHint.textContent = hintText;
+    indicatorElement.append(dragHint);
+  }
 }
 
 export function showModeIndicator(): void {
@@ -128,6 +151,13 @@ export function setMode(next: Mode): void {
     return;
   }
   hostElement.dataset.mode = mode;
+  renderIndicatorContent();
+}
+
+// 끌어서 놓기 두 번 누르기(D-08): 끌기 시작 상태에서 다음 행동 안내("놓을 곳을 누르세요 ·
+// Esc 취소")를 모드 표시 둘째 줄로 보여 준다. null이면 지운다(대기로 돌아감).
+export function setHint(text: string | null): void {
+  hintText = text;
   renderIndicatorContent();
 }
 

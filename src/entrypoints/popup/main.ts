@@ -90,7 +90,7 @@ cards.className = 'cards';
 
 // 번호 카드(D-26 "번호 카드", 자리는 고정): 카드마다 키 숫자·문구·저장소 요청을 넣어 두면
 // 클릭·숫자 키 처리는 공통으로 처리한다. 1 도우미 끄기 · 2 이 사이트에서 끄기(Plan 01-13) ·
-// 3 머무르기 클릭 · 4 끌어서 놓기 두 번 누르기(Plan 01-11) — 이 계획은 1·3만 채운다.
+// 3 머무르기 클릭 · 4 끌어서 놓기 두 번 누르기 — 2는 아직 비어 있다.
 interface CardConfig {
   keyLabel: string;
   digitCodes: string[];
@@ -158,7 +158,21 @@ const dwellCard = createCard({
   },
 });
 
-cards.append(helperCard.element, dwellCard.element);
+const dragTwoPressCard = createCard({
+  keyLabel: '4',
+  digitCodes: ['Digit4', 'Numpad4'],
+  wordFor: (enabled) => (enabled ? '끌어서 놓기 두 번 누르기 끄기' : '끌어서 놓기 두 번 누르기 켜기'),
+  onToggle: (next, render) => {
+    render(next);
+    const message: Message = {
+      type: 'storage/request',
+      op: { kind: 'updateSettings', patch: { dragTwoPress: next } },
+    };
+    void chrome.runtime.sendMessage(message);
+  },
+});
+
+cards.append(helperCard.element, dwellCard.element, dragTwoPressCard.element);
 container.append(title, status, cards);
 shadow.append(container);
 
@@ -166,11 +180,12 @@ function renderStatus(enabled: boolean): void {
   status.textContent = enabled ? '지금: 켜짐' : '지금: 꺼짐';
 }
 
-// 초기 렌더는 기본 설정(enabled: true, dwellEnabled: false)을 가정한다 — 저장소를 읽어 오면
-// 실제 값으로 다시 그린다.
+// 초기 렌더는 기본 설정(enabled: true, dwellEnabled: false, dragTwoPress: false)을 가정한다 —
+// 저장소를 읽어 오면 실제 값으로 다시 그린다.
 renderStatus(true);
 helperCard.render(true);
 dwellCard.render(false);
+dragTwoPressCard.render(false);
 
 async function loadInitial(): Promise<void> {
   const stored = await chrome.storage.sync.get(SETTINGS_KEY);
@@ -179,6 +194,7 @@ async function loadInitial(): Promise<void> {
     renderStatus(parsed.data.data.enabled);
     helperCard.render(parsed.data.data.enabled);
     dwellCard.render(parsed.data.data.dwellEnabled);
+    dragTwoPressCard.render(parsed.data.data.dragTwoPress);
   }
 }
 
@@ -195,6 +211,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     renderStatus(parsed.data.data.enabled);
     helperCard.render(parsed.data.data.enabled);
     dwellCard.render(parsed.data.data.dwellEnabled);
+    dragTwoPressCard.render(parsed.data.data.dragTwoPress);
   }
 });
 
