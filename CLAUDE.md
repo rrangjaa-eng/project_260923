@@ -57,6 +57,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - 이름 / 한 줄 설명: (이름 미정) — 조건을 입력하면 브라우저를 자동으로 조작해 목표를 달성하는 개인 도구
 - 스택·패키지 매니저·명령·구조: 미정 — `/office-hours` → `/gsd-new-project`에서 정한 뒤 채운다
 - 디자인: `docs/DESIGN.md` — 필요할 때 Read (import 금지)
+- 기준 브랜치: `browser-automation` — main과 별개 프로젝트다. 작업 브랜치는 여기서 따고 PR도 여기로 연다. main으로 PR·머지 금지
 
 ## 워크플로: Pre-build(gstack) → Build(GSD+Superpowers) → Post-build(gstack)
 
