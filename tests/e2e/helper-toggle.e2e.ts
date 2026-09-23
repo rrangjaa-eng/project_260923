@@ -76,7 +76,7 @@ test('팝업에 포커스가 있을 때 숫자 1(Digit1·Numpad1)을 누르면 �
 
 test('카드를 빠르게 5번 누르면 storage.sync의 최종 상태가 마지막 누름과 같다', async ({ serviceWorker, openPopup }) => {
   const popup = await openPopup();
-  const card = popup.locator('.card');
+  const card = popup.locator('.card').first();
 
   for (let i = 0; i < 5; i += 1) {
     await card.click();
@@ -117,14 +117,14 @@ test('같은 출처·다른 출처 iframe 모두 도우미 켜짐/꺼짐을 SW�
   }).toBe(true);
 
   const popup = await openPopup();
-  await popup.locator('.card').click();
+  await popup.locator('.card').first().click();
 
   await expect.poll(async () => {
     const states = await readFrameStates();
     return states.length >= 3 && states.every((v) => !v);
   }).toBe(true);
 
-  await popup.locator('.card').click();
+  await popup.locator('.card').first().click();
 
   await expect.poll(async () => {
     const states = await readFrameStates();
@@ -154,7 +154,7 @@ test('SW에서 storage.sync.set으로 값을 바꾸면(다른 PC 동기화 흉�
 
 test('메뉴 카드 높이가 56px 이상이고 카드 안에 키 칩 "1"이 있다', async ({ openPopup }) => {
   const popup = await openPopup();
-  const card = popup.locator('.card');
+  const card = popup.locator('.card').first();
 
   await expect(card.locator('.key-chip')).toHaveText('1');
   const box = await card.boundingBox();

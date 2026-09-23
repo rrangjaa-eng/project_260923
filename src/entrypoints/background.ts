@@ -33,6 +33,10 @@ export default defineBackground(() => {
         void writer.setEnabled(message.op.enabled).then(sendResponse);
         return true; // 비동기 응답을 위해 메시지 채널을 열어 둔다.
       }
+      if (message.op.kind === 'updateSettings') {
+        void writer.updateSettings(message.op.patch).then(sendResponse);
+        return true;
+      }
       // recordPress(D-11, T-01-16): 보낸 프레임의 실제 origin은 sender.url에서 계산한다 —
       // 요청 안의 origin 문자열은 신뢰하지 않고 storage-writer.ts가 둘을 대조한다.
       const senderOrigin = sender.url ? new URL(sender.url).origin : '';

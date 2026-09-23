@@ -99,6 +99,19 @@ const SetEnabledOp = z.object({
   enabled: z.boolean(),
 });
 
+// 일반 설정 변경(Plan 01-10, D-24, D-25, T-01-28): 팝업 메뉴 카드 → SW. 허용 키만
+// strict로 받는다 — writer가 settings를 읽어 patch만 합친 뒤 SettingsV1로 다시 검사하고 쓴다.
+const UpdateSettingsOp = z.object({
+  kind: z.literal('updateSettings'),
+  patch: z
+    .object({
+      dwellEnabled: z.boolean().optional(),
+      dragTwoPress: z.boolean().optional(),
+    })
+    .strict(),
+});
+export type UpdateSettingsPatch = z.infer<typeof UpdateSettingsOp>['patch'];
+
 // 자주 누른 기록(D-11, D-23): 요소를 누를 때마다 보낸다. origin은 보내는 프레임의 origin —
 // storage-writer.ts가 sender.url의 origin과 같은지 확인한 뒤에만 기록한다(T-01-16).
 const RecordPressOp = z.object({
@@ -107,7 +120,7 @@ const RecordPressOp = z.object({
   fingerprint: FingerprintSchema,
 });
 
-const StorageRequestOp = z.discriminatedUnion('kind', [SetEnabledOp, RecordPressOp]);
+const StorageRequestOp = z.discriminatedUnion('kind', [SetEnabledOp, RecordPressOp, UpdateSettingsOp]);
 
 const StorageRequestMessage = z.object({
   type: z.literal('storage/request'),

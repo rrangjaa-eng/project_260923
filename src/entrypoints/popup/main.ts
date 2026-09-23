@@ -88,56 +88,97 @@ status.className = 'status';
 const cards = document.createElement('div');
 cards.className = 'cards';
 
-const card = document.createElement('button');
-card.type = 'button';
-card.className = 'card';
+// 번호 카드(D-26 "번호 카드", 자리는 고정): 카드마다 키 숫자·문구·저장소 요청을 넣어 두면
+// 클릭·숫자 키 처리는 공통으로 처리한다. 1 도우미 끄기 · 2 이 사이트에서 끄기(Plan 01-13) ·
+// 3 머무르기 클릭 · 4 끌어서 놓기 두 번 누르기(Plan 01-11) — 이 계획은 1·3만 채운다.
+interface CardConfig {
+  keyLabel: string;
+  digitCodes: string[];
+  wordFor: (enabled: boolean) => string;
+  onToggle: (next: boolean, render: (enabled: boolean) => void) => void;
+}
 
-const keyChip = document.createElement('span');
-keyChip.className = 'key-chip';
-keyChip.textContent = '1';
+function createCard(config: CardConfig): { element: HTMLButtonElement; render: (enabled: boolean) => void } {
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = 'card';
 
-const actionWord = document.createElement('span');
-actionWord.className = 'action-word';
+  const keyChip = document.createElement('span');
+  keyChip.className = 'key-chip';
+  keyChip.textContent = config.keyLabel;
 
-card.append(keyChip, actionWord);
-cards.append(card);
+  const actionWord = document.createElement('span');
+  actionWord.className = 'action-word';
+
+  card.append(keyChip, actionWord);
+
+  let current = false;
+  function render(enabled: boolean): void {
+    current = enabled;
+    actionWord.textContent = config.wordFor(enabled);
+  }
+
+  function toggle(): void {
+    config.onToggle(!current, render);
+  }
+
+  card.addEventListener('click', toggle);
+  document.addEventListener('keydown', (event) => {
+    if (config.digitCodes.includes(event.code)) {
+      event.preventDefault();
+      toggle();
+    }
+  });
+
+  return { element: card, render };
+}
+
+const helperCard = createCard({
+  keyLabel: '1',
+  digitCodes: ['Digit1', 'Numpad1'],
+  wordFor: (enabled) => (enabled ? '도우미 끄기' : '도우미 켜기'),
+  onToggle: (next, render) => {
+    render(next); // 즉시 반영 — 연타해도 이전 누름 기준으로 번갈아 계산된다(writer가 순서대로 처리).
+    const message: Message = { type: 'storage/request', op: { kind: 'setEnabled', enabled: next } };
+    void chrome.runtime.sendMessage(message);
+  },
+});
+
+const dwellCard = createCard({
+  keyLabel: '3',
+  digitCodes: ['Digit3', 'Numpad3'],
+  wordFor: (enabled) => (enabled ? '머무르기 클릭 끄기' : '머무르기 클릭 켜기'),
+  onToggle: (next, render) => {
+    render(next);
+    const message: Message = {
+      type: 'storage/request',
+      op: { kind: 'updateSettings', patch: { dwellEnabled: next } },
+    };
+    void chrome.runtime.sendMessage(message);
+  },
+});
+
+cards.append(helperCard.element, dwellCard.element);
 container.append(title, status, cards);
 shadow.append(container);
 
-let currentEnabled = true;
-
-function render(enabled: boolean): void {
-  currentEnabled = enabled;
+function renderStatus(enabled: boolean): void {
   status.textContent = enabled ? '지금: 켜짐' : '지금: 꺼짐';
-  actionWord.textContent = enabled ? '도우미 끄기' : '도우미 켜기';
 }
 
-// 초기 렌더는 기본 설정(enabled: true)을 가정한다 — 저장소를 읽어 오면 실제 값으로 다시 그린다.
-render(true);
-
-function toggle(): void {
-  const next = !currentEnabled;
-  render(next); // 즉시 반영 — 연타해도 이전 누름 기준으로 번갈아 계산된다(writer가 순서대로 처리).
-  const message: Message = { type: 'storage/request', op: { kind: 'setEnabled', enabled: next } };
-  void chrome.runtime.sendMessage(message);
-}
-
-card.addEventListener('click', () => {
-  toggle();
-});
-
-document.addEventListener('keydown', (event) => {
-  if (event.code === 'Digit1' || event.code === 'Numpad1') {
-    event.preventDefault();
-    toggle();
-  }
-});
+// 초기 렌더는 기본 설정(enabled: true, dwellEnabled: false)을 가정한다 — 저장소를 읽어 오면
+// 실제 값으로 다시 그린다.
+renderStatus(true);
+helperCard.render(true);
+dwellCard.render(false);
 
 async function loadInitial(): Promise<void> {
   const stored = await chrome.storage.sync.get(SETTINGS_KEY);
   const parsed = SettingsV1.safeParse(stored[SETTINGS_KEY]);
   if (parsed.success) {
-    render(parsed.data.data.enabled);
+    renderStatus(parsed.data.data.enabled);
+    helperCard.render(parsed.data.data.enabled);
+    dwellCard.render(parsed.data.data.dwellEnabled);
   }
 }
 
@@ -151,7 +192,9 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
   const parsed = SettingsV1.safeParse(change.newValue);
   if (parsed.success) {
-    render(parsed.data.data.enabled);
+    renderStatus(parsed.data.data.enabled);
+    helperCard.render(parsed.data.data.enabled);
+    dwellCard.render(parsed.data.data.dwellEnabled);
   }
 });
 

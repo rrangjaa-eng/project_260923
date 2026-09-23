@@ -79,9 +79,9 @@ test('켠 뒤 버튼을 잡고 머무르면 400ms 즈음 진행 표시가 0.3~0.
   context,
   serviceWorker,
 }) => {
-  await patchSettings(serviceWorker, { dwellEnabled: true });
   const page = await context.newPage();
   await page.goto('http://practice.test/targets.html');
+  await patchSettings(serviceWorker, { dwellEnabled: true });
 
   const c = center(await boxOf(page, '#btn-tiny'));
   await page.mouse.move(c.x, c.y);
@@ -96,9 +96,9 @@ test('켠 뒤 버튼을 잡고 머무르면 400ms 즈음 진행 표시가 0.3~0.
 });
 
 test('500ms 머물고 커서를 멀리 치우면 카운터는 0이고 진행 표시가 사라진다', async ({ context, serviceWorker }) => {
-  await patchSettings(serviceWorker, { dwellEnabled: true });
   const page = await context.newPage();
   await page.goto('http://practice.test/targets.html');
+  await patchSettings(serviceWorker, { dwellEnabled: true });
 
   const c = center(await boxOf(page, '#btn-tiny'));
   await page.mouse.move(c.x, c.y);
@@ -114,9 +114,9 @@ test('발사 뒤 2초 더 머물러도 카운터는 1이고, 떠났다 돌아와
   context,
   serviceWorker,
 }) => {
-  await patchSettings(serviceWorker, { dwellEnabled: true });
   const page = await context.newPage();
   await page.goto('http://practice.test/targets.html');
+  await patchSettings(serviceWorker, { dwellEnabled: true });
 
   const c = center(await boxOf(page, '#btn-tiny'));
   await page.mouse.move(c.x, c.y);
@@ -135,9 +135,9 @@ test('danger.html에서 "삭제" 위에 정확히 커서를 두고 1.5초 머물
   context,
   serviceWorker,
 }) => {
-  await patchSettings(serviceWorker, { dwellEnabled: true });
   const page = await context.newPage();
   await page.goto('http://practice.test/danger.html');
+  await patchSettings(serviceWorker, { dwellEnabled: true });
 
   const c = center(await boxOf(page, '#btn-delete-solo'));
   await page.mouse.move(c.x, c.y);
@@ -148,9 +148,9 @@ test('danger.html에서 "삭제" 위에 정확히 커서를 두고 1.5초 머물
 });
 
 test('SW에서 dwellMs를 400으로 바꾸면 600ms 안에 카운터가 1이 된다', async ({ context, serviceWorker }) => {
-  await patchSettings(serviceWorker, { dwellEnabled: true, dwellMs: 400 });
   const page = await context.newPage();
   await page.goto('http://practice.test/targets.html');
+  await patchSettings(serviceWorker, { dwellEnabled: true, dwellMs: 400 });
 
   const c = center(await boxOf(page, '#btn-tiny'));
   await page.mouse.move(c.x, c.y);
@@ -159,10 +159,10 @@ test('SW에서 dwellMs를 400으로 바꾸면 600ms 안에 카운터가 1이 된
 });
 
 test('reducedMotion에서도 진행 표시가 있고 채움이 linear로 진행한다', async ({ context, serviceWorker }) => {
-  await patchSettings(serviceWorker, { dwellEnabled: true });
   const page = await context.newPage();
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('http://practice.test/targets.html');
+  await patchSettings(serviceWorker, { dwellEnabled: true });
 
   const c = center(await boxOf(page, '#btn-tiny'));
   await page.mouse.move(c.x, c.y);

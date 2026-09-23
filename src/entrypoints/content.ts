@@ -1,4 +1,5 @@
 import { createConfirmGuard, type ConfirmGuard } from '@/core/confirm-guard';
+import { createDwellTimer, type DwellTimer } from '@/core/dwell-timer';
 import type { Fingerprint } from '@/core/fingerprint';
 import { composeTree, resolveReports, type ComposedItem, type RawFrameReport } from '@/core/frame-tree';
 import { createGridIndex } from '@/core/grid-index';
@@ -20,7 +21,7 @@ import { currentMode } from '@/page/input/mode';
 import { closeConfirm, openConfirm } from '@/page/overlay/confirm-dialog';
 import { hideModeIndicator, setMode, showModeIndicator, showTransientMessage } from '@/page/overlay/mode-indicator';
 import { hideHints, showHints, showNextCard } from '@/page/overlay/hints';
-import { hideRing, showRing } from '@/page/overlay/ring';
+import { hideRing, setDwellProgress, showRing } from '@/page/overlay/ring';
 import { parseMessage } from '@/shared/messages';
 
 const DIGIT_TO_NUMBER: Record<string, number> = {
@@ -109,6 +110,53 @@ export default defineContentScript({
       grid.build(collector.items());
     }
     rebuildGrid();
+
+    // 머무르기 클릭(D-12, CLICK-04): dwellEnabled일 때 잡힌 요소가 있는 동안만 rAF 루프를
+    // 돌린다. dwellMs가 바뀌면(settings 갱신) 새 타이머로 바꿔 새 시간으로 다시 잰다.
+    let dwellTimer: DwellTimer = createDwellTimer({ dwellMs: currentSettings.data.dwellMs });
+    let dwellLoopActive = false;
+
+    function stopDwellLoopIfRunning(): void {
+      // 잡힘이 풀렸다고 타이머에도 알려야 한다 — 루프를 멈추기만 하면 타이머 내부의
+      // trackedTargetId·fired가 옛 대상에 그대로 남아, 같은 대상으로 돌아왔을 때 "떠났다
+      // 돌아옴"으로 인식하지 못해 재발사가 막힌 채로 남는다(D-12).
+      dwellTimer.update({ targetId: null, danger: false, t: performance.now() });
+      if (dwellLoopActive) {
+        dwellLoopActive = false;
+        setDwellProgress(null);
+      }
+    }
+
+    function dwellTick(): void {
+      if (!dwellLoopActive) {
+        return;
+      }
+      const item = currentTargetId ? collector.items().find((candidate) => candidate.id === currentTargetId) : undefined;
+      if (!item || currentTargetId === null) {
+        stopDwellLoopIfRunning();
+        return;
+      }
+      const result = dwellTimer.update({ targetId: currentTargetId, danger: item.danger, t: performance.now() });
+      setDwellProgress(item.danger ? null : result.progress);
+      if (result.fire) {
+        const el = collector.get(currentTargetId);
+        if (el) {
+          synthesizePress(el);
+          sendRecordPress(item.fingerprint);
+        }
+      }
+      requestAnimationFrame(dwellTick);
+    }
+
+    function syncDwellLoop(): void {
+      const shouldRun = currentEnabled === true && currentSettings.data.dwellEnabled && currentTargetId !== null;
+      if (shouldRun && !dwellLoopActive) {
+        dwellLoopActive = true;
+        requestAnimationFrame(dwellTick);
+      } else if (!shouldRun) {
+        stopDwellLoopIfRunning();
+      }
+    }
 
     // 프레임 메시지(D-03, D-09): 맨 위는 frames/reports(전체 보고 모음)를 받고, 모든 프레임은
     // press/request(SW가 이 프레임에 누르기를 부탁)를 받는다.
@@ -232,6 +280,7 @@ export default defineContentScript({
       });
       if (currentTargetId === null) {
         hideRing();
+        syncDwellLoop();
         return;
       }
       const item = collector.items().find((candidate) => candidate.id === currentTargetId);
@@ -240,6 +289,7 @@ export default defineContentScript({
       } else {
         hideRing();
       }
+      syncDwellLoop();
     }
 
     collector.onChange(() => {
@@ -250,6 +300,7 @@ export default defineContentScript({
         if (!stillThere) {
           currentTargetId = null;
           hideRing();
+          syncDwellLoop();
         } else if (currentEnabled) {
           showRing(stillThere.rect, { danger: stillThere.danger });
         }
@@ -296,10 +347,11 @@ export default defineContentScript({
       currentEnabled = enabled;
 
       if (!enabled) {
-        // 도우미가 꺼지면 테두리·번호표도 지운다(D-27).
+        // 도우미가 꺼지면 테두리·번호표·머무르기 진행도 지운다(D-27).
         currentTargetId = null;
         hideRing();
         closeHints();
+        syncDwellLoop();
       }
 
       if (window.top === window) {
@@ -609,10 +661,14 @@ export default defineContentScript({
     void chrome.storage.sync.get(SETTINGS_KEY).then((stored) => {
       const parsed = SettingsV1.safeParse(stored[SETTINGS_KEY]);
       if (parsed.success) {
+        if (parsed.data.data.dwellMs !== currentSettings.data.dwellMs) {
+          dwellTimer = createDwellTimer({ dwellMs: parsed.data.data.dwellMs });
+        }
         currentSettings = parsed.data;
         applyEnabled(parsed.data.data.enabled);
         // D-18: dangerWords가 기본값과 다를 수 있다 — 이미 모은 항목의 danger를 다시 계산한다.
         collector.refresh();
+        syncDwellLoop();
       }
     });
 
@@ -626,10 +682,14 @@ export default defineContentScript({
       }
       const parsed = SettingsV1.safeParse(change.newValue);
       if (parsed.success) {
+        if (parsed.data.data.dwellMs !== currentSettings.data.dwellMs) {
+          dwellTimer = createDwellTimer({ dwellMs: parsed.data.data.dwellMs });
+        }
         currentSettings = parsed.data;
         applyEnabled(parsed.data.data.enabled);
         // D-18: dangerWords가 바뀌면 곧바로 반영한다 — 다시 모아 danger를 새로 계산한다.
         collector.refresh();
+        syncDwellLoop();
       }
     });
   },

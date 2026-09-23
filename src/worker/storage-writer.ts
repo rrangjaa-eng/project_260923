@@ -8,11 +8,14 @@ import {
   pressesKey,
   type Fingerprint,
 } from '@/core/settings-schema';
+import type { UpdateSettingsPatch } from '@/shared/messages';
 
 // 단일 저장자(D-24): chrome.storage.*.set 호출은 이 파일에만 둔다. 요청은 Promise 줄로 순서대로
 // 처리해 연타·동시 요청에도 마지막 요청이 최종 상태가 되게 한다.
 
 export type SetEnabledResult = { ok: true } | { ok: false; reason: 'invalid-settings' };
+
+export type UpdateSettingsResult = { ok: true } | { ok: false; reason: 'invalid-settings' | 'invalid-patch' };
 
 export type RecordPressResult = { ok: true } | { ok: false; reason: 'origin-mismatch' | 'invalid-presses' };
 
@@ -21,6 +24,7 @@ const MAX_PRESS_ENTRIES = 200;
 
 export interface StorageWriter {
   setEnabled(enabled: boolean): Promise<SetEnabledResult>;
+  updateSettings(patch: UpdateSettingsPatch): Promise<UpdateSettingsResult>;
   ensureDefaultSettings(): Promise<void>;
   recordPress(requestOrigin: string, senderOrigin: string, fingerprint: Fingerprint): Promise<RecordPressResult>;
 }
@@ -53,6 +57,27 @@ export function createStorageWriter(): StorageWriter {
           data: { ...parsed.data.data, enabled },
         };
         await chrome.storage.sync.set({ [SETTINGS_KEY]: next });
+        return { ok: true };
+      });
+    },
+
+    updateSettings(patch) {
+      return enqueue(async () => {
+        const existing = await chrome.storage.sync.get(SETTINGS_KEY);
+        const parsed = SettingsV1.safeParse(existing[SETTINGS_KEY]);
+        if (!parsed.success) {
+          // 검사 실패 — 아무것도 쓰지 않는다(원본 보존, D-25).
+          return { ok: false, reason: 'invalid-settings' };
+        }
+
+        const next = { ...parsed.data, data: { ...parsed.data.data, ...patch } };
+        const nextParsed = SettingsV1.safeParse(next);
+        if (!nextParsed.success) {
+          // patch를 합친 결과가 SettingsV1을 어기면 쓰지 않는다(D-25).
+          return { ok: false, reason: 'invalid-patch' };
+        }
+
+        await chrome.storage.sync.set({ [SETTINGS_KEY]: nextParsed.data });
         return { ok: true };
       });
     },
