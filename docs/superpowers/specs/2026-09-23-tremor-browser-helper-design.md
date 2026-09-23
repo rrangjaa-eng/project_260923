@@ -195,6 +195,7 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
 - 설치는 크롬 웹스토어 비공개 링크로 한다. 같은 브라우저 계정으로 로그인한 다른 PC에는 자동으로 설치된다.
 - 동기화는 **같은 브라우저끼리만** 된다. 크롬↔크롬, 엣지↔엣지는 되지만 크롬과 엣지·웨일 사이에는 설정이 넘어가지 않는다. 다른 브라우저로 옮길 때는 설정 파일 내보내기·가져오기를 쓴다.
 - 동기화 용량을 넘을 것 같으면 넘기 전에 알리고, 자주 쓰는 문구부터 파일 내보내기를 안내한다.
+- **저장은 한 곳에서만**(엔지니어링 검토 6번): 모든 저장은 service worker 하나가 순서대로 한다. 탭·프레임은 저장을 부탁만 한다. 동기화 항목은 사이트별로 나눠 한 항목 8KB·분당 쓰기 횟수 제한을 넘지 않게 하고, 활동 기록은 하루 단위로 나눠 저장한다. AI 사용 키는 사이트 쪽 코드(content script)에 절대 넘기지 않는다.
 - 틀을 파일로 내보낼 때는 "이 파일에는 틀에 저장된 고정 값이 들어 있습니다"라고 먼저 알린다.
 - 저장하는 모든 데이터에는 형식 버전을 붙인다. 새 버전으로 바꾸다 실패하면 원래 데이터를 그대로 두고 알린다.
 
@@ -211,6 +212,7 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
   - 머무르기 클릭이 동작하지 않는다.
   - 번호표나 자동 순서 강조로 고르면 빨간 테두리와 함께 "정말 누를까요? Enter = 예"를 한 번 더 묻는다(5장 "확인 화면 보호").
 - **도우미 끄기:** 명령판과 확장 프로그램 아이콘에서 도우미 전체, 또는 지금 사이트에서만 끌 수 있다. 어떤 사이트에서 도우미가 방해되면 바로 끄고 일을 계속할 수 있어야 한다.
+- **자동 업데이트 대비**(엔지니어링 검토 3번): 틀이 도는 동안에는 업데이트 적용을 미루고(`runtime.onUpdateAvailable`), 틀이 끝나면 적용한다. 업데이트·재시작으로 연결이 끊긴 옛 도우미는 스스로 모든 키 감시와 화면 표시를 걷어 내서 키를 가로채지 않는다. 업데이트 직후 열린 탭에 새 도우미를 넣는다(`onInstalled`).
 - **되돌릴 수 있는 배포:** 웹스토어 링크로 설치한 확장은 웹스토어에서 자동으로 업데이트되므로, 옛 설치 파일을 직접 밀어 넣어 되돌릴 수 없다. 새 버전에 문제가 있으면 웹스토어의 되돌리기(이전 버전으로 롤백)를 쓰고, 안 되면 이전 코드를 더 높은 버전 번호로 다시 올린다(심사를 기다릴 수 있음). 그 사이에는 "도우미 끄기"로 버틴다. 새 버전은 연습 사이트 시험을 모두 통과한 뒤 올리고, 심사를 통과해도 바로 공개하지 않고 확인 후 공개(지연 게시)한다.
 - **사이트가 만든 가짜 입력은 무시한다**(엔지니어링 검토 4번): 도우미는 브라우저가 "사람이 누름"(`isTrusted`)으로 표시한 키·마우스 입력에만 반응한다. 사이트가 만든 가짜 Enter로 확인 화면이 넘어가지 않는다. 도우미 부분끼리의 메시지(프레임 사이 포함)는 사이트가 닿지 않는 확장 내부 통로(service worker)로만 주고받는다.
 - 확장 프로그램은 클릭 도우미 때문에 모든 사이트 접근 권한이 필요하다. 설치 화면에서 이 점을 알린다.
@@ -235,7 +237,8 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
 
 ## 10. 시험 방법
 
-- **연습용 가짜 사이트:** 아주 작은 버튼과 이미지 링크, 긴 입력 양식, 늦게 나타나는 입력칸, 모양이 바뀌는 페이지(틀 막힘 재현), 결과가 불분명한 제출 버튼, iframe 안의 양식, 알림 창(alert·confirm)을 띄우는 버튼, 위험한 버튼, 요소 5,000개짜리 큰 페이지를 갖춘 로컬 사이트를 만든다. 모든 기능은 이 사이트에서 먼저 시험하고, 실제 회사 시스템에서는 시험하지 않는다.
+- **연습용 가짜 사이트:** 아주 작은 버튼과 이미지 링크, 긴 입력 양식, 늦게 나타나는 입력칸, 모양이 바뀌는 페이지(틀 막힘 재현), 결과가 불분명한 제출 버튼, iframe 안의 양식, 알림 창(alert·confirm)을 띄우는 버튼, 위험한 버튼, 요소 5,000개짜리 큰 페이지를 갖춘 로컬 사이트를 만든다. 모든 기능은 이 사이트에서 먼저 시험하고, 실제 회사 시스템에서는 시험하지 않는다. **예외 하나**(엔지니어링 검토 7번): 11장의 확인을 위해, 이용자가 회사 시스템에서 **제출 없이** 누르기·입력만 해 보는 읽기 전용 확인 목록을 직접 돌린다.
+- **자동 시험 범위:** CI는 크롬(Chromium)으로만 돈다. 엣지·웨일은 출시마다 짧은 수동 확인 목록으로, 웹스토어 설치·계정 동기화·다른 PC는 수동으로 확인한다.
 - **단위 시험:** 떨림 필터(간격 안의 재입력 무시), 자석 커서 히스테리시스, 번호표 우선순위, 요소 찾기 점수, 바뀌는 값 자동 표시, 민감한 칸 판별, 위험한 버튼 판별, 반복 패턴 세기, AI 답 검사, 저장 형식 변환.
 - **확장 프로그램을 띄운 브라우저 시험:** 확장 프로그램을 설치한 크롬으로 연습 사이트에서 틀 기록 → 실행 → 제출 확인 → 막힘 → 다시 기록까지 흐름 전체를 자동으로 돌린다. iframe 안 양식, 알림 창 처리, 실행 중 service worker를 강제로 재운 뒤 이어 가기, 큰 페이지의 강조 반응 시간(50ms)도 함께 시험한다.
 - **이용자 시험:** 실제 이용자가 연습 사이트에서 정해진 과제(작은 버튼 10개 누르기, 양식 하나 채우기)를 확장 프로그램 없이 할 때와 있을 때의 시간과 잘못 누른 횟수를 비교한다.
@@ -255,6 +258,7 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
 1. **대신 누른 클릭을 받지 않는 사이트:** 확장 프로그램이 발생시킨 클릭은 사람이 누른 클릭과 구분될 수 있다. 이용자가 쓰는 회사 시스템에서 번호표 클릭과 틀 입력이 먹히는지 먼저 확인한다.
 2. **회사 PC 정책:** 회사 PC가 확장 프로그램 설치를 막는지 확인한다.
 3. **뒤쪽 탭 속도 제한:** 브라우저가 뒤쪽 탭의 타이머를 늦추기 때문에, 뒤에서 도는 틀이 얼마나 느려지는지 확인한다.
+5. **대신 누른 클릭의 한계**(엔지니어링 검토 5번): 머무르기 클릭과 틀 실행은 사람이 직접 누른 것이 아니라서, 브라우저가 새 창(결재 팝업), 선택 목록, 파일 선택 창을 막을 수 있다. 1단계 첫 시험에 이 경우들을 넣는다. 누르기는 마우스 누름·뗌·클릭과 포커스를 차례로 보내는 방식으로 하고, 선택 목록은 이용자의 실제 키 입력에서 연다. 새 창은 이용자가 고정한 회사 사이트만 허용한다(팝업 권한 `contentSettings`는 새 권한이라 만들 때 승인받는다). 개발자 도구(debugger) 방식은 쓰지 않는다.
 4. **사이트 단축키와의 충돌:** 숫자·스페이스바를 자체 단축키로 쓰는 사이트에서 도우미 키가 우선하도록 가로챌 수 있는지 확인한다.
 
 ## GSTACK REVIEW REPORT
@@ -264,12 +268,12 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
 | CEO review (`/plan-ceo-review`, approach C, HOLD SCOPE) | 1 | CLEAR | 8 gaps found, all 8 approved by the user and applied |
 | Outside voice (Claude subagent; Codex not installed) | 1 | CLEAR | 6 issues; user approved 2-6 and applied, rejected 1 (widening danger buttons to 결재·상신 words and magnet-cursor confirmation). User added: every sensitive field, password inputs included, can be unlocked per site after a warning |
 | Design review (`/plan-design-review`) | 1 | CLEAR | Rated 6/10 before. Design system settled first (`docs/design/`: brief, 3 ideas, user chose A 등대). 6 gaps, all approved as recommended and applied: fixed command-menu slots, state table, 3-step setup, mode indicator moves away, overlay size fixed under page zoom, waiting-count badge instead of popups |
-| Eng review (`/plan-eng-review`) | 0 | PENDING | |
+| Eng review (`/plan-eng-review`) | 1 | CLEAR | Rated 6/10 before. 7 issues, all option A: in-frame vs top-frame split, pre-click submit record in storage.local, update/reload handling, trusted-input-only + internal messaging + pre-registered dialog watcher (user asked for a plain re-explanation first), synthetic-click limits spiked in phase 1, single storage writer, read-only company-system probe + manual Edge/Whale checks. Decisions 3, 5, 6, 7 applied as recommended after the user said to proceed |
 
 - **Not in scope (held):** windows resident program, Excel/other-site transfer, batch entry, Android/iPhone helper, AI writing and AI template repair (3장 "다음 버전").
 - **What already exists:** Vimium-style link hints (번호표), Automa-style recorders (틀), Steady Clicks-style click filtering (떨림 걸러내기). None combine them for one tremor user with submit safety, so this is built from scratch with those as reference.
 - **Error and failure registry:** 9장 table.
 
-**VERDICT:** CEO and design review CLEARED. Eng review still to run.
+**VERDICT:** CEO, design and eng review CLEARED. Ready for `/gsd-plan-phase 1`.
 
 NO UNRESOLVED DECISIONS
