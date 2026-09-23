@@ -1,0 +1,39 @@
+# Claude Code personal settings (per machine)
+.claude/settings.local.json
+.claude/.gsd-staging/
+.claude/scheduled_tasks.lock
+.claude/*.lock
+
+# GSD harness-managed agent worktrees and run-scoped tool state (ephemeral, never source content)
+.claude/worktrees/
+.gsd/
+.planning/**/.review-fix-recovery-pending.json
+
+# GSD research web-search cache (tool artifact)
+.planning/research/.cache/
+
+# GSD runtime lock (session-scoped, not source)
+.planning/milestone.lock
+
+# gstack vendored copy: never commit installs or build output
+.claude/skills/gstack/node_modules/
+.claude/skills/gstack/browse/dist/
+.claude/skills/gstack/design/dist/
+.claude/skills/gstack/make-pdf/dist/
+.claude/skills/gstack/.gstack/
+.claude/skills/gstack/.env
+.claude/skills/gstack/bin/gstack-cso-launcher*
+.claude/skills/gstack/bin/gstack-cso-core*
+.claude/skills/gstack/bin/gstack-cso-watchdog*
+.claude/skills/gstack/bin/.gstack-cso-*
+.claude/skills/gstack/bin/gstack-global-discover*
+# install_pkgs.sh falls back to npm when bun install fails; gstack tracks bun.lock only
+.claude/skills/gstack/package-lock.json
+
+# Node
+node_modules/
+
+# Local env (scripts/dev-db.sh writes .env.local)
+.env
+.env.*
+!.env.example
