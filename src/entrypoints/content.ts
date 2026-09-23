@@ -1,3 +1,4 @@
+import { createConfirmGuard, type ConfirmGuard } from '@/core/confirm-guard';
 import type { Fingerprint } from '@/core/fingerprint';
 import { composeTree, resolveReports, type ComposedItem, type RawFrameReport } from '@/core/frame-tree';
 import { createGridIndex } from '@/core/grid-index';
@@ -16,6 +17,7 @@ import { buildFrameReport, createCollector, type Item } from '@/page/collector/c
 import { synthesizePress } from '@/page/click/press';
 import { createInputPipeline } from '@/page/input/pipeline';
 import { currentMode } from '@/page/input/mode';
+import { closeConfirm, openConfirm } from '@/page/overlay/confirm-dialog';
 import { hideModeIndicator, setMode, showModeIndicator, showTransientMessage } from '@/page/overlay/mode-indicator';
 import { hideHints, showHints, showNextCard } from '@/page/overlay/hints';
 import { hideRing, showRing } from '@/page/overlay/ring';
@@ -357,6 +359,7 @@ export default defineContentScript({
         return;
       }
       const rectByKey = new Map(composedItemsCache.map((c) => [hintKey(c.frameId, c.itemId), c.rect]));
+      const dangerByKey = new Map(composedItemsCache.map((c) => [hintKey(c.frameId, c.itemId), c.danger === true]));
       const placementEntries = chapter
         .map((entry) => {
           const rect = rectByKey.get(entry.itemId);
@@ -367,9 +370,11 @@ export default defineContentScript({
       const labels = chapter
         .map((entry) => {
           const placement = placements.get(entry.itemId);
-          return placement ? { number: entry.number, x: placement.x, y: placement.y } : null;
+          return placement
+            ? { number: entry.number, x: placement.x, y: placement.y, danger: dangerByKey.get(entry.itemId) === true }
+            : null;
         })
-        .filter((label): label is { number: number; x: number; y: number } => label !== null);
+        .filter((label): label is { number: number; x: number; y: number; danger: boolean } => label !== null);
 
       hideHints();
       showHints(labels);
@@ -416,6 +421,50 @@ export default defineContentScript({
         frameId: targetFrameId,
         itemId: targetItemId,
         framePath: composed.fingerprint.framePath,
+      });
+    }
+
+    // 확인 화면 카피(D-26 카피 규칙, "확인" 대신 실제 동작 단어): 맨 위 자신의 항목은
+    // collector.items()의 name(계산된 화면 글자)을 그대로 쓰고, 다른 프레임 것은 와이어로 오지
+    // 않는 name 대신 fingerprint의 버튼 글자·라벨 글자·aria 중 있는 것으로 대신한다.
+    function displayNameFor(composed: ComposedItem): string {
+      if (composed.frameId === 0) {
+        const local = collector.items().find((candidate) => candidate.id === composed.itemId);
+        if (local) {
+          return local.name;
+        }
+      }
+      return (
+        composed.fingerprint.buttonText ?? composed.fingerprint.labelText ?? composed.fingerprint.aria ?? composed.fingerprint.id ?? ''
+      );
+    }
+
+    // 위험한 버튼 확인 화면(D-18, D-19, SAFE-02, SAFE-03): 확인 화면을 열고 guard를 만들어
+    // pipeline.setModal로 모든 isTrusted 키를 guard에만 보낸다. confirm이면 누르고(맨 위 요소는
+    // 바로, 자식 프레임은 hints/press — pressHintEntry가 이미 이 분기를 안다), cancel이면 닫기만.
+    function openDangerConfirm(composed: ComposedItem, itemId: string): void {
+      const guard: ConfirmGuard = createConfirmGuard({ openedAt: performance.now(), keymap: currentSettings.data.keymap });
+
+      function finish(result: 'confirm' | 'cancel'): void {
+        inputPipeline.setModal(null);
+        closeConfirm();
+        if (result === 'confirm') {
+          pressHintEntry(itemId);
+        }
+      }
+
+      openConfirm({
+        name: displayNameFor(composed),
+        onResult: () => {
+          finish('cancel');
+        },
+      });
+
+      inputPipeline.setModal((e) => {
+        const result = e.type === 'tick' ? guard.tick(e.t) : guard.handle(e);
+        if (result === 'confirm' || result === 'cancel') {
+          finish(result);
+        }
       });
     }
 
@@ -477,8 +526,10 @@ export default defineContentScript({
         if (entry) {
           const composed = composedItemsCache.find((c) => hintKey(c.frameId, c.itemId) === entry.itemId);
           if (composed?.danger) {
-            // T-01-23: 위험한 버튼은 번호로 바로 누르지 않는다 — 확인 화면이 생기기 전까지(Plan
-            // 01-09) 번호표를 그대로 둔다.
+            // D-18, D-19, T-01-23 완화(Plan 01-09): 위험한 버튼은 번호로 바로 누르지 않고 번호표를
+            // 닫은 뒤 확인 화면을 연다 — confirm이어야만 누른다.
+            closeHints();
+            openDangerConfirm(composed, entry.itemId);
             return true;
           }
           pressHintEntry(entry.itemId);

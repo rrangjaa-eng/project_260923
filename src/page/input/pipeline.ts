@@ -12,12 +12,22 @@ export type KeyHandler = (input: { code: string }) => boolean;
 // 묶음의 click 시점에("누름·뗌이 끝난 뒤 누르기") 그 함수를 "실행" 신호로 부른다(D-13, D-17).
 export type PressHandler = (input: { x: number; y: number }) => boolean | (() => void);
 
+// 확인 화면 모달(D-09, D-19, Plan 01-09): 모달이 열려 있으면 isTrusted keydown·keyup·keypress를
+// 모두 삼키고(사이트로 가지 않음) keydown·keyup만 이 핸들러에 넘긴다 — isTrusted false는
+// 삼키지도 넘기지도 않는다(사이트 자기 이벤트, 확인에 쓰이지 않음, T-01-24). 스페이스바를 계속
+// 누르고 있어도 브라우저가 반드시 repeat keydown을 다시 보내지는 않으므로(자동화 도구는 특히),
+// 100ms마다 'tick'을 함께 보내 guard.tick()으로 누르고 있는 시간을 직접 잰다.
+export type ModalEvent = { type: 'keydown' | 'keyup'; code: string; repeat: boolean; t: number } | { type: 'tick'; t: number };
+export type ModalHandler = (e: ModalEvent) => void;
+
 // D-04: 마우스 움직임 계산은 1초 60번까지만.
 const POINTER_MOVE_MIN_INTERVAL_MS = 1000 / 60;
+const MODAL_TICK_INTERVAL_MS = 100;
 
 export interface InputPipeline {
   onKey(handler: KeyHandler): void;
   onPress(handler: PressHandler): void;
+  setModal(handler: ModalHandler | null): void;
 }
 
 export function createInputPipeline(opts: { getSettings: () => SettingsV1; signal: AbortSignal }): InputPipeline {
@@ -32,6 +42,8 @@ export function createInputPipeline(opts: { getSettings: () => SettingsV1; signa
   let lastPointerMoveAt = 0;
   const keyHandlers: KeyHandler[] = [];
   const pressHandlers: PressHandler[] = [];
+  let modalHandler: ModalHandler | null = null;
+  let modalTickInterval: ReturnType<typeof setInterval> | null = null;
 
   // 설정이 바뀌면(interval·sameSpot) 새 값으로 필터를 다시 만든다. 그 외엔 상태(마지막 받아들인
   // 시각·자리)를 그대로 유지해야 하므로 매 이벤트마다 새로 만들지 않는다.
@@ -67,6 +79,12 @@ export function createInputPipeline(opts: { getSettings: () => SettingsV1; signa
     'keydown',
     (event) => {
       if (!event.isTrusted || !isHelperEnabled()) {
+        return;
+      }
+      if (modalHandler) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        modalHandler({ type: 'keydown', code: event.code, repeat: event.repeat, t: event.timeStamp });
         return;
       }
       const accepted = activeFilter().accept({ kind: 'key', code: event.code, repeat: event.repeat, t: event.timeStamp });
@@ -113,6 +131,11 @@ export function createInputPipeline(opts: { getSettings: () => SettingsV1; signa
       if (!event.isTrusted || !isHelperEnabled()) {
         return;
       }
+      if (modalHandler) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
       if (swallowedKeyCodes.has(event.code)) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -125,6 +148,12 @@ export function createInputPipeline(opts: { getSettings: () => SettingsV1; signa
     'keyup',
     (event) => {
       if (!event.isTrusted || !isHelperEnabled()) {
+        return;
+      }
+      if (modalHandler) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        modalHandler({ type: 'keyup', code: event.code, repeat: event.repeat, t: event.timeStamp });
         return;
       }
       if (swallowedKeyCodes.has(event.code)) {
@@ -223,12 +252,31 @@ export function createInputPipeline(opts: { getSettings: () => SettingsV1; signa
     { capture: true, signal },
   );
 
+  signal.addEventListener('abort', () => {
+    if (modalTickInterval !== null) {
+      clearInterval(modalTickInterval);
+      modalTickInterval = null;
+    }
+  });
+
   return {
     onKey(handler) {
       keyHandlers.push(handler);
     },
     onPress(handler) {
       pressHandlers.push(handler);
+    },
+    setModal(handler) {
+      modalHandler = handler;
+      if (modalTickInterval !== null) {
+        clearInterval(modalTickInterval);
+        modalTickInterval = null;
+      }
+      if (handler) {
+        modalTickInterval = setInterval(() => {
+          handler({ type: 'tick', t: performance.now() });
+        }, MODAL_TICK_INTERVAL_MS);
+      }
     },
   };
 }

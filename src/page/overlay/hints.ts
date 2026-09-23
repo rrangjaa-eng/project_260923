@@ -5,12 +5,19 @@ import { ensureOverlayRoot } from '@/page/overlay/mode-indicator';
 
 const HINTS_CLASS = 'hints';
 const LABEL_CLASS = 'hint-label';
+const LABEL_DANGER_TAG_CLASS = 'hint-label-danger-tag';
 const NEXT_CARD_CLASS = 'hint-next-card';
 const NEXT_CARD_KEY_CLASS = 'hint-next-card__key';
 
 let styleInjected = false;
 let hintsElement: HTMLDivElement | null = null;
 let nextCardElement: HTMLDivElement | null = null;
+
+function readPx(el: Element, name: string, fallback: number): number {
+  const raw = getComputedStyle(el).getPropertyValue(name).trim();
+  const value = Number.parseFloat(raw);
+  return Number.isFinite(value) ? value : fallback;
+}
 
 function ensureStyle(root: ShadowRoot): void {
   if (styleInjected) {
@@ -42,6 +49,29 @@ function ensureStyle(root: ShadowRoot): void {
   border-radius: var(--radius-label);
   box-shadow: 0 0 0 var(--halo-width) var(--halo);
   transition: opacity var(--motion-appear);
+}
+.${LABEL_CLASS}[data-danger="true"] {
+  background: var(--bg);
+  color: var(--danger);
+  border: var(--border-strong) dashed var(--danger);
+}
+.${LABEL_DANGER_TAG_CLASS} {
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  color: var(--danger);
+  font-family: var(--font);
+  font-size: var(--text-label);
+  font-weight: var(--weight-bold);
+  text-shadow:
+    calc(var(--halo-width) * -1) 0 0 var(--halo),
+    var(--halo-width) 0 0 var(--halo),
+    0 calc(var(--halo-width) * -1) 0 var(--halo),
+    0 var(--halo-width) 0 var(--halo);
+  pointer-events: none;
 }
 .${NEXT_CARD_CLASS} {
   position: fixed;
@@ -88,15 +118,31 @@ function ensureHintsElement(): HTMLDivElement {
   return hintsElement;
 }
 
-export function showHints(labels: Array<{ number: number; x: number; y: number }>): void {
+export function showHints(labels: Array<{ number: number; x: number; y: number; danger?: boolean }>): void {
   const container = ensureHintsElement();
   container.textContent = '';
+  const labelSizePx = readPx(container, '--label-size', 28);
+  const gapPx = readPx(container, '--space-2', 8);
   for (const label of labels) {
     const el = document.createElement('div');
     el.className = LABEL_CLASS;
     el.textContent = String(label.number);
     el.style.transform = `translate(${label.x.toString()}px, ${label.y.toString()}px)`;
+    if (label.danger) {
+      el.dataset.danger = 'true';
+    }
     container.append(el);
+
+    if (label.danger) {
+      // 위험 번호표 옆 "! 위험" 글자(D-18, D-26) — 사이트 배경과 상관없이 보이도록 흰 후광(ring.ts와
+      // 같은 text-shadow 네 방향 흉내).
+      const tag = document.createElement('div');
+      tag.className = LABEL_DANGER_TAG_CLASS;
+      tag.textContent = '! 위험';
+      const tagX = label.x + labelSizePx + gapPx;
+      tag.style.transform = `translate(${tagX.toString()}px, ${label.y.toString()}px)`;
+      container.append(tag);
+    }
   }
 }
 
