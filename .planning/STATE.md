@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-06-PLAN.md
-last_updated: "2026-09-23T19:03:13.126Z"
+stopped_at: Completed 01-07-PLAN.md
+last_updated: "2026-09-23T20:24:03.292Z"
 last_activity: 2026-09-23
 last_activity_desc: Phase 1 execution started
-state_head: d489d0575fe0e0dc8bd21e1becaebbd3be9ca767
+state_head: 5ecbbb71b126f5a723041d1c39db12b924934b4e
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 16
-  completed_plans: 6
+  completed_plans: 7
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 ## Current Position
 
 Phase: 1 (클릭 도우미 기반) — EXECUTING
-Plan: 7 of 16
+Plan: 8 of 16
 Status: Ready to execute
 Last activity: 2026-09-23 — Phase 1 execution started
 
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P04 | 40min | 2 tasks | 11 files |
 | Phase 01 P05 | 26min | 2 tasks | 8 files |
 | Phase 1 P06 | 36min | 3 tasks | 14 files |
+| Phase 01 P07 | 75min | 3 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,9 @@ Recent decisions affecting current work:
 - [Phase 1]: 핑거프린트 매치스코어(6키 중 2+ 일치, framePath 불일치시 0)로 요소 동일성 판정
 - [Phase 1]: 힌트 순서: 핀 번호 우선 → 누른 횟수 내림차순 → 커서 거리 오름차순, 9개씩 페이지네이션
 - [Phase 1]: recordPress는 sender.url 기반 origin과 요청 origin을 대조해 위조 방지(T-01-16), press 기록은 200건 상한
+- [Phase 1]: RESEARCH A2 정정: chrome.runtime.getFrameId는 Chrome에 없다(Firefox 전용) — 각 프레임이 스스로 계산하는 창 위치 경로(selfPath)와 부모의 상대 순번(index)을 relay.ts가 맞추는 방식으로 프레임 식별을 재설계
+- [Phase 1]: relay.ts: 형제 iframe이 지워져 순번이 당겨지면 옛 경로의 보고를 지우고 frame/refresh를 방송해 모든 프레임이 즉시 다시 계산·보고하게 한다
+- [Phase 1]: 번호표 키 판단은 항상 맨 위 프레임에서만 — 자식 프레임은 hints/key로 전달만 한다
 
 ### Pending Todos
 
@@ -117,6 +121,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-23T19:03:13.083Z
-Stopped at: Completed 01-06-PLAN.md
+Last session: 2026-09-23T20:24:03.205Z
+Stopped at: Completed 01-07-PLAN.md
 Resume file: None
