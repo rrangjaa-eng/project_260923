@@ -1,14 +1,47 @@
-import { SETTINGS_KEY, defaultSettings } from '@/core/settings-schema';
+import { parseMessage } from '@/shared/messages';
+import { createStorageWriter } from '@/worker/storage-writer';
 
-// 이 phase의 단일 저장자가 들어갈 자리(Plan 01-02가 src/worker/storage-writer.ts로 옮긴다, D-24).
+// 탭·프레임별 마지막 enabled 보고(D-03) — 시험이 globalThis.frameStates로 읽는다.
+type FrameStates = Record<number, Record<number, boolean>>;
+
 export default defineBackground(() => {
+  const writer = createStorageWriter();
+  const frameStates: FrameStates = {};
+  (globalThis as typeof globalThis & { frameStates: FrameStates }).frameStates = frameStates;
+
   chrome.runtime.onInstalled.addListener(() => {
-    void chrome.storage.sync.get(SETTINGS_KEY).then((existing) => {
-      if (existing[SETTINGS_KEY] !== undefined) {
-        // 이미 있는 값은 덮어쓰지 않는다 — 원본 보존(D-25).
-        return;
+    void writer.ensureDefaultSettings();
+  });
+
+  chrome.runtime.onMessage.addListener((raw, sender, sendResponse) => {
+    // 확장 내부 메시지만 받는다(D-09) — externally_connectable 없음, window.postMessage는 받지 않는다.
+    if (sender.id !== chrome.runtime.id) {
+      return undefined;
+    }
+
+    const parsed = parseMessage(raw);
+    if (!parsed.success) {
+      return undefined;
+    }
+
+    const message = parsed.data;
+
+    if (message.type === 'storage/request') {
+      void writer.setEnabled(message.op.enabled).then(sendResponse);
+      return true; // 비동기 응답을 위해 메시지 채널을 열어 둔다.
+    }
+
+    // message.type === 'frame/state'
+    const tabId = sender.tab?.id;
+    const frameId = sender.frameId;
+    if (tabId !== undefined && frameId !== undefined) {
+      let tabFrames = frameStates[tabId];
+      if (!tabFrames) {
+        tabFrames = {};
+        frameStates[tabId] = tabFrames;
       }
-      return chrome.storage.sync.set({ [SETTINGS_KEY]: defaultSettings() });
-    });
+      tabFrames[frameId] = message.enabled;
+    }
+    return undefined;
   });
 });
