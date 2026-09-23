@@ -11,6 +11,22 @@
       var params = new URLSearchParams(location.search);
       var child = params.get('child');
 
+      // Plan 01-09 behavior 7·Task 3 behavior 3: 확인 화면이 떠 있는 동안 사이트가 키 입력을
+      // 받지 않음을 확인하는 카운터(도우미가 도우미 모드일 때 여는 확인 화면이 모든 isTrusted
+      // 키를 삼켜야 이 카운터가 늘지 않는다). shortcuts.html의 site-keydown과 같은 패턴.
+      var siteKeydownCount = 0;
+      window.addEventListener(
+        'keydown',
+        function () {
+          siteKeydownCount += 1;
+          var el = document.getElementById('site-keydown');
+          if (el) {
+            el.textContent = String(siteKeydownCount);
+          }
+        },
+        true,
+      );
+
       function makeButton(id, text, x, y, w, h) {
         var btn = document.createElement('button');
         btn.id = id;
@@ -50,6 +66,11 @@
       if (child === '1') {
         // 다른 출처 iframe 안 위험한 버튼 하나(Plan 01-09용).
         makeButton('btn-child-delete', '삭제', 0, 0, 60, 30);
+        var childCounter = document.createElement('span');
+        childCounter.id = 'site-keydown';
+        childCounter.textContent = '0';
+        childCounter.style.cssText = 'position:absolute;left:0px;top:120px';
+        document.body.append(childCounter);
       } else {
         // 각 줄은 90px씩 떨어져 있다 — 시험은 항상 커서를 가로(같은 세로 가운데)로만 옮겨
         // 다른 줄의 요소가 잡는 범위(기본 48px)에 걸리지 않게 한다.
@@ -69,6 +90,12 @@
         makeButton('btn-reject', '반려', 150, 360, 60, 30);
         makeButton('btn-submit', '상신', 150, 450, 60, 30);
         makeButton('btn-hold', '보류', 150, 540, 60, 30);
+
+        var topCounter = document.createElement('span');
+        topCounter.id = 'site-keydown';
+        topCounter.textContent = '0';
+        topCounter.style.cssText = 'position:absolute;left:150px;top:630px';
+        document.body.append(topCounter);
 
         var frame = document.createElement('iframe');
         frame.id = 'frame-child';
