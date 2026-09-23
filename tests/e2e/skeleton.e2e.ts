@@ -31,10 +31,17 @@ test('빌드한 확장을 Playwright 크롬에 올리면 service worker가 뜬�
 test('설치 직후 기본 설정이 형식 버전 1과 함께 storage.sync에 저장된다', async () => {
   const { context, serviceWorker } = await launchExtension();
 
+  // onInstalled의 get→set 체인은 비동기라, SW가 뜬 시점에는 아직 쓰기 전일 수 있다 — 값이 나타날 때까지 기다린다.
+  await expect
+    .poll(async () => {
+      const stored = await serviceWorker.evaluate(async () => chrome.storage.sync.get('settings'));
+      return stored.settings;
+    })
+    .toBeDefined();
+
   const stored = await serviceWorker.evaluate(async () => chrome.storage.sync.get('settings'));
   const value = stored.settings;
 
-  expect(value).toBeDefined();
   const parsed = SettingsV1.safeParse(value);
   expect(parsed.success).toBe(true);
   expect((value as { schemaVersion: number }).schemaVersion).toBe(1);
