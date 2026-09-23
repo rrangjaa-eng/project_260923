@@ -148,12 +148,12 @@ src/
 ├── worker/
 │   ├── storage-writer.ts      # 순서대로 쓰는 단일 저장자
 │   └── relay.ts               # 프레임 메시지 중계
-├── shared/messages.ts         # 판별 유니온 메시지 타입
-└── styles/tokens.css          # docs/design/tokens.css 를 가져오는 진입(값 복제 금지)
+└── shared/messages.ts         # 판별 유니온 메시지 타입
+(토큰은 docs/design/tokens.css 를 `?inline`/`?raw`로 직접 가져온다 — 값 복제 금지)
 tests/
 ├── unit/                      # Vitest
 ├── e2e/                       # Playwright (fixtures.ts가 확장 로드)
-└── practice-site/             # 정적 HTML + serve.mjs(node:http, 두 출처)
+└── practice-site/             # 정적 HTML — e2e fixture가 context.route로 practice.test·other.test 두 출처에 제공(서버 패키지 없음)
 ```
 
 ### Pattern 1: 입력 파이프라인 (capture → isTrusted → filter → mode → dispatch)
