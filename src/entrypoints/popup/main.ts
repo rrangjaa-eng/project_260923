@@ -126,6 +126,13 @@ card.addEventListener('click', () => {
   toggle();
 });
 
+document.addEventListener('keydown', (event) => {
+  if (event.code === 'Digit1' || event.code === 'Numpad1') {
+    event.preventDefault();
+    toggle();
+  }
+});
+
 async function loadInitial(): Promise<void> {
   const stored = await chrome.storage.sync.get(SETTINGS_KEY);
   const parsed = SettingsV1.safeParse(stored[SETTINGS_KEY]);

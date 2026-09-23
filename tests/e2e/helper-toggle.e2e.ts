@@ -92,6 +92,8 @@ test('같은 출처·다른 출처 iframe 모두 도우미 켜짐/꺼짐을 SW�
   openPopup,
   serveFramedPracticePage,
 }) => {
+  // serveFramedPracticePage(fixtures.ts): practice.test 위에 같은 출처 iframe과
+  // 다른 출처(other.test) iframe을 함께 등록한다.
   serveFramedPracticePage();
   const page = await context.newPage();
   await page.goto('http://practice.test/');
