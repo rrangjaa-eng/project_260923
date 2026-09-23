@@ -2,7 +2,22 @@
 // (pointerover→pointerenter→mouseover→pointerdown→mousedown→focus→pointerup→mouseup→click).
 // 개발자 도구 프로토콜(CDP)이나 확장 디버거 API는 쓰지 않는다(설계 11장 ⑤). 모든 이벤트는
 // isTrusted:false로 만들어지므로 입력 파이프라인이 되먹임으로 다시 처리기에 넘기지 않는다(D-09).
-// <select>·파일 입력·새 창 처리는 이 계획 범위가 아니다(Plan 01-12 스파이크).
+// 선택 목록·파일·날짜·시간·색 입력은 마우스 순서 대신 이용자의 실제 키 입력 처리 안에서
+// focus() 뒤 showPicker()를 부른다(D-13, Plan 01-12 스파이크) — 이 API는 일시적 사용자
+// 활성화가 있어야 하므로[ASSUMED: RESEARCH.md Pattern 3], 실패(NotAllowedError 등)는 잡아
+// { picker: 'blocked' }로 알린다.
+
+export type PickerResult = 'opened' | 'blocked' | 'none';
+
+function needsPicker(el: Element): el is HTMLSelectElement | HTMLInputElement {
+  if (el instanceof HTMLSelectElement) {
+    return true;
+  }
+  if (el instanceof HTMLInputElement) {
+    return el.type === 'file' || el.type === 'date' || el.type === 'time' || el.type === 'color';
+  }
+  return false;
+}
 
 function centerOf(el: Element): { x: number; y: number } {
   const rect = el.getBoundingClientRect();
@@ -48,7 +63,17 @@ function dispatchMouse(el: Element, type: string, x: number, y: number, extra: M
   );
 }
 
-export function synthesizePress(el: Element): void {
+export function synthesizePress(el: Element): { picker: PickerResult } {
+  if (needsPicker(el)) {
+    el.focus({ preventScroll: true });
+    try {
+      el.showPicker();
+      return { picker: 'opened' };
+    } catch {
+      return { picker: 'blocked' };
+    }
+  }
+
   const { x, y } = centerOf(el);
 
   dispatchPointer(el, 'pointerover', x, y);
@@ -65,4 +90,5 @@ export function synthesizePress(el: Element): void {
   dispatchPointer(el, 'pointerup', x, y);
   dispatchMouse(el, 'mouseup', x, y);
   dispatchMouse(el, 'click', x, y);
+  return { picker: 'none' };
 }

@@ -45,35 +45,49 @@ export const test = base.extend<Fixtures>({
     await use([]);
   },
 
-  context: async ({ servedPages }, use) => {
+  context: async ({ servedPages, blockedRequests }, use) => {
     const context = await chromium.launchPersistentContext('', {
       ...(executablePath ? { executablePath } : { channel: 'chromium' }),
       args: [`--disable-extensions-except=${EXTENSION_PATH}`, `--load-extension=${EXTENSION_PATH}`],
     });
 
     // practice.test·other.test는 회사 시스템이 아닌 로컬 고정물이다(D-28) — 실제 네트워크로 나가지 않고
-    // 여기서 등록한 inline HTML이나 tests/practice-site/ 아래 파일로만 응답한다.
-    await context.route(/^http:\/\/(practice|other)\.test\//, async (route) => {
+    // 여기서 등록한 inline HTML이나 tests/practice-site/ 아래 파일로만 응답한다. 그 밖의 모든 요청
+    // (확장 자신의 chrome-extension:// 자원은 예외)은 D-14·D-31에 따라 route.abort()하고 URL을
+    // blockedRequests에 남긴다 — 회사 시스템·인터넷으로 나가는 요청이 하나도 없어야 한다(Plan 01-12).
+    await context.route('**/*', async (route) => {
       const requestUrl = route.request().url();
-      const withoutQuery = requestUrl.split('?')[0] ?? requestUrl;
-      const inline = servedPages.get(withoutQuery);
-      if (inline !== undefined) {
-        await route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: inline });
+
+      if (/^http:\/\/(practice|other)\.test\//.test(requestUrl)) {
+        const withoutQuery = requestUrl.split('?')[0] ?? requestUrl;
+        const inline = servedPages.get(withoutQuery);
+        if (inline !== undefined) {
+          await route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: inline });
+          return;
+        }
+
+        const url = new URL(requestUrl);
+        const filePath = path.join(PRACTICE_SITE_DIR, url.pathname);
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'text/html; charset=utf-8',
+            body: fs.readFileSync(filePath, 'utf8'),
+          });
+          return;
+        }
+
+        await route.fulfill({ status: 404, contentType: 'text/plain', body: 'not found' });
         return;
       }
 
-      const url = new URL(requestUrl);
-      const filePath = path.join(PRACTICE_SITE_DIR, url.pathname);
-      if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-        await route.fulfill({
-          status: 200,
-          contentType: 'text/html; charset=utf-8',
-          body: fs.readFileSync(filePath, 'utf8'),
-        });
+      if (requestUrl.startsWith('chrome-extension://') || requestUrl.startsWith('about:') || requestUrl.startsWith('data:')) {
+        await route.continue();
         return;
       }
 
-      await route.fulfill({ status: 404, contentType: 'text/plain', body: 'not found' });
+      blockedRequests.push(requestUrl);
+      await route.abort();
     });
 
     await use(context);

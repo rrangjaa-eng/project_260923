@@ -29,6 +29,10 @@ import { parseMessage } from '@/shared/messages';
 // 끌어서 놓기 두 번 누르기 힌트 문구(D-08, SYSTEM.md 카피 규칙): 키 이름은 영어 그대로.
 const DRAG_ARM_HINT = '놓을 곳을 누르세요 · Esc 취소';
 
+// 선택 목록·파일 등 picker가 막혔을 때 안내(SYSTEM.md 카피 규칙: 원인 없이 다음 행동만
+// 짧게, D-13·Plan 01-12 스파이크).
+const PICKER_BLOCKED_MESSAGE = '이 칸은 직접 눌러 주세요';
+
 // 끌 수 있는 요소 판정(D-08 RESOLVED): 요소 자신이나 조상이 draggable="true"다.
 function isDraggableElement(el: Element): boolean {
   let node: Element | null = el;
@@ -138,13 +142,19 @@ export default defineContentScript({
     // synthesizeDrag로 대신 끌어서 놓는다.
     function pressOrDrag(id: string, el: Element, fingerprint: Fingerprint, danger: boolean): void {
       if (!currentSettings.data.dragTwoPress || danger) {
-        synthesizePress(el);
+        const { picker } = synthesizePress(el);
+        if (picker === 'blocked') {
+          showTransientMessage(PICKER_BLOCKED_MESSAGE, 2000);
+        }
         sendRecordPress(fingerprint);
         return;
       }
       const result = dragTwoPress.press({ id, draggable: isDraggableElement(el) });
       if (result.action === 'pass') {
-        synthesizePress(el);
+        const { picker } = synthesizePress(el);
+        if (picker === 'blocked') {
+          showTransientMessage(PICKER_BLOCKED_MESSAGE, 2000);
+        }
         sendRecordPress(fingerprint);
         return;
       }

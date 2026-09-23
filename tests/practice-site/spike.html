@@ -16,9 +16,10 @@
   </head>
   <body>
     <!-- 선택 목록(D-13, Plan 01-12 Task 1): 이용자의 실제 키 입력(스페이스바) 처리 안에서
-         showPicker()로 열고(마우스 순서 대신), ArrowDown·Enter로 값이 바뀌면 change가
-         기록된다(목록이 열렸다는 근거). sel-click-count는 대신 누르기가 이제 마우스 순서를
-         보내지 않고 focus()+showPicker()만 부른다는 근거(0으로 남아야 한다). -->
+         마우스 순서 대신 focus()+showPicker()를 부른다. sel-click-count는 그 근거(마우스 순서를
+         더는 보내지 않으므로 0으로 남아야 한다). sel-change-count·sel-value는 이어지는
+         ArrowDown·Enter가 실제로 값을 바꾸는지 기록만 한다(이 샌드박스 헤드리스 크로미움에서는
+         바뀌지 않음을 확인했다 — SUMMARY 기록, 단언하지 않음). -->
     <select id="sel" data-el style="left: 150px; top: 40px; width: 140px">
       <option value="apple">사과</option>
       <option value="banana">바나나</option>
