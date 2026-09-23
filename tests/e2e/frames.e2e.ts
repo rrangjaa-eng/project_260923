@@ -226,3 +226,78 @@ test('페이지 스크립트가 iframe 하나를 지운 뒤 F → 그 프레임 
   expect(texts.length).toBe(6);
 });
 
+// Task 3(D-03, D-09, T-01-19): 초점이 자식 프레임 안(입력칸 밖)에 있어도 F·숫자가 hints/key로
+// 맨 위에 전달되어 번호표를 열고 다른 프레임 요소를 누른다. 초점이 iframe 안이면(맨 위 문서의
+// activeElement가 그 iframe 자신이 됨) 맨 위 모드 표시는 그 프레임이 보낸 mode/report를 따른다.
+// 번호표가 떠 있지 않을 때는 자식 프레임의 숫자를 도우미가 삼키지 않는다.
+
+test('other.test 자식 프레임 안(입력칸 밖)에 초점이 있어도 F로 번호표가 뜨고 숫자로 다른 프레임 요소가 눌린다', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await openFrames(page);
+
+  await page.frameLocator('#frame-cross').locator('#btn-cross').click();
+  await expect(page.frameLocator('#frame-cross').locator('#cross-count')).toHaveText('1');
+
+  await pressFUntilLabelCount(page, 7);
+
+  const topBox = await page.locator('#btn-top').boundingBox();
+  if (!topBox) {
+    throw new Error('버튼을 찾지 못했다');
+  }
+  const number = await numberNearPoint(page, topBox.x - 14, topBox.y - 14);
+  expect(number).not.toBe('');
+  await page.keyboard.press(`Digit${number}`);
+  await page.waitForTimeout(300);
+
+  await expect(page.locator('#top-count')).toHaveText('1');
+});
+
+test('중첩 손자 프레임의 입력칸에 초점이 가면 맨 위 모드 표시가 typing이 되고, Esc를 누르면 helper로 돌아간다', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await openFrames(page);
+
+  const leafInput = page.frameLocator('#frame-nest').frameLocator('#frame-leaf').locator('#input-leaf');
+  await leafInput.click();
+
+  await expect
+    .poll(() => page.evaluate(() => document.querySelector('tremor-helper-root')?.getAttribute('data-mode')))
+    .toBe('typing');
+
+  await page.keyboard.press('Escape');
+
+  await expect
+    .poll(() => page.evaluate(() => document.querySelector('tremor-helper-root')?.getAttribute('data-mode')))
+    .toBe('helper');
+});
+
+test('번호표가 떠 있지 않을 때 자식 프레임에서 누른 숫자는 그 프레임 페이지로 그대로 간다', async ({ context }) => {
+  const page = await context.newPage();
+  await openFrames(page);
+
+  const frame = page.frames().find((candidate) => candidate.url().includes('child=same'));
+  if (!frame) {
+    throw new Error('frame-same을 찾지 못했다');
+  }
+  await frame.locator('#btn-same').click();
+  await frame.evaluate(() => {
+    (window as unknown as { __digitSeen?: boolean }).__digitSeen = false;
+    window.addEventListener('keydown', (event) => {
+      if (event.code === 'Digit1') {
+        (window as unknown as { __digitSeen?: boolean }).__digitSeen = true;
+      }
+    });
+  });
+
+  await page.keyboard.press('Digit1');
+  await page.waitForTimeout(150);
+
+  const seen = await frame.evaluate(() => (window as unknown as { __digitSeen?: boolean }).__digitSeen);
+  expect(seen).toBe(true);
+
+  const texts = await labelTexts(page);
+  expect(texts.length).toBe(0);
+});
