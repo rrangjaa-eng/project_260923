@@ -237,7 +237,7 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
 
 ## 10. 시험 방법
 
-- **연습용 가짜 사이트:** 아주 작은 버튼과 이미지 링크, 긴 입력 양식, 늦게 나타나는 입력칸, 모양이 바뀌는 페이지(틀 막힘 재현), 결과가 불분명한 제출 버튼, iframe 안의 양식, 알림 창(alert·confirm)을 띄우는 버튼, 위험한 버튼, 요소 5,000개짜리 큰 페이지를 갖춘 로컬 사이트를 만든다. 모든 기능은 이 사이트에서 먼저 시험하고, 실제 회사 시스템에서는 시험하지 않는다. **예외 하나**(엔지니어링 검토 7번): 11장의 확인을 위해, 이용자가 회사 시스템에서 **제출 없이** 누르기·입력만 해 보는 읽기 전용 확인 목록을 직접 돌린다.
+- **연습용 가짜 사이트:** 아주 작은 버튼과 이미지 링크, 긴 입력 양식, 늦게 나타나는 입력칸, 모양이 바뀌는 페이지(틀 막힘 재현), 결과가 불분명한 제출 버튼, iframe 안의 양식, 알림 창(alert·confirm)을 띄우는 버튼, 위험한 버튼, 요소 5,000개짜리 큰 페이지를 갖춘 로컬 사이트를 만든다. 모든 기능은 이 사이트에서 먼저 시험하고, 실제 회사 시스템에서는 시험하지 않는다.
 - **자동 시험 범위:** CI는 크롬(Chromium)으로만 돈다. 엣지·웨일은 출시마다 짧은 수동 확인 목록으로, 웹스토어 설치·계정 동기화·다른 PC는 수동으로 확인한다.
 - **단위 시험:** 떨림 필터(간격 안의 재입력 무시), 자석 커서 히스테리시스, 번호표 우선순위, 요소 찾기 점수, 바뀌는 값 자동 표시, 민감한 칸 판별, 위험한 버튼 판별, 반복 패턴 세기, AI 답 검사, 저장 형식 변환.
 - **확장 프로그램을 띄운 브라우저 시험:** 확장 프로그램을 설치한 크롬으로 연습 사이트에서 틀 기록 → 실행 → 제출 확인 → 막힘 → 다시 기록까지 흐름 전체를 자동으로 돌린다. iframe 안 양식, 알림 창 처리, 실행 중 service worker를 강제로 재운 뒤 이어 가기, 큰 페이지의 강조 반응 시간(50ms)도 함께 시험한다.
@@ -247,7 +247,7 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
 ## 10-1. 만드는 순서
 
 1. 요소 수집기 + 떨림 걸러내기 + 클릭 도우미(자석 커서·번호표) + 도우미 끄기
-2. **중간 이용자 시험** (위 10장). 기본값 조정
+2. **중간 이용자 시험** (위 10장). 기본값 조정, 회사 시스템이 도우미의 클릭·입력을 받는지 확인(11장 1번)
 3. 키 스크롤·명령판·되돌리기, 입력 줄이기, 양식 한 장 보기, 컨디션 모드, 맞춤 설정
 4. 틀 자동화(기록·실행·제출 확인·알림 창·막힘), 활동 기록
 5. 작업판, 뒤에서 실행, 반복 패턴 알림
@@ -255,7 +255,7 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
 
 ## 11. 확인이 필요한 점 (구현 전에 짧게 시험)
 
-1. **대신 누른 클릭을 받지 않는 사이트:** 확장 프로그램이 발생시킨 클릭은 사람이 누른 클릭과 구분될 수 있다. 이용자가 쓰는 회사 시스템에서 번호표 클릭과 틀 입력이 먹히는지 먼저 확인한다.
+1. **대신 누른 클릭을 받지 않는 사이트:** 확장 프로그램이 발생시킨 클릭은 사람이 누른 클릭과 구분될 수 있다. 이용자가 쓰는 회사 시스템에서 번호표 클릭과 틀 입력이 먹히는지 먼저 확인한다. 이 확인은 **중간 이용자 시험(10-1의 2번) 때** 한다(엔지니어링 검토 7번, 사용자 결정). 그 전에는 회사 시스템을 건드리지 않는다.
 2. **회사 PC 정책:** 회사 PC가 확장 프로그램 설치를 막는지 확인한다.
 3. **뒤쪽 탭 속도 제한:** 브라우저가 뒤쪽 탭의 타이머를 늦추기 때문에, 뒤에서 도는 틀이 얼마나 느려지는지 확인한다.
 5. **대신 누른 클릭의 한계**(엔지니어링 검토 5번): 머무르기 클릭과 틀 실행은 사람이 직접 누른 것이 아니라서, 브라우저가 새 창(결재 팝업), 선택 목록, 파일 선택 창을 막을 수 있다. 1단계 첫 시험에 이 경우들을 넣는다. 누르기는 마우스 누름·뗌·클릭과 포커스를 차례로 보내는 방식으로 하고, 선택 목록은 이용자의 실제 키 입력에서 연다. 새 창은 이용자가 고정한 회사 사이트만 허용한다(팝업 권한 `contentSettings`는 새 권한이라 만들 때 승인받는다). 개발자 도구(debugger) 방식은 쓰지 않는다.
@@ -268,12 +268,12 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
 | CEO review (`/plan-ceo-review`, approach C, HOLD SCOPE) | 1 | CLEAR | 8 gaps found, all 8 approved by the user and applied |
 | Outside voice (Claude subagent; Codex not installed) | 1 | CLEAR | 6 issues; user approved 2-6 and applied, rejected 1 (widening danger buttons to 결재·상신 words and magnet-cursor confirmation). User added: every sensitive field, password inputs included, can be unlocked per site after a warning |
 | Design review (`/plan-design-review`) | 1 | CLEAR | Rated 6/10 before. Design system settled first (`docs/design/`: brief, 3 ideas, user chose A 등대). 6 gaps, all approved as recommended and applied: fixed command-menu slots, state table, 3-step setup, mode indicator moves away, overlay size fixed under page zoom, waiting-count badge instead of popups |
-| Eng review (`/plan-eng-review`) | 1 | PENDING | Rated 6/10 before. 7 issues, all option A: in-frame vs top-frame split, pre-click submit record in storage.local, update/reload handling, trusted-input-only + internal messaging + pre-registered dialog watcher (user asked for a plain re-explanation first), synthetic-click limits spiked in phase 1, single storage writer, read-only company-system probe + manual Edge/Whale checks. Decisions 1, 2, 4 made by the user; 3, 5, 6, 7 drafted as option A, awaiting user confirmation |
+| Eng review (`/plan-eng-review`) | 1 | CLEAR | Rated 6/10 before. 7 issues: in-frame vs top-frame split, pre-click submit record in storage.local, update/reload handling, trusted-input-only + internal messaging + pre-registered dialog watcher, synthetic-click limits spiked in phase 1 on the practice site, single storage writer, company-system check deferred to phase 2; Edge/Whale checked by hand. User chose A for 1-6 (asked for a plain re-explanation of 4 first) and B for 7: the company-system click check waits for the mid-point user test, no earlier probing. Questions 3, 5, 6, 7 were re-asked in text because the cards did not reach the user |
 
 - **Not in scope (held):** windows resident program, Excel/other-site transfer, batch entry, Android/iPhone helper, AI writing and AI template repair (3장 "다음 버전").
 - **What already exists:** Vimium-style link hints (번호표), Automa-style recorders (틀), Steady Clicks-style click filtering (떨림 걸러내기). None combine them for one tremor user with submit safety, so this is built from scratch with those as reference.
 - **Error and failure registry:** 9장 table.
 
-**VERDICT:** CEO and design review CLEARED. Eng review waiting on 4 user decisions.
+**VERDICT:** CEO, design and eng review CLEARED. Ready for `/gsd-plan-phase 1`.
 
 NO UNRESOLVED DECISIONS
