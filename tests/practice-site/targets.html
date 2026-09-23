@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>자석 커서 연습</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 2400px;
+        position: relative;
+      }
+      [data-el] {
+        position: absolute;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 아주 작은 버튼(D-28) — 커서가 대충 가져가도 잡히는지 시험 -->
+    <button id="btn-tiny" data-el style="left: 50px; top: 50px; width: 12px; height: 12px; padding: 0"></button>
+
+    <!-- 히스테리시스 시험용 A·B, 60px 간격(왼쪽 끝 기준) -->
+    <button id="btn-a" data-el style="left: 300px; top: 50px; width: 12px; height: 12px; padding: 0"></button>
+    <button id="btn-b" data-el style="left: 360px; top: 50px; width: 12px; height: 12px; padding: 0"></button>
+
+    <!-- 이미지 링크 -->
+    <a
+      id="img-link"
+      href="#link"
+      data-el
+      style="left: 500px; top: 50px; width: 40px; height: 40px; display: inline-block"
+    >
+      <img
+        width="40"
+        height="40"
+        alt="링크 이미지"
+        src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+      />
+    </a>
+
+    <!-- onclick 속성이 걸린 이미지 -->
+    <img
+      id="img-onclick"
+      data-el
+      onclick="return false"
+      width="40"
+      height="40"
+      alt="onclick 이미지"
+      style="left: 600px; top: 50px"
+      src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+    />
+
+    <!-- role=button div -->
+    <div id="role-btn" data-el role="button" tabindex="0" style="left: 700px; top: 50px; width: 40px; height: 40px; background: #ccc">R</div>
+
+    <!-- 숨긴 버튼 둘 — 잡히면 안 된다 -->
+    <button id="btn-hidden-display" data-el style="left: 50px; top: 150px; width: 40px; height: 40px; display: none">H1</button>
+    <button id="btn-hidden-visibility" data-el style="left: 150px; top: 150px; width: 40px; height: 40px; visibility: hidden">H2</button>
+
+    <!-- 지우면 테두리가 없어져야 하는 버튼 -->
+    <button id="btn-removable" data-el style="left: 450px; top: 150px; width: 40px; height: 40px">X</button>
+
+    <!-- 스크롤 시험용 — 페이지 아래쪽(문서 좌표 기준, position: fixed가 아니다) -->
+    <button id="btn-scroll" data-el style="left: 50px; top: 2000px; width: 40px; height: 40px">S</button>
+
+    <!-- 긴 입력 양식(입력칸 20개, D-28) -->
+    <form id="long-form"></form>
+
+    <!-- 늦게 나타나는 입력칸(1초 뒤) -->
+    <div id="late-container" style="position: absolute; left: 300px; top: 150px; width: 150px; height: 30px"></div>
+
+    <script>
+      var form = document.getElementById('long-form');
+      for (var i = 0; i < 20; i += 1) {
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'field-' + i;
+        input.setAttribute('data-el', '');
+        input.style.position = 'absolute';
+        input.style.left = '50px';
+        input.style.top = 250 + i * 36 + 'px';
+        input.style.width = '150px';
+        form.appendChild(input);
+      }
+
+      setTimeout(function () {
+        var late = document.createElement('input');
+        late.type = 'text';
+        late.id = 'late';
+        late.style.position = 'absolute';
+        late.style.left = '0';
+        late.style.top = '0';
+        late.style.width = '150px';
+        late.style.height = '30px';
+        document.getElementById('late-container').appendChild(late);
+      }, 1000);
+    </script>
+  </body>
+</html>
