@@ -157,17 +157,17 @@ tests/
 ```
 
 ### Pattern 1: 입력 파이프라인 (capture → isTrusted → filter → mode → dispatch)
-**What:** 모든 키·포인터 입력을 `window.addEventListener(type, h, { capture: true })`로 `document_start`에 등록해 가장 먼저 받는다. 같은 대상·같은 단계의 리스너는 등록 순서대로 불리므로, 페이지 스크립트보다 먼저 실행되는 content script(`run_at: document_start`)가 사이트 단축키보다 앞선다 [ASSUMED: DOM 이벤트 디스패치 규칙 + Chrome 문서의 document_start 설명 — Plan 01-02 e2e(사이트 단축키 페이지)로 확인].
+**What:** 모든 키·포인터 입력을 `window.addEventListener(type, h, { capture: true })`로 `document_start`에 등록해 가장 먼저 받는다. 같은 대상·같은 단계의 리스너는 등록 순서대로 불리므로, 페이지 스크립트보다 먼저 실행되는 content script(`run_at: document_start`)가 사이트 단축키보다 앞선다 [ASSUMED: DOM 이벤트 디스패치 규칙 + Chrome 문서의 document_start 설명 — Plan 01-05 e2e(사이트 단축키 페이지)로 확인].
 **When to use:** 첫 조각부터. 도우미가 쓰는 키(스페이스바·1~9·Enter·Esc)는 도우미 모드일 때 `preventDefault()` + `stopImmediatePropagation()`.
 **Trade-offs:** 사이트가 `window` capture에 먼저 등록할 방법은 없지만(우리가 먼저 실행), 사이트가 `keydown` 대신 `keypress`/`beforeinput`을 쓰면 그 이벤트도 막아야 한다 → 도우미 키의 keypress·keyup도 함께 막는다.
 
 ### Pattern 2: 맨 위 프레임이 번호를 매긴다 (프레임 트리 합성)
 **What:** 각 프레임은 `{frameId, 요소[](자기 viewport 좌표), 자식 iframe[]: {childFrameId, offsetX, offsetY, clip}}`를 SW에 보고한다. 부모 프레임은 자기 문서의 각 `<iframe>`에 `chrome.runtime.getFrameId(iframeEl)`을 불러 자식 frameId를 알고, iframe의 content box 위치를 오프셋으로 붙인다(D-03). SW는 이것을 탭의 맨 위 프레임(frameId 0)에 넘기고, 맨 위는 트리를 따라 오프셋을 더해 모든 요소를 맨 위 좌표로 바꾼 뒤 1~9를 한 번만 매긴다 → 번호 중복 없음.
 **When to use:** 번호표, 모드 표시의 커서 비킴, 확인 화면.
-**Trade-offs:** 다른 출처 iframe은 자기 위치를 모르므로 반드시 부모가 오프셋을 보고한다. 스크롤·크기 변화 때 다시 보고한다(모아서). `runtime.getFrameId`는 Chrome 106+ [ASSUMED — Plan 01-04 e2e(중첩·다른 출처 iframe)로 확인].
+**Trade-offs:** 다른 출처 iframe은 자기 위치를 모르므로 반드시 부모가 오프셋을 보고한다. 스크롤·크기 변화 때 다시 보고한다(모아서). `runtime.getFrameId`는 Chrome 106+ [ASSUMED — Plan 01-07 e2e(중첩·다른 출처 iframe)로 확인].
 
 ### Pattern 3: 대신 누르기 (synthetic press)
-**What:** 잡은 요소 가운데 좌표로 `pointerover → pointerenter → mouseover → pointerdown → mousedown → focus → pointerup → mouseup → click`을 차례로 보낸다(D-13). 커서가 이미 잡은 요소 위에 있는 마우스 클릭은 **원래 이벤트를 그대로 통과**시킨다(브라우저의 진짜 클릭 = `isTrusted: true`라 호환성이 가장 좋음). 커서가 잡은 요소 밖이면 원래 이벤트를 막고 대신 누른다. `<select>`는 이용자의 실제 키 입력(스페이스바 keydown 처리 중)에서 `showPicker()`로 연다 [ASSUMED: HTMLSelectElement.showPicker는 일시적 사용자 활성화가 필요 — Plan 01-05 스파이크로 확인].
+**What:** 잡은 요소 가운데 좌표로 `pointerover → pointerenter → mouseover → pointerdown → mousedown → focus → pointerup → mouseup → click`을 차례로 보낸다(D-13). 커서가 이미 잡은 요소 위에 있는 마우스 클릭은 **원래 이벤트를 그대로 통과**시킨다(브라우저의 진짜 클릭 = `isTrusted: true`라 호환성이 가장 좋음). 커서가 잡은 요소 밖이면 원래 이벤트를 막고 대신 누른다. `<select>`는 이용자의 실제 키 입력(스페이스바 keydown 처리 중)에서 `showPicker()`로 연다 [ASSUMED: HTMLSelectElement.showPicker는 일시적 사용자 활성화가 필요 — Plan 01-12 스파이크로 확인].
 **When to use:** 자석 커서·번호표·머무르기.
 **Trade-offs:** 머무르기 클릭은 사용자 활성화가 없어 새 창·파일 선택 창·선택 목록이 막힐 수 있다 → 이것을 연습 사이트 스파이크로 기록한다(D-13). 키·클릭 처리 중의 대신 누르기는 같은 작업 안이라 활성화가 남아 새 창이 열릴 가능성이 높다 [ASSUMED — 스파이크로 확인].
 
