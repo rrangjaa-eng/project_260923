@@ -27,8 +27,15 @@ export default defineBackground(() => {
     const message = parsed.data;
 
     if (message.type === 'storage/request') {
-      void writer.setEnabled(message.op.enabled).then(sendResponse);
-      return true; // 비동기 응답을 위해 메시지 채널을 열어 둔다.
+      if (message.op.kind === 'setEnabled') {
+        void writer.setEnabled(message.op.enabled).then(sendResponse);
+        return true; // 비동기 응답을 위해 메시지 채널을 열어 둔다.
+      }
+      // recordPress(D-11, T-01-16): 보낸 프레임의 실제 origin은 sender.url에서 계산한다 —
+      // 요청 안의 origin 문자열은 신뢰하지 않고 storage-writer.ts가 둘을 대조한다.
+      const senderOrigin = sender.url ? new URL(sender.url).origin : '';
+      void writer.recordPress(message.op.origin, senderOrigin, message.op.fingerprint).then(sendResponse);
+      return true;
     }
 
     // message.type === 'frame/state'

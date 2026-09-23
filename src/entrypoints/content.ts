@@ -1,7 +1,16 @@
+import type { Fingerprint } from '@/core/fingerprint';
 import { createGridIndex } from '@/core/grid-index';
 import { orderHints, placeLabels, type HintEntry } from '@/core/hint-order';
 import { pickTarget } from '@/core/magnet';
-import { defaultSettings, SETTINGS_KEY, SettingsV1 } from '@/core/settings-schema';
+import {
+  PressesV1,
+  SETTINGS_KEY,
+  SettingsV1,
+  SiteEntryV1,
+  defaultSettings,
+  pressesKey,
+  siteKey,
+} from '@/core/settings-schema';
 import { createCollector, type Item } from '@/page/collector/collector';
 import { synthesizePress } from '@/page/click/press';
 import { createInputPipeline } from '@/page/input/pipeline';
@@ -32,6 +41,15 @@ const DIGIT_TO_NUMBER: Record<string, number> = {
 
 function pointInRect(x: number, y: number, rect: { x: number; y: number; w: number; h: number }): boolean {
   return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
+}
+
+// 자주 누른 기록(D-11, D-23): 번호표·자석 커서로 요소를 누를 때마다 SW에 부탁만 한다(쓰기는
+// storage-writer.ts에서만, D-24). 응답을 기다리지 않는다.
+function sendRecordPress(fingerprint: Fingerprint): void {
+  void chrome.runtime.sendMessage({
+    type: 'storage/request',
+    op: { kind: 'recordPress', origin: window.location.origin, fingerprint },
+  });
 }
 
 // 모든 프레임(D-02): allFrames + document_start로 사이트 스크립트보다 먼저 등록한다. 읽기는
@@ -183,6 +201,7 @@ export default defineContentScript({
       }
       return () => {
         synthesizePress(el);
+        sendRecordPress(item.fingerprint);
       };
     });
 
@@ -192,11 +211,13 @@ export default defineContentScript({
       if (!currentEnabled || code !== currentSettings.data.keymap.press || currentTargetId === null) {
         return false;
       }
+      const item = collector.items().find((candidate) => candidate.id === currentTargetId);
       const el = collector.get(currentTargetId);
-      if (!el) {
+      if (!item || !el) {
         return false;
       }
       synthesizePress(el);
+      sendRecordPress(item.fingerprint);
       return true;
     });
 
@@ -241,13 +262,30 @@ export default defineContentScript({
       }
     }
 
-    function openHints(): void {
+    // 번호 순서에 반영할 고정 번호·자주 누른 기록을 읽기만 한다(D-11, D-24) — 쓰기는 항상
+    // storage-writer.ts에서만.
+    async function readPinsAndPresses(): Promise<{ pins: SiteEntryV1['data']['pins']; presses: PressesV1['data']['counts'] }> {
+      const origin = window.location.origin;
+      const [siteStored, pressesStored] = await Promise.all([
+        chrome.storage.sync.get(siteKey(origin)),
+        chrome.storage.local.get(pressesKey(origin)),
+      ]);
+      const siteParsed = SiteEntryV1.safeParse(siteStored[siteKey(origin)]);
+      const pressesParsed = PressesV1.safeParse(pressesStored[pressesKey(origin)]);
+      return {
+        pins: siteParsed.success ? siteParsed.data.data.pins : [],
+        presses: pressesParsed.success ? pressesParsed.data.data.counts : [],
+      };
+    }
+
+    async function openHints(): Promise<void> {
       const items = collector.items();
       if (items.length === 0) {
         showTransientMessage('누를 곳이 없어요', 2000);
         return;
       }
-      hintChapters = orderHints({ items, pins: [], presses: [], cursor: lastCursorPos ?? { x: 0, y: 0 } });
+      const { pins, presses } = await readPinsAndPresses();
+      hintChapters = orderHints({ items, pins, presses, cursor: lastCursorPos ?? { x: 0, y: 0 } });
       hintChapterIndex = 0;
       hintsActive = true;
       openChapter(0);
@@ -262,7 +300,7 @@ export default defineContentScript({
         if (hintsActive) {
           closeHints();
         } else {
-          openHints();
+          void openHints();
         }
         return true;
       }
@@ -288,9 +326,11 @@ export default defineContentScript({
       if (number !== undefined) {
         const chapter = hintChapters[hintChapterIndex];
         const entry = chapter?.find((candidate) => candidate.number === number);
+        const item = entry ? collector.items().find((candidate) => candidate.id === entry.itemId) : undefined;
         const el = entry ? collector.get(entry.itemId) : undefined;
-        if (el) {
+        if (item && el) {
           synthesizePress(el);
+          sendRecordPress(item.fingerprint);
         }
         closeHints();
         return true;

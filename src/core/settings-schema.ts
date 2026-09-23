@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const CURRENT_SCHEMA_VERSION = 1;
 
 // 요소 식별 묶음 — 번호표 고정(pins), 자주 누른 기록(presses)이 함께 쓴다(D-11).
-const FingerprintSchema = z.object({
+export const FingerprintSchema = z.object({
   id: z.string().optional(),
   name: z.string().optional(),
   labelText: z.string().optional(),

@@ -11,6 +11,7 @@ declare namespace chrome.runtime {
     id?: string;
     tab?: { id?: number };
     frameId?: number;
+    url?: string;
   }
 
   const onMessage: {
