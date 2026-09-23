@@ -1,0 +1,152 @@
+import type { SettingsV1 } from '@/core/settings-schema';
+import { createTremorFilter, type TremorFilter } from '@/core/tremor-filter';
+
+// 입력 파이프라인(D-06, D-09): window capture로 키·포인터 입력을 가장 먼저 받아 떨림을 거르고
+// (isTrusted가 아닌 입력은 통과, 도우미 꺼짐이면 통과), 남은 입력만 등록된 처리기에 넘긴다.
+// Pattern 1(RESEARCH.md) — document_start에서 등록해야 사이트 스크립트보다 앞선다.
+
+export type KeyHandler = (input: { code: string }) => boolean;
+export type PressHandler = (input: { x: number; y: number }) => boolean;
+
+export interface InputPipeline {
+  onKey(handler: KeyHandler): void;
+  onPress(handler: PressHandler): void;
+}
+
+export function createInputPipeline(opts: { getSettings: () => SettingsV1; signal: AbortSignal }): InputPipeline {
+  const { getSettings, signal } = opts;
+
+  let filter: TremorFilter | null = null;
+  let filterIntervalMs = -1;
+  let filterSameSpotPx = -1;
+  const swallowedKeyCodes = new Set<string>();
+  let pressSwallowed = false;
+  const keyHandlers: KeyHandler[] = [];
+  const pressHandlers: PressHandler[] = [];
+
+  // 설정이 바뀌면(interval·sameSpot) 새 값으로 필터를 다시 만든다. 그 외엔 상태(마지막 받아들인
+  // 시각·자리)를 그대로 유지해야 하므로 매 이벤트마다 새로 만들지 않는다.
+  function activeFilter(): TremorFilter {
+    const settings = getSettings();
+    if (
+      filter === null ||
+      settings.data.tremorIntervalMs !== filterIntervalMs ||
+      settings.data.sameSpotPx !== filterSameSpotPx
+    ) {
+      filterIntervalMs = settings.data.tremorIntervalMs;
+      filterSameSpotPx = settings.data.sameSpotPx;
+      filter = createTremorFilter({ intervalMs: filterIntervalMs, sameSpotPx: filterSameSpotPx });
+    }
+    return filter;
+  }
+
+  function isHelperEnabled(): boolean {
+    return getSettings().data.enabled;
+  }
+
+  window.addEventListener(
+    'keydown',
+    (event) => {
+      if (!event.isTrusted || !isHelperEnabled()) {
+        return;
+      }
+      const accepted = activeFilter().accept({ kind: 'key', code: event.code, repeat: event.repeat, t: event.timeStamp });
+      if (!accepted) {
+        swallowedKeyCodes.add(event.code);
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+      swallowedKeyCodes.delete(event.code);
+
+      for (const handler of keyHandlers) {
+        if (handler({ code: event.code })) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
+      }
+    },
+    { capture: true, signal },
+  );
+
+  window.addEventListener(
+    'keyup',
+    (event) => {
+      if (!event.isTrusted || !isHelperEnabled()) {
+        return;
+      }
+      if (swallowedKeyCodes.has(event.code)) {
+        swallowedKeyCodes.delete(event.code);
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },
+    { capture: true, signal },
+  );
+
+  window.addEventListener(
+    'pointerdown',
+    (event) => {
+      if (!event.isTrusted || !isHelperEnabled()) {
+        return;
+      }
+      const accepted = activeFilter().accept({ kind: 'press', x: event.clientX, y: event.clientY, t: event.timeStamp });
+      pressSwallowed = !accepted;
+      if (pressSwallowed) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+      for (const handler of pressHandlers) {
+        if (handler({ x: event.clientX, y: event.clientY })) {
+          pressSwallowed = true;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
+      }
+    },
+    { capture: true, signal },
+  );
+
+  // pointerdown→mousedown→pointerup→mouseup→click 묶음: pointerdown에서 거절되면 다음
+  // pointerdown까지 나머지도 모두 삼킨다.
+  function swallowIfPressRejected(event: Event): void {
+    if (!event.isTrusted || !isHelperEnabled()) {
+      return;
+    }
+    if (pressSwallowed) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }
+
+  window.addEventListener('mousedown', swallowIfPressRejected, { capture: true, signal });
+  window.addEventListener('pointerup', swallowIfPressRejected, { capture: true, signal });
+  window.addEventListener('mouseup', swallowIfPressRejected, { capture: true, signal });
+  window.addEventListener('click', swallowIfPressRejected, { capture: true, signal });
+
+  window.addEventListener(
+    'dblclick',
+    (event) => {
+      if (!event.isTrusted || !isHelperEnabled()) {
+        return;
+      }
+      if (activeFilter().shouldSuppressDblclick()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },
+    { capture: true, signal },
+  );
+
+  return {
+    onKey(handler) {
+      keyHandlers.push(handler);
+    },
+    onPress(handler) {
+      pressHandlers.push(handler);
+    },
+  };
+}
