@@ -86,7 +86,7 @@ async function numberFor(page: Page, box: Box): Promise<string> {
         const distance = Math.hypot(rect.x - (x - 14), rect.y - (y - 14));
         if (distance < closestDistance) {
           closestDistance = distance;
-          closestText = label.textContent ?? '';
+          closestText = label.textContent;
         }
       }
       return closestText;

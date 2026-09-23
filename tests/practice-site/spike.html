@@ -34,6 +34,29 @@
     <input id="file" type="file" data-el style="left: 150px; top: 110px" />
     <span id="file-click-count">0</span>
 
+    <!-- 대상 A(Plan 01-12 Task 2): isTrusted 아닌 입력은 세지 않는다 — 매크로 감지 대상. -->
+    <button id="trusted-only" data-el style="left: 150px; top: 180px">사람 입력만</button>
+    <span id="trusted-only-count">0</span>
+
+    <!-- 대상 B: window.open으로 새 창을 여는 버튼. -->
+    <button id="opener" data-el style="left: 150px; top: 250px">새 창 열기</button>
+
+    <!-- 대상 C: target=_blank 링크. -->
+    <a id="new-tab-link" data-el href="/popup-target.html" target="_blank" style="left: 150px; top: 320px"
+      >새 탭 열기</a
+    >
+
+    <!-- 대상 F: 눌림 이벤트 순서·isTrusted 기록 위젯. -->
+    <div
+      id="order-target"
+      data-el
+      role="button"
+      tabindex="0"
+      style="left: 150px; top: 390px; cursor: pointer; border: 1px solid #333; padding: 4px"
+    >
+      순서 기록
+    </div>
+
     <script>
       var selEl = document.getElementById('sel');
       var selChangeCountEl = document.getElementById('sel-change-count');
@@ -58,6 +81,35 @@
       fileEl.addEventListener('click', function () {
         fileClickCount += 1;
         fileClickCountEl.textContent = String(fileClickCount);
+      });
+
+      var trustedOnlyEl = document.getElementById('trusted-only');
+      var trustedOnlyCountEl = document.getElementById('trusted-only-count');
+      var trustedOnlyCount = 0;
+      trustedOnlyEl.addEventListener('click', function (e) {
+        if (e.isTrusted) {
+          trustedOnlyCount += 1;
+          trustedOnlyCountEl.textContent = String(trustedOnlyCount);
+        }
+      });
+
+      var openerEl = document.getElementById('opener');
+      openerEl.addEventListener('click', function () {
+        window.open('/popup-target.html', '_blank');
+      });
+
+      var orderTargetEl = document.getElementById('order-target');
+      var orderLog = [];
+      window.resetOrderLog = function () {
+        orderLog = [];
+      };
+      window.getOrderLog = function () {
+        return orderLog;
+      };
+      ['pointerdown', 'mousedown', 'focus', 'pointerup', 'mouseup', 'click'].forEach(function (type) {
+        orderTargetEl.addEventListener(type, function (e) {
+          orderLog.push({ type: type, trusted: e.isTrusted });
+        });
       });
     </script>
   </body>
