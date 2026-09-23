@@ -364,3 +364,124 @@ test('저장(위험 아님) 번호는 확인 화면 없이 곧바로 눌린다',
   await expect(page.locator('#btn-save-count')).toHaveText('1');
   expect(await readDialog(page)).toBeNull();
 });
+
+// Task 3(D-03, D-09, T-01-19, T-01-26): 다른 출처 iframe(other.test) 안 위험한 버튼도 맨 위
+// 화면의 확인 화면을 거쳐서만 눌린다. 초점이 iframe 안(입력칸 밖)에 있어도 확인 키가
+// hints/key·confirm/key를 거쳐 맨 위에 전달된다. danger.html은 맨 위 8개 + frame-child 안
+// btn-child-delete 1개 = 9개라 한 장에 모두 뜬다(frames.e2e.ts와 같은 재시도 방식으로 프레임
+// 보고 왕복을 기다린다).
+
+async function labelCount(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const host = document.querySelector('tremor-helper-root');
+    return host?.shadowRoot?.querySelectorAll('.hint-label').length ?? 0;
+  });
+}
+
+async function pressFUntilLabelCount(page: Page, expectedCount: number): Promise<void> {
+  for (let attempt = 0; attempt < 15; attempt += 1) {
+    await page.keyboard.press('KeyF');
+    await page.waitForTimeout(120);
+    if ((await labelCount(page)) >= expectedCount) {
+      return;
+    }
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(350);
+  }
+}
+
+async function numberForFrameElement(page: Page, frameSelector: string, elementId: string): Promise<string> {
+  const box = await page.frameLocator(frameSelector).locator(`#${elementId}`).boundingBox();
+  if (!box) {
+    throw new Error(`요소를 찾지 못했다: ${frameSelector} ${elementId}`);
+  }
+  return page.evaluate(
+    ({ x, y }) => {
+      const host = document.querySelector('tremor-helper-root');
+      const labels = host?.shadowRoot?.querySelectorAll('.hint-label');
+      if (!labels) {
+        return '';
+      }
+      let closestText = '';
+      let closestDistance = Number.POSITIVE_INFINITY;
+      for (const label of Array.from(labels)) {
+        const rect = label.getBoundingClientRect();
+        const distance = Math.hypot(rect.x - (x - 14), rect.y - (y - 14));
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestText = label.textContent;
+        }
+      }
+      return closestText;
+    },
+    { x: box.x, y: box.y },
+  );
+}
+
+async function openDangerConfirmInFrame(page: Page, frameSelector: string, elementId: string): Promise<void> {
+  await pressFUntilLabelCount(page, 9);
+  const number = await numberForFrameElement(page, frameSelector, elementId);
+  await page.keyboard.press(`Digit${number}`);
+  await page.waitForTimeout(150);
+}
+
+test('other.test 자식 프레임 안 삭제 번호 → 맨 위 확인 화면, 1,100ms 뒤 Enter → 프레임 안 카운터 1', async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/danger.html');
+  await waitForHelperReady(page);
+
+  await openDangerConfirmInFrame(page, '#frame-child', 'btn-child-delete');
+
+  const dialog = await readDialog(page);
+  expect(dialog?.visible).toBe(true);
+  expect(dialog?.body).toContain('삭제');
+
+  await page.waitForTimeout(1100);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(200);
+
+  await expect(page.frameLocator('#frame-child').locator('#btn-child-delete-count')).toHaveText('1');
+  expect(await readDialog(page)).toBeNull();
+});
+
+test('먼저 iframe 안(입력칸 밖)에 초점을 옮긴 뒤 같은 흐름 → 300ms Enter는 무시, 1,100ms 뒤 Enter로 확인된다', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/danger.html');
+  await waitForHelperReady(page);
+
+  await page.frameLocator('#frame-child').locator('#child-focus-target').click();
+
+  await openDangerConfirmInFrame(page, '#frame-child', 'btn-child-delete');
+
+  await page.waitForTimeout(300);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(100);
+  await expect(page.frameLocator('#frame-child').locator('#btn-child-delete-count')).toHaveText('0');
+
+  await page.waitForTimeout(800);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(200);
+  await expect(page.frameLocator('#frame-child').locator('#btn-child-delete-count')).toHaveText('1');
+});
+
+test('초점이 iframe 안에 있을 때 확인 화면이 떠 있는 동안 그 프레임의 keydown 기록이 늘지 않는다', async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/danger.html');
+  await waitForHelperReady(page);
+
+  await page.frameLocator('#frame-child').locator('#child-focus-target').click();
+
+  await openDangerConfirmInFrame(page, '#frame-child', 'btn-child-delete');
+
+  await page.waitForTimeout(300);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(100);
+  await expect(page.frameLocator('#frame-child').locator('#site-keydown')).toHaveText('0');
+
+  await page.waitForTimeout(800);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(200);
+  await expect(page.frameLocator('#frame-child').locator('#site-keydown')).toHaveText('0');
+});

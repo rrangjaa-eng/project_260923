@@ -71,6 +71,14 @@
         childCounter.textContent = '0';
         childCounter.style.cssText = 'position:absolute;left:0px;top:120px';
         document.body.append(childCounter);
+
+        // Task 3: 위험 버튼 자신을 클릭하면 실제로 눌려 카운터가 오염된다 — 초점만 iframe 안(입력칸
+        // 밖)으로 옮기는 시험을 위한 부작용 없는 칸(div, 입력칸이 아니므로 도우미 모드가 그대로 유지된다).
+        var focusTarget = document.createElement('div');
+        focusTarget.id = 'child-focus-target';
+        focusTarget.tabIndex = 0;
+        focusTarget.style.cssText = 'position:absolute;left:0px;top:60px;width:60px;height:30px';
+        document.body.append(focusTarget);
       } else {
         // 각 줄은 90px씩 떨어져 있다 — 시험은 항상 커서를 가로(같은 세로 가운데)로만 옮겨
         // 다른 줄의 요소가 잡는 범위(기본 48px)에 걸리지 않게 한다.
