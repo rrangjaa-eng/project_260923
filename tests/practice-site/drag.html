@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>끌어서 놓기 연습</title>
+    <style>
+      body {
+        margin: 0;
+        position: relative;
+      }
+      [data-el] {
+        position: absolute;
+        box-sizing: border-box;
+      }
+      .item {
+        width: 120px;
+        height: 40px;
+        background: #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #drop {
+        width: 220px;
+        height: 220px;
+        background: #eef;
+        border: 2px dashed #99c;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 끌 수 있는 목록 항목 A·B·C(D-28) — 각 클릭 카운터로 "보통 클릭"과 구분한다 -->
+    <div id="item-a" class="item" data-el draggable="true" style="left: 50px; top: 50px">A</div>
+    <span id="item-a-count">0</span>
+    <div id="item-b" class="item" data-el draggable="true" style="left: 50px; top: 120px">B</div>
+    <span id="item-b-count">0</span>
+    <div id="item-c" class="item" data-el draggable="true" style="left: 50px; top: 190px">C</div>
+    <span id="item-c-count">0</span>
+
+    <!-- 놓을 곳 — 두 번째 누름은 자석 커서·번호표 등 보통 누르기 대상과 같은 방식으로 잡혀야
+         하므로 role=button(collector 후보 조건, targets.html의 role-btn과 같은 방식)을 둔다 -->
+    <div id="drop" class="item" data-el role="button" tabindex="0" style="left: 400px; top: 50px; width: 220px; height: 220px">
+      놓을 곳
+    </div>
+
+    <script>
+      ['a', 'b', 'c'].forEach(function (id) {
+        var el = document.getElementById('item-' + id);
+        var countEl = document.getElementById('item-' + id + '-count');
+        var count = 0;
+        el.addEventListener('click', function () {
+          count += 1;
+          countEl.textContent = String(count);
+        });
+        el.addEventListener('dragstart', function (e) {
+          e.dataTransfer.setData('text/plain', el.id);
+        });
+      });
+
+      var dropEl = document.getElementById('drop');
+      dropEl.addEventListener('dragover', function (e) {
+        e.preventDefault();
+      });
+      dropEl.addEventListener('drop', function (e) {
+        e.preventDefault();
+        var id = e.dataTransfer.getData('text/plain');
+        var el = document.getElementById(id);
+        if (el) {
+          dropEl.appendChild(el);
+        }
+      });
+    </script>
+  </body>
+</html>
