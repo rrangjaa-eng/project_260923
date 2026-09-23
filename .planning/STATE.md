@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-08-PLAN.md
-last_updated: "2026-09-23T20:50:03.187Z"
+stopped_at: Completed 01-09-PLAN.md
+last_updated: "2026-09-23T21:22:52.169Z"
 last_activity: 2026-09-23
 last_activity_desc: Phase 1 execution started
-state_head: 8746a2bcaf1a54a3b75afeba4023340868c39b81
+state_head: 1b1f661b29197b22d4f75ed9ba7e11376eb0cc06
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 16
-  completed_plans: 8
+  completed_plans: 9
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 ## Current Position
 
 Phase: 1 (클릭 도우미 기반) — EXECUTING
-Plan: 9 of 16
+Plan: 10 of 16
 Status: Ready to execute
 Last activity: 2026-09-23 — Phase 1 execution started
 
@@ -66,6 +66,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 1 P06 | 36min | 3 tasks | 14 files |
 | Phase 01 P07 | 75min | 3 tasks | 15 files |
 | Phase 01 P08 | 24min | 2 tasks | 9 files |
+| Phase 01 P09 | 31min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -97,6 +98,10 @@ Recent decisions affecting current work:
 - [Phase 1]: 번호표 키 판단은 항상 맨 위 프레임에서만 — 자식 프레임은 hints/key로 전달만 한다
 - [Phase 1]: danger 후보 우선순위: 범위 안 일반 후보가 있으면 항상 그것을 먼저 잡는다 — danger는 일반 후보가 전혀 없을 때만, 거리 0(커서가 사각형 안)에서만, 히스테리시스 없이 본다
 - [Phase 1]: 배경 없는 오버레이 글자('! 위험')의 흰 후광은 box-shadow 대신 text-shadow 네 방향 오프셋으로 흉내낸다
+- [Phase 1]: 스페이스바 '누르고 있기' 판정은 native repeat에 기대지 않고, guard가 keydown 시각만 기록하고 pipeline이 모달 중 100ms tick으로 holdMs 경과를 직접 폴링한다
+- [Phase 1]: 확인 버튼에는 클릭 리스너를 아예 달지 않아 포인터로는 절대 확인되지 않게 했다(T-01-25) — 취소 버튼만 isTrusted+보호 시간 통과 뒤 클릭을 받는다
+- [Phase 1]: 다른 프레임 항목의 확인 화면 이름은 frame/report에 name이 실리지 않아 fingerprint(buttonText→labelText→aria→id) 순으로 최선 추정한다
+- [Phase 1]: 확인 화면은 항상 맨 위 프레임에서 열리고 보호·누르고 있기 시간도 맨 위 시계로만 잰다 — 자식 프레임은 confirm/state·confirm/key로 판단 없이 중계만 한다
 
 ### Pending Todos
 
@@ -124,6 +129,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-23T20:50:03.142Z
-Stopped at: Completed 01-08-PLAN.md
+Last session: 2026-09-23T21:22:52.122Z
+Stopped at: Completed 01-09-PLAN.md
 Resume file: None

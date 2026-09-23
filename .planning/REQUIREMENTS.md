@@ -37,8 +37,8 @@
 ### 안전장치 (SAFE)
 
 - [ ] **SAFE-01**: 위험한 버튼(삭제·취소·반려·로그아웃·결재 취소 등)은 자석 커서가 끌어당기지 않아 커서가 정확히 위에 있을 때만 잡히고, 머무르기 클릭이 동작하지 않는다 (8)
-- [ ] **SAFE-02**: 번호표나 자동 순서 강조로 위험한 버튼을 고르면 빨간 테두리와 함께 "정말 누를까요? Enter = 예"를 한 번 더 묻는다 (8)
-- [ ] **SAFE-03**: 확인 화면이 뜬 뒤 1초 동안 모든 입력이 무시되고, 확인은 Enter(또는 스페이스바 1초 누르기)로만, 취소는 Esc로 된다 (5)
+- [x] **SAFE-02**: 번호표나 자동 순서 강조로 위험한 버튼을 고르면 빨간 테두리와 함께 "정말 누를까요? Enter = 예"를 한 번 더 묻는다 (8)
+- [x] **SAFE-03**: 확인 화면이 뜬 뒤 1초 동안 모든 입력이 무시되고, 확인은 Enter(또는 스페이스바 1초 누르기)로만, 취소는 Esc로 된다 (5)
 - [ ] **SAFE-04**: 이용자가 확장 아이콘에서(명령판이 생기면 명령판에서도) 도우미 전체 또는 지금 사이트에서만 도우미를 끄고 켤 수 있다 (8)
 - [ ] **SAFE-05**: 확장이 동작하지 않는 페이지(브라우저 설정, 웹스토어 등)에서는 확장 아이콘에 "도울 수 없음"이 표시된다 (9)
 - [ ] **SAFE-06**: 이용자가 위험한 버튼 단어 목록을 사이트마다 고칠 수 있다 (8)
@@ -201,8 +201,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | KEY-01 | Phase 1 | Complete |
 | KEY-02 | Phase 1 | Complete |
 | SAFE-01 | Phase 1 | Pending |
-| SAFE-02 | Phase 1 | Pending |
-| SAFE-03 | Phase 1 | Pending |
+| SAFE-02 | Phase 1 | Complete |
+| SAFE-03 | Phase 1 | Complete |
 | SAFE-04 | Phase 1 | Pending |
 | SAFE-05 | Phase 1 | Pending |
 | SAFE-06 | Phase 3 | Pending |
