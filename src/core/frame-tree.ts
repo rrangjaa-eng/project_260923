@@ -7,7 +7,7 @@ import type { Point, Rect } from './grid-index';
 
 export interface FrameReport {
   frameId: number;
-  items: Array<{ id: string; rect: Rect; fingerprint: Fingerprint; danger?: boolean }>;
+  items: Array<{ id: string; rect: Rect; fingerprint: Fingerprint; danger?: boolean | undefined }>;
   children: Array<{ childFrameId: number; offset: Point; clip: Rect; pathKey: string }>;
 }
 
@@ -87,4 +87,41 @@ export function composeTree(reports: ReadonlyMap<number, FrameReport>, topFrameI
 
   walk(topFrameId, { x: 0, y: 0 }, UNBOUNDED_CLIP, []);
   return result;
+}
+
+// RESEARCH A2 정정(D-03): Chrome에는 chrome.runtime.getFrameId가 없다(Firefox 전용
+// API였다). 부모는 자기 iframe의 실제 frameId를 알 수 없으므로, 대신 각 프레임이 스스로
+// 계산한 창 위치 경로(selfPath, src/core/frame-path.ts)와 부모가 보고하는 자식의 상대
+// 순번(index)만 보낸다. resolveReports는 이 둘을 맞춰(selfPath + index === 자식의
+// selfPath) 실제 frameId(sender.frameId, relay.ts가 신뢰)를 채운 FrameReport로 바꿔
+// composeTree가 그대로 쓸 수 있게 한다. 아직 경로를 모르는 자식(보고가 안 왔음)은
+// 건너뛴다(오류 없음) — 순수 함수.
+
+export interface RawFrameReport {
+  frameId: number;
+  selfPath: number[];
+  items: FrameReport['items'];
+  children: Array<{ index: number; offset: Point; clip: Rect; pathKey: string }>;
+}
+
+export function resolveReports(entries: Array<{ frameId: number; report: RawFrameReport }>): Map<number, FrameReport> {
+  const frameIdByPath = new Map<string, number>();
+  for (const { frameId, report } of entries) {
+    frameIdByPath.set(report.selfPath.join(','), frameId);
+  }
+
+  const resolved = new Map<number, FrameReport>();
+  for (const { frameId, report } of entries) {
+    const children: FrameReport['children'] = [];
+    for (const child of report.children) {
+      const childPath = [...report.selfPath, child.index].join(',');
+      const childFrameId = frameIdByPath.get(childPath);
+      if (childFrameId === undefined) {
+        continue;
+      }
+      children.push({ childFrameId, offset: child.offset, clip: child.clip, pathKey: child.pathKey });
+    }
+    resolved.set(frameId, { frameId, items: report.items, children });
+  }
+  return resolved;
 }

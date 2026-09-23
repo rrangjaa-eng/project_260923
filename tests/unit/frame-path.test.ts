@@ -15,7 +15,7 @@ function makeTop(): FrameLike {
 function addChild(parent: FrameLike & { frames: FrameLike[] }): FrameLike & { frames: FrameLike[] } {
   const child: { parent: FrameLike; frames: FrameLike[] } = { parent, frames: [] };
   parent.frames.push(child);
-  return child as FrameLike & { frames: FrameLike[] };
+  return child;
 }
 
 describe('framePathOf', () => {
