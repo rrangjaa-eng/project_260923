@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>입력 연습</title>
+  </head>
+  <body>
+    <button id="btn-a" style="position: fixed; left: 40px; top: 40px; width: 30px; height: 30px">A</button>
+    <span id="count-a">0</span>
+    <span id="dbl-a">0</span>
+
+    <button id="btn-b" style="position: fixed; left: 110px; top: 40px; width: 30px; height: 30px">B</button>
+    <span id="count-b">0</span>
+
+    <input id="name" type="text" style="position: fixed; left: 40px; top: 120px" />
+    <textarea id="memo" style="position: fixed; left: 40px; top: 160px"></textarea>
+    <div id="editor" contenteditable="true" style="position: fixed; left: 40px; top: 220px; width: 200px; height: 40px; border: 1px solid #000"></div>
+    <input id="agree" type="checkbox" style="position: fixed; left: 40px; top: 280px" />
+
+    <script>
+      function bindCounter(buttonId, countId, dblId) {
+        var button = document.getElementById(buttonId);
+        var countEl = document.getElementById(countId);
+        var count = 0;
+        button.addEventListener('click', function () {
+          count += 1;
+          countEl.textContent = String(count);
+        });
+        if (dblId) {
+          var dblEl = document.getElementById(dblId);
+          var dblCount = 0;
+          button.addEventListener('dblclick', function () {
+            dblCount += 1;
+            dblEl.textContent = String(dblCount);
+          });
+        }
+      }
+      bindCounter('btn-a', 'count-a', 'dbl-a');
+      bindCounter('btn-b', 'count-b');
+    </script>
+  </body>
+</html>
