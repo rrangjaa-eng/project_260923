@@ -268,12 +268,12 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
 | CEO review (`/plan-ceo-review`, approach C, HOLD SCOPE) | 1 | CLEAR | 8 gaps found, all 8 approved by the user and applied |
 | Outside voice (Claude subagent; Codex not installed) | 1 | CLEAR | 6 issues; user approved 2-6 and applied, rejected 1 (widening danger buttons to 결재·상신 words and magnet-cursor confirmation). User added: every sensitive field, password inputs included, can be unlocked per site after a warning |
 | Design review (`/plan-design-review`) | 1 | CLEAR | Rated 6/10 before. Design system settled first (`docs/design/`: brief, 3 ideas, user chose A 등대). 6 gaps, all approved as recommended and applied: fixed command-menu slots, state table, 3-step setup, mode indicator moves away, overlay size fixed under page zoom, waiting-count badge instead of popups |
-| Eng review (`/plan-eng-review`) | 1 | CLEAR | Rated 6/10 before. 7 issues, all option A: in-frame vs top-frame split, pre-click submit record in storage.local, update/reload handling, trusted-input-only + internal messaging + pre-registered dialog watcher (user asked for a plain re-explanation first), synthetic-click limits spiked in phase 1, single storage writer, read-only company-system probe + manual Edge/Whale checks. Decisions 3, 5, 6, 7 applied as recommended after the user said to proceed |
+| Eng review (`/plan-eng-review`) | 1 | PENDING | Rated 6/10 before. 7 issues, all option A: in-frame vs top-frame split, pre-click submit record in storage.local, update/reload handling, trusted-input-only + internal messaging + pre-registered dialog watcher (user asked for a plain re-explanation first), synthetic-click limits spiked in phase 1, single storage writer, read-only company-system probe + manual Edge/Whale checks. Decisions 1, 2, 4 made by the user; 3, 5, 6, 7 drafted as option A, awaiting user confirmation |
 
 - **Not in scope (held):** windows resident program, Excel/other-site transfer, batch entry, Android/iPhone helper, AI writing and AI template repair (3장 "다음 버전").
 - **What already exists:** Vimium-style link hints (번호표), Automa-style recorders (틀), Steady Clicks-style click filtering (떨림 걸러내기). None combine them for one tremor user with submit safety, so this is built from scratch with those as reference.
 - **Error and failure registry:** 9장 table.
 
-**VERDICT:** CEO, design and eng review CLEARED. Ready for `/gsd-plan-phase 1`.
+**VERDICT:** CEO and design review CLEARED. Eng review waiting on 4 user decisions.
 
 NO UNRESOLVED DECISIONS
