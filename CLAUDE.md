@@ -54,11 +54,9 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 > 여기엔 "몇 달 뒤에도 그대로인 것"만. 진행 상황·날짜·TODO는 GSD `.planning/`에.
 
 ## 프로젝트
-- 이름 / 한 줄 설명: PLANT8 ERP — BTL 광고대행사의 프로젝트·지출결의·법인카드·손익 관리 시스템(PHP 인트라넷 대체, 10→30명)
-- 스택: Next.js 16(App Router, RSC + Server Actions via next-safe-action) + TypeScript 6 strict · domain/·repositories/ 4계층 + Drizzle ORM · PostgreSQL(Cloud SQL, 서울) · Cloud Run(서울, 회사 GCP) + Cloud Scheduler + GCS + Secret Manager
-- 패키지 매니저: pnpm (다른 것 금지)
-- 명령: dev `pnpm dev` · test `pnpm test`(단위→통합→E2E) · lint `pnpm lint`(+ `pnpm typecheck` · `pnpm lint:sql`) · build `pnpm build` — 통합·E2E는 로컬 DB가 필요하다(`pnpm db:dev`)
-- 구조: `docs/ARCHITECTURE.md` · 디자인: `docs/DESIGN.md` — 둘 다 필요할 때 Read (import 금지)
+- 이름 / 한 줄 설명: (이름 미정) — 조건을 입력하면 브라우저를 자동으로 조작해 목표를 달성하는 개인 도구
+- 스택·패키지 매니저·명령·구조: 미정 — `/office-hours` → `/gsd-new-project`에서 정한 뒤 채운다
+- 디자인: `docs/DESIGN.md` — 필요할 때 Read (import 금지)
 
 ## 워크플로: Pre-build(gstack) → Build(GSD+Superpowers) → Post-build(gstack)
 
@@ -121,13 +119,3 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## @import
 기본은 비움. 추가 조건: 월 1회 이하 변경 + 100줄 이하.
-
-<!-- BEGIN:nextjs-agent-rules -->
-
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
