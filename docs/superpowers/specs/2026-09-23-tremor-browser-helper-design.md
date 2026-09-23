@@ -63,7 +63,7 @@ Manifest V3 확장 프로그램. TypeScript strict, pnpm(저장소 규칙). 빌�
 - 각 부분은 요소 목록과 필터링된 입력만 주고받는다. 서로의 내부를 알 필요가 없다.
 - **iframe:** content script는 모든 프레임에 들어간다(`all_frames`). 회사 시스템은 iframe 안에 본문이 있는 경우가 많기 때문이다. 마우스·키 입력은 커서나 포커스가 있는 프레임으로 들어오므로, 일을 자주 일어나는 정도에 따라 나눈다(엔지니어링 검토 1번).
   - **그 프레임에서 바로:** 자석 커서 계산과 강조 테두리, 머무르기 클릭, 입력칸 안/밖 판정. 50ms 목표 때문에 다른 프레임을 거치지 않는다.
-  - **맨 위 프레임이 모아서:** 번호표 번호 매기기(모든 프레임의 요소 목록), 모드 표시, 명령판·확인 화면. 프레임끼리의 메시지는 service worker를 거친다. 부모 프레임은 `chrome.runtime.getFrameId(iframe 요소)`로 자식 프레임과 iframe 요소를 짝짓는다.
+  - **맨 위 프레임이 모아서:** 번호표 번호 매기기(모든 프레임의 요소 목록), 모드 표시, 명령판·확인 화면. 프레임끼리의 메시지는 service worker를 거친다. `chrome.runtime.getFrameId`는 Chrome에 없다(Firefox 전용 API였다, Plan 01-07 RESEARCH A2 정정) — 대신 각 프레임이 스스로 맨 위까지 거슬러 올라가며 부모의 자식 창 목록(`window.parent.frames`)에서 자기 순번을 구한 경로(`selfPath`)를 보고하고, 부모는 자기 iframe 요소를 `window.frames[i] === iframeEl.contentWindow`로 상대 순번(index)만 매겨 보고한다. service worker는 이 (selfPath, `sender.frameId`) 쌍들을 모아 자식의 상대 순번을 실제 frameId로 맞춘다(`resolveReports`).
 - **service worker는 언제든 잠든다(MV3):** 틀 실행 상태(어느 틀, 몇 번째 단계, 받은 값)는 단계마다 `chrome.storage.session`에 적는다. 깨어나면 그 기록에서 이어 간다. **제출 버튼을 누르기 직전에** "누름" 기록을 `chrome.storage.local`(업데이트·재시작에도 지워지지 않음)에 쓰고, 저장이 끝났다는 답을 받은 뒤에만 누른다(엔지니어링 검토 2번). 깨어났을 때 "누름" 기록만 있고 결과가 없으면 다시 누르지 않고 "확인 필요"로 둔다.
 - **큰 페이지 성능:** 요소 수집기는 화면에 보이는 요소만 다루고, 위치는 격자(공간 색인)로 나눠 찾는다. 마우스 움직임 계산은 1초에 60번까지만 하고, 화면 변화(MutationObserver)는 모아서 한 번에 갱신한다. 목표: 요소 5,000개짜리 연습 페이지에서 커서를 옮긴 뒤 강조가 50ms 안에 따라온다.
 
