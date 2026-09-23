@@ -33,7 +33,7 @@
 # Node
 node_modules/
 
-# Local env (scripts/dev-db.sh writes .env.local)
+# Local env
 .env
 .env.*
 !.env.example

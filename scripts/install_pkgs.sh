@@ -67,7 +67,7 @@ link_chromium_headless_shell() {
 link_chromium_headless_shell "$GSTACK/node_modules/playwright-core/browsers.json"
 
 # 프로젝트 의존성(pnpm) — 클라우드 세션마다 lockfile 그대로 설치. 실패해도 세션은
-# 계속(D-01, dev-db.sh가 이어서 로컬 DB를 준비한다).
+# 계속(D-01).
 if [ -f "$ROOT/package.json" ] && command -v pnpm >/dev/null 2>&1; then
   (cd "$ROOT" && pnpm install --frozen-lockfile) \
     || echo "install_pkgs: pnpm install --frozen-lockfile failed" >&2
