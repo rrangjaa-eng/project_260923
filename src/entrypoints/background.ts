@@ -1,4 +1,5 @@
 import { parseMessage } from '@/shared/messages';
+import { createRelay } from '@/worker/relay';
 import { createStorageWriter } from '@/worker/storage-writer';
 
 // 탭·프레임별 마지막 enabled 보고(D-03) — 시험이 globalThis.frameStates로 읽는다.
@@ -6,6 +7,7 @@ type FrameStates = Record<number, Record<number, boolean>>;
 
 export default defineBackground(() => {
   const writer = createStorageWriter();
+  const relay = createRelay();
   const frameStates: FrameStates = {};
   (globalThis as typeof globalThis & { frameStates: FrameStates }).frameStates = frameStates;
 
@@ -36,6 +38,21 @@ export default defineBackground(() => {
       const senderOrigin = sender.url ? new URL(sender.url).origin : '';
       void writer.recordPress(message.op.origin, senderOrigin, message.op.fingerprint).then(sendResponse);
       return true;
+    }
+
+    if (
+      message.type === 'frame/report' ||
+      message.type === 'hints/press' ||
+      message.type === 'hints/state'
+    ) {
+      relay.handle(message, sender);
+      return undefined;
+    }
+
+    if (message.type === 'frames/reports' || message.type === 'press/request' || message.type === 'frame/refresh') {
+      // SW → 프레임 방향 메시지다. background.ts는 이 방향으로는 보내지 않으므로(relay.ts가
+      // chrome.tabs.sendMessage로 직접 보낸다) 받을 일이 없다 — 방어적으로 무시한다.
+      return undefined;
     }
 
     // message.type === 'frame/state'

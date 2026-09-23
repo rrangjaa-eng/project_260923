@@ -1,4 +1,5 @@
 import type { Fingerprint } from '@/core/fingerprint';
+import { composeTree, resolveReports, type ComposedItem, type RawFrameReport } from '@/core/frame-tree';
 import { createGridIndex } from '@/core/grid-index';
 import { orderHints, placeLabels, type HintEntry } from '@/core/hint-order';
 import { pickTarget } from '@/core/magnet';
@@ -11,12 +12,13 @@ import {
   pressesKey,
   siteKey,
 } from '@/core/settings-schema';
-import { createCollector, type Item } from '@/page/collector/collector';
+import { buildFrameReport, createCollector, type Item } from '@/page/collector/collector';
 import { synthesizePress } from '@/page/click/press';
 import { createInputPipeline } from '@/page/input/pipeline';
 import { hideModeIndicator, showModeIndicator, showTransientMessage } from '@/page/overlay/mode-indicator';
 import { hideHints, showHints, showNextCard } from '@/page/overlay/hints';
 import { hideRing, showRing } from '@/page/overlay/ring';
+import { parseMessage } from '@/shared/messages';
 
 const DIGIT_TO_NUMBER: Record<string, number> = {
   Digit1: 1,
@@ -43,6 +45,17 @@ function pointInRect(x: number, y: number, rect: { x: number; y: number; w: numb
   return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
 }
 
+// 번호표 항목 키(D-03): 각 프레임의 collector가 매기는 id(el-0, el-1 …)는 프레임마다 독립이라
+// 서로 다른 프레임에서 우연히 같을 수 있다 — 맨 위가 하나로 합칠 때 frameId를 붙여 구분한다.
+function hintKey(frameId: number, itemId: string): string {
+  return `${frameId.toString()}:${itemId}`;
+}
+
+function parseHintKey(key: string): { frameId: number; itemId: string } {
+  const sep = key.indexOf(':');
+  return { frameId: Number(key.slice(0, sep)), itemId: key.slice(sep + 1) };
+}
+
 // 자주 누른 기록(D-11, D-23): 번호표·자석 커서로 요소를 누를 때마다 SW에 부탁만 한다(쓰기는
 // storage-writer.ts에서만, D-24). 응답을 기다리지 않는다.
 function sendRecordPress(fingerprint: Fingerprint): void {
@@ -59,8 +72,14 @@ export default defineContentScript({
   allFrames: true,
   runAt: 'document_start',
   main() {
+    const isTopFrame = window.top === window;
     let currentEnabled: boolean | undefined;
     let currentSettings: SettingsV1 = defaultSettings();
+    // 맨 위만 쓴다: relay.ts가 그대로 넘겨주는 탭의 모든 프레임 원본 보고(selfPath + 자식의
+    // 상대 순번, D-03). 실제 frameId는 openHints 때 resolveReports로 맞춘다 — 자기 프레임(0)
+    // 것은 최신성을 보장하려고 그때 collector에서 직접 다시 만들어 덮어쓴다(비동기 왕복 경합 방지).
+    let latestReportEntries: Array<{ frameId: number; report: RawFrameReport }> = [];
+    let composedItemsCache: ComposedItem[] = [];
 
     // 자석 커서(D-10, D-04): 이 프레임에서 바로 계산한다(D-02) — collector가 모은 요소를 grid로
     // 색인하고, pointermove마다 가장 가까운 요소를 잡아 테두리를 보여 준다.
@@ -74,6 +93,40 @@ export default defineContentScript({
       grid.build(collector.items());
     }
     rebuildGrid();
+
+    // 프레임 메시지(D-03, D-09): 맨 위는 frames/reports(전체 보고 모음)를 받고, 모든 프레임은
+    // press/request(SW가 이 프레임에 누르기를 부탁)를 받는다.
+    chrome.runtime.onMessage.addListener((raw) => {
+      const parsed = parseMessage(raw);
+      if (!parsed.success) {
+        return undefined;
+      }
+      const message = parsed.data;
+
+      if (message.type === 'frames/reports' && isTopFrame) {
+        latestReportEntries = message.reports;
+        return undefined;
+      }
+
+      if (message.type === 'press/request') {
+        const item = collector.items().find((candidate) => candidate.id === message.itemId);
+        const el = collector.get(message.itemId);
+        if (item && el) {
+          synthesizePress(el);
+          sendRecordPress({ ...item.fingerprint, framePath: message.framePath });
+        }
+        return undefined;
+      }
+
+      if (message.type === 'frame/refresh') {
+        // T-01-21: 형제 프레임의 iframe 구성이 바뀌어 내 selfPath(부모의 자식 목록에서 내 순번)가
+        // 낡았을 수 있다 — 스케줄 대기 없이 바로 다시 모아 새 경로로 보고한다.
+        collector.refresh();
+        return undefined;
+      }
+
+      return undefined;
+    });
 
     function evaluateMagnet(cursor: { x: number; y: number }): void {
       if (!currentEnabled) {
@@ -233,6 +286,9 @@ export default defineContentScript({
       hintChapters = [];
       hintChapterIndex = 0;
       hideHints();
+      if (isTopFrame) {
+        void chrome.runtime.sendMessage({ type: 'hints/state', visible: false });
+      }
     }
 
     function openChapter(index: number): void {
@@ -240,10 +296,10 @@ export default defineContentScript({
       if (!chapter) {
         return;
       }
-      const rectByItemId = new Map(collector.items().map((item) => [item.id, item.rect]));
+      const rectByKey = new Map(composedItemsCache.map((c) => [hintKey(c.frameId, c.itemId), c.rect]));
       const placementEntries = chapter
         .map((entry) => {
-          const rect = rectByItemId.get(entry.itemId);
+          const rect = rectByKey.get(entry.itemId);
           return rect ? { itemId: entry.itemId, rect } : null;
         })
         .filter((entry): entry is { itemId: string; rect: Item['rect'] } => entry !== null);
@@ -278,21 +334,54 @@ export default defineContentScript({
       };
     }
 
+    // 번호를 눌렀을 때(D-03): 항목이 맨 위 자신의 것이면 바로 누르고, 다른 프레임의 것이면
+    // hints/press를 SW에 보내(해당 프레임에 press/request로 돌아간다).
+    function pressHintEntry(itemId: string): void {
+      const { frameId: targetFrameId, itemId: targetItemId } = parseHintKey(itemId);
+      if (targetFrameId === 0) {
+        const item = collector.items().find((candidate) => candidate.id === targetItemId);
+        const el = collector.get(targetItemId);
+        if (item && el) {
+          synthesizePress(el);
+          sendRecordPress(item.fingerprint);
+        }
+        return;
+      }
+      const composed = composedItemsCache.find((c) => c.frameId === targetFrameId && c.itemId === targetItemId);
+      if (!composed) {
+        return;
+      }
+      void chrome.runtime.sendMessage({
+        type: 'hints/press',
+        frameId: targetFrameId,
+        itemId: targetItemId,
+        framePath: composed.fingerprint.framePath,
+      });
+    }
+
     async function openHints(): Promise<void> {
-      const items = collector.items();
-      if (items.length === 0) {
+      // 맨 위(frameId 0) 몫은 collector에서 바로 다시 만든다 — relay 왕복(비동기)이 아직 끝나지
+      // 않았어도 자기 프레임 것만은 항상 최신이도록 한다.
+      const entriesForCompose = latestReportEntries.filter((entry) => entry.frameId !== 0);
+      entriesForCompose.push({ frameId: 0, report: buildFrameReport(collector.items()) });
+      const composed = composeTree(resolveReports(entriesForCompose));
+      composedItemsCache = composed;
+
+      if (composed.length === 0) {
         showTransientMessage('누를 곳이 없어요', 2000);
         return;
       }
+      const items = composed.map((c) => ({ id: hintKey(c.frameId, c.itemId), rect: c.rect, fingerprint: c.fingerprint }));
       const { pins, presses } = await readPinsAndPresses();
       hintChapters = orderHints({ items, pins, presses, cursor: lastCursorPos ?? { x: 0, y: 0 } });
       hintChapterIndex = 0;
       hintsActive = true;
+      void chrome.runtime.sendMessage({ type: 'hints/state', visible: true });
       openChapter(0);
     }
 
     inputPipeline.onKey(({ code }) => {
-      if (!currentEnabled) {
+      if (!currentEnabled || !isTopFrame) {
         return false;
       }
 
@@ -326,11 +415,8 @@ export default defineContentScript({
       if (number !== undefined) {
         const chapter = hintChapters[hintChapterIndex];
         const entry = chapter?.find((candidate) => candidate.number === number);
-        const item = entry ? collector.items().find((candidate) => candidate.id === entry.itemId) : undefined;
-        const el = entry ? collector.get(entry.itemId) : undefined;
-        if (item && el) {
-          synthesizePress(el);
-          sendRecordPress(item.fingerprint);
+        if (entry) {
+          pressHintEntry(entry.itemId);
         }
         closeHints();
         return true;

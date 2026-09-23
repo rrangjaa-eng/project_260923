@@ -48,4 +48,19 @@ declare namespace chrome.tabs {
   }
 
   function query(queryInfo: { url?: string | string[] }): Promise<Tab[]>;
+
+  // frameId를 생략하면 그 탭의 모든 프레임에 보낸다(hints/state 방송에 씀).
+  function sendMessage(tabId: number, message: unknown, options?: { frameId?: number }): Promise<unknown>;
+
+  interface TabChangeInfo {
+    status?: string;
+  }
+
+  const onRemoved: {
+    addListener(callback: (tabId: number, removeInfo: unknown) => void): void;
+  };
+
+  const onUpdated: {
+    addListener(callback: (tabId: number, changeInfo: TabChangeInfo, tab: Tab) => void): void;
+  };
 }

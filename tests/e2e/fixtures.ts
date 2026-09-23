@@ -4,7 +4,13 @@ import { fileURLToPath } from 'node:url';
 import { test as base, expect, chromium, type BrowserContext, type Page, type Worker } from '@playwright/test';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXTENSION_PATH = path.resolve(__dirname, '../../.output/chrome-mv3');
+// global-setup.ts가 CI=true면 wxt build(.output/chrome-mv3), 아니면 wxt build --mode
+// development(.output/chrome-mv3-dev)로 짓는다 — 두 출력 폴더 이름이 다르므로 여기서도 같은
+// 분기를 따라야 방금 지은 빌드를 실제로 올린다(Rule 3: 안 그러면 오래된/없는 폴더를 올린다).
+const EXTENSION_PATH = path.resolve(
+  __dirname,
+  process.env.CI === 'true' ? '../../.output/chrome-mv3' : '../../.output/chrome-mv3-dev',
+);
 const PRACTICE_SITE_DIR = path.resolve(__dirname, '../practice-site');
 
 // 이 샌드박스에는 Playwright가 기대하는 정확한 chromium 리비전이 설치돼 있지 않다(PLAYWRIGHT_BROWSERS_PATH

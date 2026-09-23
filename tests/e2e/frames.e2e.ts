@@ -75,12 +75,29 @@ function boxesOverlap(
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
+// F를 누를 때마다 그 순간까지 맨 위가 알고 있는 프레임 보고 스냅샷으로 번호를 매긴다(openHints는
+// 한 번 계산하고 끝, 나중에 보고가 더 와도 스스로 다시 열리지 않는다) — 그래서 고정 대기 대신
+// "번호표가 기대한 개수만큼 뜰 때까지" F를 다시 눌러 본다(같은 키 재입력이므로 떨림 간격(300ms,
+// D-07)보다 넉넉히 띄운다). 프레임 5개(맨 위+같은 출처 자식+다른 출처 자식+중첩 손자 2단)가 각자
+// collect() → frame/report → relay → frames/reports 왕복을 마치는 시간은 프레임마다 다르다.
+async function pressFUntilLabelCount(page: Page, expectedCount: number): Promise<string[]> {
+  let lastTexts: string[] = [];
+  for (let attempt = 0; attempt < 15; attempt += 1) {
+    await page.keyboard.press('KeyF');
+    await page.waitForTimeout(120);
+    lastTexts = await labelTexts(page);
+    if (lastTexts.length >= expectedCount) {
+      return lastTexts;
+    }
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(350);
+  }
+  return lastTexts;
+}
+
 async function openFrames(page: Page): Promise<void> {
   await page.goto('http://practice.test/frames.html');
   await waitForHelperReady(page);
-  // 프레임 셋(맨 위 + 같은 출처 자식 + 다른 출처 자식 + 중첩 손자)이 각자 collect()하고
-  // frame/report → relay → frames/reports 왕복을 마칠 시간(여러 프레임 로드 + 메시지 왕복).
-  await page.waitForTimeout(500);
 }
 
 test('F를 누르면 맨 위·같은 출처 자식·다른 출처 자식·중첩 손자 프레임의 요소 모두에 번호표가 붙고 번호가 1부터 중복 없다', async ({
@@ -89,10 +106,7 @@ test('F를 누르면 맨 위·같은 출처 자식·다른 출처 자식·중첩
   const page = await context.newPage();
   await openFrames(page);
 
-  await page.keyboard.press('KeyF');
-  await page.waitForTimeout(150);
-
-  const texts = await labelTexts(page);
+  const texts = await pressFUntilLabelCount(page, 7);
   const numbers = texts.map(Number).sort((a, b) => a - b);
   expect(numbers).toEqual([1, 2, 3, 4, 5, 6, 7]);
 });
@@ -100,9 +114,7 @@ test('F를 누르면 맨 위·같은 출처 자식·다른 출처 자식·중첩
 test('iframe 안 요소의 번호표가 그 요소의 맨 위 좌표 사각형에서 배치 규칙 자리(±2px)에 있다', async ({ context }) => {
   const page = await context.newPage();
   await openFrames(page);
-
-  await page.keyboard.press('KeyF');
-  await page.waitForTimeout(150);
+  await pressFUntilLabelCount(page, 7);
 
   const box = await page.frameLocator('#frame-cross').locator('#btn-cross').boundingBox();
   if (!box) {
@@ -130,9 +142,7 @@ test('iframe 안 요소의 번호표가 그 요소의 맨 위 좌표 사각형�
 test('모든 번호표 쌍이 서로 겹치지 않는다', async ({ context }) => {
   const page = await context.newPage();
   await openFrames(page);
-
-  await page.keyboard.press('KeyF');
-  await page.waitForTimeout(150);
+  await pressFUntilLabelCount(page, 7);
 
   const boxes = await labelBoxes(page);
   expect(boxes.length).toBe(7);
@@ -151,9 +161,7 @@ test('모든 번호표 쌍이 서로 겹치지 않는다', async ({ context }) =
 test('other.test 자식의 버튼 번호를 누르면 그 버튼 카운터가 1 오른다', async ({ context }) => {
   const page = await context.newPage();
   await openFrames(page);
-
-  await page.keyboard.press('KeyF');
-  await page.waitForTimeout(150);
+  await pressFUntilLabelCount(page, 7);
 
   const box = await page.frameLocator('#frame-cross').locator('#btn-cross').boundingBox();
   if (!box) {
@@ -189,9 +197,7 @@ test('자식 iframe을 부모 안에서 스크롤해 반쯤 가린 뒤 F → 가
   const page = await context.newPage();
   await openFrames(page);
 
-  await page.keyboard.press('KeyF');
-  await page.waitForTimeout(150);
-  const before = await labelTexts(page);
+  const before = await pressFUntilLabelCount(page, 7);
   expect(before.length).toBe(7);
 
   await page.keyboard.press('Escape');
@@ -205,9 +211,7 @@ test('자식 iframe을 부모 안에서 스크롤해 반쯤 가린 뒤 F → 가
   });
   await page.waitForTimeout(300);
 
-  await page.keyboard.press('KeyF');
-  await page.waitForTimeout(150);
-  const after = await labelTexts(page);
+  const after = await pressFUntilLabelCount(page, 6);
   expect(after.length).toBe(6);
 });
 
@@ -218,8 +222,7 @@ test('페이지 스크립트가 iframe 하나를 지운 뒤 F → 그 프레임 
   await page.locator('#remove-cross').click();
   await page.waitForTimeout(300);
 
-  await page.keyboard.press('KeyF');
-  await page.waitForTimeout(150);
-  const texts = await labelTexts(page);
+  const texts = await pressFUntilLabelCount(page, 6);
   expect(texts.length).toBe(6);
 });
+

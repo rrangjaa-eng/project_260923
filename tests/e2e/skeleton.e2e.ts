@@ -6,7 +6,11 @@ import { test, expect, chromium, type BrowserContext, type Worker } from '@playw
 import { SettingsV1 } from '../../src/core/settings-schema';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const EXTENSION_PATH = path.resolve(__dirname, '../../.output/chrome-mv3');
+// fixtures.ts와 같은 이유(Rule 3): global-setup.ts가 CI 여부로 다른 폴더 이름에 짓는다.
+const EXTENSION_PATH = path.resolve(
+  __dirname,
+  process.env.CI === 'true' ? '../../.output/chrome-mv3' : '../../.output/chrome-mv3-dev',
+);
 
 // 이 샌드박스에는 Playwright가 기대하는 정확한 chromium 리비전이 설치돼 있지 않다(PLAYWRIGHT_BROWSERS_PATH
 // 아래 미리 깐 바이너리를 쓴다 — 실행자 안내). PLAYWRIGHT_BROWSERS_PATH가 없는 환경에서는 기본 channel로 되돌아간다.
