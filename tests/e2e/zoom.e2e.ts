@@ -199,8 +199,9 @@ test('200%에서 잡힌 요소의 테두리 두께·바깥 간격이 화면 크�
 
   // 테두리 두께는 CSS calc()가 --overlay-scale이 바뀌는 즉시 스스로 다시 그린다 — 이 값이
   // 기대 범위에 들어왔다는 것은 zoom/changed 메시지가 이미 도착해 --overlay-scale이 반영됐다는
-  // 뜻이다(경합 없는 신호). 위치(transform)는 showRing 호출 시점에만 다시 계산되므로, 신호를
-  // 본 "뒤에" pointermove를 한 번 더 줘야 새 배율로 다시 그린다.
+  // 뜻이다(경합 없는 신호). fix(01-15 known gap, 01-16): 위치(transform)도 이제 zoom/changed
+  // 자체가 다시 계산해 두므로(추가 pointermove 불필요, 아래 새 시험이 이를 직접 확인한다), 여기
+  // 남겨 둔 재확인용 pointermove는 순수 자석 재계산 경로로도 같은 결과가 나오는지 겸사겸사 본다.
   await expect
     .poll(async () => {
       const ring = await readRingBox(page);
@@ -227,6 +228,46 @@ test('200%에서 잡힌 요소의 테두리 두께·바깥 간격이 화면 크�
   expect(ring.top).toBeLessThanOrEqual(box.y + 0.5);
   expect(ring.left + ring.width).toBeGreaterThanOrEqual(box.x + box.width - 0.5);
   expect(ring.top + ring.height).toBeGreaterThanOrEqual(box.y + box.height - 0.5);
+});
+
+// fix(01-15 known gap, 01-16): 01-15-SUMMARY.md "Issues Encountered"가 알아 둘 점으로만 남겼던
+// 문제 — 확대가 바뀐 직후 추가 포인터 이동이 없으면 테두리 위치(--ring-offset 오프셋)가 옛
+// 배율 그대로 남는다. 아래 시험은 zoom/changed 뒤 pointermove를 단 한 번도 주지 않는다(위 시험과
+// 달리) — 그래야 자석 재계산이 "확대 자체"로 일어나는지, 포인터 이동으로 일어나는지 구분된다.
+test('테두리가 다음 포인터 이동 없이도 zoom/changed 직후 화면 크기 바깥 간격으로 다시 자리를 잡는다', async ({
+  context,
+  serviceWorker,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/targets.html');
+  await waitForHelperReady(page);
+
+  const box = await page.locator('#btn-tiny').boundingBox();
+  if (!box) {
+    throw new Error('버튼을 찾지 못했다');
+  }
+  await page.mouse.move(box.x - 30, box.y + box.height / 2);
+  await expect.poll(() => readRingBox(page)).not.toBeNull();
+
+  const tabId = await getTabId(serviceWorker, page);
+  await setZoom(serviceWorker, tabId, 2.0);
+
+  // 포인터 이동 없이, zoom/changed 신호만으로 --ring-offset 기반 위치(왼쪽·위)가 새 배율의
+  // 바깥 간격(8px 목표)으로 다시 맞춰져야 한다.
+  await expect
+    .poll(
+      async () => {
+        const ring = await readRingBox(page);
+        if (!ring) {
+          return null;
+        }
+        const offsetLeft = (box.x - ring.left) * 2;
+        const offsetTop = (box.y - ring.top) * 2;
+        return offsetLeft >= 7 && offsetLeft <= 9 && offsetTop >= 7 && offsetTop <= 9;
+      },
+      { timeout: 800, intervals: [20] },
+    )
+    .toBe(true);
 });
 
 interface LabelBox {
@@ -304,6 +345,70 @@ test('200%·80%에서 번호표 너비가 화면 크기로 유지되고 번호�
       }
     }
   }
+});
+
+// fix(01-15 known gap, 01-16): 번호표 크기(width, calc())는 확대가 바뀌면 스스로 다시 그리지만,
+// 자리(placeLabels가 openChapter 호출 시점에만 계산하는 -14px×배율 오프셋)는 테두리와 같은
+// 이유로 다시 열지 않으면 옛 배율 그대로 남는다 — 열려 있는 번호표가 있는 채로 확대가 바뀌면
+// 추가 입력 없이도 다시 자리를 잡아야 한다.
+test('번호표가 열려 있으면 다음 포인터 이동 없이도 zoom/changed 직후 화면 크기 자리로 다시 잡는다', async ({
+  context,
+  serviceWorker,
+  servePage,
+}) => {
+  servePage('http://practice.test/zoom-hints-resync.html', DENSE_BUTTONS_HTML);
+  const page = await context.newPage();
+  await page.goto('http://practice.test/zoom-hints-resync.html');
+  await waitForHelperReady(page);
+  await page.waitForTimeout(100);
+
+  const targetBoxOrNull = await page.locator('#d-0').boundingBox();
+  if (!targetBoxOrNull) {
+    throw new Error('버튼을 찾지 못했다');
+  }
+  const targetBox = targetBoxOrNull;
+
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(50);
+
+  async function offsetFromTarget(): Promise<{ x: number; y: number } | null> {
+    const boxes = await readLabelBoxes(page);
+    let closest: LabelBox | null = null;
+    let closestDistance = Number.POSITIVE_INFINITY;
+    for (const box of boxes) {
+      const distance = Math.hypot(box.x - targetBox.x, box.y - targetBox.y);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closest = box;
+      }
+    }
+    return closest ? { x: targetBox.x - closest.x, y: targetBox.y - closest.y } : null;
+  }
+
+  const before = await offsetFromTarget();
+  if (!before) {
+    throw new Error('번호표를 찾지 못했다');
+  }
+  expect(before.x).toBeGreaterThanOrEqual(13);
+  expect(before.x).toBeLessThanOrEqual(15);
+
+  const tabId = await getTabId(serviceWorker, page);
+  await setZoom(serviceWorker, tabId, 2.0);
+
+  // 포인터 이동도, F 다시 누르기도 없이 zoom/changed 신호만으로 자리(오프셋)가 새 배율(7px CSS
+  // = 화면에서 14px)로 다시 맞춰져야 한다.
+  await expect
+    .poll(
+      async () => {
+        const offset = await offsetFromTarget();
+        if (!offset) {
+          return null;
+        }
+        return offset.x * 2 >= 13 && offset.x * 2 <= 15 && offset.y * 2 >= 13 && offset.y * 2 <= 15;
+      },
+      { timeout: 800, intervals: [20] },
+    )
+    .toBe(true);
 });
 
 interface DialogMetrics {

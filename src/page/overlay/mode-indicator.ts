@@ -28,6 +28,16 @@ let hintText: string | null = null;
 // 구독한다 — destroyOverlayRoot()가 이 컨트롤러를 abort해 리스너를 뗀다.
 let zoomAbortController: AbortController | null = null;
 
+// fix(01-15 known gap, 01-16): --overlay-scale이 바뀔 때마다 위치(테두리 오프셋·번호표 자리)를
+// 다시 계산해야 하는 content.ts가 구독한다. mode-indicator.ts는 여기서 크기 변수만 두고, "어디에
+// 다시 그릴지"는 모른다 — 그 판단은 그대로 content.ts(자석·번호표 상태를 쥔 쪽)에 둔다.
+type OverlayScaleListener = () => void;
+const overlayScaleListeners = new Set<OverlayScaleListener>();
+
+export function onOverlayScaleChange(listener: OverlayScaleListener): void {
+  overlayScaleListeners.add(listener);
+}
+
 // 오버레이 부품(ring.ts·hints.ts 등)이 위치 계산에 쓸 현재 배율. hostElement의 인라인 스타일
 // 값(리터럴, var()·calc() 없음)이라 getPropertyValue가 그대로 돌려준다.
 export function getOverlayScale(): number {
@@ -44,6 +54,9 @@ function applyOverlayScale(zoom: number): void {
     return;
   }
   hostElement.style.setProperty('--overlay-scale', (1 / zoom).toString());
+  for (const listener of overlayScaleListeners) {
+    listener();
+  }
 }
 
 function subscribeToZoom(): void {

@@ -27,6 +27,7 @@ import { closeConfirm, openConfirm } from '@/page/overlay/confirm-dialog';
 import {
   getOverlayScale,
   hideModeIndicator,
+  onOverlayScaleChange,
   setHint,
   setMode,
   showModeIndicator,
@@ -396,6 +397,20 @@ export default defineContentScript({
       } else if (lastCursorPos) {
         // 늦게 나타난 요소도 마지막 커서 위치 기준으로 곧바로 잡아 본다(추가 pointermove 없이).
         evaluateMagnet(lastCursorPos);
+      }
+    });
+
+    // fix(01-15 known gap, 01-16): 확대가 바뀌면(--overlay-scale 갱신 직후, mode-indicator.ts가
+    // 부른다) 테두리 오프셋과 열려 있는 번호표 자리도 추가 포인터 이동·다시 열기 없이 새 배율로
+    // 다시 계산한다. 크기(border-width·label 너비 등)는 순수 CSS calc(var(--overlay-scale))라
+    // 스스로 다시 그려지지만, 위치는 showRing()·openChapter() 호출 시점에만 계산되므로 이 신호가
+    // 없으면 다음 자석 재계산(포인터 이동)까지 옛 배율 그대로 남는다.
+    onOverlayScaleChange(() => {
+      if (currentTargetId !== null && lastCursorPos) {
+        evaluateMagnet(lastCursorPos);
+      }
+      if (hintsActive) {
+        openChapter(hintChapterIndex);
       }
     });
 
