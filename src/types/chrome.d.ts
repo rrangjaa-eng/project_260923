@@ -44,6 +44,10 @@ declare namespace chrome.runtime {
   };
 
   function getManifest(): { content_scripts?: Array<{ js?: string[] }> };
+
+  // 오버레이·메뉴 서체(D-26, Plan 01-16): web_accessible_resources로 연 fonts/*.woff2를
+  // FontFace가 fetch할 수 있는 chrome-extension:// URL로 바꾼다.
+  function getURL(path: string): string;
 }
 
 declare namespace chrome.storage {

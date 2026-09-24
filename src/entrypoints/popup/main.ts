@@ -1,4 +1,8 @@
 import tokensCss from '../../../docs/design/tokens.css?inline';
+// 오버레이·메뉴 서체(D-26, Plan 01-16): document.fonts.add()는 Document 전체에 등록되고 Shadow
+// DOM 경계와 무관하다(A4는 <style> 안 @font-face 규칙에만 해당) — 팝업도 오버레이와 같은 등록
+// 함수를 그대로 쓴다.
+import { ensureHelperFontsRegistered } from '@/page/overlay/mode-indicator';
 import {
   MIGRATION_FAILED_MESSAGE,
   MIGRATION_NOTICE_KEY,
@@ -367,3 +371,4 @@ async function loadMigrationNotice(): Promise<void> {
 void loadInitial();
 void loadMigrationNotice();
 void renderForTargetTab();
+void ensureHelperFontsRegistered();

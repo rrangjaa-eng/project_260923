@@ -28,6 +28,40 @@ let hintText: string | null = null;
 // 구독한다 — destroyOverlayRoot()가 이 컨트롤러를 abort해 리스너를 뗀다.
 let zoomAbortController: AbortController | null = null;
 
+// 오버레이·메뉴 서체(D-26, RESEARCH Pattern 5 A4): Shadow DOM 안 @font-face는 적용되지 않으므로
+// document.fonts에 직접 등록한다. 한글·라틴 유니코드 범위 파일(fontsource "korean"·"latin" 부분
+// 집합, public/fonts/, wxt.config.ts web_accessible_resources)만 400·700 두 굵기로 넣는다 —
+// IBM Plex Sans KR의 전체 CJK 통합 한자 묶음(수백 개 파일)은 이 도우미가 쓰는 한글·숫자·라틴
+// 문구에 필요하지 않다(실행자 판단, SUMMARY 편차로 기록). popup/main.ts도 이 함수를 그대로 써
+// 문서(확장 페이지) 쪽 document.fonts에 등록한다 — 실패하면 예외를 삼키고 조용히 대체 서체
+// (var(--font)의 뒤 순서, 'Malgun Gothic')로 남는다.
+const FONT_SPECS: ReadonlyArray<{ subset: 'korean' | 'latin'; weight: 400 | 700 }> = [
+  { subset: 'korean', weight: 400 },
+  { subset: 'korean', weight: 700 },
+  { subset: 'latin', weight: 400 },
+  { subset: 'latin', weight: 700 },
+];
+let fontsRegistered = false;
+
+export async function ensureHelperFontsRegistered(): Promise<void> {
+  if (fontsRegistered) {
+    return;
+  }
+  fontsRegistered = true;
+  await Promise.all(
+    FONT_SPECS.map(async ({ subset, weight }) => {
+      try {
+        const url = chrome.runtime.getURL(`fonts/ibm-plex-sans-kr-${subset}-${String(weight)}-normal.woff2`);
+        const face = new FontFace('IBM Plex Sans KR', `url(${url})`, { weight: String(weight) });
+        await face.load();
+        document.fonts.add(face);
+      } catch {
+        // 조용히 대체 서체로 남는다(action 설명) — 등록 실패는 치명적이지 않다.
+      }
+    }),
+  );
+}
+
 // fix(01-15 known gap, 01-16): --overlay-scale이 바뀔 때마다 위치(테두리 오프셋·번호표 자리)를
 // 다시 계산해야 하는 content.ts가 구독한다. mode-indicator.ts는 여기서 크기 변수만 두고, "어디에
 // 다시 그릴지"는 모른다 — 그 판단은 그대로 content.ts(자석·번호표 상태를 쥔 쪽)에 둔다.
@@ -141,6 +175,7 @@ ${tokensCss}
   // 실제 비율이 도착하기 전까지 calc()가 유효한 값을 쓰도록 기본값을 먼저 둔다.
   hostElement.style.setProperty('--overlay-scale', '1');
   subscribeToZoom();
+  void ensureHelperFontsRegistered();
 
   return shadowRoot;
 }
