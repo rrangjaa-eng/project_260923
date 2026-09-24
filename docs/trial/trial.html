@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>중간 시험 페이지</title>
+    <style>
+      /* 값은 docs/design/tokens.css와 같다(그 파일은 Shadow DOM :host용이라 여기서는 :root에 옮겨 적는다). */
+      :root {
+        --bg: #ffffff;
+        --fg: #111827;
+        --muted: #4a5568;
+        --accent: #1b2b4b;
+        --surface: #f3f5f8;
+        --line: #e3e6ec;
+        --success: #1b7f4e;
+        --danger: #b42318;
+        --font: "IBM Plex Sans KR", "Malgun Gothic", sans-serif;
+        --text-sm: 15px;
+        --text-body: 18px;
+        --text-value: 22px;
+        --text-title: 30px;
+        --leading: 1.6;
+        --tracking: -0.01em;
+        --space-2: 8px;
+        --space-3: 12px;
+        --space-4: 16px;
+        --space-5: 24px;
+        --space-6: 32px;
+        --space-7: 40px;
+        --radius-label: 6px;
+        --radius-button: 10px;
+        --radius-card: 12px;
+        --border-strong: 3px;
+        --target-min: 56px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--font);
+        font-size: var(--text-body);
+        line-height: var(--leading);
+        letter-spacing: var(--tracking);
+        word-break: keep-all;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: var(--space-6) var(--space-4);
+      }
+      h1 {
+        font-size: var(--text-title);
+        color: var(--accent);
+        margin: 0 0 var(--space-2);
+      }
+      h2 {
+        font-size: var(--text-value);
+        color: var(--accent);
+        margin: 0 0 var(--space-3);
+      }
+      p {
+        margin: 0 0 var(--space-4);
+      }
+      .muted {
+        color: var(--muted);
+      }
+      section {
+        border-top: 1px solid var(--line);
+        padding: var(--space-6) 0;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-4);
+        align-items: center;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        letter-spacing: inherit;
+      }
+      button:not(.small-btn) {
+        min-height: var(--target-min);
+        padding: 0 var(--space-5);
+        border-radius: var(--radius-button);
+        border: var(--border-strong) solid var(--accent);
+        background: var(--bg);
+        color: var(--accent);
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button:disabled {
+        border-color: var(--muted);
+        background: var(--surface);
+        color: var(--muted);
+        cursor: default;
+      }
+      button.primary:not(:disabled),
+      button[aria-pressed="true"] {
+        background: var(--accent);
+        color: var(--bg);
+      }
+      :focus-visible {
+        outline: var(--border-strong) solid var(--accent);
+        outline-offset: 3px;
+      }
+      .progress {
+        font-size: var(--text-value);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .message {
+        min-height: 1.6em;
+        margin: var(--space-3) 0 0;
+      }
+      .message.error {
+        color: var(--danger);
+      }
+      .message.done {
+        color: var(--success);
+      }
+
+      /* 과제 1: 일반 사이트의 작은 버튼을 흉내 낸다. 떨림 이용자 기준 크기(56px)를 일부러 따르지 않는다. */
+      #task1-area {
+        margin-top: var(--space-4);
+        padding: 72px;
+        background: var(--surface);
+        border-radius: var(--radius-card);
+        display: flex;
+        justify-content: center;
+        min-height: 220px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(5, 20px);
+        gap: 12px;
+      }
+      .small-btn {
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border: 2px solid var(--muted);
+        border-radius: var(--radius-label);
+        background: var(--bg);
+        cursor: pointer;
+      }
+      .small-btn[data-target] {
+        background: var(--accent);
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+      }
+
+      /* 과제 2 */
+      .answers {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: var(--space-2) var(--space-5);
+        padding: var(--space-4) var(--space-5);
+        background: var(--surface);
+        border-radius: var(--radius-card);
+        margin-bottom: var(--space-5);
+      }
+      .answers dt {
+        color: var(--muted);
+      }
+      .answers dd {
+        margin: 0;
+        font-weight: 700;
+      }
+      form {
+        display: grid;
+        gap: var(--space-4);
+      }
+      .field {
+        display: grid;
+        gap: var(--space-2);
+      }
+      .field label {
+        font-weight: 700;
+      }
+      .field input[type="text"],
+      .field select {
+        min-height: var(--target-min);
+        max-width: 480px;
+        width: 100%;
+        padding: 0 var(--space-4);
+        border: 2px solid var(--muted);
+        border-radius: var(--radius-button);
+        background: var(--bg);
+        color: var(--fg);
+      }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        min-height: var(--target-min);
+        font-weight: 700;
+      }
+      .check input {
+        width: 24px;
+        height: 24px;
+      }
+
+      /* 결과 */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+        margin-bottom: var(--space-4);
+      }
+      th,
+      td {
+        text-align: left;
+        padding: var(--space-2) var(--space-3);
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        color: var(--muted);
+        font-size: var(--text-sm);
+        font-weight: 400;
+      }
+      .table-wrap {
+        overflow-x: auto;
+      }
+      textarea {
+        width: 100%;
+        min-height: 120px;
+        font: inherit;
+        font-size: var(--text-sm);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>중간 시험 페이지</h1>
+      <p class="muted">진행자가 방법을 고르고, 이용자가 과제를 해요. 결과는 맨 아래 표에 저절로 남아요.</p>
+
+      <section aria-labelledby="method-title">
+        <h2 id="method-title">방법 고르기</h2>
+        <p>도우미 없이 할 때는 도우미 아이콘의 1번 카드로 도우미를 먼저 꺼 주세요.</p>
+        <div class="row" role="group" aria-labelledby="method-title">
+          <button type="button" id="method-none" data-method="도우미 없이" aria-pressed="false">도우미 없이</button>
+          <button type="button" id="method-magnet" data-method="자석 커서" aria-pressed="false">자석 커서</button>
+          <button type="button" id="method-hints" data-method="번호표" aria-pressed="false">번호표</button>
+        </div>
+      </section>
+
+      <section aria-labelledby="task1-title">
+        <h2 id="task1-title">과제 1. 작은 버튼 10개 누르기</h2>
+        <p>색이 칠해진 버튼을 차례로 눌러요. 10번 누르면 끝나요.</p>
+        <div class="row">
+          <button type="button" id="task1-start" class="primary">과제 1 시작</button>
+          <span class="progress" id="task1-progress" aria-live="polite">0 / 10</span>
+        </div>
+        <p class="message" id="task1-message" aria-live="polite"></p>
+        <div id="task1-area">
+          <p class="muted" id="task1-placeholder">시작을 누르면 버튼이 나와요.</p>
+          <div class="grid" id="task1-grid" hidden></div>
+        </div>
+      </section>
+
+      <section aria-labelledby="task2-title">
+        <h2 id="task2-title">과제 2. 양식 채우기</h2>
+        <p>아래 내용을 그대로 채우고 보내기를 눌러요. 실제로 어디에도 보내지 않아요.</p>
+        <dl class="answers">
+          <dt>이름</dt>
+          <dd>홍길동</dd>
+          <dt>전화번호</dt>
+          <dd>010-0000-0000</dd>
+          <dt>날짜</dt>
+          <dd>2026-09-24</dd>
+          <dt>부서</dt>
+          <dd>영업팀</dd>
+          <dt>동의</dt>
+          <dd>체크</dd>
+        </dl>
+        <div class="row">
+          <button type="button" id="task2-start">과제 2 시작</button>
+        </div>
+        <p class="message" id="task2-message" aria-live="polite"></p>
+        <form id="task2-form" novalidate>
+          <fieldset id="task2-fields" disabled style="border: 0; padding: 0; margin: 0; display: grid; gap: var(--space-4)">
+            <div class="field">
+              <label for="f-name">이름</label>
+              <input type="text" id="f-name" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="f-phone">전화번호</label>
+              <input type="text" id="f-phone" inputmode="tel" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="f-date">날짜</label>
+              <input type="text" id="f-date" placeholder="2026-09-24" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="f-dept">부서</label>
+              <select id="f-dept">
+                <option value="">고르세요</option>
+                <option>기획팀</option>
+                <option>영업팀</option>
+                <option>디자인팀</option>
+              </select>
+            </div>
+            <label class="check"><input type="checkbox" id="f-agree" /> 동의</label>
+            <div class="row">
+              <button type="submit" id="f-send">보내기</button>
+            </div>
+          </fieldset>
+        </form>
+        <p class="message error" id="task2-error" aria-live="polite"></p>
+      </section>
+
+      <section aria-labelledby="results-title">
+        <h2 id="results-title">결과</h2>
+        <p class="muted">양식 과제의 잘못 누름은 진행자가 기록표에 세어 적어요.</p>
+        <div class="table-wrap">
+          <table id="results">
+            <thead>
+              <tr>
+                <th>과제</th>
+                <th>방법</th>
+                <th>회</th>
+                <th>시간(초)</th>
+                <th>잘못 누름</th>
+                <th>헛누름</th>
+                <th>끝난 시각</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="row">
+          <button type="button" id="results-copy">결과 복사</button>
+          <button type="button" id="results-clear">기록 지우기</button>
+        </div>
+        <p class="message" id="results-message" aria-live="polite"></p>
+        <textarea id="results-text" readonly hidden aria-label="복사할 결과"></textarea>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        'use strict';
+
+        var STORAGE_KEY = 'tremor-trial-results-v1';
+        var TARGET_COUNT = 10;
+        var BUTTON_COUNT = 20;
+
+        var method = null;
+        var results = loadResults();
+
+        function $(id) {
+          return document.getElementById(id);
+        }
+
+        function loadResults() {
+          try {
+            var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            return Array.isArray(saved) ? saved : [];
+          } catch (error) {
+            return [];
+          }
+        }
+
+        function saveResults() {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(results));
+          } catch (error) {
+            $('results-message').textContent = '! 이 브라우저에 저장하지 못했어요. 페이지를 닫기 전에 결과 복사를 눌러요.';
+          }
+        }
+
+        function pad(n) {
+          return n < 10 ? '0' + n : String(n);
+        }
+
+        function addResult(task, seconds, wrong, miss) {
+          var round = 1;
+          results.forEach(function (r) {
+            if (r.task === task && r.method === method) round += 1;
+          });
+          var now = new Date();
+          results.push({
+            task: task,
+            method: method,
+            round: round,
+            seconds: seconds.toFixed(1),
+            wrong: wrong,
+            miss: miss,
+            at: pad(now.getHours()) + ':' + pad(now.getMinutes()),
+          });
+          saveResults();
+          renderResults();
+        }
+
+        function renderResults() {
+          var body = document.querySelector('#results tbody');
+          body.textContent = '';
+          results.forEach(function (r) {
+            var tr = document.createElement('tr');
+            [r.task, r.method, r.round, r.seconds, r.wrong, r.miss, r.at].forEach(function (value) {
+              var td = document.createElement('td');
+              td.textContent = String(value);
+              tr.appendChild(td);
+            });
+            body.appendChild(tr);
+          });
+        }
+
+        function needMethod(messageEl) {
+          if (method) return false;
+          messageEl.className = 'message error';
+          messageEl.textContent = '! 방법을 아직 고르지 않았어요. 위에서 방법을 먼저 골라요.';
+          return true;
+        }
+
+        // 방법 고르기
+        document.querySelectorAll('[data-method]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            method = button.getAttribute('data-method');
+            document.querySelectorAll('[data-method]').forEach(function (other) {
+              other.setAttribute('aria-pressed', other === button ? 'true' : 'false');
+            });
+          });
+        });
+
+        // 과제 1: 작은 버튼 10개
+        var task1 = null;
+        var grid = $('task1-grid');
+
+        function pickTarget() {
+          var buttons = grid.querySelectorAll('.small-btn');
+          var previous = grid.querySelector('[data-target]');
+          if (previous) previous.removeAttribute('data-target');
+          var next;
+          do {
+            next = buttons[Math.floor(Math.random() * buttons.length)];
+          } while (next === previous);
+          next.setAttribute('data-target', '');
+        }
+
+        $('task1-start').addEventListener('click', function () {
+          var message = $('task1-message');
+          if (needMethod(message)) return;
+          message.className = 'message';
+          message.textContent = '';
+          grid.textContent = '';
+          for (var i = 0; i < BUTTON_COUNT; i += 1) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'small-btn';
+            b.setAttribute('aria-label', '버튼 ' + (i + 1));
+            grid.appendChild(b);
+          }
+          grid.hidden = false;
+          $('task1-placeholder').hidden = true;
+          task1 = { done: 0, wrong: 0, miss: 0, startedAt: performance.now() };
+          $('task1-progress').textContent = '0 / ' + TARGET_COUNT;
+          pickTarget();
+          // 시작 버튼을 잠가 두어야 잡힌 채 남은 시작 버튼을 스페이스바로 다시 눌러 과제가 처음부터 시작되지 않는다.
+          this.disabled = true;
+          $('task1-area').scrollIntoView({ block: 'center' });
+        });
+
+        $('task1-area').addEventListener('click', function (event) {
+          if (!task1) return;
+          var button = event.target.closest('.small-btn');
+          if (!button) {
+            task1.miss += 1;
+            return;
+          }
+          if (!button.hasAttribute('data-target')) {
+            task1.wrong += 1;
+            return;
+          }
+          task1.done += 1;
+          $('task1-progress').textContent = task1.done + ' / ' + TARGET_COUNT;
+          if (task1.done < TARGET_COUNT) {
+            pickTarget();
+            return;
+          }
+          var seconds = (performance.now() - task1.startedAt) / 1000;
+          addResult('작은 버튼 10개', seconds, task1.wrong, task1.miss);
+          task1 = null;
+          $('task1-start').disabled = false;
+          grid.hidden = true;
+          $('task1-placeholder').hidden = false;
+          var message = $('task1-message');
+          message.className = 'message done';
+          message.textContent = '끝났어요. 결과 표에 남겼어요.';
+        });
+
+        // 과제 2: 양식 채우기
+        var task2 = null;
+        var fields = [
+          { id: 'f-name', name: '이름' },
+          { id: 'f-phone', name: '전화번호' },
+          { id: 'f-date', name: '날짜' },
+          { id: 'f-dept', name: '부서' },
+        ];
+
+        $('task2-start').addEventListener('click', function () {
+          var message = $('task2-message');
+          if (needMethod(message)) return;
+          message.className = 'message';
+          message.textContent = '';
+          $('task2-error').textContent = '';
+          $('task2-form').reset();
+          $('task2-fields').disabled = false;
+          task2 = { miss: 0, startedAt: performance.now() };
+          this.disabled = true;
+          $('task2-form').scrollIntoView({ block: 'center' });
+        });
+
+        $('task2-form').addEventListener('click', function (event) {
+          if (!task2) return;
+          if (!event.target.closest('input, select, label, button')) task2.miss += 1;
+        });
+
+        $('task2-form').addEventListener('submit', function (event) {
+          event.preventDefault();
+          if (!task2) return;
+          var empty = fields
+            .filter(function (f) {
+              return $(f.id).value.trim() === '';
+            })
+            .map(function (f) {
+              return f.name;
+            });
+          if (!$('f-agree').checked) empty.push('동의');
+          if (empty.length > 0) {
+            $('task2-error').textContent = '! 빈 칸이 있어요: ' + empty.join(', ') + '. 채운 뒤 다시 보내기를 눌러요.';
+            return;
+          }
+          var seconds = (performance.now() - task2.startedAt) / 1000;
+          addResult('양식 채우기', seconds, '—', task2.miss);
+          task2 = null;
+          $('task2-error').textContent = '';
+          $('task2-form').reset();
+          $('task2-fields').disabled = true;
+          $('task2-start').disabled = false;
+          var message = $('task2-message');
+          message.className = 'message done';
+          message.textContent = '끝났어요. 결과 표에 남겼어요.';
+        });
+
+        // 결과 복사·지우기
+        $('results-copy').addEventListener('click', function () {
+          var lines = ['과제\t방법\t회\t시간(초)\t잘못 누름\t헛누름\t끝난 시각'];
+          results.forEach(function (r) {
+            lines.push([r.task, r.method, r.round, r.seconds, r.wrong, r.miss, r.at].join('\t'));
+          });
+          var text = lines.join('\n');
+          var message = $('results-message');
+          var box = $('results-text');
+          function showBox() {
+            box.value = text;
+            box.hidden = false;
+            box.select();
+            message.textContent = '자동으로 복사하지 못했어요. 아래 글을 Ctrl+C로 복사해요.';
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+              box.hidden = true;
+              message.textContent = '복사했어요. 프로젝트 대화에 붙여 넣어 주세요.';
+            }, showBox);
+          } else {
+            showBox();
+          }
+        });
+
+        var clearArmedTimer = null;
+        $('results-clear').addEventListener('click', function () {
+          var button = this;
+          if (clearArmedTimer === null) {
+            button.textContent = '한 번 더 누르면 지워져요';
+            clearArmedTimer = setTimeout(function () {
+              button.textContent = '기록 지우기';
+              clearArmedTimer = null;
+            }, 5000);
+            return;
+          }
+          clearTimeout(clearArmedTimer);
+          clearArmedTimer = null;
+          button.textContent = '기록 지우기';
+          results = [];
+          saveResults();
+          renderResults();
+          $('results-message').textContent = '기록을 지웠어요.';
+        });
+
+        renderResults();
+      })();
+    </script>
+  </body>
+</html>
