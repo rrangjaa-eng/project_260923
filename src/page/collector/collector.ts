@@ -101,10 +101,16 @@ function normalizeText(text: string | null | undefined): string {
   return (text ?? '').trim().replace(/\s+/g, ' ');
 }
 
+const BUTTON_VALUE_TYPES = new Set(['submit', 'button', 'reset']);
+
+// CR-05: computeName은 isDanger()의 유일한 입력이다 — 레거시 인트라넷·결재 시스템에서 흔한
+// 세 패턴을 놓치면 위험한 버튼이 danger로 잡히지 않는다(확인 없이 바로 눌림, D-18).
 function computeName(el: Element): string {
-  const ariaLabel = normalizeText(el.getAttribute('aria-label'));
-  if (ariaLabel) {
-    return ariaLabel;
+  // aria-label과 aria-labelledby(다른 요소를 가리키는 이름)를 함께 본다 — ariaOf()는 아래
+  // computeFingerprint()도 쓰는 같은 판정이라 여기서도 재사용한다(D-11).
+  const aria = ariaOf(el);
+  if (aria) {
+    return aria;
   }
 
   if ('labels' in el) {
@@ -117,21 +123,29 @@ function computeName(el: Element): string {
     }
   }
 
-  const text = normalizeText(el.textContent);
-  if (text) {
-    return text;
-  }
-
-  if (el instanceof HTMLInputElement && el.type === 'submit') {
+  // <input type="button"|"reset">는 submit과 달리 자식 텍스트가 없다(void 요소) — value를
+  // 먼저 본다. type="submit"만 보던 이전 판정은 value="삭제"인 삭제 버튼을 놓쳤다.
+  if (el instanceof HTMLInputElement && BUTTON_VALUE_TYPES.has(el.type)) {
     const value = normalizeText(el.value);
     if (value) {
       return value;
     }
   }
 
+  const text = normalizeText(el.textContent);
+  if (text) {
+    return text;
+  }
+
   const alt = normalizeText(el.getAttribute('alt'));
   if (alt) {
     return alt;
+  }
+
+  // <a><img alt="삭제"></a>처럼 텍스트도 alt도 자기 자신엔 없고 자손 이미지에만 있는 경우.
+  const descendantAlt = normalizeText(el.querySelector('img[alt]')?.getAttribute('alt'));
+  if (descendantAlt) {
+    return descendantAlt;
   }
 
   return normalizeText(el.getAttribute('title'));

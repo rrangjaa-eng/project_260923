@@ -92,8 +92,9 @@
         a.style.cssText = 'position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;display:block';
         var img = document.createElement('img');
         img.alt = alt;
-        img.width = w;
-        img.height = h;
+        // width/height 속성만으로는 src 없는 이미지의 깨진 아이콘 고유 크기가 그대로 쓰일 수 있어
+        // (Chromium 확인됨) CSS로도 강제한다.
+        img.style.cssText = 'width:' + w + 'px;height:' + h + 'px;display:block';
         a.append(img);
         var count = document.createElement('span');
         count.id = id + '-count';
@@ -173,16 +174,17 @@
         makeButton('btn-submit', '상신', 150, 450, 60, 30);
         makeButton('btn-hold', '보류', 150, 540, 60, 30);
 
-        // CR-05: 텍스트가 아닌 경로로만 "삭제"라는 이름이 드러나는 세 가지 흔한 레거시 패턴.
-        makeInputButton('btn-delete-input', '삭제', 150, 630, 60, 30);
-        makeImgLink('link-delete-img', '삭제', 150, 720, 60, 30);
-        makeLabelledByButton('btn-delete-labelledby', '삭제', 150, 810, 60, 30);
-
         var topCounter = document.createElement('span');
         topCounter.id = 'site-keydown';
         topCounter.textContent = '0';
-        topCounter.style.cssText = 'position:absolute;left:150px;top:900px';
+        topCounter.style.cssText = 'position:absolute;left:150px;top:630px';
         document.body.append(topCounter);
+
+        // CR-05: 텍스트가 아닌 경로로만 "삭제"라는 이름이 드러나는 세 가지 흔한 레거시 패턴 —
+        // 다른 줄(x=650)에 둔다(기본 뷰포트 높이 720px 안에 들도록, iframe(x 400~600)과도 안 겹침).
+        makeInputButton('btn-delete-input', '삭제', 650, 0, 60, 30);
+        makeImgLink('link-delete-img', '삭제', 650, 90, 60, 30);
+        makeLabelledByButton('btn-delete-labelledby', '삭제', 650, 180, 60, 30);
 
         var frame = document.createElement('iframe');
         frame.id = 'frame-child';
