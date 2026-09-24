@@ -107,6 +107,12 @@ export default defineBackground(() => {
     }
     alivePorts.clear();
   };
+  // CR-08 e2e 전용 시험 훅(제품 기능 아님, 위 disconnectAlivePorts와 같은 이유): SW가 유휴에서
+  // 다시 시작하면 relay.ts의 메모리 상태가 통째로 사라진다 — 실제 재시작은 새 createRelay()를
+  // 만들 뿐이라 이 훅으로 직접 흉내 낸다.
+  (globalThis as typeof globalThis & { resetRelayForE2E: () => void }).resetRelayForE2E = () => {
+    relay.resetForE2E();
+  };
 
   // 업데이트 직후 새 도우미 넣기(D-22, RESEARCH.md Pattern 6): 이미 열려 있는 탭들에 지금
   // content script를 다시 넣는다 — 옛 도우미는 (열려 있었다면) 스스로 정리하고, 새 도우미가

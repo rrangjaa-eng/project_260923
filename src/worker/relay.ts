@@ -10,6 +10,10 @@ import type { Message } from '@/shared/messages';
 
 export interface Relay {
   handle(message: Message, sender: chrome.runtime.MessageSender): void;
+  // CR-08 e2e 전용: SW가 유휴에서 다시 시작하면 이 메모리 상태(reportsByTab)가 통째로 사라진다
+  // (실제 제품에서는 재시작 자체가 새 createRelay()를 만들어 이 메서드를 쓰지 않는다) — 시험이
+  // 그 순간을 흉내 낸다. background.ts가 globalThis.resetRelayForE2E로 내보낸다.
+  resetForE2E(): void;
 }
 
 // 부모의 자식 목록에서 순번(index)이 바뀌었는지만 보면 되므로, 순번+pathKey 쌍의 집합을 비교한다
@@ -139,6 +143,9 @@ export function createRelay(): Relay {
           { frameId: 0 },
         );
       }
+    },
+    resetForE2E() {
+      reportsByTab.clear();
     },
   };
 }

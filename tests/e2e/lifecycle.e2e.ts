@@ -277,3 +277,64 @@ test('SW 포트가 끊겨도(쉬었다 깬 것 흉내) 확장이 살아 있으�
   await expect.poll(() => helperRootCount(page)).toBe(1);
   await page.close();
 });
+
+// CR-08: relay.ts는 reportsByTab을 메모리에만 들고 있다 — SW가 유휴에서 다시 시작하면(약 30초
+// 무동작) 이 상태가 통째로 사라진다. 각 프레임의 collector는 보고 JSON이 안 바뀌면 다시 보내지
+// 않으므로(보고 폭주 방지), 재시작 뒤 처음 다시 보고하는 프레임(대개 맨 위, 평범한 스크롤로도
+// 촉발됨)이 탭의 전체 보고 목록을 자기 하나로 통째로 덮어써 자식 프레임 항목이 번호표에서
+// 사라진다. resetRelayForE2E는 disconnectAlivePorts와 같은 e2e 전용 시험 훅이다.
+test('CR-08: SW가 유휴에서 다시 시작한 뒤 평범한 스크롤을 해도 자식 프레임 번호표 항목이 사라지지 않는다', async ({
+  context,
+  serviceWorker,
+}) => {
+  const page = await context.newPage();
+  // 이 페이지 높이만으로는 기본 뷰포트 안에 다 들어갈 수 있어(스크롤이 안 일어날 수 있어)
+  // 뷰포트를 낮춰 반드시 스크롤이 일어나게 한다.
+  await page.setViewportSize({ width: 1280, height: 400 });
+  await page.goto('http://practice.test/danger.html');
+
+  async function indicatorText(): Promise<string> {
+    return page.evaluate(
+      () => document.querySelector('tremor-helper-root')?.shadowRoot?.querySelector('.mode-indicator')?.textContent ?? '',
+    );
+  }
+  await expect.poll(indicatorText).toBe('도우미');
+
+  async function labelCount(): Promise<number> {
+    return page.evaluate(() => document.querySelector('tremor-helper-root')?.shadowRoot?.querySelectorAll('.hint-label').length ?? 0);
+  }
+
+  // frames.e2e.ts·confirm.e2e.ts와 같은 재시도 방식으로 프레임 보고 왕복(비동기)을 기다린다 —
+  // danger.html은 맨 위 8개 + frame-child 안 btn-child-delete 1개 = 9개.
+  async function pressFUntilLabelCount(expectedCount: number): Promise<boolean> {
+    for (let attempt = 0; attempt < 15; attempt += 1) {
+      await page.keyboard.press('KeyF');
+      await page.waitForTimeout(120);
+      if ((await labelCount()) >= expectedCount) {
+        return true;
+      }
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(350);
+    }
+    return false;
+  }
+
+  expect(await pressFUntilLabelCount(9), '자식 프레임 항목까지 9개가 한 번은 모여야 한다').toBe(true);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(350);
+
+  // SW가 유휴에서 다시 시작한 것을 흉내 낸다 — relay의 메모리 상태가 통째로 사라진다(content
+  // script는 그대로 살아 있다 — 프레임은 재시작되지 않는다).
+  await serviceWorker.evaluate(() => {
+    (globalThis as unknown as { resetRelayForE2E: () => void }).resetRelayForE2E();
+  });
+
+  // 평범한 페이지 스크롤 — 자식 프레임 내용 자체는 안 바뀌지만 맨 위 프레임이 보는 iframe
+  // 오프셋이 바뀌어 맨 위만 다시 보고한다(review 재현 조건, "a plain page scroll is enough").
+  await page.mouse.wheel(0, 100);
+  await page.waitForTimeout(300);
+
+  expect(await pressFUntilLabelCount(9), '스크롤 뒤에도 자식 프레임 항목이 번호표에서 사라지면 안 된다').toBe(true);
+
+  await page.close();
+});
