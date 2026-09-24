@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-12-PLAN.md
-last_updated: "2026-09-23T23:43:19.188Z"
+stopped_at: Completed 01-13-PLAN.md
+last_updated: "2026-09-24T07:36:03.199Z"
 last_activity: 2026-09-23
 last_activity_desc: Phase 1 execution started
-state_head: a7f404108e739231ecd98e727dad673c5d963da9
+state_head: d208f23fb335276d8514b3cdeac07dff9d22bcbc
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 16
-  completed_plans: 12
+  completed_plans: 13
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 ## Current Position
 
 Phase: 1 (클릭 도우미 기반) — EXECUTING
-Plan: 13 of 16
+Plan: 14 of 16
 Status: Ready to execute
 Last activity: 2026-09-23 — Phase 1 execution started
 
@@ -70,6 +70,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P10 | 22min | 2 tasks | 10 files |
 | Phase 01 P11 | 25min | 2 tasks | 8 files |
 | Phase 01 P12 | 68min | 2 tasks | 6 files |
+| Phase 01 P13 | 46min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -114,6 +115,9 @@ Recent decisions affecting current work:
 - [Phase 1]: select 판정 기준을 ArrowDown·Enter 값 변경에서 focus 이동+차단 메시지 없음으로 변경 — 헤드리스 select 팝업 키보드 탐색 한계
 - [Phase 1]: showPicker()는 트리거(스페이스바·머무르기)와 무관하게 이 샌드박스에서 항상 성공 — RESEARCH.md 가정과 다름
 - [Phase 1]: 네이티브 팝업 간섭 완화: page.close()+명시적 팝업 닫기+타임아웃 확대+spike.e2e.ts 파일 범위 retries:1
+- [Phase 1]: spike.e2e.ts의 test.describe.configure({ retries: 1 })는 근본 원인(showPicker() select 팝업이 Escape만으로는 안 닫힘)을 찾아 document.activeElement?.blur()로 대체 — 재시도 제거
+- [Phase 1]: CSP: sandbox는 content script(격리된 세계)를 막지 못한다는 사실을 실측으로 확인 — RESEARCH.md 가정을 뒤집고 테스트를 실제 동작에 맞게 수정
+- [Phase 1]: 사이트 = 맨 위 페이지 출처(origin)로 확정 — content script가 site/query로 SW에 물어 계산(자신은 교차 출처 iframe일 때 top origin을 모름)
 
 ### Pending Todos
 
@@ -141,6 +145,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-23T23:43:19.139Z
-Stopped at: Completed 01-12-PLAN.md
+Last session: 2026-09-24T07:36:03.150Z
+Stopped at: Completed 01-13-PLAN.md
 Resume file: None
