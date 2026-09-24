@@ -279,19 +279,38 @@ test('SW 포트가 끊겨도(쉬었다 깬 것 흉내) 확장이 살아 있으�
 });
 
 // CR-08: relay.ts는 reportsByTab을 메모리에만 들고 있다 — SW가 유휴에서 다시 시작하면(약 30초
-// 무동작) 이 상태가 통째로 사라진다. 각 프레임의 collector는 보고 JSON이 안 바뀌면 다시 보내지
-// 않으므로(보고 폭주 방지), 재시작 뒤 처음 다시 보고하는 프레임(대개 맨 위, 평범한 스크롤로도
-// 촉발됨)이 탭의 전체 보고 목록을 자기 하나로 통째로 덮어써 자식 프레임 항목이 번호표에서
-// 사라진다. resetRelayForE2E는 disconnectAlivePorts와 같은 e2e 전용 시험 훅이다.
-test('CR-08: SW가 유휴에서 다시 시작한 뒤 평범한 스크롤을 해도 자식 프레임 번호표 항목이 사라지지 않는다', async ({
+// 무동작) 이 상태가 통째로 사라진다(content script는 그대로 살아 있다 — 프레임은 재시작되지
+// 않는다). 각 프레임의 collector는 보고 JSON이 안 바뀌면 다시 보내지 않으므로(보고 폭주 방지),
+// 재시작 뒤 처음 다시 보고하는 프레임(대개 맨 위, 평범한 스크롤로 맨 위의 iframe 오프셋만
+// 바뀌어도 촉발됨)이 탭의 전체 보고 목록을 자기 하나로 통째로 덮어써 자식 프레임 항목이 번호표에서
+// 사라진다. resetRelayForE2E·disconnectAlivePorts는 e2e 전용 시험 훅으로, 실제 SW 재시작이
+// relay 메모리를 지우고 alive 포트를 끊는 두 효과를 함께 흉내 낸다. 맨 위 1개 + 자식 프레임 1개
+// 뿐인 최소 페이지를 직접 등록해 danger.html처럼 항목이 9개 넘는 페이지의 "한 장(chapter)엔
+// 최대 9개" 상한과 뒤섞이지 않게 한다.
+test('CR-08: SW가 유휴에서 다시 시작한 뒤(+평범한 스크롤) 자식 프레임 번호표 항목이 사라지지 않는다', async ({
   context,
   serviceWorker,
+  servePage,
 }) => {
+  servePage(
+    'http://practice.test/cr08-top.html',
+    '<!doctype html><html><body style="margin:0">' +
+      '<button id="top-btn" style="position:absolute;left:0;top:50px;width:60px;height:30px">위</button>' +
+      '<iframe id="child-frame" src="http://other.test/cr08-child.html" ' +
+      'style="position:absolute;left:300px;top:50px;width:200px;height:100px;border:0"></iframe>' +
+      // 스크롤이 실제로 일어나려면 페이지가 뷰포트보다 커야 한다 — 보이는 배치는 안 바꾼다.
+      '<div style="position:absolute;left:0;top:2000px;height:10px">spacer</div>' +
+      '</body></html>',
+  );
+  servePage(
+    'http://other.test/cr08-child.html',
+    '<!doctype html><html><body style="margin:0">' +
+      '<button id="child-btn" style="position:absolute;left:0;top:0;width:60px;height:30px">아래</button>' +
+      '</body></html>',
+  );
+
   const page = await context.newPage();
-  // 이 페이지 높이만으로는 기본 뷰포트 안에 다 들어갈 수 있어(스크롤이 안 일어날 수 있어)
-  // 뷰포트를 낮춰 반드시 스크롤이 일어나게 한다.
-  await page.setViewportSize({ width: 1280, height: 400 });
-  await page.goto('http://practice.test/danger.html');
+  await page.goto('http://practice.test/cr08-top.html');
 
   async function indicatorText(): Promise<string> {
     return page.evaluate(
@@ -304,12 +323,11 @@ test('CR-08: SW가 유휴에서 다시 시작한 뒤 평범한 스크롤을 해�
     return page.evaluate(() => document.querySelector('tremor-helper-root')?.shadowRoot?.querySelectorAll('.hint-label').length ?? 0);
   }
 
-  // frames.e2e.ts·confirm.e2e.ts와 같은 재시도 방식으로 프레임 보고 왕복(비동기)을 기다린다 —
-  // danger.html은 맨 위 8개 + frame-child 안 btn-child-delete 1개 = 9개.
+  // frames.e2e.ts·confirm.e2e.ts와 같은 재시도 방식으로 프레임 보고 왕복(비동기)을 기다린다.
   async function pressFUntilLabelCount(expectedCount: number): Promise<boolean> {
     for (let attempt = 0; attempt < 15; attempt += 1) {
       await page.keyboard.press('KeyF');
-      await page.waitForTimeout(120);
+      await page.waitForTimeout(150);
       if ((await labelCount()) >= expectedCount) {
         return true;
       }
@@ -319,22 +337,29 @@ test('CR-08: SW가 유휴에서 다시 시작한 뒤 평범한 스크롤을 해�
     return false;
   }
 
-  expect(await pressFUntilLabelCount(9), '자식 프레임 항목까지 9개가 한 번은 모여야 한다').toBe(true);
+  expect(await pressFUntilLabelCount(2), '맨 위 1개 + 자식 프레임 1개, 모두 2개가 한 번은 모여야 한다').toBe(true);
   await page.keyboard.press('Escape');
   await page.waitForTimeout(350);
 
-  // SW가 유휴에서 다시 시작한 것을 흉내 낸다 — relay의 메모리 상태가 통째로 사라진다(content
-  // script는 그대로 살아 있다 — 프레임은 재시작되지 않는다).
+  // SW가 유휴에서 다시 시작한 것을 흉내 낸다: relay의 메모리 상태가 통째로 사라지고, alive
+  // 포트가 끊겼다 다시 연결된다.
   await serviceWorker.evaluate(() => {
     (globalThis as unknown as { resetRelayForE2E: () => void }).resetRelayForE2E();
   });
+  await serviceWorker.evaluate(() => {
+    (globalThis as unknown as { disconnectAlivePorts: () => void }).disconnectAlivePorts();
+  });
+  await page.waitForTimeout(600);
 
   // 평범한 페이지 스크롤 — 자식 프레임 내용 자체는 안 바뀌지만 맨 위 프레임이 보는 iframe
-  // 오프셋이 바뀌어 맨 위만 다시 보고한다(review 재현 조건, "a plain page scroll is enough").
-  await page.mouse.wheel(0, 100);
-  await page.waitForTimeout(300);
+  // 오프셋이 바뀌어 맨 위가 다시 보고한다(review 재현 조건, "a plain page scroll is enough").
+  await page.mouse.wheel(0, 20);
+  await page.waitForTimeout(500);
 
-  expect(await pressFUntilLabelCount(9), '스크롤 뒤에도 자식 프레임 항목이 번호표에서 사라지면 안 된다').toBe(true);
+  expect(
+    await pressFUntilLabelCount(2),
+    'SW 재시작+스크롤 뒤에도 자식 프레임 항목이 번호표에서 사라지면 안 된다',
+  ).toBe(true);
 
   await page.close();
 });
