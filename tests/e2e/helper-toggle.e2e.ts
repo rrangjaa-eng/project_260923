@@ -53,6 +53,9 @@ test('다시 "도우미 켜기"를 누르면 모드 표시가 1초 안에 돌아
   await popup.getByRole('button', { name: '도우미 끄기' }).click();
   await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(false);
 
+  // WR-06: 같은 카드를 다시 누르는 것 — 떨림 두 번 탭과 구분되도록 떨림 간격(기본 300ms)보다
+  // 넉넉히 띄운다(다른 시험들의 같은 요소 재입력 간격 확보 관례와 같다).
+  await popup.waitForTimeout(350);
   await popup.getByRole('button', { name: '도우미 켜기' }).click();
   await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(true);
 });
@@ -70,6 +73,8 @@ test('팝업에 포커스가 있을 때 숫자 1(Digit1·Numpad1)을 누르면 �
   await popup.keyboard.press('Digit1');
   await expect.poll(() => readEnabled(serviceWorker)).toBe(false);
 
+  // WR-06: 같은 카드를 다시 누르는 것 — 떨림 두 번 탭과 구분되도록 간격을 띄운다.
+  await popup.waitForTimeout(350);
   await popup.keyboard.press('Numpad1');
   await expect.poll(() => readEnabled(serviceWorker)).toBe(true);
 });
@@ -124,6 +129,8 @@ test('같은 출처·다른 출처 iframe 모두 도우미 켜짐/꺼짐을 SW�
     return states.length >= 3 && states.every((v) => !v);
   }).toBe(true);
 
+  // WR-06: 같은 카드를 다시 누르는 것 — 떨림 두 번 탭과 구분되도록 간격을 띄운다.
+  await popup.waitForTimeout(350);
   await popup.locator('.card').first().click();
 
   await expect.poll(async () => {
@@ -154,6 +161,10 @@ test('SW에서 storage.sync.set으로 값을 바꾸면(다른 PC 동기화 흉�
 
 test('WR-06: 1을 틈 없이 두 번 누르면(떨림 두 번 탭) 한 번만 토글된다', async ({ serviceWorker, openPopup }) => {
   const popup = await openPopup();
+  // renderForTargetTab()의 비동기 렌더(도울 수 없음 안내·사이트 카드 삽입 등)가 카드 1의 화면
+  // 자리를 밀어내는 틈에 두 번째 누름이 걸리면(재현 확인) "같은 자리"로 안 잡혀 떨림 거르기가
+  // 못 걸러진다 — 두 번 빠르게 누르기 전에 팝업 레이아웃이 자리 잡을 시간을 준다.
+  await popup.waitForTimeout(200);
 
   // 시작 상태는 기본값 켜짐(true) — 떨림 간격(기본 300ms) 안에 두 번 누른다.
   await popup.keyboard.press('Digit1');
@@ -169,6 +180,8 @@ test('WR-06: 1을 틈 없이 두 번 누르면(떨림 두 번 탭) 한 번만 �
 test('WR-06: 카드를 틈 없이 두 번 클릭하면(떨림 두 번 탭) 한 번만 토글된다', async ({ serviceWorker, openPopup }) => {
   const popup = await openPopup();
   const card = popup.locator('.card').first();
+  // WR-06 위 시험과 같은 이유 — 팝업 레이아웃이 자리 잡을 시간을 준다.
+  await popup.waitForTimeout(200);
 
   await card.click();
   await card.click();

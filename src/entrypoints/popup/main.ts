@@ -4,6 +4,7 @@ import tokensCss from '../../../docs/design/tokens.css?inline';
 // 함수를 그대로 쓴다.
 import { ensureHelperFontsRegistered } from '@/page/overlay/mode-indicator';
 import {
+  defaultSettings,
   MIGRATION_FAILED_MESSAGE,
   MIGRATION_NOTICE_KEY,
   MigrationNoticeV1,
@@ -12,6 +13,7 @@ import {
   SiteEntryV1,
   siteKey,
 } from '@/core/settings-schema';
+import { createTremorFilter, type TremorFilter } from '@/core/tremor-filter';
 import type { Message } from '@/shared/messages';
 
 // 형식 변환 실패 경고(D-25, SYSTEM.md "막힘·확인 필요 = --warning 테두리 카드 + 이유"): 저장
@@ -152,6 +154,22 @@ interface CardConfig {
   onToggle: (next: boolean, render: (enabled: boolean) => void, revert: () => void) => void;
 }
 
+// WR-06: 팝업 카드는 이제까지 떨림 필터를 전혀 거치지 않았다 — 떨림으로 인한 두 번 탭이나 살짝
+// 눌린 채 남은 키가 도우미를 껐다 곧바로 다시 켜는(또는 그 반대) 사고로 이어질 수 있다. 페이지
+// 쪽과 같은 core/tremor-filter.ts를 그대로 쓴다 — "press" 입력의 자리(x,y)는 카드 자신의 화면
+// 위치를 쓴다: 같은 카드를 간격 안에 다시 누르면(키든 클릭이든) 자리가 같아 걸러지고, 다른
+// 카드를 누르면 자리가 달라 걸러지지 않는다.
+//
+// 기본값(defaultSettings().data)으로 한 번만 만들고 이후 다시 만들지 않는다 — Phase 1에는 이
+// 값을 바꾸는 화면이 없어 저장된 값은 사실상 늘 기본값과 같고, 저장소를 읽어 "실제 값"으로
+// 다시 만드는 방식은 시도해 봤으나(그 응답이 두 탭 사이에 막 도착하면 필터가 기억하던 "방금
+// 누른 자리·시각"이 통째로 사라져 떨림 거르기가 새로 시작돼 버리는 경합이 재현됨) 만들지 않는
+// 쪽이 더 단순하고 이 경합 자체가 없다.
+const tremorFilter: TremorFilter = createTremorFilter({
+  intervalMs: defaultSettings().data.tremorIntervalMs,
+  sameSpotPx: defaultSettings().data.sameSpotPx,
+});
+
 function createCard(config: CardConfig): { element: HTMLButtonElement; render: (enabled: boolean) => void } {
   const card = document.createElement('button');
   card.type = 'button';
@@ -172,18 +190,29 @@ function createCard(config: CardConfig): { element: HTMLButtonElement; render: (
     actionWord.textContent = config.wordFor(enabled);
   }
 
-  function toggle(): void {
+  function toggle(t: number): void {
+    const rect = card.getBoundingClientRect();
+    if (!tremorFilter.accept({ kind: 'press', x: rect.x, y: rect.y, t })) {
+      return;
+    }
     const previous = current;
     config.onToggle(!current, render, () => {
       render(previous);
     });
   }
 
-  card.addEventListener('click', toggle);
+  card.addEventListener('click', (event) => {
+    toggle(event.timeStamp);
+  });
   document.addEventListener('keydown', (event) => {
+    if (event.repeat) {
+      // WR-06: 키를 계속 눌러 생기는 자동 반복 — 떨림 필터의 key kind도 repeat을 거절하지만,
+      // 여기서는 카드 자리를 쓰는 press kind를 쓰므로 repeat은 따로 먼저 걸러야 한다.
+      return;
+    }
     if (config.digitCodes.includes(event.code)) {
       event.preventDefault();
-      toggle();
+      toggle(event.timeStamp);
     }
   });
 

@@ -117,6 +117,8 @@ test('다시 "이 사이트에서 켜기"를 누르면 도우미가 돌아온다
   await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
   await expect.poll(() => hasHelperRoot(page)).toBe(false);
 
+  // WR-06: 같은 카드를 다시 누르는 것 — 떨림 두 번 탭과 구분되도록 간격을 띄운다.
+  await popup.waitForTimeout(350);
   await popup.getByRole('button', { name: /이 사이트에서 켜기/ }).click();
   await expect.poll(() => hasHelperRoot(page)).toBe(true);
 
@@ -140,6 +142,8 @@ test('SW가 미리 pins를 넣어 둔 상태에서 끄고 켜도 pins가 그대�
   const popup = await openPopup(page);
   await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
   await expect.poll(() => hasHelperRoot(page)).toBe(false);
+  // WR-06: 같은 카드를 다시 누르는 것 — 떨림 두 번 탭과 구분되도록 간격을 띄운다.
+  await popup.waitForTimeout(350);
   await popup.getByRole('button', { name: /이 사이트에서 켜기/ }).click();
   await expect.poll(() => hasHelperRoot(page)).toBe(true);
 
