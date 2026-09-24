@@ -103,7 +103,24 @@ export function createStorageWriter(): StorageWriter {
   // notice:migration-failed를 한 번 기록한다. 변환됐으면(migrated) 변환된 값을 다시 쓴다.
   async function readAndValidateSettings(): Promise<{ ok: true; value: SettingsV1 } | { ok: false }> {
     const existing = await chrome.storage.sync.get(SETTINGS_KEY);
-    const result = migrate(existing[SETTINGS_KEY], settingsSpec);
+    const raw = existing[SETTINGS_KEY];
+
+    // WR-08: 키가 아예 없는 것(raw === undefined — 동기화 초기화, onInstalled 미완료 등)은
+    // migrate()가 no-version(값이 있었는데 깨진 것과 같은 취급)으로 본다. 지킬 원본 자체가
+    // 없는데 "원본 보존"으로 영원히 preserved-original을 돌려주면 "도우미 끄기"가 다시는 안
+    // 먹는다 — 기본값을 새로 쓴다(ensureDefaultSettings와 같은 생각이지만, onInstalled가 아닌
+    // 어떤 호출에서도 즉시 스스로 고친다).
+    if (raw === undefined) {
+      const value = defaultSettings();
+      const writeResult = await syncSet({ [SETTINGS_KEY]: value });
+      if (!writeResult.ok) {
+        return { ok: false };
+      }
+      void chrome.storage.local.remove(MIGRATION_NOTICE_KEY);
+      return { ok: true, value };
+    }
+
+    const result = migrate(raw, settingsSpec);
     if (!result.ok) {
       await chrome.storage.local.set({
         [MIGRATION_NOTICE_KEY]: {
@@ -116,6 +133,9 @@ export function createStorageWriter(): StorageWriter {
     if (result.migrated) {
       await syncSet({ [SETTINGS_KEY]: result.value });
     }
+    // WR-08: 검사가 성공했다(이번에 막 고쳐졌든, 이미 예전부터 멀쩡했든) — 남아 있을 수 있는
+    // 옛 실패 알림을 지운다. 알림이 없어도 remove는 안전하다(제거할 게 없을 뿐).
+    void chrome.storage.local.remove(MIGRATION_NOTICE_KEY);
     return { ok: true, value: result.value };
   }
 
