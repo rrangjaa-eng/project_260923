@@ -211,3 +211,69 @@ test('site 항목이 정확히 8192바이트일 때 "이 사이트에서 켜기"
   await popup.close();
   await page.close();
 });
+
+// Task 3: 옛 도우미 자기 정리와 업데이트 직후 새 도우미 넣기(D-22).
+//
+// 알려진 한계(RESEARCH.md Pattern 6, 01-01·01-14 실측): 이 샌드박스 헤드리스 크로미움의
+// chrome.runtime.reload()는 예전 SW를 끝내기만 할 뿐 새 worker를 관찰 가능하게 깨우지 않고
+// (context.waitForEvent('serviceworker')가 뜨지 않는다), onInstalled도 실제 갱신처럼 다시
+// 돌지 않는다 — 그래서 "재시작 뒤 새 도우미가 다시 들어간다"의 방아쇠 자체를 reload()로는
+// 재현할 수 없다. 아래는 production 코드가 실제로 쓰는 chrome.scripting.executeScript
+// 재주입 경로를 시험이 직접 불러 "이미 열린 탭에 두 번째 content script가 들어가도 호스트는
+// 하나"를 검증한다(injectContentScriptIntoOpenTabs와 같은 API 호출, background.ts:114).
+// 다만 진짜 확장 업데이트라면 크롬이 옛 컨텍스트의 chrome.runtime.id 자체를 무효화하는데,
+// 이 재주입 호출만으로는 옛 인스턴스가 진짜로 무효화되지 않는다 — 그래서 "옛 리스너가 완전히
+// 멎는다"까지는 이 샌드박스에서 끝까지 확인할 수 없다(Known Gap, SUMMARY.md에 기록).
+
+async function helperRootCount(page: import('@playwright/test').Page): Promise<number> {
+  return page.evaluate(() => document.querySelectorAll('tremor-helper-root').length);
+}
+
+// production의 injectContentScriptIntoOpenTabs와 같은 API 호출을 시험에서 직접 부른다
+// (background.ts가 onInstalled reason:'update'일 때 이미 열린 탭에 하는 일과 동일).
+async function reinjectContentScript(serviceWorker: Worker, urlPrefix: string): Promise<void> {
+  await serviceWorker.evaluate(async (prefix) => {
+    const manifest = chrome.runtime.getManifest();
+    const files = manifest.content_scripts?.[0]?.js ?? [];
+    const tabs = await chrome.tabs.query({});
+    const tab = tabs.find((t) => t.url?.startsWith(prefix));
+    if (!tab || tab.id === undefined) {
+      throw new Error('대상 탭을 찾지 못했다');
+    }
+    await chrome.scripting.executeScript({ target: { tabId: tab.id, allFrames: true }, files });
+  }, urlPrefix);
+}
+
+test('업데이트로 이미 열린 탭에 content script가 다시 들어가도 tremor-helper-root 호스트는 정확히 1개다', async ({
+  context,
+  serviceWorker,
+  servePage,
+}) => {
+  servePage('http://practice.test/', '<!doctype html><html><body><h1>연습 사이트</h1></body></html>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/');
+  await expect.poll(() => helperRootCount(page)).toBe(1);
+
+  await reinjectContentScript(serviceWorker, 'http://practice.test/');
+  await page.waitForTimeout(300);
+
+  await expect.poll(() => helperRootCount(page)).toBe(1);
+  await page.close();
+});
+
+// SW가 유휴에 들어 alive 포트가 끊겨도(쉬었다 깬 것뿐) 도우미는 걷히지 않는다 — disconnectAlivePorts
+// 훅을 `?.()`가 아니라 그대로 불러, 훅이 없으면(구현 전) evaluate 자체가 던져 실패한다(RED 보장).
+test('SW 포트가 끊겨도(쉬었다 깬 것 흉내) 확장이 살아 있으면 도우미는 걷히지 않는다', async ({ context, serviceWorker, servePage }) => {
+  servePage('http://practice.test/', '<!doctype html><html><body><h1>연습 사이트</h1></body></html>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/');
+  await expect.poll(() => helperRootCount(page)).toBe(1);
+
+  await serviceWorker.evaluate(() => {
+    (globalThis as unknown as { disconnectAlivePorts: () => void }).disconnectAlivePorts();
+  });
+  await page.waitForTimeout(500);
+
+  await expect.poll(() => helperRootCount(page)).toBe(1);
+  await page.close();
+});
