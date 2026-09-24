@@ -22,3 +22,24 @@ Out-of-scope discoveries logged during plan execution (not fixed — scope bound
     that scopes `test.include` to this project's own `tests/`/`src/` unit
     test files and excludes `.claude/**` (mirroring `eslint.config.js`'s
     existing `.claude/**` ignore, added in Plan 01-01's Deviation #1).
+
+## Plan 01-15
+
+- **`tests/e2e/spike.e2e.ts`'s `파일 입력을 잡고 스페이스바를 누르면 filechooser
+  이벤트가 온다` test failed once (`page.waitForEvent('filechooser', { timeout:
+  5000 })` timed out) during a full-suite CI=true run repeated 3× for this
+  plan's final verification (systematic-debugging: reproduced the full suite
+  twice more and ran `spike.e2e.ts` alone once — all three passed cleanly,
+  so it is not a 100%-reproducible failure).
+  - **Not fixed here:** Plan 01-15 only touches zoom messaging and overlay
+    CSS scale (`messages.ts`, `background.ts`, `mode-indicator.ts`,
+    `ring.ts`, `hints.ts`, `confirm-dialog.ts`, `toast.ts`, `content.ts`'s
+    `placeLabels` call) — no file-input or native-dialog code path. 01-13's
+    own decisions log already documents this file's native-popup-dialog
+    timing as a known source of flakiness in this sandbox (retries were
+    deliberately removed there after root-causing a different flake, not
+    added back here).
+  - **Needed:** if this test fails again, root-cause the native file-chooser
+    dialog timing in this sandbox specifically (not the zoom/overlay-scale
+    change) — do not add `retries` to mask it (forbidden by
+    `learned_after_01_12`).

@@ -52,12 +52,12 @@ function ensureStyle(root: ShadowRoot): void {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: var(--dialog-width);
+  width: calc(var(--dialog-width) * var(--overlay-scale));
   box-sizing: border-box;
-  padding: var(--space-6);
+  padding: calc(var(--space-6) * var(--overlay-scale));
   background: var(--bg);
-  border: var(--border-strong) solid var(--danger);
-  border-radius: var(--radius-dialog);
+  border: calc(var(--border-strong) * var(--overlay-scale)) solid var(--danger);
+  border-radius: calc(var(--radius-dialog) * var(--overlay-scale));
   font-family: var(--font);
   pointer-events: auto;
   opacity: 0;
@@ -67,20 +67,20 @@ function ensureStyle(root: ShadowRoot): void {
   opacity: 1;
 }
 .${TITLE_CLASS} {
-  margin: 0 0 var(--space-3) 0;
-  font-size: var(--text-title);
+  margin: 0 0 calc(var(--space-3) * var(--overlay-scale)) 0;
+  font-size: calc(var(--text-title) * var(--overlay-scale));
   font-weight: var(--weight-bold);
   color: var(--fg);
 }
 .${BODY_CLASS} {
-  margin: 0 0 var(--space-5) 0;
-  font-size: var(--text-body);
+  margin: 0 0 calc(var(--space-5) * var(--overlay-scale)) 0;
+  font-size: calc(var(--text-body) * var(--overlay-scale));
   color: var(--fg);
 }
 .${GUARD_TRACK_CLASS} {
-  height: var(--space-2);
+  height: calc(var(--space-2) * var(--overlay-scale));
   background: var(--surface);
-  border-radius: var(--radius-button);
+  border-radius: calc(var(--radius-button) * var(--overlay-scale));
   overflow: hidden;
 }
 .${GUARD_BAR_CLASS} {
@@ -90,25 +90,25 @@ function ensureStyle(root: ShadowRoot): void {
   transition: width var(--confirm-guard) linear;
 }
 .${GUARD_TEXT_CLASS} {
-  margin: var(--space-2) 0 var(--space-5) 0;
-  font-size: var(--text-sm);
+  margin: calc(var(--space-2) * var(--overlay-scale)) 0 calc(var(--space-5) * var(--overlay-scale)) 0;
+  font-size: calc(var(--text-sm) * var(--overlay-scale));
   color: var(--muted);
 }
 .${BUTTONS_CLASS} {
   display: flex;
-  gap: var(--space-3);
+  gap: calc(var(--space-3) * var(--overlay-scale));
 }
 .${BUTTON_CLASS} {
   flex: 1;
-  height: var(--target-confirm);
+  height: calc(var(--target-confirm) * var(--overlay-scale));
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  border-radius: var(--radius-button);
+  gap: calc(var(--space-2) * var(--overlay-scale));
+  border-radius: calc(var(--radius-button) * var(--overlay-scale));
   font-family: var(--font);
-  font-size: var(--text-body);
+  font-size: calc(var(--text-body) * var(--overlay-scale));
   font-weight: var(--weight-bold);
 }
 .${BUTTON_CLASS}--confirm {
@@ -119,17 +119,17 @@ function ensureStyle(root: ShadowRoot): void {
 .${BUTTON_CLASS}--cancel {
   background: var(--bg);
   color: var(--accent);
-  border: var(--border-strong) solid var(--accent);
+  border: calc(var(--border-strong) * var(--overlay-scale)) solid var(--accent);
 }
 .${KEY_CLASS} {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: var(--space-6);
-  height: var(--space-6);
-  padding: 0 var(--space-2);
-  border: var(--border-strong) solid currentColor;
-  border-radius: var(--radius-key);
+  min-width: calc(var(--space-6) * var(--overlay-scale));
+  height: calc(var(--space-6) * var(--overlay-scale));
+  padding: 0 calc(var(--space-2) * var(--overlay-scale));
+  border: calc(var(--border-strong) * var(--overlay-scale)) solid currentColor;
+  border-radius: calc(var(--radius-key) * var(--overlay-scale));
   font-weight: var(--weight-bold);
 }
 `;

@@ -1,5 +1,5 @@
 import type { Rect } from '@/core/grid-index';
-import { ensureOverlayRoot } from '@/page/overlay/mode-indicator';
+import { ensureOverlayRoot, getOverlayScale } from '@/page/overlay/mode-indicator';
 
 // 강조 테두리(D-26, D-27): 잡힌 요소보다 --ring-offset 바깥에 --ring-width 두께 남색 테두리와
 // 바깥 흰 후광(outline), 그림자 없음. mode-indicator.ts와 같은 shadow root(ensureOverlayRoot)를
@@ -21,9 +21,6 @@ let ringElement: HTMLDivElement | null = null;
 let dangerLabelElement: HTMLDivElement | null = null;
 let dwellProgressElement: SVGSVGElement | null = null;
 let dwellProgressRectElement: SVGRectElement | null = null;
-let ringOffsetPx = 8;
-let labelGapPx = 8;
-
 function readPx(el: Element, name: string, fallback: number): number {
   const raw = getComputedStyle(el).getPropertyValue(name).trim();
   const value = Number.parseFloat(raw);
@@ -43,9 +40,9 @@ function ensureRingElement(): HTMLDivElement {
   left: 0;
   top: 0;
   box-sizing: border-box;
-  border: var(--ring-width) solid var(--accent);
-  border-radius: var(--radius-ring);
-  outline: var(--halo-width) solid var(--halo);
+  border: calc(var(--ring-width) * var(--overlay-scale)) solid var(--accent);
+  border-radius: calc(var(--radius-ring) * var(--overlay-scale));
+  outline: calc(var(--halo-width) * var(--overlay-scale)) solid var(--halo);
   pointer-events: none;
   transition: transform var(--motion-ring), width var(--motion-ring), height var(--motion-ring);
   display: none;
@@ -66,14 +63,14 @@ function ensureRingElement(): HTMLDivElement {
   white-space: nowrap;
   color: var(--danger);
   font-family: var(--font);
-  font-size: var(--text-label);
+  font-size: calc(var(--text-label) * var(--overlay-scale));
   font-weight: var(--weight-bold);
   font-variant-numeric: tabular-nums;
   text-shadow:
-    calc(var(--halo-width) * -1) 0 0 var(--halo),
-    var(--halo-width) 0 0 var(--halo),
-    0 calc(var(--halo-width) * -1) 0 var(--halo),
-    0 var(--halo-width) 0 var(--halo);
+    calc(var(--halo-width) * var(--overlay-scale) * -1) 0 0 var(--halo),
+    calc(var(--halo-width) * var(--overlay-scale)) 0 0 var(--halo),
+    0 calc(var(--halo-width) * var(--overlay-scale) * -1) 0 var(--halo),
+    0 calc(var(--halo-width) * var(--overlay-scale)) 0 var(--halo);
   pointer-events: none;
   transition: transform var(--motion-ring);
 }
@@ -120,27 +117,31 @@ function ensureRingElement(): HTMLDivElement {
   dwellProgressElement.append(dwellProgressRectElement);
   root.append(dwellProgressElement);
 
-  ringOffsetPx = readPx(ringElement, '--ring-offset', 8);
-  labelGapPx = readPx(dangerLabelElement, '--space-2', 8);
-
   return ringElement;
 }
 
+// 확대 역보정(Plan 01-15, D-26): --ring-offset·--space-2는 원본 토큰 값(계산된 값이 항상
+// 그 리터럴 그대로다 — var()/calc()로 정의되지 않아 읽기 안전, ring.ts 맨 위 주석 참고)이라
+// JS에서 직접 getOverlayScale()을 곱해야 한다. 확대가 바뀔 때마다 다시 부르므로(showRing이
+// pointermove마다 다시 그린다) 매번 최신 배율을 반영한다.
 export function showRing(rect: Rect, options?: ShowRingOptions): void {
   const el = ensureRingElement();
   const danger = options?.danger === true;
+  const scale = getOverlayScale();
+  const offsetPx = readPx(el, '--ring-offset', 8) * scale;
 
-  el.style.width = `${(rect.w + ringOffsetPx * 2).toString()}px`;
-  el.style.height = `${(rect.h + ringOffsetPx * 2).toString()}px`;
-  el.style.transform = `translate(${(rect.x - ringOffsetPx).toString()}px, ${(rect.y - ringOffsetPx).toString()}px)`;
+  el.style.width = `${(rect.w + offsetPx * 2).toString()}px`;
+  el.style.height = `${(rect.h + offsetPx * 2).toString()}px`;
+  el.style.transform = `translate(${(rect.x - offsetPx).toString()}px, ${(rect.y - offsetPx).toString()}px)`;
   el.dataset.visible = 'true';
   el.dataset.danger = danger ? 'true' : 'false';
 
   if (dangerLabelElement) {
     dangerLabelElement.dataset.visible = danger ? 'true' : 'false';
     if (danger) {
-      const labelX = rect.x + rect.w + ringOffsetPx + labelGapPx;
-      const labelY = rect.y - ringOffsetPx;
+      const gapPx = readPx(dangerLabelElement, '--space-2', 8) * scale;
+      const labelX = rect.x + rect.w + offsetPx + gapPx;
+      const labelY = rect.y - offsetPx;
       dangerLabelElement.style.transform = `translate(${labelX.toString()}px, ${labelY.toString()}px)`;
     }
   }
@@ -169,8 +170,9 @@ export function setDwellProgress(p: number | null): void {
 
   const w = Number.parseFloat(ringElement.style.width) || 0;
   const h = Number.parseFloat(ringElement.style.height) || 0;
-  const strokeWidth = readPx(dwellProgressElement, '--border-strong', 3);
-  const radius = readPx(dwellProgressElement, '--radius-ring', 8);
+  const scale = getOverlayScale();
+  const strokeWidth = readPx(dwellProgressElement, '--border-strong', 3) * scale;
+  const radius = readPx(dwellProgressElement, '--radius-ring', 8) * scale;
   const inset = strokeWidth / 2;
   const boxW = Math.max(0, w - strokeWidth);
   const boxH = Math.max(0, h - strokeWidth);

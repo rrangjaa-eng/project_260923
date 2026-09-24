@@ -196,10 +196,11 @@ test('200%에서 잡힌 요소의 테두리 두께·바깥 간격이 화면 크�
 
   const tabId = await getTabId(serviceWorker, page);
   await setZoom(serviceWorker, tabId, 2.0);
-  // 자석 재계산은 pointermove가 있어야 다시 돈다 — 살짝 흔들어 새 배율로 다시 그리게 한다.
-  await page.mouse.move(box.x - 31, box.y + box.height / 2);
-  await page.mouse.move(box.x - 30, box.y + box.height / 2);
 
+  // 테두리 두께는 CSS calc()가 --overlay-scale이 바뀌는 즉시 스스로 다시 그린다 — 이 값이
+  // 기대 범위에 들어왔다는 것은 zoom/changed 메시지가 이미 도착해 --overlay-scale이 반영됐다는
+  // 뜻이다(경합 없는 신호). 위치(transform)는 showRing 호출 시점에만 다시 계산되므로, 신호를
+  // 본 "뒤에" pointermove를 한 번 더 줘야 새 배율로 다시 그린다.
   await expect
     .poll(async () => {
       const ring = await readRingBox(page);
@@ -207,6 +208,9 @@ test('200%에서 잡힌 요소의 테두리 두께·바깥 간격이 화면 크�
       return scaled !== null && scaled >= 4.5 && scaled <= 5.5;
     })
     .toBe(true);
+  await page.mouse.move(box.x - 31, box.y + box.height / 2);
+  await page.mouse.move(box.x - 30, box.y + box.height / 2);
+  await page.waitForTimeout(50);
 
   const ring = await readRingBox(page);
   if (!ring) {

@@ -1,4 +1,4 @@
-import { ensureOverlayRoot } from '@/page/overlay/mode-indicator';
+import { ensureOverlayRoot, getOverlayScale } from '@/page/overlay/mode-indicator';
 
 // 번호표 오버레이(D-11, D-26, D-27): mode-indicator.ts·ring.ts와 같은 shadow root를 이어 쓴다.
 // 크기·형태는 tokens.css만 따른다 — 새 색·서체·radius 금지.
@@ -34,8 +34,8 @@ function ensureStyle(root: ShadowRoot): void {
   position: fixed;
   left: 0;
   top: 0;
-  width: var(--label-size);
-  height: var(--label-size);
+  width: calc(var(--label-size) * var(--overlay-scale));
+  height: calc(var(--label-size) * var(--overlay-scale));
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -43,17 +43,17 @@ function ensureStyle(root: ShadowRoot): void {
   background: var(--accent);
   color: var(--bg);
   font-family: var(--font);
-  font-size: var(--text-label);
+  font-size: calc(var(--text-label) * var(--overlay-scale));
   font-weight: var(--weight-bold);
   font-variant-numeric: tabular-nums;
-  border-radius: var(--radius-label);
-  box-shadow: 0 0 0 var(--halo-width) var(--halo);
+  border-radius: calc(var(--radius-label) * var(--overlay-scale));
+  box-shadow: 0 0 0 calc(var(--halo-width) * var(--overlay-scale)) var(--halo);
   transition: opacity var(--motion-appear);
 }
 .${LABEL_CLASS}[data-danger="true"] {
   background: var(--bg);
   color: var(--danger);
-  border: var(--border-strong) dashed var(--danger);
+  border: calc(var(--border-strong) * var(--overlay-scale)) dashed var(--danger);
 }
 .${LABEL_DANGER_TAG_CLASS} {
   position: fixed;
@@ -64,41 +64,41 @@ function ensureStyle(root: ShadowRoot): void {
   white-space: nowrap;
   color: var(--danger);
   font-family: var(--font);
-  font-size: var(--text-label);
+  font-size: calc(var(--text-label) * var(--overlay-scale));
   font-weight: var(--weight-bold);
   text-shadow:
-    calc(var(--halo-width) * -1) 0 0 var(--halo),
-    var(--halo-width) 0 0 var(--halo),
-    0 calc(var(--halo-width) * -1) 0 var(--halo),
-    0 var(--halo-width) 0 var(--halo);
+    calc(var(--halo-width) * var(--overlay-scale) * -1) 0 0 var(--halo),
+    calc(var(--halo-width) * var(--overlay-scale)) 0 0 var(--halo),
+    0 calc(var(--halo-width) * var(--overlay-scale) * -1) 0 var(--halo),
+    0 calc(var(--halo-width) * var(--overlay-scale)) 0 var(--halo);
   pointer-events: none;
 }
 .${NEXT_CARD_CLASS} {
   position: fixed;
   right: var(--space-4);
   bottom: var(--space-4);
-  min-height: var(--target-min);
+  min-height: calc(var(--target-min) * var(--overlay-scale));
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-4);
+  gap: calc(var(--space-2) * var(--overlay-scale));
+  padding: 0 calc(var(--space-4) * var(--overlay-scale));
   background: var(--surface);
   color: var(--fg);
   font-family: var(--font);
-  font-size: var(--text-body);
+  font-size: calc(var(--text-body) * var(--overlay-scale));
   font-weight: var(--weight-regular);
-  border-radius: var(--radius-card);
-  box-shadow: 0 0 0 var(--halo-width) var(--halo);
+  border-radius: calc(var(--radius-card) * var(--overlay-scale));
+  box-shadow: 0 0 0 calc(var(--halo-width) * var(--overlay-scale)) var(--halo);
 }
 .${NEXT_CARD_KEY_CLASS} {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: var(--space-6);
-  height: var(--space-6);
-  border: var(--border-strong) solid var(--accent);
-  border-radius: var(--radius-key);
+  min-width: calc(var(--space-6) * var(--overlay-scale));
+  height: calc(var(--space-6) * var(--overlay-scale));
+  border: calc(var(--border-strong) * var(--overlay-scale)) solid var(--accent);
+  border-radius: calc(var(--radius-key) * var(--overlay-scale));
   font-weight: var(--weight-bold);
   font-variant-numeric: tabular-nums;
 }
@@ -121,8 +121,9 @@ function ensureHintsElement(): HTMLDivElement {
 export function showHints(labels: Array<{ number: number; x: number; y: number; danger?: boolean }>): void {
   const container = ensureHintsElement();
   container.textContent = '';
-  const labelSizePx = readPx(container, '--label-size', 28);
-  const gapPx = readPx(container, '--space-2', 8);
+  const scale = getOverlayScale();
+  const labelSizePx = readPx(container, '--label-size', 28) * scale;
+  const gapPx = readPx(container, '--space-2', 8) * scale;
   for (const label of labels) {
     const el = document.createElement('div');
     el.className = LABEL_CLASS;

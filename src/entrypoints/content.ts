@@ -24,7 +24,14 @@ import { synthesizePress } from '@/page/click/press';
 import { createInputPipeline, type ModalEvent } from '@/page/input/pipeline';
 import { currentMode } from '@/page/input/mode';
 import { closeConfirm, openConfirm } from '@/page/overlay/confirm-dialog';
-import { hideModeIndicator, setHint, setMode, showModeIndicator, showTransientMessage } from '@/page/overlay/mode-indicator';
+import {
+  getOverlayScale,
+  hideModeIndicator,
+  setHint,
+  setMode,
+  showModeIndicator,
+  showTransientMessage,
+} from '@/page/overlay/mode-indicator';
 import { hideHints, showHints, showNextCard } from '@/page/overlay/hints';
 import { hideRing, setDwellProgress, showRing } from '@/page/overlay/ring';
 import { showToast } from '@/page/overlay/toast';
@@ -549,7 +556,9 @@ export default defineContentScript({
           return rect ? { itemId: entry.itemId, rect } : null;
         })
         .filter((entry): entry is { itemId: string; rect: Item['rect'] } => entry !== null);
-      const placements = new Map(placeLabels(placementEntries).map((p) => [p.itemId, p]));
+      // 확대 역보정(Plan 01-15, D-26): 번호표 실제 화면 크기(28px × 배율)로 겹침 판정을 해야
+      // 확대·축소해도 배치가 화면과 맞는다.
+      const placements = new Map(placeLabels(placementEntries, 28 * getOverlayScale()).map((p) => [p.itemId, p]));
       const labels = chapter
         .map((entry) => {
           const placement = placements.get(entry.itemId);
