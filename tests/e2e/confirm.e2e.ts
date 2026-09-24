@@ -271,6 +271,31 @@ test('확인 화면에서 스페이스바를 1초 넘게 누르고 있으면 확
   await page.keyboard.press('Escape');
 });
 
+test('WR-01: 스페이스바를 누른 채 창이 포커스를 잃으면(keyup을 못 받아도) 누르고 있던 시간이 끊긴다', async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/danger.html');
+  await waitForHelperReady(page);
+
+  await openDangerConfirm(page, 'btn-delete-solo');
+  await page.waitForTimeout(1100); // 보호 시간이 지난 뒤에만 누르고 있는 시간이 시작된다.
+
+  await page.keyboard.down('Space');
+  await page.waitForTimeout(200);
+  // 실제 keyup 없이(예: alt-tab으로 다른 창에 포커스가 간 것처럼) 창이 blur된다 — 다음 tick이
+  // 이 순간을 뗌으로 봐야 한다.
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+
+  // 원래 keydown으로부터 1000ms(holdMs)가 지나는 시점까지 기다린다. keyup 재설정이 없었다면
+  // 여기서 tick()이 confirm으로 판정해 버튼이 눌린다.
+  await page.waitForTimeout(900);
+  await expect(page.locator('#btn-delete-solo-count')).toHaveText('0');
+  expect((await readDialog(page))?.visible).toBe(true);
+
+  await page.keyboard.up('Space');
+  await page.waitForTimeout(50);
+  await page.keyboard.press('Escape');
+});
+
 test('확인 화면이 뜬 뒤 페이지가 가짜(isTrusted=false) Enter를 보내도 확인되지 않는다', async ({ context }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/danger.html');
