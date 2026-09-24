@@ -693,32 +693,37 @@ export default defineContentScript({
 | A8 | `<a download>`의 `Blob`/`URL.createObjectURL` 생성·클릭이 콘텐츠 스크립트(옵션 페이지 아님)에서도 동작 | Pattern 12 | 틀리면 "기록 내보내기" 명령판 카드를 옵션 페이지로 우회시켜야 함(Phase 3 방식으로 원복, 구현량 증가) |
 | A9 | 8자리 순수 숫자(`yyyymmdd`)를 라벨 힌트 없이 날짜로 자동 판별하면 계좌번호 등과 오탐 | Pattern 3 | 오탐이면 잘못된 "오늘 날짜" 값이 자동 채워져 잘못된 제출로 이어질 수 있음 — 반드시 라벨 힌트 게이트 또는 단위 시험 결과로 제외 여부 재결정 |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **엣지·웨일의 `matchOriginAsFallback`/`world:'MAIN'` 실제 지원 버전**
    - What we know: Chrome은 119+에서 `matchOriginAsFallback` 지원[CITED].
    - What's unclear: 엣지·웨일(Chromium 기반이나 버전 동기화 지연 가능)의 정확한 지원 시점.
    - Recommendation: 계획에 "엣지·웨일 수동 확인 목록"(D-41 언급) 항목으로 이 기능의 폴백(`matchAboutBlank`만으로도 대부분 케이스는 커버) 동작을 넣는다.
+   - RESOLVED: 04-01이 감시 장치에 `matchAboutBlank: true`와 `matchOriginAsFallback: true`를 함께 켜고(미지원 브라우저는 뒤 키를 무시), 실제 지원 확인은 04-23 Task 3 human-check (1) "MAIN world·document_start 콘텐츠 스크립트와 matchOriginAsFallback이 받아들여진다"로 엣지·웨일에서 수동 확인한다.
 
 2. **"첫 확인 창 인정" 시간 창(windowMs)의 실제 값**
    - What we know: 설계는 "몇 초 안"이라고만 함(Claude's Discretion).
    - What's unclear: 너무 짧으면 느린 사이트에서 확인창을 놓치고, 너무 길면 이용자가 개입할 여지없이 다음 페이지의 무관한 confirm까지 자동 확인할 위험.
    - Recommendation: 단위 시험 + Phase 2/중간 사용자 시험 데이터가 있으면 참고, 없으면 출발값 5초 제안 후 e2e로 조정.
+   - RESOLVED: 5초 — 04-01 `src/core/dialog-policy.ts`의 `DEFAULT_ARM_WINDOW_MS = 5000`(단위 시험으로 고정), 04-17이 제출 누르기 직전 `armNextConfirm(DEFAULT_ARM_WINDOW_MS)`로 쓴다. 무장은 누른 프레임에만, 한 번 쓰면 풀린다.
 
 3. **"성공 메시지"로 볼 단어 목록과 대기 시간**
    - What we know: 설계 예시로 "완료", "저장되었습니다"를 듦.
    - What's unclear: 이 목록의 범위와 사이트별 편집 필요 여부(설계엔 명시 없음).
    - Recommendation: 제출 단어 목록과 같은 구조(사이트별 편집 가능)로 확장 가능하게 설계하되 Phase 4 범위에서는 기본 목록만.
+   - RESOLVED: 04-10 `src/core/submit-outcome.ts`의 기본 목록 `SUCCESS_WORDS`('완료'는 '완료되었'·'완료했'로 끝맺을 때만)와 `OUTCOME_WAIT_MS = 8000`. Phase 4는 사이트별 편집을 두지 않는다(설계에 없음). 성공 글자는 누른 뒤 새로 나타난 글만 보며, 알림 창 소식은 판정에 넣지 않는다(04-10·04-17).
 
 4. **`yyyymmdd` 8자리 숫자 날짜 판별을 라벨 힌트로 게이트할지 여부**
    - What we know: 라벨 힌트 없이는 계좌번호 등과 구분 불가(A9).
    - What's unclear: 실제 연습 사이트·이용자 업무에서 이 모양이 얼마나 흔한지.
    - Recommendation: 기본은 라벨 힌트 필수로 시작(오탐 방지 우선), 단위 시험에서 과도하게 걸러진다는 신호가 나오면 완화.
+   - RESOLVED: 라벨 힌트 필수 — 04-05 `DATE_LABEL_WORDS = ['일자', '날짜', '일시']` 중 하나가 칸 이름에 있을 때만 8자리 숫자를 날짜로 본다(오탐 사례를 단위 시험에 넣음).
 
 5. **주간 통계가 14일 보존 한계를 넘는 장기 추세를 볼 수 없다는 제약을 이용자에게 어떻게 알릴지**
    - What we know: D-33이 로그 보존을 14일로 못박음.
    - What's unclear: 통계 화면에 이 한계를 명시할지 여부는 설계에 없음.
    - Recommendation: 화면 문구에 "최근 2주"임을 명시(카피 규칙 D-38 "같은 행동은 어디서나 같은 단어"와 일관되게).
+   - RESOLVED: 화면 문구로 알린다 — 04-16 주간 통계 칸 아래 "최근 2주 기록으로 셉니다", 04-14 미리 보기 제목 "기록 내보내기 · 최근 2주". 통계만 더 오래 보존하는 안은 두지 않는다(D-33).
 
 ## Environment Availability
 
