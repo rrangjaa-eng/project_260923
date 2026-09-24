@@ -185,6 +185,16 @@ export function createInputPipeline(opts: {
         pendingPressExecute = null;
         return;
       }
+      // CR-07: 새 묶음이 시작될 때마다 옛 예약부터 지운다 — 오른쪽·가운데 클릭처럼 click 대신
+      // auxclick이 뜨는 묶음은 아래 click 리스너가 예약을 지울 기회가 없어, 지우지 않으면 다음
+      // 왼쪽 클릭(전혀 다른 자리)에서 옛 요소가 되살아나 눌린다.
+      pendingPressExecute = null;
+      if (event.button !== 0 || !event.isPrimary) {
+        // 왼쪽 버튼·주 포인터가 아니면 도우미는 관여하지 않는다 — 사이트 자신의 오른쪽 클릭
+        // 메뉴·가운데 클릭 등을 그대로 둔다(삼키면 그 기능이 깨진다).
+        pressSwallowed = false;
+        return;
+      }
       const accepted = activeFilter().accept({ kind: 'press', x: event.clientX, y: event.clientY, t: event.timeStamp });
       pressSwallowed = !accepted;
       if (pressSwallowed) {
@@ -221,6 +231,18 @@ export function createInputPipeline(opts: {
   window.addEventListener('mousedown', swallowIfPressRejected, { capture: true, signal });
   window.addEventListener('pointerup', swallowIfPressRejected, { capture: true, signal });
   window.addEventListener('mouseup', swallowIfPressRejected, { capture: true, signal });
+  // CR-07: 터치·펜 묶음이 click 없이 pointercancel로 끝나는 경우(스크롤로 취소되는 등)도 옛
+  // 예약을 남기지 않는다.
+  window.addEventListener(
+    'pointercancel',
+    (event) => {
+      if (!event.isTrusted || !isHelperEnabled()) {
+        return;
+      }
+      pendingPressExecute = null;
+    },
+    { capture: true, signal },
+  );
   window.addEventListener(
     'click',
     (event) => {
