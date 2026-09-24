@@ -103,7 +103,11 @@ async function hintDangerState(page: Page, elementId: string): Promise<HintDange
 // F → 대상 요소의 번호를 찾아 눌러 확인 화면을 연다.
 async function openDangerConfirm(page: Page, elementId: string): Promise<void> {
   await page.keyboard.press('KeyF');
-  await page.waitForTimeout(50);
+  // WR-10: openHints()는 storage 읽기 두 번(sync 고정 번호 + local 자주 누른 기록)을 기다린 뒤에야
+  // 번호표를 그린다 — 고정 50ms sleep은 그 왕복이 느릴 때(부하가 큰 CI 등) 아직 안 그려진 채로
+  // numberForElement를 불러 ''을 돌려받고 `Digit${''}`(잘못된 키)를 누르게 만들 수 있다(재현
+  // 가능한 결정적 실패라기보다 타이밍에 좌우되는 불안정함). 번호표가 실제로 뜰 때까지 기다린다.
+  await expect.poll(() => numberForElement(page, elementId)).not.toBe('');
   const number = await numberForElement(page, elementId);
   await page.keyboard.press(`Digit${number}`);
   await page.waitForTimeout(50);
@@ -266,8 +270,15 @@ test('확인 화면에서 스페이스바를 1초 넘게 누르고 있으면 확
   await expect(page.locator('#btn-delete-paired-count')).toHaveText('0');
   expect((await readDialog(page))?.visible).toBe(true);
 
+  // WR-10: keyup이 hold를 안 끊는 고장이라면(guard가 keydown 시각 기준으로 계속 시간을 잰다)
+  // 원래 keydown으로부터 1000ms(holdMs) 뒤 저절로 confirm된다 — 위 300ms 시점 확인만으로는 이
+  // 고장을 잡지 못한다(그 시점엔 아직 1000ms가 안 지났다). keydown으로부터 1200ms까지 기다린
+  // 뒤에도 여전히 안 눌려 있어야 한다.
+  await page.waitForTimeout(900); // 총 200+100+900 = 1200ms(keydown 기준).
+  await expect(page.locator('#btn-delete-paired-count')).toHaveText('0');
+  expect((await readDialog(page))?.visible).toBe(true);
+
   // 다음 시험에 영향 없도록 열린 채로 남은 확인 화면을 정리한다.
-  await page.waitForTimeout(1100);
   await page.keyboard.press('Escape');
 });
 
