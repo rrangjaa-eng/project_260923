@@ -186,7 +186,24 @@ function buttonTextOf(el: Element): string | undefined {
 
 const DOM_PATH_MAX_DEPTH = 12;
 
-function domPathOf(el: Element): string {
+// fix(01-16, D-05 성능 목표): 예전 domPathOf는 부모마다 Array.from(parent.children).filter(같은
+// 태그) + indexOf를 요소마다(호출마다) 다시 계산했다 — 부모 하나에 형제 5,000개가 있으면(D-28
+// big.html) 한 번의 collect()가 이 계산을 5,000번 반복해 O(n^2)(실측 3.9초, systematic-debugging
+// 격리 벤치마크). collect()가 화면 변화(churn)마다 다시 돌면(D-04) 이 시간이 메인 스레드를
+// 막아 자석 재계산까지 50ms를 훌쩍 넘겼다. 부모별 "같은 태그 안 순번"을 한 번의 순회로 미리
+// 계산해 두고(buildOrdinalMap) collect() 한 번(ordinalCache) 동안 재사용해 O(n)으로 낮춘다.
+function buildOrdinalMap(parent: Element): Map<Element, number> {
+  const counts = new Map<string, number>();
+  const ordinals = new Map<Element, number>();
+  for (const child of parent.children) {
+    const next = (counts.get(child.tagName) ?? 0) + 1;
+    counts.set(child.tagName, next);
+    ordinals.set(child, next);
+  }
+  return ordinals;
+}
+
+function domPathOf(el: Element, ordinalCache: Map<Element, Map<Element, number>>): string {
   const parts: string[] = [];
   let node: Element | null = el;
   let depth = 0;
@@ -196,10 +213,12 @@ function domPathOf(el: Element): string {
     const parent: Element | null = current.parentElement;
     let index = 1;
     if (parent) {
-      const siblings: Element[] = Array.from(parent.children).filter(
-        (child: Element) => child.tagName === current.tagName,
-      );
-      index = siblings.indexOf(current) + 1;
+      let ordinals = ordinalCache.get(parent);
+      if (!ordinals) {
+        ordinals = buildOrdinalMap(parent);
+        ordinalCache.set(parent, ordinals);
+      }
+      index = ordinals.get(current) ?? 1;
     }
     parts.unshift(`${tag}:nth-of-type(${index.toString()})`);
     node = parent;
@@ -208,14 +227,14 @@ function domPathOf(el: Element): string {
   return parts.join('>');
 }
 
-function computeFingerprint(el: Element): Fingerprint {
+function computeFingerprint(el: Element, ordinalCache: Map<Element, Map<Element, number>>): Fingerprint {
   return {
     id: textOrUndefined(el.id),
     name: textOrUndefined(el.getAttribute('name')),
     labelText: labelTextOf(el),
     buttonText: buttonTextOf(el),
     aria: ariaOf(el),
-    domPath: domPathOf(el),
+    domPath: domPathOf(el, ordinalCache),
     framePath: [],
   };
 }
@@ -405,18 +424,27 @@ export function createCollector(opts: { signal: AbortSignal; getDangerWords: () 
   function collect(): void {
     const next: Item[] = [];
     const nextById = new Map<string, Element>();
+    // collect() 한 번 안에서만 유효한 캐시(fix 주석은 domPathOf 옆) — 매 collect() 호출마다
+    // 새로 만들어 이전 화면과 섞이지 않는다.
+    const ordinalCache = new Map<Element, Map<Element, number>>();
     for (const el of document.querySelectorAll(SELECTOR)) {
       if (isDisabled(el)) {
+        continue;
+      }
+      // fix(01-16, D-05 성능 목표): isInViewport는 어차피 필요한 getBoundingClientRect 결과로만
+      // 판단하는 가장 싼 조건인데(레이아웃 읽기 1번), isCandidateTag(el.matches)·isHiddenAncestor
+      // (조상마다 getComputedStyle)보다 뒤에 있었다 — 화면 밖 요소(D-28 big.html처럼 화면 여러
+      // 장 높이 페이지의 대부분)에도 매번 두 비싼 검사를 했다는 뜻이다. 네 조건 모두 AND로만
+      // 묶여 최종 포함 여부는 순서와 무관하므로(순수 참·거짓), 가장 싼 조건을 앞으로 옮겨 화면
+      // 밖 요소는 나머지 검사를 건너뛴다(같은 O(n) 안에서의 상수 절감, 새 알고리즘 아님).
+      const rect = el.getBoundingClientRect();
+      if (!isInViewport(rect)) {
         continue;
       }
       if (!isCandidateTag(el)) {
         continue;
       }
       if (isHiddenAncestor(el)) {
-        continue;
-      }
-      const rect = el.getBoundingClientRect();
-      if (!isInViewport(rect)) {
         continue;
       }
       const id = idFor(el);
@@ -427,7 +455,7 @@ export function createCollector(opts: { signal: AbortSignal; getDangerWords: () 
         rect: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
         name,
         kind: kindOf(el),
-        fingerprint: computeFingerprint(el),
+        fingerprint: computeFingerprint(el, ordinalCache),
         danger: isDanger(name, getDangerWords()),
       });
     }
