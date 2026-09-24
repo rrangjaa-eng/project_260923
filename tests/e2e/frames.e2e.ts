@@ -301,3 +301,96 @@ test('번호표가 떠 있지 않을 때 자식 프레임에서 누른 숫자는
   const texts = await labelTexts(page);
   expect(texts.length).toBe(0);
 });
+
+async function pressesEntries(
+  serviceWorker: import('@playwright/test').Worker,
+  origin: string,
+): Promise<Array<{ fingerprint: { framePath: string[] }; count: number }>> {
+  const key = `presses:${origin}`;
+  return serviceWorker.evaluate(async (storageKey) => {
+    const result = await chrome.storage.local.get(storageKey);
+    const stored = result[storageKey] as
+      | { data?: { counts?: Array<{ fingerprint: { framePath: string[] }; count: number }> } }
+      | undefined;
+    return stored?.data?.counts ?? [];
+  }, key);
+}
+
+test('WR-05: 다른 출처 자식 프레임에서 자석으로 직접 누른 기록도 자식 자신이 아니라 맨 위 페이지 출처에 쌓인다', async ({
+  context,
+  serviceWorker,
+}) => {
+  const page = await context.newPage();
+  await openFrames(page);
+
+  const box = await page.frameLocator('#frame-cross').locator('#btn-cross').boundingBox();
+  if (!box) {
+    throw new Error('frame-cross 안 버튼을 찾지 못했다');
+  }
+  // 요소 밖(잡는 범위 안)을 눌러 자석이 대신 누르기를 거치게 한다(hints.e2e.ts WR-04와 같은 이유).
+  const x = box.x - 10;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.waitForTimeout(50);
+  await page.mouse.click(x, y);
+  await page.waitForTimeout(300);
+
+  const topEntries = await pressesEntries(serviceWorker, 'http://practice.test');
+  expect(topEntries.length, '다른 출처(other.test) 자식의 기록도 사이트 = 맨 위 페이지 출처(D-20)에 쌓여야 한다').toBeGreaterThan(
+    0,
+  );
+});
+
+test('WR-05: 같은 출처 자식 프레임과 맨 위가 똑같은 틀(글자·자리)을 써도 기록이 서로 섞이지 않는다', async ({
+  context,
+  servePage,
+  serviceWorker,
+}) => {
+  servePage(
+    'http://practice.test/wr05-child.html',
+    '<!doctype html><html><body style="margin:0">' +
+      '<button style="position:absolute;left:20px;top:20px;width:40px;height:40px">같음</button>' +
+      '</body></html>',
+  );
+  servePage(
+    'http://practice.test/wr05-top.html',
+    '<!doctype html><html><body style="margin:0">' +
+      '<button style="position:absolute;left:300px;top:300px;width:40px;height:40px">같음</button>' +
+      '<iframe id="frame-same-tmpl" src="/wr05-child.html" style="position:absolute;left:0;top:0;width:200px;height:200px;border:0"></iframe>' +
+      '</body></html>',
+  );
+
+  const page = await context.newPage();
+  await page.goto('http://practice.test/wr05-top.html');
+  await expect
+    .poll(() => page.evaluate(() => document.querySelector('tremor-helper-root')?.shadowRoot?.querySelector('.mode-indicator')?.textContent))
+    .toBe('도우미');
+  await page.waitForTimeout(200);
+
+  const childBox = await page.frameLocator('#frame-same-tmpl').locator('button').boundingBox();
+  if (!childBox) {
+    throw new Error('자식 프레임 안 버튼을 찾지 못했다');
+  }
+  await page.mouse.move(childBox.x - 10, childBox.y + childBox.height / 2);
+  await page.waitForTimeout(50);
+  await page.mouse.click(childBox.x - 10, childBox.y + childBox.height / 2);
+  await page.waitForTimeout(300);
+
+  const topBox = await page.locator('body > button').boundingBox();
+  if (!topBox) {
+    throw new Error('맨 위 버튼을 찾지 못했다');
+  }
+  await page.mouse.move(topBox.x - 10, topBox.y + topBox.height / 2);
+  await page.waitForTimeout(50);
+  await page.mouse.click(topBox.x - 10, topBox.y + topBox.height / 2);
+  await page.waitForTimeout(300);
+
+  const entries = await pressesEntries(serviceWorker, 'http://practice.test');
+  expect(
+    entries.length,
+    '같은 글자·자리 구조를 공유해도(도메인 공통 템플릿) 자식과 맨 위 요소는 서로 다른 기록이어야 한다',
+  ).toBe(2);
+  for (const entry of entries) {
+    expect(entry.count, '서로 다른 요소의 기록이 하나로 합쳐지면 안 된다').toBe(1);
+  }
+});
