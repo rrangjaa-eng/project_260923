@@ -28,7 +28,8 @@ export interface OpenConfirmOptions {
   onResult: (result: 'cancel') => void;
 }
 
-let styleInjected = false;
+// CR-06: hints.ts와 같은 이유 — 모듈 전역 boolean 대신 root별로 기억한다.
+const styledRoots = new WeakSet<ShadowRoot>();
 let scrimElement: HTMLDivElement | null = null;
 let dialogElement: HTMLDivElement | null = null;
 let guardBarElement: HTMLDivElement | null = null;
@@ -36,7 +37,7 @@ let guardTextElement: HTMLDivElement | null = null;
 let guardTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 function ensureStyle(root: ShadowRoot): void {
-  if (styleInjected) {
+  if (styledRoots.has(root)) {
     return;
   }
   const style = document.createElement('style');
@@ -135,7 +136,7 @@ function ensureStyle(root: ShadowRoot): void {
 }
 `;
   root.append(style);
-  styleInjected = true;
+  styledRoots.add(root);
 }
 
 function clearGuardTimeout(): void {

@@ -9,7 +9,10 @@ const LABEL_DANGER_TAG_CLASS = 'hint-label-danger-tag';
 const NEXT_CARD_CLASS = 'hint-next-card';
 const NEXT_CARD_KEY_CLASS = 'hint-next-card__key';
 
-let styleInjected = false;
+// CR-06: 모듈 전역 boolean이면 destroyOverlayRoot()가 shadow root를 통째로 새로 만들어도
+// true로 남아 새 root에는 <style>이 다시 들어가지 않는다(번호표가 스타일 없는 div가 되어
+// 28px 정사각형이 무너진다) — root별로 기억한다.
+const styledRoots = new WeakSet<ShadowRoot>();
 let hintsElement: HTMLDivElement | null = null;
 let nextCardElement: HTMLDivElement | null = null;
 
@@ -20,7 +23,7 @@ function readPx(el: Element, name: string, fallback: number): number {
 }
 
 function ensureStyle(root: ShadowRoot): void {
-  if (styleInjected) {
+  if (styledRoots.has(root)) {
     return;
   }
   const style = document.createElement('style');
@@ -106,7 +109,7 @@ function ensureStyle(root: ShadowRoot): void {
 }
 `;
   root.append(style);
-  styleInjected = true;
+  styledRoots.add(root);
 }
 
 function ensureHintsElement(): HTMLDivElement {
