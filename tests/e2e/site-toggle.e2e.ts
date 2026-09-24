@@ -340,3 +340,72 @@ test('메뉴에서 150번 빠르게 끄고 켜기를 번갈아 보낸 뒤 최종
   await popup.close();
   await page.close();
 });
+
+test('WR-07: storage.sync.set이 거부돼도(예: 할당량 초과) 사이트별 끄기 대기열이 막히지 않는다', async ({
+  context,
+  serviceWorker,
+  openPopup,
+  servePage,
+}) => {
+  servePage('http://practice.test/', '<!doctype html><html><body><h1>연습 사이트</h1></body></html>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/');
+  await waitForHelperReady(page);
+
+  const tabId = await serviceWorker.evaluate(async () => {
+    const tabs = await chrome.tabs.query({ url: 'http://practice.test/*' });
+    return tabs[0]?.id;
+  });
+  if (tabId === undefined) {
+    throw new Error('practice.test 탭을 찾지 못했다');
+  }
+
+  // 첫 번째 storage.sync.set만 거부되도록 흉내 낸다(할당량 초과 등 현실적인 실패) — 그 뒤로는
+  // 원래대로 동작한다.
+  await serviceWorker.evaluate(() => {
+    const original = chrome.storage.sync.set.bind(chrome.storage.sync);
+    let failedOnce = false;
+    chrome.storage.sync.set = (items: Record<string, unknown>) => {
+      if (!failedOnce) {
+        failedOnce = true;
+        return Promise.reject(new Error('시험: 할당량 초과 흉내'));
+      }
+      return original(items);
+    };
+  });
+
+  // chrome.runtime은 확장 페이지(팝업)의 주 세계에서만 접근할 수 있다 — 연습 페이지의
+  // page.evaluate는 격리된 content script 세계 밖(일반 페이지 주 세계)이라 쓸 수 없다.
+  const popup = await openPopup(page);
+
+  async function sendSetSiteDisabled(disabled: boolean): Promise<unknown> {
+    return popup.evaluate(
+      ({ disabled, tabId }) =>
+        Promise.race([
+          chrome.runtime.sendMessage({
+            type: 'storage/request',
+            op: { kind: 'setSiteDisabled', origin: 'http://practice.test', disabled, tabId },
+          }),
+          new Promise((resolve) => {
+            setTimeout(() => {
+              resolve('TIMEOUT');
+            }, 2000);
+          }),
+        ]),
+      { disabled, tabId },
+    );
+  }
+
+  // 첫 번째 요청 — storage.sync.set이 거부되어 실패해야 한다(멈추지 않고 응답은 와야 한다).
+  const first = await sendSetSiteDisabled(true);
+  expect(first, '거부된 쓰기도 응답이 와야 한다(멈추면 안 된다)').not.toBe('TIMEOUT');
+
+  // 두 번째 요청 — 첫 번째가 대기열을 막았다면(state.writing이 영원히 true로 남으면) 이것도
+  // 응답이 안 온다.
+  const second = await sendSetSiteDisabled(false);
+  expect(second, '첫 요청이 실패해도 다음 요청이 대기열에서 막히면 안 된다').not.toBe('TIMEOUT');
+  expect((second as { ok?: boolean } | undefined)?.ok).toBe(true);
+
+  await popup.close();
+  await page.close();
+});
