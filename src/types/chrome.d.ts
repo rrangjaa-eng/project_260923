@@ -70,6 +70,19 @@ declare namespace chrome.tabs {
   function query(queryInfo: { url?: string | string[]; active?: boolean; currentWindow?: boolean }): Promise<Tab[]>;
   function get(tabId: number): Promise<Tab>;
 
+  // 확대 역보정(Plan 01-15, D-26, RESEARCH Pattern 5): SW가 탭의 확대 비율을 읽고(getZoom)
+  // 바뀔 때 알려 준다(onZoomChange). e2e는 setZoom으로 확대를 직접 바꾼다.
+  function getZoom(tabId: number): Promise<number>;
+  function setZoom(tabId: number, zoomFactor: number): Promise<void>;
+  interface ZoomChangeInfo {
+    tabId: number;
+    oldZoomFactor: number;
+    newZoomFactor: number;
+  }
+  const onZoomChange: {
+    addListener(callback: (info: ZoomChangeInfo) => void): void;
+  };
+
   // frameId를 생략하면 그 탭의 모든 프레임에 보낸다(hints/state 방송에 씀).
   function sendMessage(tabId: number, message: unknown, options?: { frameId?: number }): Promise<unknown>;
 
