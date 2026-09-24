@@ -540,22 +540,25 @@ if (used > QUOTA_BYTES * 0.9) {
 
 **참고:** 위 A1·A2·A3·A4는 모두 "표준 브라우저 동작에 대한 학습 지식"이며 이번 세션에 실제 브라우저 실행으로 검증하지 않았다 — Phase 1이 `showPicker()`(A3, Phase 1 RESEARCH.md) 같은 항목을 스파이크 e2e로 검증한 것과 동일한 방식으로, Phase 3 계획도 각 항목에 대응하는 최소 스파이크/e2e를 Wave 초반에 배치할 것을 권장한다.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **회사 시스템의 Alt+1~9 충돌 여부**
    - What we know: 연습 사이트·브라우저 자체 예약 단축키(Ctrl 계열)와는 충돌 가능성이 낮다.
    - What's unclear: 실제 그룹웨어/ERP가 Alt+숫자를 메뉴 단축키로 쓰는지는 회사 시스템이 아직 완성되지 않아 확인할 수 없다(D-14 계승 제약).
    - Recommendation: 이 phase는 연습 사이트 확인까지만 하고, 회사 시스템 확인은 Phase 1의 "회사 시스템 완성 후" 항목과 함께 미룬다(deferred 목록에 이미 있는 원칙의 연장).
+   - **RESOLVED:** 권장대로 채택. 이 phase는 연습 사이트 e2e(03-12 Alt+1~9 카드)까지만 확인하고, 회사 시스템 확인은 CONTEXT Deferred Ideas "회사 시스템에서 확인 — 회사 시스템 완성 뒤"로 미룬다. 충돌이 나면 쓸 길은 이미 있다 — 카드 보조키 Alt↔Shift 바꾸기(03-03 `cardModifier`, 03-18 키 배치 절).
 
 2. **동기화 용량 90% 기준값의 근거**
    - What we know: `QUOTA_BYTES` = 102,400(공식), STOR-03은 "넘기 전에"만 명시.
    - What's unclear: 정확한 임계값(%)은 설계·CONTEXT 어디에도 없다(Claude's Discretion 목록에 명시된 항목).
    - Recommendation: 90%로 시작하고, 실사용(문구·고정 번호가 실제로 얼마나 쌓이는지) 데이터가 쌓이면 조정 — discuss-phase에서 사용자 확인 후보.
+   - **RESOLVED:** 90%(92,160바이트)로 확정(Claude's Discretion 10). 03-22 `SYNC_WARN_BYTES = 92_160`이 쓰고, 100%를 넘는 쓰기는 거절한다. 실사용 뒤 조정은 설정값 하나만 바꾸면 된다.
 
 3. **가져오기 "덮어쓰기 vs 합치기" 최종 결정**
    - What we know: 덮어쓰기가 더 단순하고 "다른 브라우저로 옮기기" 시나리오에 자연스럽다.
    - What's unclear: 이용자가 두 브라우저를 각기 다른 용도로 쓰다가 부분적으로 합치고 싶어할 가능성.
    - Recommendation: 덮어쓰기를 기본으로 구현하고, 가져오기 전 "지금 설정을 덮어씁니다"라는 명확한 확인 화면(D-19 확인 화면 보호 패턴 재사용)을 반드시 넣는다.
+   - **RESOLVED:** 덮어쓰기로 확정(Claude's Discretion 10). 03-21 `importPlan`이 덮어쓰기 규칙(모든 설정 파일은 파일에 없는 사이트 항목을 지움, 문구 파일은 그 사이트 문구만 바꿈)을 단위 시험으로 고정하고, 03-22가 가져오기 전 확인 화면 "지금 설정을 파일 내용으로 덮어쓸까요? Enter = 예"(1초 보호)를 넣는다. 합치기는 만들지 않는다.
 
 ## Environment Availability
 
