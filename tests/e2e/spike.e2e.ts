@@ -7,12 +7,18 @@ import type { Page, Worker } from '@playwright/test';
 // 연습 사이트 밖으로 나가는 요청은 fixture가 모두 막고 기록한다(tests/e2e/fixtures.ts). 연습
 // 사이트는 tests/practice-site/spike.html(D-28).
 //
-// systematic-debugging으로 확인한 시험 환경 한계(01-12-SUMMARY.md에 기록): 네이티브 select
-// 팝업·파일 선택 창 같은 브라우저 자체 UI는 이 headless 확장 테스트(하나의 persistent context에
-// 여러 페이지가 함께 열리는 구조)에서 드물게(수십 번 중 한 번 정도) 지연된다 — 페이지를 매번
-// 닫고 팝업을 명시로 닫아도 완전히는 없어지지 않았다. 기능 자체의 결함이 아니라 자동화 인프라의
-// 알려진 한계로 판단해 이 파일에서만 재시도 1회를 둔다.
-test.describe.configure({ retries: 1 });
+// 01-13 systematic-debugging(재조사, retries 제거): context fixture는 시험마다 새 persistent
+// context(=새 Chromium 프로세스)를 띄운다(ps 표본으로 확인) — 그래서 "여러 시험이 브라우저 하나를
+// 공유해 네이티브 팝업이 새는" 시나리오는 구조적으로 불가능하다. 01-12가 쓰던 select 팝업 닫기
+// 방식("(10,500) 좌표 클릭 + 대기 + Escape + 대기")은 좌표가 실제로 팝업 밖인지 확인한 적 없는
+// 추측이었다. 클릭을 빼고 Escape만 남겨 시험했더니 D 시험의 M4(spacebar로 연 팝업 뒤 번호표 F키)가
+// 100% 재현되게 깨졌다 — Escape 단독으로는 showPicker()가 연 팝업이 닫히지 않아 이후 키 입력을
+// 팝업이 계속 가로챈 것(실측, 추측 아님). 좌표 클릭 대신 `document.activeElement?.blur()`로
+// 바꿔 이 100% 재현 실패가 사라졌고(원인이 진짜였다는 근거), retries 없이 CI=true 전체 파일을
+// 20회 연속 실행해도 원래 보고된 간헐 실패는 재현되지 않았다. 01-12가 지목한 유일한 구체적 실패
+// 지점(E 파일 선택 시험의 filechooser 대기)의 고정 5000ms 시간제한도 15000ms로 넉넉히 늘렸다 —
+// 재시도가 아니라 진짜 일어날 이벤트를 위한 시간 확장이며, E는 항상 works가 기대값이라 정상
+// 회귀를 가릴 위험이 없다.
 
 interface Box {
   x: number;
@@ -187,13 +193,9 @@ test('select를 잡고 스페이스바를 누르면 focus가 옮겨지고 마우
   await page.waitForTimeout(50);
   console.log('select ArrowDown·Enter 뒤 값:', await page.locator('#sel-value').textContent());
 
-  // showPicker()가 연 네이티브 select 팝업은 브라우저 전역에 하나만 열릴 수 있어(다음 시험의
-  // 파일 선택 창을 막는 간헐 실패의 원인이었다, systematic-debugging으로 확인) 시험이 끝나기 전에
-  // 반드시 닫는다 — 네이티브 팝업이라 한 가지 방법만으로는 이따금 남아, 팝업 밖 트러스트 클릭 +
-  // Escape + 페이지 닫기까지 모두 한다.
-  await page.mouse.click(10, 500);
-  await page.waitForTimeout(200);
-  await page.keyboard.press('Escape');
+  // showPicker()가 연 네이티브 select 팝업을 시험이 끝나기 전에 닫는다(01-13 systematic-debugging,
+  // 아래 결정 참고 — Escape 단독으로는 이 팝업이 닫히지 않는 경우를 실측으로 확인해 blur()로 바꿨다).
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await page.waitForTimeout(300);
   expectNoExternalRequests();
   await page.close();
@@ -324,11 +326,9 @@ test.describe('스파이크 매트릭스(대상 × 방법)', () => {
         outcome,
         evidence: `activeElement=${active || '(none)'}, blocked메시지=${String(blockedShown)}`,
       });
-      // 네이티브 select 팝업이 남아 다음 방법·다음 시험(E)을 방해하지 않도록 닫는다(Task 1에서
-      // 확인한 간헐 실패 원인).
-      await page.mouse.click(10, 500);
-      await page.waitForTimeout(200);
-      await page.keyboard.press('Escape');
+      // 네이티브 select 팝업이 남아 다음 방법·다음 시험(E)을 방해하지 않도록 blur()로 닫는다
+      // (위 select 시험과 같은 이유, 01-13 systematic-debugging).
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await page.waitForTimeout(300);
     }
 
@@ -344,14 +344,16 @@ test.describe('스파이크 매트릭스(대상 × 방법)', () => {
     const box = await boxOf(page, '#file');
 
     for (const method of METHODS) {
-      const waiter = page.waitForEvent('filechooser', { timeout: 5000 }).catch(() => null);
+      // 01-13: 01-12가 지목한 유일한 구체적 간헐 실패 지점(D 뒤 E의 filechooser 대기) — 재시도
+      // 대신 실제 이벤트를 기다리는 시간을 넉넉히 늘렸다(진짜 막힌 경우는 없어 회귀를 가리지 않는다).
+      const waiter = page.waitForEvent('filechooser', { timeout: 15000 }).catch(() => null);
       await applyMethod(page, serviceWorker, method, box);
       const chooser = await waiter;
       matrixResults.push({
         target: 'E-파일선택',
         method,
         outcome: chooser ? 'works' : 'blocked',
-        evidence: chooser ? 'filechooser 이벤트 발생' : '5000ms 안에 filechooser 없음',
+        evidence: chooser ? 'filechooser 이벤트 발생' : '15000ms 안에 filechooser 없음',
       });
       await page.waitForTimeout(400);
     }
