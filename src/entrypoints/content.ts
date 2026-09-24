@@ -7,6 +7,9 @@ import { createGridIndex } from '@/core/grid-index';
 import { orderHints, placeLabels, type HintEntry } from '@/core/hint-order';
 import { pickTarget } from '@/core/magnet';
 import {
+  MIGRATION_FAILED_MESSAGE,
+  MIGRATION_NOTICE_KEY,
+  MigrationNoticeV1,
   PressesV1,
   SETTINGS_KEY,
   SettingsV1,
@@ -24,6 +27,7 @@ import { closeConfirm, openConfirm } from '@/page/overlay/confirm-dialog';
 import { hideModeIndicator, setHint, setMode, showModeIndicator, showTransientMessage } from '@/page/overlay/mode-indicator';
 import { hideHints, showHints, showNextCard } from '@/page/overlay/hints';
 import { hideRing, setDwellProgress, showRing } from '@/page/overlay/ring';
+import { showToast } from '@/page/overlay/toast';
 import { parseMessage } from '@/shared/messages';
 
 // 끌어서 놓기 두 번 누르기 힌트 문구(D-08, SYSTEM.md 카피 규칙): 키 이름은 영어 그대로.
@@ -747,6 +751,19 @@ export default defineContentScript({
 
       return false;
     });
+
+    // 형식 변환 실패 알림(D-25, Plan 01-14): 맨 위 프레임이 페이지를 열 때 한 번 확인만 한다
+    // (쓰지 않는다) — notice:migration-failed가 있으면 토스트를 띄운다. settings 자체가
+    // 깨졌으면 아래 safeParse가 실패해 currentSettings는 이미 만든 기본값(defaultSettings())
+    // 그대로 남는다.
+    if (isTopFrame) {
+      void chrome.storage.local.get(MIGRATION_NOTICE_KEY).then((stored) => {
+        const parsed = MigrationNoticeV1.safeParse(stored[MIGRATION_NOTICE_KEY]);
+        if (parsed.success) {
+          showToast(MIGRATION_FAILED_MESSAGE);
+        }
+      });
+    }
 
     void chrome.storage.sync.get(SETTINGS_KEY).then((stored) => {
       const parsed = SettingsV1.safeParse(stored[SETTINGS_KEY]);

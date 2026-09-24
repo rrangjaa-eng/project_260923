@@ -189,3 +189,7 @@ export const MigrationNoticeV1 = z.object({
   data: MigrationNoticeDataSchema,
 });
 export type MigrationNoticeV1 = z.infer<typeof MigrationNoticeV1>;
+
+// 알림 문구(SYSTEM.md 카피 규칙 "원인. 다음 행동."): content.ts(토스트)·popup/main.ts(경고
+// 카드)가 그대로 같이 쓴다 — 한 곳에 두어 두 화면의 문구가 어긋나지 않게 한다.
+export const MIGRATION_FAILED_MESSAGE = '설정을 읽지 못해 기본 설정으로 동작해요. 원래 설정은 그대로 두었어요.';

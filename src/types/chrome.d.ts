@@ -6,6 +6,9 @@ declare namespace chrome.runtime {
   const onInstalled: {
     addListener(callback: () => void): void;
   };
+  const onStartup: {
+    addListener(callback: () => void): void;
+  };
 
   interface MessageSender {
     id?: string;

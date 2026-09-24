@@ -1,6 +1,18 @@
 import tokensCss from '../../../docs/design/tokens.css?inline';
-import { SETTINGS_KEY, SettingsV1, SiteEntryV1, siteKey } from '@/core/settings-schema';
+import {
+  MIGRATION_FAILED_MESSAGE,
+  MIGRATION_NOTICE_KEY,
+  MigrationNoticeV1,
+  SETTINGS_KEY,
+  SettingsV1,
+  SiteEntryV1,
+  siteKey,
+} from '@/core/settings-schema';
 import type { Message } from '@/shared/messages';
+
+// 형식 변환 실패 경고(D-25, SYSTEM.md "막힘·확인 필요 = --warning 테두리 카드 + 이유"): 저장
+// 응답이 preserved-original이면(원본을 지키려고 쓰지 않았다는 뜻) 문구를 이걸로 바꾼다.
+const PRESERVED_ORIGINAL_MESSAGE = '원래 설정을 지키려고 저장하지 않았어요.';
 
 const appRoot = document.getElementById('app');
 if (!appRoot) {
@@ -77,6 +89,15 @@ ${tokensCss}
   font-size: var(--text-body);
   color: var(--fg);
 }
+.warning-card {
+  margin: 0 0 var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  color: var(--fg);
+  border: var(--border-strong) solid var(--warning);
+  border-radius: var(--radius-card);
+  font-size: var(--text-body);
+}
 `;
 shadow.append(style);
 
@@ -96,12 +117,24 @@ const unsupportedMessage = document.createElement('p');
 unsupportedMessage.className = 'unsupported-message';
 unsupportedMessage.textContent = '이 페이지에서는 도울 수 없어요. 다른 탭에서 쓰세요.';
 
+// 형식 변환 실패 경고 카드(D-25, Plan 01-14): notice:migration-failed가 있으면 카드 격자
+// 위에 보여 준다. 저장 시도가 preserved-original로 거절되면 문구를 바꾼다(showWarningCard).
+const warningCard = document.createElement('p');
+warningCard.className = 'warning-card';
+
 // 지금 사이트에서만 끄기 상태 한 줄(Plan 01-13 Task 3, --muted — .status와 같은 스타일 재사용).
 const siteStatus = document.createElement('p');
 siteStatus.className = 'status';
 
 const cards = document.createElement('div');
 cards.className = 'cards';
+
+function showWarningCard(text: string): void {
+  warningCard.textContent = text;
+  if (!warningCard.isConnected) {
+    container.insertBefore(warningCard, cards);
+  }
+}
 
 // 번호 카드(D-26 "번호 카드", 자리는 고정): 카드마다 키 숫자·문구·저장소 요청을 넣어 두면
 // 클릭·숫자 키 처리는 공통으로 처리한다. 1 도우미 끄기 · 2 이 사이트에서 끄기(Plan 01-13) ·
@@ -110,7 +143,9 @@ interface CardConfig {
   keyLabel: string;
   digitCodes: string[];
   wordFor: (enabled: boolean) => string;
-  onToggle: (next: boolean, render: (enabled: boolean) => void) => void;
+  // revert: 낙관적 렌더(render(next))가 실제로는 저장되지 않았을 때(D-25 preserved-original)
+  // 누르기 전 상태로 되돌린다 — 안 그러면 화면이 실제와 다른 상태를 계속 보여 준다(Rule 1).
+  onToggle: (next: boolean, render: (enabled: boolean) => void, revert: () => void) => void;
 }
 
 function createCard(config: CardConfig): { element: HTMLButtonElement; render: (enabled: boolean) => void } {
@@ -134,7 +169,10 @@ function createCard(config: CardConfig): { element: HTMLButtonElement; render: (
   }
 
   function toggle(): void {
-    config.onToggle(!current, render);
+    const previous = current;
+    config.onToggle(!current, render, () => {
+      render(previous);
+    });
   }
 
   card.addEventListener('click', toggle);
@@ -152,10 +190,17 @@ const helperCard = createCard({
   keyLabel: '1',
   digitCodes: ['Digit1', 'Numpad1'],
   wordFor: (enabled) => (enabled ? '도우미 끄기' : '도우미 켜기'),
-  onToggle: (next, render) => {
+  onToggle: (next, render, revert) => {
     render(next); // 즉시 반영 — 연타해도 이전 누름 기준으로 번갈아 계산된다(writer가 순서대로 처리).
     const message: Message = { type: 'storage/request', op: { kind: 'setEnabled', enabled: next } };
-    void chrome.runtime.sendMessage(message);
+    void chrome.runtime.sendMessage(message).then((response) => {
+      const result = response as { ok?: boolean; reason?: string } | undefined;
+      if (result?.reason === 'preserved-original') {
+        // 저장되지 않았다(D-25) — 화면을 실제 상태로 되돌리고 이유를 알린다.
+        revert();
+        showWarningCard(PRESERVED_ORIGINAL_MESSAGE);
+      }
+    });
   },
 });
 
@@ -309,5 +354,16 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 });
 
+// 형식 변환 실패 경고(D-25, Plan 01-14): notice:migration-failed가 있으면 카드 격자 위에
+// 경고 카드를 보여 준다. 토스트와 같은 문구(MIGRATION_FAILED_MESSAGE)로 시작한다.
+async function loadMigrationNotice(): Promise<void> {
+  const stored = await chrome.storage.local.get(MIGRATION_NOTICE_KEY);
+  const parsed = MigrationNoticeV1.safeParse(stored[MIGRATION_NOTICE_KEY]);
+  if (parsed.success) {
+    showWarningCard(MIGRATION_FAILED_MESSAGE);
+  }
+}
+
 void loadInitial();
+void loadMigrationNotice();
 void renderForTargetTab();

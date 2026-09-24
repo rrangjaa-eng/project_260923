@@ -87,7 +87,15 @@ export default defineBackground(() => {
   });
 
   chrome.runtime.onInstalled.addListener(() => {
-    void writer.ensureDefaultSettings();
+    // 없을 때만 기본값(D-06)을 먼저 채운 뒤, 형식 변환 실패를 미리 찾아 알린다(D-22, D-25) —
+    // 순서가 뒤집히면 방금 설치한 빈 저장소도 "형식 없음"으로 오판해 알림이 잘못 뜬다.
+    void writer.ensureDefaultSettings().then(() => writer.checkSettings());
+  });
+
+  chrome.runtime.onStartup.addListener(() => {
+    // 브라우저 재시작(D-22): 다른 PC가 그사이 storage.sync를 깨진 값으로 바꿨을 수 있다 —
+    // 여기서도 확인해 알린다.
+    void writer.checkSettings();
   });
 
   chrome.runtime.onMessage.addListener((raw, sender, sendResponse) => {

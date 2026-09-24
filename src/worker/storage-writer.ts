@@ -1,13 +1,18 @@
 import { isSameElement } from '@/core/fingerprint';
 import {
   CURRENT_SCHEMA_VERSION,
+  MIGRATION_NOTICE_KEY,
   PressesV1,
   SETTINGS_KEY,
   SettingsV1,
   SiteEntryV1,
   defaultSettings,
+  migrate,
   pressesKey,
+  settingsSpec,
   siteKey,
+  syncItemBytes,
+  SYNC_ITEM_LIMIT,
   type Fingerprint,
 } from '@/core/settings-schema';
 import type { UpdateSettingsPatch } from '@/shared/messages';
@@ -15,13 +20,15 @@ import type { UpdateSettingsPatch } from '@/shared/messages';
 // 단일 저장자(D-24): chrome.storage.*.set 호출은 이 파일에만 둔다. 요청은 Promise 줄로 순서대로
 // 처리해 연타·동시 요청에도 마지막 요청이 최종 상태가 되게 한다.
 
-export type SetEnabledResult = { ok: true } | { ok: false; reason: 'invalid-settings' };
+export type SetEnabledResult = { ok: true } | { ok: false; reason: 'preserved-original' | 'item-too-large' };
 
-export type UpdateSettingsResult = { ok: true } | { ok: false; reason: 'invalid-settings' | 'invalid-patch' };
+export type UpdateSettingsResult =
+  | { ok: true }
+  | { ok: false; reason: 'preserved-original' | 'invalid-patch' | 'item-too-large' };
 
 export type RecordPressResult = { ok: true } | { ok: false; reason: 'origin-mismatch' | 'invalid-presses' };
 
-export type SetSiteDisabledResult = { ok: true } | { ok: false; reason: 'invalid-site' };
+export type SetSiteDisabledResult = { ok: true } | { ok: false; reason: 'invalid-site' | 'item-too-large' };
 
 // 사이트별 자주 누른 기록 상한(D-18 성격 — 무한정 커지지 않게, T-01-18).
 const MAX_PRESS_ENTRIES = 200;
@@ -36,9 +43,14 @@ export interface StorageWriter {
   setEnabled(enabled: boolean): Promise<SetEnabledResult>;
   updateSettings(patch: UpdateSettingsPatch): Promise<UpdateSettingsResult>;
   ensureDefaultSettings(): Promise<void>;
+  // 형식 변환 실패를 미리 찾아 알린다(D-25) — onInstalled·onStartup이 부른다. 값을 바꾸지 않고
+  // 읽기만 한다(쓰기는 실패했을 때 notice 기록, migrated일 때 변환된 값 쓰기 뿐).
+  checkSettings(): Promise<void>;
   recordPress(requestOrigin: string, senderOrigin: string, fingerprint: Fingerprint): Promise<RecordPressResult>;
   setSiteDisabled(origin: string, disabled: boolean): Promise<SetSiteDisabledResult>;
 }
+
+type SyncSetResult = { ok: true } | { ok: false; reason: 'item-too-large'; key: string };
 
 export function createStorageWriter(): StorageWriter {
   let queue: Promise<unknown> = Promise.resolve();
@@ -71,9 +83,38 @@ export function createStorageWriter(): StorageWriter {
     }
   }
 
-  async function syncSet(items: Record<string, unknown>): Promise<void> {
+  async function syncSet(items: Record<string, unknown>): Promise<SyncSetResult> {
+    // 동기화 항목 크기 한도(D-24, T-01-41): 실제 chrome.storage.sync도 항목당 8KB를 넘으면
+    // 거절하지만, 우리가 먼저 걸러 정해진 이유로 응답한다(브라우저 자체 거절은 값을 하나도
+    // 쓰지 않은 채 Promise를 던져 올바르게 처리하지 않으면 응답이 영영 오지 않는다).
+    for (const [key, value] of Object.entries(items)) {
+      if (syncItemBytes(key, value) > SYNC_ITEM_LIMIT) {
+        return { ok: false, reason: 'item-too-large', key };
+      }
+    }
     await waitForSyncWriteSlot();
     await chrome.storage.sync.set(items);
+    return { ok: true };
+  }
+
+  // settings 읽기(D-25, Pattern 4): migrate()로 검사하고, 실패하면 절대 쓰지 않고(원본 보존)
+  // notice:migration-failed를 한 번 기록한다. 변환됐으면(migrated) 변환된 값을 다시 쓴다.
+  async function readAndValidateSettings(): Promise<{ ok: true; value: SettingsV1 } | { ok: false }> {
+    const existing = await chrome.storage.sync.get(SETTINGS_KEY);
+    const result = migrate(existing[SETTINGS_KEY], settingsSpec);
+    if (!result.ok) {
+      await chrome.storage.local.set({
+        [MIGRATION_NOTICE_KEY]: {
+          schemaVersion: CURRENT_SCHEMA_VERSION,
+          data: { key: SETTINGS_KEY, reason: result.reason, at: Date.now() },
+        },
+      });
+      return { ok: false };
+    }
+    if (result.migrated) {
+      await syncSet({ [SETTINGS_KEY]: result.value });
+    }
+    return { ok: true, value: result.value };
   }
 
   // 같은 저장 키(site:<origin>) 쓰기 합치기(D-24): 앞 쓰기가 끝나기 전에 여럿 쌓이면 마지막 값
@@ -102,7 +143,10 @@ export function createStorageWriter(): StorageWriter {
     }
 
     const next: SiteEntryV1 = { ...base, data: { ...base.data, disabled } };
-    await syncSet({ [key]: next });
+    const writeResult = await syncSet({ [key]: next });
+    if (!writeResult.ok) {
+      return { ok: false, reason: 'item-too-large' };
+    }
     return { ok: true };
   }
 
@@ -124,40 +168,48 @@ export function createStorageWriter(): StorageWriter {
   return {
     setEnabled(enabled) {
       return enqueue(async () => {
-        const existing = await chrome.storage.sync.get(SETTINGS_KEY);
-        const parsed = SettingsV1.safeParse(existing[SETTINGS_KEY]);
-        if (!parsed.success) {
-          // 검사 실패 — 아무것도 쓰지 않는다(원본 보존, D-25). 알림은 Plan 01-14.
-          return { ok: false, reason: 'invalid-settings' };
+        const read = await readAndValidateSettings();
+        if (!read.ok) {
+          return { ok: false, reason: 'preserved-original' };
         }
 
         const next: SettingsV1 = {
-          ...parsed.data,
-          data: { ...parsed.data.data, enabled },
+          ...read.value,
+          data: { ...read.value.data, enabled },
         };
-        await syncSet({ [SETTINGS_KEY]: next });
+        const writeResult = await syncSet({ [SETTINGS_KEY]: next });
+        if (!writeResult.ok) {
+          return { ok: false, reason: 'item-too-large' };
+        }
         return { ok: true };
       });
     },
 
     updateSettings(patch) {
       return enqueue(async () => {
-        const existing = await chrome.storage.sync.get(SETTINGS_KEY);
-        const parsed = SettingsV1.safeParse(existing[SETTINGS_KEY]);
-        if (!parsed.success) {
-          // 검사 실패 — 아무것도 쓰지 않는다(원본 보존, D-25).
-          return { ok: false, reason: 'invalid-settings' };
+        const read = await readAndValidateSettings();
+        if (!read.ok) {
+          return { ok: false, reason: 'preserved-original' };
         }
 
-        const next = { ...parsed.data, data: { ...parsed.data.data, ...patch } };
+        const next = { ...read.value, data: { ...read.value.data, ...patch } };
         const nextParsed = SettingsV1.safeParse(next);
         if (!nextParsed.success) {
           // patch를 합친 결과가 SettingsV1을 어기면 쓰지 않는다(D-25).
           return { ok: false, reason: 'invalid-patch' };
         }
 
-        await syncSet({ [SETTINGS_KEY]: nextParsed.data });
+        const writeResult = await syncSet({ [SETTINGS_KEY]: nextParsed.data });
+        if (!writeResult.ok) {
+          return { ok: false, reason: 'item-too-large' };
+        }
         return { ok: true };
+      });
+    },
+
+    checkSettings() {
+      return enqueue(async () => {
+        await readAndValidateSettings();
       });
     },
 
