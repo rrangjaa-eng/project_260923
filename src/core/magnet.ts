@@ -60,18 +60,21 @@ export function pickTarget(opts: PickTargetOptions): string | null {
 
   const withDistance = candidates.map((candidate) => ({ candidate, distance: rectDistance(cursor, candidate.rect) }));
 
+  // CR-04: 커서가 danger 사각형 안(거리 0)이면 언제나 그 danger를 잡는다 — 범위 안 일반 후보가
+  // 있다는 이유로 밀어내면 §8이 요구하는 "커서가 정확히 위에 있으면 반드시 잡힌다"가 깨진다
+  // (붙어 있는 "저장/삭제" 같은 배치에서 삭제 클릭이 저장으로 새는 사고). 히스테리시스는 적용하지
+  // 않는다(거리 0이 아니게 되면 이 목록에서 곧바로 빠진다).
+  const dangerAtZero = withDistance.filter(({ candidate, distance }) => candidate.danger === true && distance === 0);
+  if (dangerAtZero.length > 0) {
+    return pickBest(dangerAtZero, currentId, 0);
+  }
+
+  // 커서가 danger 위가 아닐 때만 일반 후보를 본다 — danger는 이 범위 판정으로 끌려오지 않는다.
   const normalInRange = withDistance.filter(
     ({ candidate, distance }) => !candidate.danger && distance <= captureMarginPx,
   );
   if (normalInRange.length > 0) {
     return pickBest(normalInRange, currentId, switchHysteresisPx);
-  }
-
-  // 일반 후보가 범위 안에 없을 때만 danger 후보를 본다 — 커서가 정확히 그 사각형 안(거리 0)일
-  // 때만이며, 히스테리시스는 적용하지 않는다(거리 0이 아니게 되면 이 목록에서 곧바로 빠진다).
-  const dangerAtZero = withDistance.filter(({ candidate, distance }) => candidate.danger === true && distance === 0);
-  if (dangerAtZero.length > 0) {
-    return pickBest(dangerAtZero, currentId, 0);
   }
 
   return null;
