@@ -150,8 +150,25 @@ test('SW가 미리 pins를 넣어 둔 상태에서 끄고 켜도 pins가 그대�
   await page.close();
 });
 
+// 오버레이(tremor-helper-root)는 맨 위 프레임에만 있다(자식 프레임 요소도 맨 위 좌표계에
+// 그린다, frame-tree.ts) — 자식 프레임 자신의 켜짐 상태는 frame/state 보고(frameStates)로 본다
+// (helper-toggle.e2e.ts와 같은 방식).
+async function readFrameStates(serviceWorker: Worker, urlPattern: string): Promise<boolean[]> {
+  const tabs = await serviceWorker.evaluate((pattern) => chrome.tabs.query({ url: pattern }), urlPattern);
+  const tabId = tabs[0]?.id;
+  if (tabId === undefined) {
+    return [];
+  }
+  return serviceWorker.evaluate((id) => {
+    const store = (globalThis as unknown as { frameStates?: Record<number, Record<number, boolean>> }).frameStates;
+    const tabFrames = store?.[id] ?? {};
+    return Object.values(tabFrames);
+  }, tabId);
+}
+
 test('practice.test 안의 other.test iframe도 practice.test를 끄면 도우미가 꺼진다(사이트 = 맨 위 페이지 출처)', async ({
   context,
+  serviceWorker,
   openPopup,
   serveFramedPracticePage,
 }) => {
@@ -160,17 +177,23 @@ test('practice.test 안의 other.test iframe도 practice.test를 끄면 도우�
   await page.goto('http://practice.test/');
   await waitForHelperReady(page);
 
-  const childFrame = page.frame({ url: 'http://other.test/frame-other.html' });
-  if (!childFrame) {
-    throw new Error('other.test 자식 프레임을 찾지 못했다');
-  }
-  await expect.poll(() => childFrame.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(true);
+  await expect
+    .poll(async () => {
+      const states = await readFrameStates(serviceWorker, 'http://practice.test/*');
+      return states.length >= 3 && states.every((v) => v);
+    })
+    .toBe(true);
 
   const popup = await openPopup(page);
   await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
 
   await expect.poll(() => hasHelperRoot(page)).toBe(false);
-  await expect.poll(() => childFrame.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(false);
+  await expect
+    .poll(async () => {
+      const states = await readFrameStates(serviceWorker, 'http://practice.test/*');
+      return states.length >= 3 && states.every((v) => !v);
+    })
+    .toBe(true);
 
   await popup.close();
   await page.close();
@@ -196,7 +219,15 @@ test('SW가 site:http://practice.test를 직접 바꾸면(다른 PC 동기화 �
   await page.close();
 });
 
-test('Content-Security-Policy: sandbox 머리글로 제공한 연습 페이지를 활성으로 하면 1초 뒤 아이콘이 "도울 수 없음"이다', async ({
+// 계획의 가정("CSP: sandbox 최상위 문서에는 content script가 들어가지 않는다")은 실측과
+// 달랐다(01-13 systematic-debugging, 편차로 SUMMARY에 기록): 확장 content script는 isolated
+// world에서 실행되어 페이지 자신의 CSP(sandbox 포함)에 영향받지 않는다 — 헤더가 실제로
+// 응답에 실렸는지(route 확인), site/ping에 여전히 { ok: true }로 답하는지 직접 확인했다. 그래서
+// 이 시험은 "여전히 도울 수 있음"을 확인하고, 응답 없음 판정의 "보내기가 실패하면" 경로
+// (RESEARCH.md "Open Questions (RESOLVED)" 6번)는 같은 시험 안에서 탭을 닫은 뒤 site/ping을
+// 보내 chrome.tabs.sendMessage가 거절되는지로 확인한다(이 시험 환경에서 결정적으로 재현할 수
+// 있는 유일한 방법 — "1초 안에 답이 없거나" 쪽은 재현 방법을 찾지 못해 SUMMARY에 남긴다).
+test('Content-Security-Policy: sandbox 머리글이 있어도 content script는 isolated world라 영향받지 않고 여전히 도울 수 있다(+ 닫힌 탭은 보내기 실패로 거절된다)', async ({
   context,
   serviceWorker,
   servePage,
@@ -207,11 +238,28 @@ test('Content-Security-Policy: sandbox 머리글로 제공한 연습 페이지�
     { 'Content-Security-Policy': 'sandbox' },
   );
   const page = await context.newPage();
-  await page.goto('http://practice.test/sandboxed.html');
+  const response = await page.goto('http://practice.test/sandboxed.html');
+  expect(response?.headers()['content-security-policy']).toBe('sandbox');
 
-  await expect.poll(() => activeTabTitle(serviceWorker)).toBe('도울 수 없음');
-  await expect.poll(() => activeTabBadge(serviceWorker)).toBe('없음');
+  await expect.poll(() => activeTabTitle(serviceWorker)).toBe('손 떨림 도우미');
+  await expect.poll(() => activeTabBadge(serviceWorker)).toBe('');
+
+  const tabs = await serviceWorker.evaluate(() => chrome.tabs.query({ url: 'http://practice.test/*' }));
+  const tabId = tabs[0]?.id;
+  if (tabId === undefined) {
+    throw new Error('practice.test 탭을 찾지 못했다');
+  }
   await page.close();
+
+  const rejected = await serviceWorker.evaluate(async (id) => {
+    try {
+      await chrome.tabs.sendMessage(id, { type: 'site/ping' }, { frameId: 0 });
+      return false;
+    } catch {
+      return true;
+    }
+  }, tabId);
+  expect(rejected).toBe(true);
 });
 
 test('메뉴에서 150번 빠르게 끄고 켜기를 번갈아 보낸 뒤 최종 disabled가 마지막 요청과 같고 오류가 없다', async ({

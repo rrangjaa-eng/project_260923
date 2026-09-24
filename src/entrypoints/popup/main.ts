@@ -1,5 +1,5 @@
 import tokensCss from '../../../docs/design/tokens.css?inline';
-import { SETTINGS_KEY, SettingsV1 } from '@/core/settings-schema';
+import { SETTINGS_KEY, SettingsV1, SiteEntryV1, siteKey } from '@/core/settings-schema';
 import type { Message } from '@/shared/messages';
 
 const appRoot = document.getElementById('app');
@@ -95,6 +95,10 @@ status.className = 'status';
 const unsupportedMessage = document.createElement('p');
 unsupportedMessage.className = 'unsupported-message';
 unsupportedMessage.textContent = '이 페이지에서는 도울 수 없어요. 다른 탭에서 쓰세요.';
+
+// 지금 사이트에서만 끄기 상태 한 줄(Plan 01-13 Task 3, --muted — .status와 같은 스타일 재사용).
+const siteStatus = document.createElement('p');
+siteStatus.className = 'status';
 
 const cards = document.createElement('div');
 cards.className = 'cards';
@@ -199,6 +203,28 @@ async function resolveTargetTabId(): Promise<number | undefined> {
   return tabs[0]?.id;
 }
 
+// 지금 사이트에서만 끄기 카드(D-20, Plan 01-13 Task 3) — 대상 탭이 도울 수 있는 페이지일 때만
+// 만들어 카드 1과 3 사이에 끼운다. 카드마다 기존 factory(createCard)를 그대로 쓴다.
+function createSiteCard(origin: string, tabId: number): { element: HTMLButtonElement; render: (enabled: boolean) => void } {
+  return createCard({
+    keyLabel: '2',
+    digitCodes: ['Digit2', 'Numpad2'],
+    wordFor: (enabled) => (enabled ? '이 사이트에서 끄기' : '이 사이트에서 켜기'),
+    onToggle: (next, render) => {
+      render(next);
+      const message: Message = {
+        type: 'storage/request',
+        op: { kind: 'setSiteDisabled', origin, disabled: !next, tabId },
+      };
+      void chrome.runtime.sendMessage(message);
+    },
+  });
+}
+
+function renderSiteStatus(disabled: boolean): void {
+  siteStatus.textContent = disabled ? '이 사이트: 꺼짐' : '이 사이트: 켜짐';
+}
+
 // 대상 탭이 "도울 수 없음"인지는 background.ts가 이미 계산해 둔 아이콘 제목으로 판단한다(단일
 // 판정 소스 — Task 3의 content script 응답 없음 판정도 background.ts 쪽에서만 더해진다).
 async function renderForTargetTab(): Promise<void> {
@@ -209,9 +235,39 @@ async function renderForTargetTab(): Promise<void> {
   const title = await chrome.action.getTitle({ tabId });
   if (title === '도울 수 없음') {
     container.insertBefore(unsupportedMessage, cards);
-  } else {
-    unsupportedMessage.remove();
+    return;
   }
+  unsupportedMessage.remove();
+
+  const tab = await chrome.tabs.get(tabId);
+  if (!tab.url) {
+    return;
+  }
+  const origin = new URL(tab.url).origin;
+  const key = siteKey(origin);
+
+  const siteCard = createSiteCard(origin, tabId);
+  cards.insertBefore(siteCard.element, dwellCard.element);
+  container.insertBefore(siteStatus, cards);
+
+  async function refreshSiteState(): Promise<void> {
+    const stored = await chrome.storage.sync.get(key);
+    const parsed = SiteEntryV1.safeParse(stored[key]);
+    const disabled = parsed.success ? parsed.data.data.disabled : false;
+    siteCard.render(!disabled);
+    renderSiteStatus(disabled);
+  }
+  await refreshSiteState();
+
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'sync') {
+      return;
+    }
+    if (!changes[key]) {
+      return;
+    }
+    void refreshSiteState();
+  });
 }
 
 function renderStatus(enabled: boolean): void {

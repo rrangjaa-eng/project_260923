@@ -9,7 +9,7 @@ declare namespace chrome.runtime {
 
   interface MessageSender {
     id?: string;
-    tab?: { id?: number };
+    tab?: { id?: number; url?: string };
     frameId?: number;
     url?: string;
   }

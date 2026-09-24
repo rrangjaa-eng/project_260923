@@ -100,6 +100,9 @@ export default defineContentScript({
     const isTopFrame = window.top === window;
     let currentEnabled: boolean | undefined;
     let currentSettings: SettingsV1 = defaultSettings();
+    // 지금 사이트에서만 끄기(Plan 01-13, D-20): 사이트 = 맨 위 페이지 출처. 전역 enabled와 합쳐
+    // applyEnabled에 넘긴다(syncEnabled) — 둘 중 하나라도 꺼지면 도우미는 꺼진다.
+    let siteDisabled = false;
     // 맨 위만 쓴다: relay.ts가 그대로 넘겨주는 탭의 모든 프레임 원본 보고(selfPath + 자식의
     // 상대 순번, D-03). 실제 frameId는 openHints 때 resolveReports로 맞춘다 — 자기 프레임(0)
     // 것은 최신성을 보장하려고 그때 collector에서 직접 다시 만들어 덮어쓴다(비동기 왕복 경합 방지).
@@ -221,12 +224,19 @@ export default defineContentScript({
 
     // 프레임 메시지(D-03, D-09): 맨 위는 frames/reports(전체 보고 모음)를 받고, 모든 프레임은
     // press/request(SW가 이 프레임에 누르기를 부탁)를 받는다.
-    chrome.runtime.onMessage.addListener((raw) => {
+    chrome.runtime.onMessage.addListener((raw, _sender, sendResponse) => {
       const parsed = parseMessage(raw);
       if (!parsed.success) {
         return undefined;
       }
       const message = parsed.data;
+
+      if (message.type === 'site/ping' && isTopFrame) {
+        // background.ts의 "도울 수 없음" 응답 없음 판정(D-21) — 맨 위 프레임만 답한다. 도우미가
+        // 전역·사이트로 꺼져 있어도 content script 자신은 살아 있으니 답한다(currentEnabled와 무관).
+        sendResponse({ ok: true });
+        return undefined;
+      }
 
       if (message.type === 'frames/reports' && isTopFrame) {
         latestReportEntries = message.reports;
@@ -427,6 +437,11 @@ export default defineContentScript({
       }
 
       void chrome.runtime.sendMessage({ type: 'frame/state', enabled });
+    }
+
+    // 전역 enabled와 지금 사이트에서만 끄기를 합친다(D-20) — 둘 중 하나라도 꺼지면 도우미는 꺼진다.
+    function syncEnabled(): void {
+      applyEnabled(currentSettings.data.enabled && !siteDisabled);
     }
 
     // 설정을 읽기 전이라도 리스너를 먼저 걸어야 사이트보다 앞선다(D-06, Pattern 1) — 설정이
@@ -740,7 +755,7 @@ export default defineContentScript({
           dwellTimer = createDwellTimer({ dwellMs: parsed.data.data.dwellMs });
         }
         currentSettings = parsed.data;
-        applyEnabled(parsed.data.data.enabled);
+        syncEnabled();
         // D-18: dangerWords가 기본값과 다를 수 있다 — 이미 모은 항목의 danger를 다시 계산한다.
         collector.refresh();
         syncDwellLoop();
@@ -761,11 +776,41 @@ export default defineContentScript({
           dwellTimer = createDwellTimer({ dwellMs: parsed.data.data.dwellMs });
         }
         currentSettings = parsed.data;
-        applyEnabled(parsed.data.data.enabled);
+        syncEnabled();
         // D-18: dangerWords가 바뀌면 곧바로 반영한다 — 다시 모아 danger를 새로 계산한다.
         collector.refresh();
         syncDwellLoop();
       }
+    });
+
+    // 지금 사이트에서만 끄기(Plan 01-13, D-20): 사이트 = 맨 위 페이지 출처 — background.ts에
+    // site/query로 물어본다(모든 프레임의 tab.url이 맨 위 문서 주소와 같으므로 어느 프레임이
+    // 물어봐도 같은 답을 받는다, T-01-38: 읽을 때 SiteEntryV1 검사, 실패하면 기본값 켜짐).
+    void chrome.runtime.sendMessage({ type: 'site/query' }).then((raw) => {
+      const topOrigin = (raw as { topOrigin?: string } | undefined)?.topOrigin;
+      if (!topOrigin) {
+        return;
+      }
+      const key = siteKey(topOrigin);
+
+      void chrome.storage.sync.get(key).then((stored) => {
+        const parsed = SiteEntryV1.safeParse(stored[key]);
+        siteDisabled = parsed.success ? parsed.data.data.disabled : false;
+        syncEnabled();
+      });
+
+      chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== 'sync') {
+          return;
+        }
+        const change = changes[key];
+        if (!change) {
+          return;
+        }
+        const parsed = SiteEntryV1.safeParse(change.newValue);
+        siteDisabled = parsed.success ? parsed.data.data.disabled : false;
+        syncEnabled();
+      });
     });
   },
 });

@@ -29,12 +29,38 @@ export default defineBackground(() => {
   const frameStates: FrameStates = {};
   (globalThis as typeof globalThis & { frameStates: FrameStates }).frameStates = frameStates;
 
-  // URL 규칙만으로 판정(Task 2) — content script 응답 없음 판정은 Task 3에서 더한다.
+  async function markUnsupported(tabId: number): Promise<void> {
+    await chrome.action.setTitle({ tabId, title: UNSUPPORTED_TITLE });
+    await chrome.action.setBadgeText({ tabId, text: UNSUPPORTED_BADGE });
+    await chrome.action.setBadgeBackgroundColor({ tabId, color: MUTED_COLOR });
+  }
+
+  // 맨 위 프레임에 site/ping을 보내 1초 안에 { ok: true }가 오는지 확인한다(RESEARCH.md
+  // "Open Questions (RESOLVED)" 6번) — 주소 규칙을 통과해도 content script가 실제로 들어가
+  // 있지 않으면(예: CSP: sandbox 최상위 문서) 도울 수 없음으로 본다.
+  async function respondsToSitePing(tabId: number): Promise<boolean> {
+    try {
+      const response = await Promise.race([
+        chrome.tabs.sendMessage(tabId, { type: 'site/ping' }, { frameId: 0 }),
+        new Promise<undefined>((resolve) => {
+          setTimeout(() => {
+            resolve(undefined);
+          }, 1000);
+        }),
+      ]);
+      return (response as { ok?: boolean } | undefined)?.ok === true;
+    } catch {
+      return false;
+    }
+  }
+
   async function updateActionForTab(tabId: number, url: string | undefined): Promise<void> {
     if (isUnsupportedUrl(url)) {
-      await chrome.action.setTitle({ tabId, title: UNSUPPORTED_TITLE });
-      await chrome.action.setBadgeText({ tabId, text: UNSUPPORTED_BADGE });
-      await chrome.action.setBadgeBackgroundColor({ tabId, color: MUTED_COLOR });
+      await markUnsupported(tabId);
+      return;
+    }
+    if (!(await respondsToSitePing(tabId))) {
+      await markUnsupported(tabId);
       return;
     }
     await chrome.action.setTitle({ tabId, title: SUPPORTED_TITLE });
@@ -86,11 +112,38 @@ export default defineBackground(() => {
         void writer.updateSettings(message.op.patch).then(sendResponse);
         return true;
       }
+      if (message.op.kind === 'setSiteDisabled') {
+        // T-01-36: 팝업은 확장 페이지라 sender.url로 대상 탭을 알 수 없다 — 요청의 tabId로
+        // 실제 탭을 찾아 그 탭 주소의 출처와 요청 origin이 같을 때만 받아들인다.
+        void (async () => {
+          const op = message.op;
+          if (op.kind !== 'setSiteDisabled') {
+            return;
+          }
+          const tab = await chrome.tabs.get(op.tabId).catch(() => undefined);
+          const tabOrigin = tab?.url ? new URL(tab.url).origin : undefined;
+          if (tabOrigin === undefined || tabOrigin !== op.origin) {
+            sendResponse({ ok: false, reason: 'origin-mismatch' });
+            return;
+          }
+          const result = await writer.setSiteDisabled(op.origin, op.disabled);
+          sendResponse(result);
+        })();
+        return true;
+      }
       // recordPress(D-11, T-01-16): 보낸 프레임의 실제 origin은 sender.url에서 계산한다 —
       // 요청 안의 origin 문자열은 신뢰하지 않고 storage-writer.ts가 둘을 대조한다.
       const senderOrigin = sender.url ? new URL(sender.url).origin : '';
       void writer.recordPress(message.op.origin, senderOrigin, message.op.fingerprint).then(sendResponse);
       return true;
+    }
+
+    if (message.type === 'site/query') {
+      // 모든 프레임의 sender.tab.url은 항상 맨 위 문서의 주소와 같다 — 어느 프레임이 물어봐도
+      // 같은 답을 준다(D-20 "사이트 = 맨 위 페이지 출처").
+      const topOrigin = sender.tab?.url ? new URL(sender.tab.url).origin : '';
+      sendResponse({ topOrigin });
+      return undefined;
     }
 
     if (
@@ -106,9 +159,15 @@ export default defineBackground(() => {
       return undefined;
     }
 
-    if (message.type === 'frames/reports' || message.type === 'press/request' || message.type === 'frame/refresh') {
-      // SW → 프레임 방향 메시지다. background.ts는 이 방향으로는 보내지 않으므로(relay.ts가
-      // chrome.tabs.sendMessage로 직접 보낸다) 받을 일이 없다 — 방어적으로 무시한다.
+    if (
+      message.type === 'frames/reports' ||
+      message.type === 'press/request' ||
+      message.type === 'frame/refresh' ||
+      message.type === 'site/ping'
+    ) {
+      // SW → 프레임 방향 메시지다(site/ping도 SW → 맨 위 프레임). background.ts는 이 방향으로는
+      // 받지 않으므로(relay.ts·respondsToSitePing이 chrome.tabs.sendMessage로 직접 보낸다)
+      // 받을 일이 없다 — 방어적으로 무시한다.
       return undefined;
     }
 

@@ -120,7 +120,17 @@ const RecordPressOp = z.object({
   fingerprint: FingerprintSchema,
 });
 
-const StorageRequestOp = z.discriminatedUnion('kind', [SetEnabledOp, RecordPressOp, UpdateSettingsOp]);
+// 지금 사이트에서만 끄기(Plan 01-13, D-20, T-01-36): 팝업은 확장 페이지라 sender.url로 대상
+// 탭을 알 수 없다 — tabId를 실어 보내면 background.ts가 chrome.tabs.get(tabId)의 출처와
+// origin이 같을 때만 받아들인다(요청 origin은 대상 탭 주소의 출처여야 한다).
+const SetSiteDisabledOp = z.object({
+  kind: z.literal('setSiteDisabled'),
+  origin: z.string(),
+  disabled: z.boolean(),
+  tabId: z.number(),
+});
+
+const StorageRequestOp = z.discriminatedUnion('kind', [SetEnabledOp, RecordPressOp, UpdateSettingsOp, SetSiteDisabledOp]);
 
 const StorageRequestMessage = z.object({
   type: z.literal('storage/request'),
@@ -149,6 +159,18 @@ const ConfirmKeyMessage = z.object({
   repeat: z.boolean(),
 });
 
+// 지금 사이트에서만 끄기(Plan 01-13, D-20): background.ts → 맨 위 프레임. 맨 위가 응답하면
+// 확장이 동작하는 페이지다(응답 없음 판정, RESEARCH.md "Open Questions (RESOLVED)" 6번).
+const SitePingMessage = z.object({
+  type: z.literal('site/ping'),
+});
+
+// content script → background.ts: 맨 위 페이지의 출처를 물어본다. background.ts가
+// sender.tab.url에서 계산해 답한다(모든 프레임의 tab.url이 항상 맨 위 문서의 주소와 같다).
+const SiteQueryMessage = z.object({
+  type: z.literal('site/query'),
+});
+
 export const Message = z.discriminatedUnion('type', [
   StorageRequestMessage,
   FrameStateMessage,
@@ -162,6 +184,8 @@ export const Message = z.discriminatedUnion('type', [
   ModeReportMessage,
   ConfirmStateMessage,
   ConfirmKeyMessage,
+  SitePingMessage,
+  SiteQueryMessage,
 ]);
 export type Message = z.infer<typeof Message>;
 
