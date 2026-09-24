@@ -30,8 +30,14 @@ export interface InputPipeline {
   setModal(handler: ModalHandler | null): void;
 }
 
-export function createInputPipeline(opts: { getSettings: () => SettingsV1; signal: AbortSignal }): InputPipeline {
-  const { getSettings, signal } = opts;
+export function createInputPipeline(opts: {
+  getSettings: () => SettingsV1;
+  // CR-03: 전역 enabled만으로는 "이 사이트에서 끄기"를 반영하지 못한다 — content.ts가 전역·사이트별
+  // 상태를 합친 값을 준다(생략하면 전역 enabled만 본다, 기존 호출부·시험 호환).
+  isEnabled?: () => boolean;
+  signal: AbortSignal;
+}): InputPipeline {
+  const { getSettings, signal, isEnabled: isEnabledOpt } = opts;
 
   let filter: TremorFilter | null = null;
   let filterIntervalMs = -1;
@@ -62,7 +68,7 @@ export function createInputPipeline(opts: { getSettings: () => SettingsV1; signa
   }
 
   function isHelperEnabled(): boolean {
-    return getSettings().data.enabled;
+    return isEnabledOpt ? isEnabledOpt() : getSettings().data.enabled;
   }
 
   function updateModeFromFocus(): void {

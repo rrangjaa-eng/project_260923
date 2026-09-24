@@ -481,7 +481,16 @@ export default defineContentScript({
     // 설정을 읽기 전이라도 리스너를 먼저 걸어야 사이트보다 앞선다(D-06, Pattern 1) — 설정이
     // 오기 전에는 defaultSettings()로 판단한다. signal은 Plan 01-14의 자기 정리용이다.
     const pipelineController = new AbortController();
-    const inputPipeline = createInputPipeline({ getSettings: () => currentSettings, signal: pipelineController.signal });
+    // CR-03: 전역 enabled와 이 사이트에서만 끄기(siteDisabled)를 합친 값을 준다 — 파이프라인이
+    // 전역 enabled만 보면 사이트별 끄기 뒤에도 떨림 필터·자동 반복 삼킴이 계속 돈다.
+    const inputPipeline = createInputPipeline({
+      getSettings: () => currentSettings,
+      // 설정이 아직 안 왔으면(currentEnabled === undefined) defaultSettings()의 enabled(true)로
+      // 판단한다(D-06 Pattern 1, 위 pipelineController 주석과 같은 규칙) — currentEnabled는 실제
+      // 전역·사이트별 상태가 합쳐진 뒤에만 값이 채워진다(syncEnabled → applyEnabled).
+      isEnabled: () => currentEnabled ?? true,
+      signal: pipelineController.signal,
+    });
 
     // 끌기 시작 상태에서 Esc(D-08, D-15 keymap.cancel): 도우미가 끌기를 취소한다. 끌기 시작이
     // 아니면(armed() === null) 통과해 사이트·다른 기능(번호표 닫기 등)이 그대로 Esc를 쓰게 둔다.
