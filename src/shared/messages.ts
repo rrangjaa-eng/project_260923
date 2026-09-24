@@ -48,12 +48,15 @@ const FramesReportsMessage = z.object({
 });
 
 // 맨 위 → SW(T-01-19): sender.frameId === 0일 때만 relay가 받는다. framePath는 맨 위가
-// composeTree로 합성한 값 — 대상 프레임이 recordPress에 그대로 쓴다.
+// composeTree로 합성한 값 — 대상 프레임이 recordPress에 그대로 쓴다. confirmed는 WR-02: 이미
+// 확인 화면을 거쳐 온 누르기인지(true) 번호표에서 바로 온 누르기인지(false) — 대상 프레임이
+// 최신 danger를 다시 볼 때 이 값으로 "이미 승인됨"과 "아직 승인 전"을 가른다.
 const HintsPressMessage = z.object({
   type: z.literal('hints/press'),
   frameId: z.number(),
   itemId: z.string(),
   framePath: z.array(z.string()),
+  confirmed: z.boolean(),
 });
 
 // SW → 해당 프레임({ frameId } 옵션으로 라우팅)으로만 보낸다.
@@ -61,6 +64,16 @@ const PressRequestMessage = z.object({
   type: z.literal('press/request'),
   itemId: z.string(),
   framePath: z.array(z.string()),
+  confirmed: z.boolean(),
+});
+
+// 자식 프레임 → SW → 맨 위(WR-02): press/request로 눌러 달라고 부탁받았는데, 그 사이 요소가
+// 위험해졌고(item.danger) 아직 확인을 거치지 않았다(!confirmed) — 누르지 않고 거절한다. frameId는
+// 자식이 채운 값을 신뢰하지 않고 relay가 sender.frameId로 덮어쓴다(frame/report와 같은 방식).
+const PressRefusedMessage = z.object({
+  type: z.literal('press/refused'),
+  frameId: z.number(),
+  itemId: z.string(),
 });
 
 // 맨 위 → SW → 탭의 모든 프레임(방송). 자식 프레임이 번호표가 떠 있는지 알아야 숫자·0·Esc를
@@ -191,6 +204,7 @@ export const Message = z.discriminatedUnion('type', [
   FramesReportsMessage,
   HintsPressMessage,
   PressRequestMessage,
+  PressRefusedMessage,
   HintsStateMessage,
   FrameRefreshMessage,
   HintsKeyMessage,

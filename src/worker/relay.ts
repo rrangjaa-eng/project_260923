@@ -102,9 +102,16 @@ export function createRelay(): Relay {
         }
         void chrome.tabs.sendMessage(
           tabId,
-          { type: 'press/request', itemId: message.itemId, framePath: message.framePath },
+          { type: 'press/request', itemId: message.itemId, framePath: message.framePath, confirmed: message.confirmed },
           { frameId: message.frameId },
         );
+        return;
+      }
+
+      if (message.type === 'press/refused') {
+        // WR-02: 어느 프레임에서 왔든 맨 위만 확인 화면을 열 수 있다 — frameId는 보낸 프레임이
+        // 채운 값을 무시하고 실제 sender.frameId로 덮어쓴다(스푸핑 방지, frame/report와 같은 방식).
+        void chrome.tabs.sendMessage(tabId, { type: 'press/refused', frameId: senderFrameId, itemId: message.itemId }, { frameId: 0 });
         return;
       }
 

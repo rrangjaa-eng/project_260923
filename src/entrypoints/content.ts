@@ -266,8 +266,27 @@ export default defineContentScript({
       if (message.type === 'press/request') {
         const item = collector.items().find((candidate) => candidate.id === message.itemId);
         const el = collector.get(message.itemId);
-        if (item && el) {
-          pressOrDrag(message.itemId, el, { ...item.fingerprint, framePath: message.framePath }, item.danger);
+        if (!item || !el) {
+          return undefined;
+        }
+        if (item.danger && !message.confirmed) {
+          // WR-02: 번호표를 연 뒤(맨 위의 스냅샷을 만든 뒤) 이 프레임 안 요소가 위험해졌다 —
+          // 누르지 않고 맨 위에 알려 확인 화면을 열게 한다. frameId는 relay가 실제 sender.frameId로
+          // 채운다(신뢰할 필요 없어 0을 그대로 둔다).
+          void chrome.runtime.sendMessage({ type: 'press/refused', frameId: 0, itemId: message.itemId });
+          return undefined;
+        }
+        pressOrDrag(message.itemId, el, { ...item.fingerprint, framePath: message.framePath }, item.danger);
+        return undefined;
+      }
+
+      if (message.type === 'press/refused' && isTopFrame) {
+        // WR-02: 자식 프레임이 누르기를 거절했다 — 갖고 있는 스냅샷으로 확인 화면을 연다(그
+        // 사이 번호표가 닫혔으면 스냅샷이 없을 수 있다 — 그때는 조용히 무시한다. 아무것도 눌리지
+        // 않았으니 안전하다).
+        const composed = composedItemsCache.find((c) => c.frameId === message.frameId && c.itemId === message.itemId);
+        if (composed) {
+          openDangerConfirm(composed, hintKey(composed.frameId, composed.itemId));
         }
         return undefined;
       }
@@ -630,15 +649,22 @@ export default defineContentScript({
     }
 
     // 번호를 눌렀을 때(D-03): 항목이 맨 위 자신의 것이면 바로 누르고, 다른 프레임의 것이면
-    // hints/press를 SW에 보내(해당 프레임에 press/request로 돌아간다).
-    function pressHintEntry(itemId: string): void {
+    // hints/press를 SW에 보내(해당 프레임에 press/request로 돌아간다). confirmed는 WR-02: 이미
+    // 확인 화면을 거쳐 온 호출인지(finish('confirm')) 번호표에서 바로 온 호출인지 — false일 때만
+    // 최신 danger를 다시 확인해, 번호표를 연 뒤 위험해진 요소를 확인 없이 곧바로 누르지 않는다.
+    function pressHintEntry(itemId: string, confirmed = false): void {
       const { frameId: targetFrameId, itemId: targetItemId } = parseHintKey(itemId);
       if (targetFrameId === 0) {
         const item = collector.items().find((candidate) => candidate.id === targetItemId);
         const el = collector.get(targetItemId);
-        if (item && el) {
-          pressOrDrag(targetItemId, el, item.fingerprint, item.danger);
+        if (!item || !el) {
+          return;
         }
+        if (item.danger && !confirmed) {
+          openDangerConfirm({ frameId: 0, itemId: targetItemId, rect: item.rect, fingerprint: item.fingerprint, danger: true }, itemId);
+          return;
+        }
+        pressOrDrag(targetItemId, el, item.fingerprint, item.danger);
         return;
       }
       const composed = composedItemsCache.find((c) => c.frameId === targetFrameId && c.itemId === targetItemId);
@@ -650,6 +676,7 @@ export default defineContentScript({
         frameId: targetFrameId,
         itemId: targetItemId,
         framePath: composed.fingerprint.framePath,
+        confirmed,
       });
     }
 
@@ -687,7 +714,7 @@ export default defineContentScript({
         // T-01-26: 자식 프레임에 확인 화면이 닫혔음을 알려 그 프레임의 pipeline.setModal도 풀어준다.
         void chrome.runtime.sendMessage({ type: 'confirm/state', open: false });
         if (result === 'confirm') {
-          pressHintEntry(itemId);
+          pressHintEntry(itemId, true);
         }
       }
 

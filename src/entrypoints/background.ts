@@ -234,6 +234,7 @@ export default defineBackground(() => {
     if (
       message.type === 'frame/report' ||
       message.type === 'hints/press' ||
+      message.type === 'press/refused' ||
       message.type === 'hints/state' ||
       message.type === 'hints/key' ||
       message.type === 'mode/report' ||
