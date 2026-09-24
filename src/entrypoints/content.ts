@@ -357,7 +357,10 @@ export default defineContentScript({
     }
 
     function evaluateMagnet(cursor: { x: number; y: number }): void {
-      if (!currentEnabled) {
+      // CR-01: 확인 화면이 떠 있는 동안 자석이 스크림 밑 페이지 요소를 다시 잡지 못하게 한다 —
+      // openDangerConfirm이 이미 currentTargetId를 비우고 테두리·머무르기를 껐어도, 이후
+      // pointermove가 evaluateMagnet을 다시 부르면 되돌아온다.
+      if (!currentEnabled || activeConfirmKeyHandler) {
         return;
       }
       const candidates = grid.nearby(cursor, currentSettings.data.captureMarginPx);
@@ -658,6 +661,12 @@ export default defineContentScript({
     // pipeline.setModal로 모든 isTrusted 키를 guard에만 보낸다. confirm이면 누르고(맨 위 요소는
     // 바로, 자식 프레임은 hints/press — pressHintEntry가 이미 이 분기를 안다), cancel이면 닫기만.
     function openDangerConfirm(composed: ComposedItem, itemId: string): void {
+      // CR-01: 확인 화면이 뜨는 순간 자석이 잡고 있던 것·테두리·머무르기 진행을 모두 놓는다 —
+      // 그대로 두면 스크림 밑 페이지 요소가 여전히 잡힌 채로 남는다.
+      currentTargetId = null;
+      hideRing();
+      stopDwellLoopIfRunning();
+
       const guard: ConfirmGuard = createConfirmGuard({ openedAt: performance.now(), keymap: currentSettings.data.keymap });
 
       function finish(result: 'confirm' | 'cancel'): void {

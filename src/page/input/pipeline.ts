@@ -177,6 +177,14 @@ export function createInputPipeline(opts: {
       if (!event.isTrusted || !isHelperEnabled()) {
         return;
       }
+      if (modalHandler) {
+        // CR-01: 확인 화면이 떠 있으면 포인터는 자석·떨림 필터를 거치지 않고 그대로 통과한다 —
+        // 스크림·그림자 DOM 대화상자가 직접 받는다(취소 버튼의 실제 클릭이 여기서 막히면 안 된다).
+        // 이전 묶음이 남긴 상태도 지워 모달이 닫힌 뒤 엉뚱한 대신 누르기가 이어지지 않게 한다.
+        pressSwallowed = false;
+        pendingPressExecute = null;
+        return;
+      }
       const accepted = activeFilter().accept({ kind: 'press', x: event.clientX, y: event.clientY, t: event.timeStamp });
       pressSwallowed = !accepted;
       if (pressSwallowed) {
