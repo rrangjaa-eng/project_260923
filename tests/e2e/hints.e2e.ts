@@ -214,6 +214,46 @@ test('번호표가 떠 있을 때 F 또는 Esc를 누르면 번호표가 사라�
   expect((await labelTexts(page)).length).toBe(0);
 });
 
+test('CR-06: 도우미를 껐다 켜면 번호표 자리·크기가 무너지지 않는다', async ({ context, openPopup }) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/targets.html');
+  await waitForHelperReady(page);
+
+  const elBox = await page.locator('#btn-tiny').boundingBox();
+  if (!elBox) {
+    throw new Error('버튼을 찾지 못했다');
+  }
+  // btn-tiny 위에 커서를 두어(거리 0) 반드시 1번이 되게 한다(위 시험과 같은 방식).
+  await page.mouse.move(elBox.x + elBox.width / 2, elBox.y + elBox.height / 2);
+  await page.waitForTimeout(50);
+
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(50);
+  const before = (await labelBoxes(page))[0];
+  expect(before, '첫 번째 번호표가 열릴 때는 자리를 찾을 수 있어야 한다').toBeDefined();
+
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(50);
+
+  const popup = await openPopup(page);
+  await popup.getByRole('button', { name: '도우미 끄기' }).click();
+  await popup.getByRole('button', { name: '도우미 켜기' }).click();
+  await popup.close();
+  await waitForHelperReady(page);
+
+  await page.mouse.move(elBox.x + elBox.width / 2, elBox.y + elBox.height / 2);
+  await page.waitForTimeout(50);
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(50);
+  const after = (await labelBoxes(page))[0];
+
+  expect(after, '껐다 켠 뒤에도 번호표가 열려야 한다').toBeDefined();
+  expect(after.width, '스타일이 없으면 28px 정사각형이 무너진다').toBeGreaterThanOrEqual(28);
+  expect(after.height).toBeGreaterThanOrEqual(28);
+  expect(Math.abs(after.x - before.x), 'x 자리가 껐다 켜기 전후로 같아야 한다').toBeLessThanOrEqual(2);
+  expect(Math.abs(after.y - before.y), 'y 자리가 껐다 켜기 전후로 같아야 한다').toBeLessThanOrEqual(2);
+});
+
 test('번호표 상자끼리 서로 겹치지 않는다', async ({ context, servePage }) => {
   servePage('http://practice.test/hints-many.html', MANY_BUTTONS_HTML);
   const page = await context.newPage();
