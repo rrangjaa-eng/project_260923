@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, type BrowserContext, type Worker } from '@playwright/test';
 import { test, expect } from './fixtures';
-import { SYNC_ITEM_LIMIT, siteKey, syncItemBytes } from '../../src/core/settings-schema';
+import { SYNC_ITEM_LIMIT, defaultSettings, siteKey, syncItemBytes } from '../../src/core/settings-schema';
 
 // D-22·D-24·D-25·D-30(STOR-02): 저장 형식이 바뀌다 실패해도 원본을 지키고 알리며, 동기화 항목
 // 8KB 한도를 지킨다. 업데이트·재시작 뒤 옛 도우미가 스스로 물러나고 새 도우미가 한 번만 들어간다.
@@ -210,6 +210,69 @@ test('site 항목이 정확히 8192바이트일 때 "이 사이트에서 켜기"
 
   await popup.close();
   await page.close();
+});
+
+test('WR-08: settings 키가 아예 없어도(동기화 초기화 등) "도우미 끄기"가 영원히 막히지 않는다', async () => {
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tremor-helper-lifecycle-'));
+  let launched = await launchExtension(userDataDir);
+
+  await expect.poll(() => readSyncKey(launched.serviceWorker, 'settings')).toBeDefined();
+
+  // 동기화 초기화·onInstalled 미완료 등으로 settings 키 자체가 사라진 상태를 흉내 낸다(값이
+  // 깨진 게 아니라 아예 없는 것 — corrupted 시험들과 다르다).
+  await launched.serviceWorker.evaluate(async () => {
+    await chrome.storage.sync.remove('settings');
+  });
+
+  await launched.context.close();
+  launched = await launchExtension(userDataDir);
+
+  // onInstalled의 ensureDefaultSettings()가 다시 채워 넣기 전에 곧바로 지운다 — "한 번도 안
+  // 써진 것"과 "값이 있었는데 방금 사라진 것"을 구분하지 않는 코드 경로를 시험한다.
+  await expect.poll(() => readSyncKey(launched.serviceWorker, 'settings')).toBeDefined();
+  await launched.serviceWorker.evaluate(async () => {
+    await chrome.storage.sync.remove('settings');
+  });
+  await expect.poll(() => readSyncKey(launched.serviceWorker, 'settings')).toBeUndefined();
+
+  const extensionId = new URL(launched.serviceWorker.url()).host;
+  const popup = await launched.context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  await popup.getByRole('button', { name: '도우미 끄기' }).click();
+
+  await expect
+    .poll(async () => {
+      const settings = (await readSyncKey(launched.serviceWorker, 'settings')) as { data?: { enabled?: boolean } } | undefined;
+      return settings?.data?.enabled;
+    }, 'settings 키가 없다는 이유만으로 "도우미 끄기"가 preserved-original로 영원히 거절되면 안 된다')
+    .toBe(false);
+
+  await launched.context.close();
+  fs.rmSync(userDataDir, { recursive: true, force: true });
+});
+
+test('WR-08: 깨진 설정이 스스로 고쳐지면(예: 다른 기기 동기화) 다음 성공한 저장 뒤 옛 알림이 사라진다', async ({ serviceWorker, openPopup }) => {
+  await seedMigrationFailure(serviceWorker);
+  const popup = await openPopup();
+  const warningCard = popup.locator('.warning-card');
+  await expect(warningCard).toHaveText(MIGRATION_FAILED_TOAST_TEXT);
+
+  // 다른 기기 동기화가 settings를 다시 올바른 값으로 되돌렸다고 흉내 낸다.
+  await serviceWorker.evaluate(async (value) => {
+    await chrome.storage.sync.set({ settings: value });
+  }, defaultSettings());
+
+  // 아무 저장 요청이나 보내 readAndValidateSettings가 다시 성공하게 만든다.
+  await popup.getByRole('button', { name: '도우미 끄기' }).click();
+
+  await expect
+    .poll(async () => {
+      const stored = await serviceWorker.evaluate(() => chrome.storage.local.get('notice:migration-failed'));
+      return stored['notice:migration-failed'];
+    }, '설정이 스스로 고쳐진 뒤에는 옛 알림이 남아 있으면 안 된다')
+    .toBeUndefined();
+
+  await popup.close();
 });
 
 // Task 3: 옛 도우미 자기 정리와 업데이트 직후 새 도우미 넣기(D-22).

@@ -54,6 +54,8 @@ declare namespace chrome.storage {
   interface StorageArea {
     get(key: string): Promise<Record<string, unknown>>;
     set(items: Record<string, unknown>): Promise<void>;
+    // WR-08: notice:migration-failed를 지울 때 쓴다(storage-writer.ts).
+    remove(keys: string | string[]): Promise<void>;
   }
   const sync: StorageArea;
   const local: StorageArea;
