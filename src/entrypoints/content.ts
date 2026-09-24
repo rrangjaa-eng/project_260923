@@ -462,6 +462,15 @@ export default defineContentScript({
         syncDwellLoop();
         dragTwoPress.cancel();
         setHint(null);
+        // CR-02: 열려 있던 확인도 함께 취소한다 — 안 그러면 화면(destroyOverlayRoot로 이미 지워짐)
+        // 없이 activeConfirmKeyHandler·pipeline.setModal만 남아, 다시 켰을 때 다음 평범한 Enter가
+        // 옛 확인의 "예"로 처리돼 위험한 버튼이 조용히 눌린다.
+        if (activeConfirmKeyHandler) {
+          inputPipeline.setModal(null);
+          activeConfirmKeyHandler = null;
+          closeConfirm();
+          void chrome.runtime.sendMessage({ type: 'confirm/state', open: false });
+        }
       }
 
       if (window.top === window) {
@@ -894,6 +903,12 @@ export default defineContentScript({
       pipelineController.abort();
       stopDwellLoopIfRunning();
       dragTwoPress.cancel();
+      // CR-02: 도우미 꺼짐과 같은 정리 — 열려 있던 확인의 보호 타이머(confirm-dialog.ts 내부
+      // setTimeout)도 함께 멈춘다.
+      if (activeConfirmKeyHandler) {
+        activeConfirmKeyHandler = null;
+        closeConfirm();
+      }
       // 도우미 꺼짐과 같은 정리(hideModeIndicator = destroyOverlayRoot) — 테두리·번호표·토스트를
       // 모두 포함한 호스트 하나를 통째로 지운다(호스트는 늘 1개).
       hideModeIndicator();
