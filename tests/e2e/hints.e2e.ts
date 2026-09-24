@@ -526,3 +526,102 @@ test('자석 커서로 누른 요소도 누른 횟수에 들어간다', async ({
   const count = await readPressesCount(serviceWorker, 'http://practice.test', 'btn-tiny');
   expect(count).toBeGreaterThanOrEqual(1);
 });
+
+async function pressesEntries(
+  serviceWorker: Worker,
+  origin: string,
+): Promise<Array<{ fingerprint: { id?: string }; count: number }>> {
+  const key = `presses:${origin}`;
+  return serviceWorker.evaluate(async (storageKey) => {
+    const result = await chrome.storage.local.get(storageKey);
+    const stored = result[storageKey] as { data?: { counts?: Array<{ fingerprint: { id?: string }; count: number }> } } | undefined;
+    return stored?.data?.counts ?? [];
+  }, key);
+}
+
+test('WR-04: id·name·aria가 없는 링크를 여러 번 눌러도 글자로 같은 요소임을 알아채 기록이 하나로 쌓인다', async ({
+  context,
+  servePage,
+  serviceWorker,
+}) => {
+  servePage(
+    'http://practice.test/wr04-link.html',
+    '<!doctype html><html><body style="margin:0">' +
+      '<a href="javascript:void(0)" style="position:absolute;left:100px;top:100px;width:80px;height:30px;display:block">전용링크글자</a>' +
+      '</body></html>',
+  );
+  const page = await context.newPage();
+  await page.goto('http://practice.test/wr04-link.html');
+  await waitForHelperReady(page);
+  await page.waitForTimeout(100);
+
+  const box = await page.locator('a').boundingBox();
+  if (!box) {
+    throw new Error('링크를 찾지 못했다');
+  }
+  // 요소 안(pointInRect)을 클릭하면 원래 클릭이 그대로 통과해(D-10) pressOrDrag를 거치지 않는다
+  // — 자석이 "떨어진 곳에서 잡아 대신 누르기"를 하도록 요소 밖(잡는 범위 안)을 클릭한다(다른
+  // presses 시험과 같은 방식, 아래 "자석 커서로 누른 요소도..." 시험 참고).
+  const x = box.x - 10;
+  const y = box.y + box.height / 2;
+
+  // 같은 자리를 세 번 누른다 — 떨림 필터의 같은 자리 간격(기본 300ms, D-07)보다 넉넉히 띄운다.
+  for (let i = 0; i < 3; i += 1) {
+    await page.mouse.move(x, y);
+    await page.waitForTimeout(20);
+    await page.mouse.click(x, y);
+    await page.waitForTimeout(400);
+  }
+
+  const entries = await pressesEntries(serviceWorker, 'http://practice.test');
+  expect(entries.length, '같은 링크를 여러 번 눌러도 기록 항목은 하나로 쌓여야 한다(id·name·aria가 없어도)').toBe(1);
+  expect(entries[0]?.count).toBeGreaterThanOrEqual(3);
+});
+
+test('WR-04: 기록이 200개로 가득 차 있어도 방금 새로 누른 요소는 곧바로 밀려나지 않는다', async ({
+  context,
+  servePage,
+  serviceWorker,
+}) => {
+  servePage(
+    'http://practice.test/wr04-cap.html',
+    '<!doctype html><html><body style="margin:0">' +
+      '<button id="btn-new" style="position:absolute;left:50px;top:50px;width:40px;height:40px">새버튼</button>' +
+      '</body></html>',
+  );
+
+  const origin = 'http://practice.test';
+  const key = `presses:${origin}`;
+  await serviceWorker.evaluate(
+    async ({ storageKey, count }) => {
+      const counts = [];
+      for (let i = 0; i < count; i += 1) {
+        counts.push({ fingerprint: { id: `seed-${i.toString()}`, domPath: `seed:nth-of-type(${i.toString()})`, framePath: [] }, count: 1 });
+      }
+      await chrome.storage.local.set({ [storageKey]: { schemaVersion: 1, data: { counts } } });
+    },
+    { storageKey: key, count: 200 },
+  );
+
+  const page = await context.newPage();
+  await page.goto('http://practice.test/wr04-cap.html');
+  await waitForHelperReady(page);
+  await page.waitForTimeout(100);
+
+  const box = await page.locator('#btn-new').boundingBox();
+  if (!box) {
+    throw new Error('버튼을 찾지 못했다');
+  }
+  // 요소 밖(잡는 범위 안)을 눌러 자석이 대신 누르기(pressOrDrag → sendRecordPress)를 거치게 한다.
+  const x = box.x - 10;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.waitForTimeout(50);
+  await page.mouse.click(x, y);
+  await page.waitForTimeout(200);
+
+  const entries = await pressesEntries(serviceWorker, origin);
+  expect(entries.length).toBeLessThanOrEqual(200);
+  const found = entries.find((entry) => entry.fingerprint.id === 'btn-new');
+  expect(found, '방금 새로 누른 요소가 상한(200개) 때문에 곧바로 밀려나면 안 된다').toBeTruthy();
+});
