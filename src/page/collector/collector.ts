@@ -197,6 +197,25 @@ function buttonTextOf(el: Element): string | undefined {
   if (el instanceof HTMLInputElement && (el.type === 'submit' || el.type === 'button' || el.type === 'reset')) {
     return textOrUndefined(el.value);
   }
+  if (tag === 'a' || tag === 'img') {
+    // WR-04: 링크·이미지는 이제까지 buttonText가 비어 있어(id·name·aria도 없으면) fingerprint
+    // 일치 점수가 domPath 하나(matchScore 1)뿐이라 isSameElement(>=2, T-01-16과 같은 기준)를
+    // 못 넘어 누를 때마다 새 기록이 됐다. 자기 글자 → 자손 img[alt](CR-05와 같은 순서) → 그래도
+    // 없으면(아이콘 전용 링크) href 경로까지 이름 후보로 쓴다.
+    const text = textOrUndefined(el.textContent);
+    if (text) {
+      return text;
+    }
+    const imgAlt = tag === 'img' ? el.getAttribute('alt') : el.querySelector('img[alt]')?.getAttribute('alt');
+    const altText = textOrUndefined(imgAlt);
+    if (altText) {
+      return altText;
+    }
+    if (el instanceof HTMLAnchorElement && el.pathname) {
+      return textOrUndefined(el.pathname);
+    }
+    return undefined;
+  }
   return undefined;
 }
 

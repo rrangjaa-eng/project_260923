@@ -255,8 +255,16 @@ export function createStorageWriter(): StorageWriter {
             : [...base.data.counts, { fingerprint, count: 1 }];
 
         if (nextCounts.length > MAX_PRESS_ENTRIES) {
-          // 사이트별 상한(T-01-18) — 가장 적게 누른 것부터 뺀다.
-          nextCounts = [...nextCounts].sort((a, b) => b.count - a.count).slice(0, MAX_PRESS_ENTRIES);
+          // 사이트별 상한(T-01-18) — 가장 적게 누른 것부터 뺀다. WR-04: Array.prototype.sort는
+          // 안정 정렬이라 count가 같으면(대부분 1) 원래 순서가 유지되고, 방금 추가한 새 항목은
+          // 항상 배열 맨 뒤(동점 중 가장 나중)에 있다 — 그대로 정렬해 자르면 방금 누른 요소가
+          // 상한에 걸릴 때마다 곧바로 잘려나간다. 방금 추가된 항목(있다면)은 제외하고 나머지만
+          // 정렬·상한을 적용한 뒤 다시 붙인다.
+          const justInserted = matchIndex < 0 ? nextCounts[nextCounts.length - 1] : undefined;
+          const rest = justInserted ? nextCounts.slice(0, -1) : nextCounts;
+          const restLimit = MAX_PRESS_ENTRIES - (justInserted ? 1 : 0);
+          const trimmedRest = [...rest].sort((a, b) => b.count - a.count).slice(0, restLimit);
+          nextCounts = justInserted ? [...trimmedRest, justInserted] : trimmedRest;
         }
 
         const next: PressesV1 = { ...base, data: { counts: nextCounts } };
