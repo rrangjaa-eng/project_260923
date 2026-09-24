@@ -93,7 +93,10 @@ test('확대 1.1배·0.8배에서도 모드 표시 글자 크기가 화면에서
       })
       .toBeGreaterThanOrEqual(17.5);
     const metrics = await indicatorMetrics(page);
-    expect(metrics!.fontSizePx * factor).toBeLessThanOrEqual(18.5);
+    if (!metrics) {
+      throw new Error('모드 표시를 찾지 못했다');
+    }
+    expect(metrics.fontSizePx * factor).toBeLessThanOrEqual(18.5);
   }
 });
 
@@ -131,7 +134,10 @@ test('확대 전에 연 탭과 확대 뒤에 연 탭(같은 출처) 모두 모�
     })
     .toBeGreaterThanOrEqual(17.5);
   const beforeMetrics = await indicatorMetrics(pageBefore);
-  expect(beforeMetrics!.fontSizePx * 1.1).toBeLessThanOrEqual(18.5);
+  if (!beforeMetrics) {
+    throw new Error('모드 표시를 찾지 못했다');
+  }
+  expect(beforeMetrics.fontSizePx * 1.1).toBeLessThanOrEqual(18.5);
 
   // 크롬은 출처별 확대를 기억한다(RESEARCH.md Pattern 5) — 확대 뒤에 새로 연 같은 출처 탭도
   // 이미 1.1배로 열린다.
@@ -145,5 +151,8 @@ test('확대 전에 연 탭과 확대 뒤에 연 탭(같은 출처) 모두 모�
     })
     .toBeGreaterThanOrEqual(17.5);
   const afterMetrics = await indicatorMetrics(pageAfter);
-  expect(afterMetrics!.fontSizePx * 1.1).toBeLessThanOrEqual(18.5);
+  if (!afterMetrics) {
+    throw new Error('모드 표시를 찾지 못했다');
+  }
+  expect(afterMetrics.fontSizePx * 1.1).toBeLessThanOrEqual(18.5);
 });

@@ -171,6 +171,19 @@ const SiteQueryMessage = z.object({
   type: z.literal('site/query'),
 });
 
+// 확대 역보정(Plan 01-15, D-26, RESEARCH Pattern 5): content → SW, 답 { zoom }.
+// background.ts가 sender.tab.id로 chrome.tabs.getZoom을 불러 답한다.
+const ZoomQueryMessage = z.object({
+  type: z.literal('zoom/query'),
+});
+
+// SW → 탭의 모든 프레임(방송, T-01-47): chrome.tabs.onZoomChange가 오면 새 비율을 알린다.
+// zoom은 0.25~5 범위만 받는다(스푸핑·오류 값 방지) — 이 범위 밖 값은 parseMessage가 버린다.
+const ZoomChangedMessage = z.object({
+  type: z.literal('zoom/changed'),
+  zoom: z.number().min(0.25).max(5),
+});
+
 export const Message = z.discriminatedUnion('type', [
   StorageRequestMessage,
   FrameStateMessage,
@@ -186,6 +199,8 @@ export const Message = z.discriminatedUnion('type', [
   ConfirmKeyMessage,
   SitePingMessage,
   SiteQueryMessage,
+  ZoomQueryMessage,
+  ZoomChangedMessage,
 ]);
 export type Message = z.infer<typeof Message>;
 

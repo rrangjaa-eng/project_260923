@@ -148,6 +148,14 @@ export default defineBackground(() => {
     void writer.checkSettings();
   });
 
+  // 확대 역보정(Plan 01-15, D-26, RESEARCH Pattern 5): 확대가 바뀌면 그 탭의 모든 프레임에
+  // 새 비율을 방송한다(frameId 생략 = 모든 프레임). 탭이 이미 닫혔을 수 있어 실패는 무시한다.
+  chrome.tabs.onZoomChange.addListener((info) => {
+    void chrome.tabs.sendMessage(info.tabId, { type: 'zoom/changed', zoom: info.newZoomFactor }).catch(() => {
+      // 보낼 곳이 없다(닫힌 탭 등) — 무시.
+    });
+  });
+
   chrome.runtime.onMessage.addListener((raw, sender, sendResponse) => {
     // 확장 내부 메시지만 받는다(D-09) — externally_connectable 없음, window.postMessage는 받지 않는다.
     if (sender.id !== chrome.runtime.id) {
@@ -204,6 +212,19 @@ export default defineBackground(() => {
       return undefined;
     }
 
+    if (message.type === 'zoom/query') {
+      // 확대 역보정(Plan 01-15): 이 프레임이 속한 탭의 지금 확대 비율을 답한다.
+      const tabId = sender.tab?.id;
+      if (tabId === undefined) {
+        sendResponse({ zoom: 1 });
+        return undefined;
+      }
+      void chrome.tabs.getZoom(tabId).then((zoom) => {
+        sendResponse({ zoom });
+      });
+      return true;
+    }
+
     if (
       message.type === 'frame/report' ||
       message.type === 'hints/press' ||
@@ -221,11 +242,12 @@ export default defineBackground(() => {
       message.type === 'frames/reports' ||
       message.type === 'press/request' ||
       message.type === 'frame/refresh' ||
-      message.type === 'site/ping'
+      message.type === 'site/ping' ||
+      message.type === 'zoom/changed'
     ) {
-      // SW → 프레임 방향 메시지다(site/ping도 SW → 맨 위 프레임). background.ts는 이 방향으로는
-      // 받지 않으므로(relay.ts·respondsToSitePing이 chrome.tabs.sendMessage로 직접 보낸다)
-      // 받을 일이 없다 — 방어적으로 무시한다.
+      // SW → 프레임 방향 메시지다(site/ping도 SW → 맨 위 프레임, zoom/changed도 위
+      // onZoomChange가 chrome.tabs.sendMessage로 직접 보낸다). background.ts는 이 방향으로는
+      // 받지 않으므로 받을 일이 없다 — 방어적으로 무시한다.
       return undefined;
     }
 

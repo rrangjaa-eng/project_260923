@@ -24,6 +24,9 @@ declare namespace chrome.runtime {
     addListener(
       callback: (message: unknown, sender: MessageSender, sendResponse: (response?: unknown) => void) => boolean | undefined,
     ): void;
+    removeListener(
+      callback: (message: unknown, sender: MessageSender, sendResponse: (response?: unknown) => void) => boolean | undefined,
+    ): void;
   };
 
   function sendMessage(message: unknown): Promise<unknown>;

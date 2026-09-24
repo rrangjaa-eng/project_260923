@@ -1,4 +1,5 @@
 import tokensCss from '../../../docs/design/tokens.css?inline';
+import { parseMessage } from '@/shared/messages';
 
 // 오버레이 = Shadow DOM(open) + 토큰만(D-26). 프레임마다 호스트 하나(tremor-helper-root), 사이트
 // CSS를 받지도 주지도 않는다. open으로 두는 이유(DOM 감사가 계산된 스타일을 실측해야 함)는
@@ -23,6 +24,48 @@ let wasNearIndicator = false;
 let transientTimeoutId: ReturnType<typeof setTimeout> | null = null;
 // 끌어서 놓기 두 번 누르기(D-08): 끌기 시작 상태일 때 모드 표시 둘째 줄에 다음 행동을 안내한다.
 let hintText: string | null = null;
+// 확대 역보정(Plan 01-15, D-26, RESEARCH Pattern 5): 호스트가 살아 있는 동안만 zoom/changed를
+// 구독한다 — destroyOverlayRoot()가 이 컨트롤러를 abort해 리스너를 뗀다.
+let zoomAbortController: AbortController | null = null;
+
+// 오버레이 부품(ring.ts·hints.ts 등)이 위치 계산에 쓸 현재 배율. hostElement의 인라인 스타일
+// 값(리터럴, var()·calc() 없음)이라 getPropertyValue가 그대로 돌려준다.
+export function getOverlayScale(): number {
+  if (!hostElement) {
+    return 1;
+  }
+  const raw = hostElement.style.getPropertyValue('--overlay-scale').trim();
+  const value = Number.parseFloat(raw);
+  return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
+function applyOverlayScale(zoom: number): void {
+  if (!hostElement) {
+    return;
+  }
+  hostElement.style.setProperty('--overlay-scale', (1 / zoom).toString());
+}
+
+function subscribeToZoom(): void {
+  zoomAbortController = new AbortController();
+  const handleMessage = (raw: unknown): undefined => {
+    const parsed = parseMessage(raw);
+    if (parsed.success && parsed.data.type === 'zoom/changed') {
+      applyOverlayScale(parsed.data.zoom);
+    }
+    return undefined;
+  };
+  chrome.runtime.onMessage.addListener(handleMessage);
+  zoomAbortController.signal.addEventListener('abort', () => {
+    chrome.runtime.onMessage.removeListener(handleMessage);
+  });
+  void chrome.runtime.sendMessage({ type: 'zoom/query' }).then((raw) => {
+    const response = raw as { zoom?: number } | undefined;
+    if (typeof response?.zoom === 'number') {
+      applyOverlayScale(response.zoom);
+    }
+  });
+}
 
 export function ensureOverlayRoot(): ShadowRoot {
   if (shadowRoot) {
@@ -45,16 +88,16 @@ ${tokensCss}
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: var(--space-2) var(--space-3);
+  padding: calc(var(--space-2) * var(--overlay-scale)) calc(var(--space-3) * var(--overlay-scale));
   background: var(--accent);
   color: var(--bg);
   font-family: var(--font);
-  font-size: var(--text-label);
+  font-size: calc(var(--text-label) * var(--overlay-scale));
   font-weight: var(--weight-bold);
   line-height: var(--leading);
   letter-spacing: var(--tracking);
-  border-radius: var(--radius-button);
-  box-shadow: 0 0 0 var(--halo-width) var(--halo);
+  border-radius: calc(var(--radius-button) * var(--overlay-scale));
+  box-shadow: 0 0 0 calc(var(--halo-width) * var(--overlay-scale)) var(--halo);
   pointer-events: none;
   transition: left var(--motion-appear);
 }
@@ -63,7 +106,7 @@ ${tokensCss}
   align-items: center;
 }
 .${MODE_INDICATOR_CLASS}__drag-hint {
-  font-size: var(--text-label);
+  font-size: calc(var(--text-label) * var(--overlay-scale));
   font-weight: var(--weight-regular);
 }
 :host([data-side="right"]) .${MODE_INDICATOR_CLASS} {
@@ -72,7 +115,7 @@ ${tokensCss}
 :host([data-mode="typing"]) .${MODE_INDICATOR_CLASS} {
   background: var(--bg);
   color: var(--accent);
-  border: var(--border-strong) solid var(--accent);
+  border: calc(var(--border-strong) * var(--overlay-scale)) solid var(--accent);
 }
 .${MODE_INDICATOR_CLASS}__hint {
   font-weight: var(--weight-regular);
@@ -82,6 +125,9 @@ ${tokensCss}
 
   hostElement.dataset.mode = mode;
   hostElement.dataset.side = side;
+  // 실제 비율이 도착하기 전까지 calc()가 유효한 값을 쓰도록 기본값을 먼저 둔다.
+  hostElement.style.setProperty('--overlay-scale', '1');
+  subscribeToZoom();
 
   return shadowRoot;
 }
@@ -99,6 +145,8 @@ export function destroyOverlayRoot(): void {
     clearTimeout(transientTimeoutId);
     transientTimeoutId = null;
   }
+  zoomAbortController?.abort();
+  zoomAbortController = null;
 }
 
 function renderIndicatorContent(): void {
