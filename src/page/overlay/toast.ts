@@ -30,6 +30,7 @@ function ensureToastElement(): HTMLDivElement {
   font-size: calc(var(--text-body) * var(--overlay-scale));
   line-height: var(--leading);
   letter-spacing: var(--tracking);
+  word-break: keep-all;
   border: calc(var(--border-strong) * var(--overlay-scale)) solid var(--warning);
   border-radius: calc(var(--radius-card) * var(--overlay-scale));
   opacity: 0;
