@@ -351,6 +351,57 @@ test('확인 화면에 "1초 뒤에 누를 수 있어요" 글자와 1s linear �
   await page.keyboard.press('Enter');
 });
 
+test('CR-01: 확인 화면이 떠 있을 때 취소 버튼 근처(48px 안) 페이지 버튼이 대신 눌리지 않고 취소 클릭이 통한다', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/danger.html');
+  await waitForHelperReady(page);
+
+  await openDangerConfirm(page, 'btn-delete-solo');
+  await page.waitForTimeout(1100); // 보호 시간이 지나야 진짜 취소 클릭이 통한다.
+
+  const cancelBox = await page.evaluate(() => {
+    const shadow = document.querySelector('tremor-helper-root')?.shadowRoot;
+    const btn = shadow?.querySelector('[data-part="confirm-button-cancel"]');
+    const rect = btn?.getBoundingClientRect();
+    return rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null;
+  });
+  if (!cancelBox) {
+    throw new Error('취소 버튼을 찾지 못했다');
+  }
+  const clickX = cancelBox.x + cancelBox.width / 2;
+  const clickY = cancelBox.y + cancelBox.height / 2;
+
+  // 취소 버튼 클릭 지점에서 15px 떨어진(자석 잡는 범위 48px 안, 클릭 지점 자체는 벗어난) 곳에
+  // 평범한 페이지 버튼을 둔다 — CR-01은 취소 클릭이 이 버튼으로 새는 사고를 낸다.
+  await page.evaluate(
+    ({ x, y }) => {
+      const btn = document.createElement('button');
+      btn.id = 'nearby-under-dialog';
+      btn.textContent = '몰래';
+      btn.style.cssText = `position:fixed;left:${(x + 15).toString()}px;top:${(y - 15).toString()}px;width:30px;height:30px`;
+      (window as unknown as { __nearbyClicks: number }).__nearbyClicks = 0;
+      btn.addEventListener('click', () => {
+        (window as unknown as { __nearbyClicks: number }).__nearbyClicks += 1;
+      });
+      document.body.append(btn);
+    },
+    { x: clickX, y: clickY },
+  );
+
+  // collector가 새 버튼을 모으도록(MutationObserver → rAF) 기다린다.
+  await page.waitForTimeout(100);
+
+  await page.mouse.click(clickX, clickY);
+  await page.waitForTimeout(150);
+
+  const nearbyClicks = await page.evaluate(() => (window as unknown as { __nearbyClicks?: number }).__nearbyClicks ?? 0);
+  expect(nearbyClicks, '취소 버튼 근처 페이지 버튼이 대신 눌리면 안 된다').toBe(0);
+  expect(await readDialog(page), '취소를 눌렀으니 확인 화면이 닫혀야 한다').toBeNull();
+  await expect(page.locator('#btn-delete-solo-count')).toHaveText('0');
+});
+
 test('저장(위험 아님) 번호는 확인 화면 없이 곧바로 눌린다', async ({ context }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/danger.html');
