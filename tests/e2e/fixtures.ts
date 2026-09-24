@@ -18,16 +18,24 @@ const PRACTICE_SITE_DIR = path.resolve(__dirname, '../practice-site');
 const browsersPath = process.env.PLAYWRIGHT_BROWSERS_PATH;
 const executablePath = browsersPath ? path.join(browsersPath, 'chromium') : undefined;
 
-type ServedPages = Map<string, string>;
+interface ServedPage {
+  html: string;
+  headers?: Record<string, string>;
+}
+type ServedPages = Map<string, ServedPage>;
 
 interface Fixtures {
   servedPages: ServedPages;
   context: BrowserContext;
   serviceWorker: Worker;
   extensionId: string;
-  openPopup: () => Promise<Page>;
-  // routePath: 전체 URL(스킴+호스트+경로), 예: 'http://practice.test/frame-same.html'
-  servePage: (routePath: string, html: string) => void;
+  // target을 주면 그 페이지의 탭을 대상으로 팝업을 연다(?tabId=, Plan 01-13) — 시험에서는 팝업 탭
+  // 자신이 활성 탭이 되어(대상 탭이 아니라) chrome.tabs.query({active:true})로는 대상을 찾을 수
+  // 없기 때문이다. 생략하면 기존처럼 인자 없이 연다(현재 활성 탭을 그대로 대상으로 삼는 실제 동작).
+  openPopup: (target?: Page) => Promise<Page>;
+  // routePath: 전체 URL(스킴+호스트+경로), 예: 'http://practice.test/frame-same.html'.
+  // headers: 응답에 실을 추가 HTTP 머리글(Plan 01-13 Task 3의 sandbox 페이지용).
+  servePage: (routePath: string, html: string, headers?: Record<string, string>) => void;
   // practice.test(같은 출처)와 other.test(다른 출처) iframe을 담은 연습 페이지를 등록한다(D-28).
   serveFramedPracticePage: () => void;
   // D-14, D-31, Plan 01-12: practice.test·other.test·확장 페이지 밖으로 나가는 요청의 URL 목록.
@@ -62,7 +70,12 @@ export const test = base.extend<Fixtures>({
         const withoutQuery = requestUrl.split('?')[0] ?? requestUrl;
         const inline = servedPages.get(withoutQuery);
         if (inline !== undefined) {
-          await route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: inline });
+          await route.fulfill({
+            status: 200,
+            contentType: 'text/html; charset=utf-8',
+            ...(inline.headers ? { headers: inline.headers } : {}),
+            body: inline.html,
+          });
           return;
         }
 
@@ -106,37 +119,41 @@ export const test = base.extend<Fixtures>({
     await use(new URL(serviceWorker.url()).host);
   },
 
-  openPopup: async ({ context, extensionId }, use) => {
-    await use(async () => {
+  openPopup: async ({ context, extensionId, serviceWorker }, use) => {
+    await use(async (target?: Page) => {
       const page = await context.newPage();
+      if (target) {
+        const tabs = await serviceWorker.evaluate((url) => chrome.tabs.query({ url }), target.url());
+        const tabId = tabs[0]?.id;
+        await page.goto(`chrome-extension://${extensionId}/popup.html?tabId=${tabId !== undefined ? String(tabId) : ''}`);
+        return page;
+      }
       await page.goto(`chrome-extension://${extensionId}/popup.html`);
       return page;
     });
   },
 
   servePage: async ({ servedPages }, use) => {
-    await use((routePath: string, html: string) => {
-      servedPages.set(routePath, html);
+    await use((routePath: string, html: string, headers?: Record<string, string>) => {
+      servedPages.set(routePath, headers ? { html, headers } : { html });
     });
   },
 
   serveFramedPracticePage: async ({ servedPages }, use) => {
     await use(() => {
-      servedPages.set(
-        'http://practice.test/',
-        '<!doctype html><html><body><h1>연습 사이트</h1>' +
+      servedPages.set('http://practice.test/', {
+        html:
+          '<!doctype html><html><body><h1>연습 사이트</h1>' +
           '<iframe src="http://practice.test/frame-same.html" title="같은 출처"></iframe>' +
           '<iframe src="http://other.test/frame-other.html" title="다른 출처"></iframe>' +
           '</body></html>',
-      );
-      servedPages.set(
-        'http://practice.test/frame-same.html',
-        '<!doctype html><html><body><p>같은 출처 프레임</p></body></html>',
-      );
-      servedPages.set(
-        'http://other.test/frame-other.html',
-        '<!doctype html><html><body><p>다른 출처 프레임</p></body></html>',
-      );
+      });
+      servedPages.set('http://practice.test/frame-same.html', {
+        html: '<!doctype html><html><body><p>같은 출처 프레임</p></body></html>',
+      });
+      servedPages.set('http://other.test/frame-other.html', {
+        html: '<!doctype html><html><body><p>다른 출처 프레임</p></body></html>',
+      });
     });
   },
 
