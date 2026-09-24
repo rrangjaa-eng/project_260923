@@ -274,8 +274,10 @@ export default defineContentScript({
 
       if (message.type === 'frame/refresh') {
         // T-01-21: 형제 프레임의 iframe 구성이 바뀌어 내 selfPath(부모의 자식 목록에서 내 순번)가
-        // 낡았을 수 있다 — 스케줄 대기 없이 바로 다시 모아 새 경로로 보고한다.
-        collector.refresh();
+        // 낡았을 수 있다 — 스케줄 대기 없이 바로 다시 모아 새 경로로 보고한다. CR-08: relay.ts가
+        // 이 메시지를 보내는 상황 자체가 relay 쪽 상태가 막 바뀐 참이라(형제 구성 변화) 강제로
+        // 다시 보고한다 — 내용이 이전과 같아 보여도 relay.ts의 기억이 방금 사라졌을 수 있다.
+        collector.refresh(true);
         return undefined;
       }
 
@@ -926,7 +928,7 @@ export default defineContentScript({
       }
     }
 
-    function connectAlivePort(): void {
+    function connectAlivePort(isReconnect = false): void {
       let port: chrome.runtime.Port;
       try {
         port = chrome.runtime.connect({ name: 'alive' });
@@ -935,13 +937,19 @@ export default defineContentScript({
         cleanupOldHelper();
         return;
       }
+      if (isReconnect) {
+        // CR-08: 끊긴 뒤 다시 연결됐다는 것은 SW가 잠깐 쉬었다 다시 시작했다는 뜻이다 —
+        // relay.ts의 기억(reportsByTab)이 사라졌을 수 있으니, 보고 내용이 이전과 같아 보여도
+        // 강제로 다시 보고해 relay.ts가 이 프레임을 다시 알게 한다.
+        collector.refresh(true);
+      }
       port.onDisconnect.addListener(() => {
         if (!isExtensionContextValid()) {
           cleanupOldHelper();
           return;
         }
         // 확장은 살아 있다 — SW가 잠깐 쉬었다 끊긴 것뿐이니 다시 연결한다(RESEARCH.md Pattern 6).
-        connectAlivePort();
+        connectAlivePort(true);
       });
     }
     connectAlivePort();

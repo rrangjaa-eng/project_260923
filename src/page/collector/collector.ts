@@ -25,8 +25,10 @@ export interface Collector {
   get(id: string): Element | undefined;
   onChange(cb: () => void): void;
   // T-01-21: 형제 프레임의 iframe 구성이 바뀌었다는 frame/refresh를 받으면 바로 다시 모아
-  // selfPath를 새로 계산해 보고한다(스케줄 대기 없이 즉시).
-  refresh(): void;
+  // selfPath를 새로 계산해 보고한다(스케줄 대기 없이 즉시). force(CR-08): true면 내용이 이전과
+  // 같아도(JSON 동일) 반드시 다시 보고한다 — SW가 유휴에서 다시 시작해 relay.ts의 기억이
+  // 사라졌을 수 있는 순간(frame/refresh 수신, alive 포트 재연결)에 쓴다.
+  refresh(force?: boolean): void;
 }
 
 // 태그·속성만으로 항상 후보인 요소. cursor: pointer가 필요한 것은 아래 CURSOR_TAGS.
@@ -513,7 +515,12 @@ export function createCollector(opts: { signal: AbortSignal; getDangerWords: () 
     onChange(cb: () => void): void {
       changeHandlers.push(cb);
     },
-    refresh(): void {
+    refresh(force = false): void {
+      // CR-08: force면 "안 바뀌었으면 다시 안 보낸다" 판단 자체를 건너뛴다 — collect()는 늘
+      // reportFrame()으로 lastReportedJson과 비교하므로, 여기서 먼저 비워 반드시 새로 보내게 한다.
+      if (force) {
+        lastReportedJson = '';
+      }
       collect();
     },
   };
