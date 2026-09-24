@@ -3,8 +3,11 @@
 declare namespace chrome.runtime {
   const id: string;
   function reload(): void;
+  interface InstalledDetails {
+    reason: 'install' | 'update' | 'chrome_update' | 'shared_module_update';
+  }
   const onInstalled: {
-    addListener(callback: () => void): void;
+    addListener(callback: (details: InstalledDetails) => void): void;
   };
   const onStartup: {
     addListener(callback: () => void): void;
@@ -24,6 +27,20 @@ declare namespace chrome.runtime {
   };
 
   function sendMessage(message: unknown): Promise<unknown>;
+
+  // 옛 도우미 자기 정리(D-22, Plan 01-14): "alive" 포트가 끊기면(onDisconnect) chrome.runtime?.id로
+  // 실제 무효화(확장 업데이트·제거)인지 SW가 잠깐 쉬었다 끊긴 것뿐인지 구분한다(RESEARCH.md Pattern 6).
+  interface Port {
+    name: string;
+    onDisconnect: { addListener(callback: () => void): void };
+    disconnect(): void;
+  }
+  function connect(connectInfo?: { name?: string }): Port;
+  const onConnect: {
+    addListener(callback: (port: Port) => void): void;
+  };
+
+  function getManifest(): { content_scripts?: Array<{ js?: string[] }> };
 }
 
 declare namespace chrome.storage {
@@ -71,6 +88,12 @@ declare namespace chrome.tabs {
   const onActivated: {
     addListener(callback: (activeInfo: { tabId: number; windowId: number }) => void): void;
   };
+}
+
+// 업데이트 직후 새 도우미 넣기(D-22, Plan 01-14): manifest의 scripting 권한으로 이미 열린
+// 탭에 content script를 다시 넣는다.
+declare namespace chrome.scripting {
+  function executeScript(details: { target: { tabId: number; allFrames?: boolean }; files: string[] }): Promise<unknown>;
 }
 
 // 확장 아이콘(D-21): 제목·배지로 "도울 수 없음"을 알린다. tabId를 생략하면 기본값에 적용된다

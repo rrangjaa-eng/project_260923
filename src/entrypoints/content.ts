@@ -101,6 +101,14 @@ export default defineContentScript({
   allFrames: true,
   runAt: 'document_start',
   main() {
+    // 새로 시작할 때 문서에 이미 tremor-helper-root가 있으면 지운다(D-22): 옛 도우미가 미처
+    // 스스로 지우지 못했을 수 있다 — 호스트는 늘 1개여야 하므로, 이 새 인스턴스가 자기 것을
+    // 만들기 전에 남아 있는 옛 것부터 없앤다(mode-indicator.ts의 shadowRoot는 이 실행 컨텍스트
+    // 안의 모듈 상태라 옛 인스턴스의 호스트를 스스로는 모른다).
+    document.querySelectorAll('tremor-helper-root').forEach((el) => {
+      el.remove();
+    });
+
     const isTopFrame = window.top === window;
     let currentEnabled: boolean | undefined;
     let currentSettings: SettingsV1 = defaultSettings();
@@ -829,5 +837,56 @@ export default defineContentScript({
         syncEnabled();
       });
     });
+
+    // 옛 도우미 자기 정리(D-22, RESEARCH.md Pattern 6): 확장이 업데이트·다시 불러오기·제거되면
+    // 이 컨텍스트는 무효화되지만 문서 안 JS는 그대로 남는다 — 방치하면 window capture 리스너가
+    // 계속 키를 가로챈다. "alive" 포트를 열어 두고 onDisconnect가 오면 chrome.runtime?.id로
+    // 실제 무효화인지(확장 제거·업데이트) 아니면 SW가 잠깐 쉬었다 끊긴 것뿐인지 구분한다.
+    let cleanedUp = false;
+    function cleanupOldHelper(): void {
+      if (cleanedUp) {
+        return;
+      }
+      cleanedUp = true;
+      magnetController.abort();
+      pipelineController.abort();
+      stopDwellLoopIfRunning();
+      dragTwoPress.cancel();
+      // 도우미 꺼짐과 같은 정리(hideModeIndicator = destroyOverlayRoot) — 테두리·번호표·토스트를
+      // 모두 포함한 호스트 하나를 통째로 지운다(호스트는 늘 1개).
+      hideModeIndicator();
+    }
+
+    function isExtensionContextValid(): boolean {
+      try {
+        // 우리 ambient 타입(src/types/chrome.d.ts)은 chrome.runtime을 항상 있는 것으로 단순화해
+        // 둬 `?.`가 정적으로는 불필요해 보이지만, 실제 크롬은 확장이 무효화되면 이 읽기 자체가
+        // 던질 수 있다 — 그래서 옵셔널 체이닝과 바깥 try/catch를 함께 둔다.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        return typeof chrome.runtime?.id === 'string';
+      } catch {
+        return false;
+      }
+    }
+
+    function connectAlivePort(): void {
+      let port: chrome.runtime.Port;
+      try {
+        port = chrome.runtime.connect({ name: 'alive' });
+      } catch {
+        // 연결 자체가 던진다 — 이미 무효화된 컨텍스트다.
+        cleanupOldHelper();
+        return;
+      }
+      port.onDisconnect.addListener(() => {
+        if (!isExtensionContextValid()) {
+          cleanupOldHelper();
+          return;
+        }
+        // 확장은 살아 있다 — SW가 잠깐 쉬었다 끊긴 것뿐이니 다시 연결한다(RESEARCH.md Pattern 6).
+        connectAlivePort();
+      });
+    }
+    connectAlivePort();
   },
 });

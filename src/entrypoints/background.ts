@@ -86,10 +86,60 @@ export default defineBackground(() => {
     }
   });
 
-  chrome.runtime.onInstalled.addListener(() => {
+  // 옛 도우미 자기 정리(D-22, RESEARCH.md Pattern 6): content script가 여는 "alive" 포트를
+  // 모아 둔다. 포트가 끊기면(SW가 쉬었다 깼거나 탭이 닫혔거나) 목록에서 뺀다 — 우리가 직접
+  // disconnect()를 부르는 일은 없다(그건 e2e가 SW 유휴를 흉내 낼 때만 쓰는 시험 훅이다).
+  const alivePorts = new Set<chrome.runtime.Port>();
+  chrome.runtime.onConnect.addListener((port) => {
+    if (port.name !== 'alive') {
+      return;
+    }
+    alivePorts.add(port);
+    port.onDisconnect.addListener(() => {
+      alivePorts.delete(port);
+    });
+  });
+  // e2e 전용 시험 훅(제품 기능 아님): SW가 잠깐 쉬었다 깬 것처럼 모든 alive 포트를 끊는다 —
+  // 실제 브라우저는 SW가 유휴(약 30초)에 들면 이렇게 포트가 끊긴다.
+  (globalThis as typeof globalThis & { disconnectAlivePorts: () => void }).disconnectAlivePorts = () => {
+    for (const port of alivePorts) {
+      port.disconnect();
+    }
+    alivePorts.clear();
+  };
+
+  // 업데이트 직후 새 도우미 넣기(D-22, RESEARCH.md Pattern 6): 이미 열려 있는 탭들에 지금
+  // content script를 다시 넣는다 — 옛 도우미는 (열려 있었다면) 스스로 정리하고, 새 도우미가
+  // 한 번만 들어간다. 도울 수 없는 주소는 건너뛴다(T-01-43).
+  async function injectContentScriptIntoOpenTabs(): Promise<void> {
+    const manifest = chrome.runtime.getManifest();
+    const files = manifest.content_scripts?.[0]?.js ?? [];
+    if (files.length === 0) {
+      return;
+    }
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.id === undefined || isUnsupportedUrl(tab.url)) {
+        continue;
+      }
+      try {
+        await chrome.scripting.executeScript({ target: { tabId: tab.id, allFrames: true }, files });
+      } catch {
+        // 실패한 탭은 건너뛴다(오류 기록만, T-01-43) — 예: 방금 닫힌 탭.
+      }
+    }
+  }
+
+  chrome.runtime.onInstalled.addListener((details) => {
     // 없을 때만 기본값(D-06)을 먼저 채운 뒤, 형식 변환 실패를 미리 찾아 알린다(D-22, D-25) —
     // 순서가 뒤집히면 방금 설치한 빈 저장소도 "형식 없음"으로 오판해 알림이 잘못 뜬다.
     void writer.ensureDefaultSettings().then(() => writer.checkSettings());
+    // 이미 열린 탭에 다시 넣기는 "업데이트" 때만(D-22) — reason이 'install'(첫 설치)일 때 하면,
+    // 방금 새로 연 탭에 manifest가 이미 자연 주입한 것과 경합해 같은 문서에 content script가
+    // 두 번 들어간다(리스너·오버레이가 겹쳐 번호표·클릭이 흔들리는 실제 회귀를 시험으로 확인).
+    if (details.reason === 'update') {
+      void injectContentScriptIntoOpenTabs();
+    }
   });
 
   chrome.runtime.onStartup.addListener(() => {
