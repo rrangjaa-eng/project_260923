@@ -230,7 +230,9 @@ test('CR-06: 도우미를 껐다 켜면 번호표 자리·크기가 무너지지
   await page.keyboard.press('KeyF');
   await page.waitForTimeout(50);
   const before = (await labelBoxes(page))[0];
-  expect(before, '첫 번째 번호표가 열릴 때는 자리를 찾을 수 있어야 한다').toBeDefined();
+  if (!before) {
+    throw new Error('첫 번째 번호표가 열릴 때는 자리를 찾을 수 있어야 한다');
+  }
 
   await page.keyboard.press('Escape');
   await page.waitForTimeout(50);
@@ -246,8 +248,10 @@ test('CR-06: 도우미를 껐다 켜면 번호표 자리·크기가 무너지지
   await page.keyboard.press('KeyF');
   await page.waitForTimeout(50);
   const after = (await labelBoxes(page))[0];
+  if (!after) {
+    throw new Error('껐다 켠 뒤에도 번호표가 열려야 한다');
+  }
 
-  expect(after, '껐다 켠 뒤에도 번호표가 열려야 한다').toBeDefined();
   expect(after.width, '스타일이 없으면 28px 정사각형이 무너진다').toBeGreaterThanOrEqual(28);
   expect(after.height).toBeGreaterThanOrEqual(28);
   expect(Math.abs(after.x - before.x), 'x 자리가 껐다 켜기 전후로 같아야 한다').toBeLessThanOrEqual(2);
