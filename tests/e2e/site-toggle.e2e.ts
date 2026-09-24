@@ -199,6 +199,42 @@ test('practice.test 안의 other.test iframe도 practice.test를 끄면 도우�
   await page.close();
 });
 
+test('CR-03: 이 사이트에서 끄기를 누르면 입력 파이프라인도 꺼져 자동 반복 키와 빠른 재클릭이 그대로 사이트에 간다', async ({
+  context,
+  openPopup,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/input.html');
+  await waitForHelperReady(page);
+
+  const popup = await openPopup(page);
+  await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
+  await expect.poll(() => hasHelperRoot(page)).toBe(false);
+  await popup.close();
+
+  // 빠른 재클릭(100ms 안) — 도우미가 켜져 있으면 하나로 줄었을 클릭이 둘 다 간다.
+  const box = await page.locator('#btn-a').boundingBox();
+  if (!box) {
+    throw new Error('버튼 위치를 찾지 못했다');
+  }
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.click(x, y);
+  await page.waitForTimeout(100);
+  await page.mouse.click(x, y);
+  await expect(page.locator('#count-a')).toHaveText('2');
+
+  // 자동 반복 키 — 도우미가 켜져 있으면 한 글자로 줄었을 반복이 그대로 여러 번 간다.
+  await page.locator('#name').click();
+  for (let i = 0; i < 5; i += 1) {
+    await page.keyboard.down('b');
+  }
+  await page.keyboard.up('b');
+  await expect(page.locator('#name')).toHaveValue('bbbbb');
+
+  await page.close();
+});
+
 test('SW가 site:http://practice.test를 직접 바꾸면(다른 PC 동기화 흉내) 1초 안에 따른다', async ({
   context,
   serviceWorker,
