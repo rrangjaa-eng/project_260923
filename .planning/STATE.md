@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-15-PLAN.md
-last_updated: "2026-09-24T10:33:44.898Z"
+stopped_at: Completed 01-16-PLAN.md — Phase 01 전체 완료(16/16)
+last_updated: "2026-09-24T11:22:35.081Z"
 last_activity: 2026-09-24
 last_activity_desc: Phase 01 execution started
-state_head: 8ef4a321f8bacb27e75f364d8a77e805df631163
+state_head: efa67c4af61493985359318c51e61bed3c7b3fd8
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 16
-  completed_plans: 15
+  completed_plans: 16
   percent: 0
 ---
 
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 ## Current Position
 
 Phase: 01 (클릭 도우미 기반) — EXECUTING
-Plan: 1 of 16
-Status: Executing Phase 01
+Plan: 2 of 16
+Status: Ready to execute
 Last activity: 2026-09-24 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -73,6 +73,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P13 | 46min | 3 tasks | 10 files |
 | Phase 01 P14 | N/A | 3 tasks | 9 files |
 | Phase 1 P15 | n/a | 2 tasks | 10 files |
+| Phase 01 P16 | 이어진 세션 | 3 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -125,6 +126,12 @@ Recent decisions affecting current work:
 - [Phase 1]: [Phase 1] getOverlayScale()은 hostElement 인라인 style(리터럴)에서 읽는다 — calc()로 파생된 커스텀 프로퍼티는 getComputedStyle이 미해석 문자열을 돌려줄 수 있어(CSS 커스텀 프로퍼티 함정) 위치 계산용 배율은 원본 토큰 × getOverlayScale()로 JS에서 직접 곱한다
 - [Phase 1]: [Phase 1] mode-indicator.ts의 zoom/changed 구독은 자체 AbortController를 만들어 ensureOverlayRoot/destroyOverlayRoot 생명주기에 직접 묶었다(content.ts의 다른 컨트롤러를 관통시키지 않음)
 - [Phase 1]: [Phase 1] ring.ts의 --ring-offset/--space-2 오프셋 캐시를 없애고 showRing() 호출마다 다시 읽어 확대가 바뀌면 다음 자석 재계산 때 곧바로 반영되게 했다
+- [Phase 01]: [Phase 1] IBM Plex Sans KR은 fontsource korean·latin 서브셋(4개 woff2)만 쓴다 — 전체 CJK 통합 한자 묶음은 불필요
+- [Phase 01]: [Phase 1] document.fonts.check()가 샌드박스에서 신뢰 불가 — 서체 등록 확인은 Array.from(document.fonts) 멤버십으로
+- [Phase 01]: [Phase 1] 확인 카드 테두리는 --danger가 아니라 --accent 3px — 위험 신호는 빨강 채움 확인 버튼과 글자로만(SYSTEM.md 버튼 위계), 안쪽 여백은 36px 40px
+- [Phase 01]: [Phase 1] 강조 테두리 안쪽 흰 후광은 ::before + inset:0(부모 padding 경계 = 테두리 안쪽)로 그린다 — 바깥은 outline
+- [Phase 01]: [Phase 1] .card:focus-visible은 border 대신 outline 3px --accent — border는 레이아웃을 밀지만 outline은 밀지 않는다
+- [Phase 01]: [Phase 1] 흰 후광(halo)은 box-shadow가 아니라 outline(바깥)·::before 테두리(안쪽)로 그린다(SYSTEM.md 그림자 금지)
 
 ### Pending Todos
 
@@ -152,6 +159,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-24T09:29:41.310Z
-Stopped at: Completed 01-15-PLAN.md
+Last session: 2026-09-24T11:22:35.036Z
+Stopped at: Completed 01-16-PLAN.md — Phase 01 전체 완료(16/16)
 Resume file: None

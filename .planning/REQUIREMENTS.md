@@ -12,7 +12,7 @@
 - [x] **ELEM-01**: 이용자가 보는 페이지에서 버튼·링크·입력칸·클릭 이벤트가 걸린 이미지가 도우미의 "누를 수 있는 요소"로 인식된다 (4)
 - [x] **ELEM-02**: iframe 안(중첩·다른 출처 포함)의 요소도 똑같이 인식되고, 번호표·강조가 맨 위 화면에 겹침·중복 번호 없이 표시된다 (4)
 - [x] **ELEM-03**: 화면 내용이 바뀌거나(늦게 나타나는 입력칸 등) 스크롤해도 인식된 요소 목록과 강조 위치가 따라온다 (4)
-- [ ] **ELEM-04**: 요소 5,000개짜리 연습 페이지에서 커서를 옮긴 뒤 강조가 50ms 안에 따라온다 (4)
+- [x] **ELEM-04**: 요소 5,000개짜리 연습 페이지에서 커서를 옮긴 뒤 강조가 50ms 안에 따라온다 (4)
 
 ### 떨림 걸러내기 (FILT)
 
@@ -188,7 +188,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ELEM-01 | Phase 1 | Complete |
 | ELEM-02 | Phase 1 | Complete |
 | ELEM-03 | Phase 1 | Complete |
-| ELEM-04 | Phase 1 | Pending |
+| ELEM-04 | Phase 1 | Complete |
 | FILT-01 | Phase 1 | Complete |
 | FILT-02 | Phase 1 | Complete |
 | FILT-03 | Phase 1 | Complete |
