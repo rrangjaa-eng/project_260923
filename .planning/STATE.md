@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-13-PLAN.md
-last_updated: "2026-09-24T07:36:03.199Z"
+stopped_at: Completed 01-14-PLAN.md
+last_updated: "2026-09-24T08:54:22.768Z"
 last_activity: 2026-09-23
 last_activity_desc: Phase 1 execution started
-state_head: d208f23fb335276d8514b3cdeac07dff9d22bcbc
+state_head: 463a2099293d263d876e880c5953aa45c0f1b119
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 16
-  completed_plans: 13
+  completed_plans: 14
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 ## Current Position
 
 Phase: 1 (클릭 도우미 기반) — EXECUTING
-Plan: 14 of 16
+Plan: 15 of 16
 Status: Ready to execute
 Last activity: 2026-09-23 — Phase 1 execution started
 
@@ -71,6 +71,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P11 | 25min | 2 tasks | 8 files |
 | Phase 01 P12 | 68min | 2 tasks | 6 files |
 | Phase 01 P13 | 46min | 3 tasks | 10 files |
+| Phase 01 P14 | N/A | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -118,6 +119,8 @@ Recent decisions affecting current work:
 - [Phase 1]: spike.e2e.ts의 test.describe.configure({ retries: 1 })는 근본 원인(showPicker() select 팝업이 Escape만으로는 안 닫힘)을 찾아 document.activeElement?.blur()로 대체 — 재시도 제거
 - [Phase 1]: CSP: sandbox는 content script(격리된 세계)를 막지 못한다는 사실을 실측으로 확인 — RESEARCH.md 가정을 뒤집고 테스트를 실제 동작에 맞게 수정
 - [Phase 1]: 사이트 = 맨 위 페이지 출처(origin)로 확정 — content script가 site/query로 SW에 물어 계산(자신은 교차 출처 iframe일 때 top origin을 모름)
+- [Phase 1]: onInstalled 재주입은 reason==='update'일 때만 — 'install'에서도 실행하면 시험 샌드박스처럼 매번 새로 확장을 올리는 환경에서 manifest 자연 주입과 경합해 content script가 이중 주입된다(실제 회귀를 CI 전체 시험으로 확인 후 수정)
+- [Phase 1]: Task 3 e2e는 reload() 기반 4개 대신 chrome.scripting.executeScript 직접 호출 기반 2개로 재설계 — 이 샌드박스는 reload() 뒤 옛 content script의 chrome.runtime.id를 무효화하지 못해 RED를 만들 수 없는 시험은 제거했다(Known Gap으로 SUMMARY에 기록)
 
 ### Pending Todos
 
@@ -145,6 +148,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-24T07:36:03.150Z
-Stopped at: Completed 01-13-PLAN.md
+Last session: 2026-09-24T08:54:22.712Z
+Stopped at: Completed 01-14-PLAN.md
 Resume file: None

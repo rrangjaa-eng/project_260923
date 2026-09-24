@@ -46,7 +46,7 @@
 ### 저장과 동기화 (STOR)
 
 - [x] **STOR-01**: 조작 설정·사이트별 끄기·고정 번호 같은 설정이 같은 브라우저 계정으로 로그인한 다른 PC에 그대로 적용된다 (7)
-- [ ] **STOR-02**: 저장된 데이터가 새 형식으로 바뀌다 실패하면 원래 데이터가 그대로 남고 이용자에게 알림이 뜬다 (7)
+- [x] **STOR-02**: 저장된 데이터가 새 형식으로 바뀌다 실패하면 원래 데이터가 그대로 남고 이용자에게 알림이 뜬다 (7)
 - [ ] **STOR-03**: 동기화 용량을 넘기 전에 알림이 뜨고 자주 쓰는 문구부터 파일 내보내기가 안내된다 (7)
 - [ ] **STOR-04**: 이용자가 설정을 파일로 내보내고 다른 브라우저(크롬↔엣지↔웨일)에서 가져올 수 있다 (7)
 
@@ -207,7 +207,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SAFE-05 | Phase 1 | Complete |
 | SAFE-06 | Phase 3 | Pending |
 | STOR-01 | Phase 1 | Complete |
-| STOR-02 | Phase 1 | Pending |
+| STOR-02 | Phase 1 | Complete |
 | STOR-03 | Phase 3 | Pending |
 | STOR-04 | Phase 3 | Pending |
 | NAV-01 | Phase 3 | Pending |
