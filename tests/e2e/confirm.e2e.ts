@@ -112,7 +112,7 @@ async function openDangerConfirm(page: Page, elementId: string): Promise<void> {
 interface DialogState {
   visible: boolean;
   width: number;
-  borderColorMatchesDanger: boolean;
+  borderColorMatchesAccent: boolean;
   title: string | null;
   body: string | null;
   confirmButtonHeight: number;
@@ -129,11 +129,12 @@ async function readDialog(page: Page): Promise<DialogState | null> {
     const rect = dialog.getBoundingClientRect();
     const style = getComputedStyle(dialog);
 
-    // --danger 토큰의 실제 계산 값을 얻어(하드코딩 없이) 테두리 색과 비교한다(danger.e2e.ts와 같은 방식).
+    // --accent 토큰의 실제 계산 값을 얻어(하드코딩 없이) 테두리 색과 비교한다(danger.e2e.ts와 같은 방식).
+    // 01-16 감사: 확인 카드 테두리는 --accent 3px(SYSTEM.md 형태) — 위험은 빨강 채움 버튼·글자로만 신호한다.
     const probe = document.createElement('div');
-    probe.style.color = 'var(--danger)';
+    probe.style.color = 'var(--accent)';
     shadow.append(probe);
-    const dangerColor = getComputedStyle(probe).color;
+    const accentColor = getComputedStyle(probe).color;
     probe.remove();
 
     const confirmBtn = shadow.querySelector('[data-part="confirm-button-confirm"]');
@@ -142,7 +143,7 @@ async function readDialog(page: Page): Promise<DialogState | null> {
     return {
       visible: dialog.getAttribute('data-visible') === 'true',
       width: rect.width,
-      borderColorMatchesDanger: style.borderTopColor === dangerColor,
+      borderColorMatchesAccent: style.borderTopColor === accentColor,
       title: shadow.querySelector('[data-part="confirm-title"]')?.textContent ?? null,
       body: shadow.querySelector('[data-part="confirm-body"]')?.textContent ?? null,
       confirmButtonHeight: confirmBtn ? confirmBtn.getBoundingClientRect().height : 0,
@@ -200,7 +201,7 @@ test('F → 삭제 번호(빨간 점선+! 위험) → 번호를 누르면 확인
   expect(Math.abs((dialog?.width ?? 0) - 600)).toBeLessThanOrEqual(1);
   expect(dialog?.confirmButtonHeight ?? 0).toBeGreaterThanOrEqual(64);
   expect(dialog?.cancelButtonHeight ?? 0).toBeGreaterThanOrEqual(64);
-  expect(dialog?.borderColorMatchesDanger).toBe(true);
+  expect(dialog?.borderColorMatchesAccent).toBe(true);
 });
 
 test('확인 화면 1초 보호: 300ms 뒤 Enter는 무시되고 1,100ms 뒤 Enter로 확인·눌림·닫힘', async ({ context }) => {

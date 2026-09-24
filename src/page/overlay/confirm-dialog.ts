@@ -54,11 +54,12 @@ function ensureStyle(root: ShadowRoot): void {
   transform: translate(-50%, -50%);
   width: calc(var(--dialog-width) * var(--overlay-scale));
   box-sizing: border-box;
-  padding: calc(var(--space-6) * var(--overlay-scale));
+  padding: calc(36px * var(--overlay-scale)) calc(var(--space-7) * var(--overlay-scale));
   background: var(--bg);
-  border: calc(var(--border-strong) * var(--overlay-scale)) solid var(--danger);
+  border: calc(var(--border-strong) * var(--overlay-scale)) solid var(--accent);
   border-radius: calc(var(--radius-dialog) * var(--overlay-scale));
   font-family: var(--font);
+  word-break: keep-all;
   pointer-events: auto;
   opacity: 0;
   transition: opacity var(--motion-appear);
