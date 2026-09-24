@@ -285,6 +285,70 @@ test('번호표 상자끼리 서로 겹치지 않는다', async ({ context, serv
   }
 });
 
+async function labelRectByNumber(
+  page: Page,
+  number: string,
+): Promise<{ x: number; y: number; width: number; height: number } | null> {
+  return page.evaluate((num) => {
+    const host = document.querySelector('tremor-helper-root');
+    const labels = host?.shadowRoot?.querySelectorAll('.hint-label');
+    if (!labels) {
+      return null;
+    }
+    for (const label of Array.from(labels)) {
+      if (label.textContent === num) {
+        const r = label.getBoundingClientRect();
+        return { x: r.x, y: r.y, width: r.width, height: r.height };
+      }
+    }
+    return null;
+  }, number);
+}
+
+test('WR-03: 번호표가 떠 있는 동안 스크롤하면 번호표도 요소를 따라 옮겨간다', async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/targets.html');
+  await waitForHelperReady(page);
+
+  // btn-scroll(문서 좌표 top:2000px)을 화면 안으로 들어오게 한 뒤 그 위에서 번호표를 연다.
+  await page.evaluate(() => window.scrollTo(0, 1900));
+  await page.waitForTimeout(150); // collector의 scroll → rAF 재수집을 기다린다.
+
+  const beforeElBox = await page.locator('#btn-scroll').boundingBox();
+  if (!beforeElBox) {
+    throw new Error('버튼을 찾지 못했다');
+  }
+  await page.mouse.move(beforeElBox.x + beforeElBox.width / 2, beforeElBox.y + beforeElBox.height / 2);
+  await page.waitForTimeout(50);
+
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(50);
+
+  const number = await numberForElement(page, 'btn-scroll');
+  const before = await labelRectByNumber(page, number);
+  if (!before) {
+    throw new Error('번호표를 찾지 못했다');
+  }
+
+  // 번호표가 떠 있는 채로 50px 더 스크롤한다 — 요소는 화면에서 위로 50px 옮겨간다.
+  await page.evaluate(() => window.scrollBy(0, 50));
+  await page.waitForTimeout(150);
+
+  const afterElBox = await page.locator('#btn-scroll').boundingBox();
+  if (!afterElBox) {
+    throw new Error('스크롤 뒤 버튼을 찾지 못했다');
+  }
+  const after = await labelRectByNumber(page, number);
+  if (!after) {
+    throw new Error('스크롤 뒤 번호표를 찾지 못했다');
+  }
+
+  // 번호표는 실제로 옮겨간 요소를 따라가야 한다(요소 왼쪽 위 바깥 −14px,−14px 근처).
+  expect(Math.abs(after.y - (afterElBox.y - 14)), '스크롤 뒤에도 번호표가 요소를 따라와야 한다').toBeLessThanOrEqual(20);
+  // 제자리(스크롤 전 자리)에 그대로 남아 있지 않아야 한다 — 실제로 움직였는지도 확인한다.
+  expect(Math.abs(after.y - before.y), '번호표가 스크롤 전 자리에 그대로 남아 있으면 안 된다').toBeGreaterThan(30);
+});
+
 test('요소가 하나도 없는 페이지에서 F를 누르면 모드 표시에 "누를 곳이 없어요"가 보이고 2초 뒤 사라진다', async ({
   context,
   servePage,
