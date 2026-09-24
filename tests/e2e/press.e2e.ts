@@ -175,6 +175,38 @@ test('도우미를 끄면 같은 스페이스바가 사이트 단축키를 실�
   await expect(page.locator('#target-count')).toHaveText('0');
 });
 
+test('CR-07: 오른쪽 클릭으로 남은 대신 누르기 예약이 나중의 상관없는 왼쪽 클릭에서 다시 실행되지 않는다', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/targets.html');
+
+  const box = await page.locator('#btn-tiny').boundingBox();
+  if (!box) {
+    throw new Error('버튼을 찾지 못했다');
+  }
+  const x = box.x - 30;
+  const y = box.y + box.height / 2;
+
+  await page.mouse.move(x, y);
+  await page.waitForTimeout(50);
+  // 오른쪽 클릭 — pointerdown은 자석이 btn-tiny를 잡아 가로채지만, 오른쪽 버튼은 click 대신
+  // auxclick을 내므로 대신 누르기 예약(pendingPressExecute)이 실행되지 않은 채 남는다.
+  await page.mouse.click(x, y, { button: 'right' });
+  await page.waitForTimeout(50);
+
+  // 상관없는 빈 자리(어떤 요소의 잡는 범위에도 안 듦)를 왼쪽 클릭 — 새 묶음이다.
+  await page.mouse.move(1200, 600);
+  await page.waitForTimeout(50);
+  await page.mouse.click(1200, 600);
+  await page.waitForTimeout(50);
+
+  await expect(page.locator('#bg-click-count')).toHaveText('1');
+  await expect(page.locator('#btn-tiny-count'), '오른쪽 클릭이 남긴 예약이 되살아나 대신 눌리면 안 된다').toHaveText(
+    '0',
+  );
+});
+
 test('버튼이 잡힌 상태에서 페이지가 만든 가짜(isTrusted=false) 스페이스바 keydown은 무시된다', async ({ context }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/targets.html');
