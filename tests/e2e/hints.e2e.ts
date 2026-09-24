@@ -311,7 +311,10 @@ test('WR-03: 번호표가 떠 있는 동안 스크롤하면 번호표도 요소�
   await waitForHelperReady(page);
 
   // btn-scroll(문서 좌표 top:2000px)을 화면 안으로 들어오게 한 뒤 그 위에서 번호표를 연다.
-  await page.evaluate(() => window.scrollTo(0, 1900));
+  // (최대 스크롤 한계 안의 값 — 문서 높이 2400px·뷰포트 720px 기준 최대 scrollTop은 1680px이다.)
+  await page.evaluate(() => {
+    window.scrollTo(0, 1500);
+  });
   await page.waitForTimeout(150); // collector의 scroll → rAF 재수집을 기다린다.
 
   const beforeElBox = await page.locator('#btn-scroll').boundingBox();
@@ -331,7 +334,9 @@ test('WR-03: 번호표가 떠 있는 동안 스크롤하면 번호표도 요소�
   }
 
   // 번호표가 떠 있는 채로 50px 더 스크롤한다 — 요소는 화면에서 위로 50px 옮겨간다.
-  await page.evaluate(() => window.scrollBy(0, 50));
+  await page.evaluate(() => {
+    window.scrollBy(0, 50);
+  });
   await page.waitForTimeout(150);
 
   const afterElBox = await page.locator('#btn-scroll').boundingBox();

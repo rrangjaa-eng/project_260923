@@ -408,6 +408,13 @@ export default defineContentScript({
 
     collector.onChange(() => {
       rebuildGrid();
+      if (hintsActive) {
+        // WR-03: 열려 있는 번호표는 openHints() 시점 스냅샷 자리에 머물러 있었다 — 스크롤·크기
+        // 변경(collector.onChange, D-04)마다 새로 합성해 지금 화면 자리로 다시 그린다. 번호→항목
+        // 배정(hintChapters)은 그대로 두고 자리만 다시 계산한다.
+        composedItemsCache = composeCurrentItems();
+        openChapter(hintChapterIndex);
+      }
       if (currentTargetId !== null) {
         // 잡힌 요소가 화면 변화로 사라졌으면 놓고, 남아 있으면 새 사각형으로 테두리를 옮긴다.
         const stillThere = collector.items().find((item) => item.id === currentTargetId);
@@ -735,12 +742,16 @@ export default defineContentScript({
       inputPipeline.setModal(activeConfirmKeyHandler);
     }
 
-    async function openHints(): Promise<void> {
-      // 맨 위(frameId 0) 몫은 collector에서 바로 다시 만든다 — relay 왕복(비동기)이 아직 끝나지
-      // 않았어도 자기 프레임 것만은 항상 최신이도록 한다.
+    // 맨 위(frameId 0) 몫은 collector에서 바로 다시 만든다 — relay 왕복(비동기)이 아직 끝나지
+    // 않았어도 자기 프레임 것만은 항상 최신이도록 한다(openHints()·WR-03 재구성이 함께 쓴다).
+    function composeCurrentItems(): ComposedItem[] {
       const entriesForCompose = latestReportEntries.filter((entry) => entry.frameId !== 0);
       entriesForCompose.push({ frameId: 0, report: buildFrameReport(collector.items()) });
-      const composed = composeTree(resolveReports(entriesForCompose));
+      return composeTree(resolveReports(entriesForCompose));
+    }
+
+    async function openHints(): Promise<void> {
+      const composed = composeCurrentItems();
       composedItemsCache = composed;
 
       if (composed.length === 0) {
