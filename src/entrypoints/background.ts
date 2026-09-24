@@ -1,3 +1,5 @@
+import tokensCssRaw from '../../docs/design/tokens.css?raw';
+import { isUnsupportedUrl } from '@/core/unsupported-url';
 import { parseMessage } from '@/shared/messages';
 import { createRelay } from '@/worker/relay';
 import { createStorageWriter } from '@/worker/storage-writer';
@@ -5,11 +7,58 @@ import { createStorageWriter } from '@/worker/storage-writer';
 // 탭·프레임별 마지막 enabled 보고(D-03) — 시험이 globalThis.frameStates로 읽는다.
 type FrameStates = Record<number, Record<number, boolean>>;
 
+// 확장 아이콘 "도울 수 없음"(D-21, RESEARCH.md "Open Questions (RESOLVED)" 6번): 배지 배경색은
+// tokens.css의 --muted를 그대로 읽어 쓴다(D-26 — 새 색 금지, 값 복제 금지).
+const UNSUPPORTED_TITLE = '도울 수 없음';
+const UNSUPPORTED_BADGE = '없음';
+const SUPPORTED_TITLE = '손 떨림 도우미';
+
+function extractMutedColor(css: string): string {
+  const match = /--muted:\s*(#[0-9a-fA-F]+)/.exec(css);
+  if (!match?.[1]) {
+    throw new Error('tokens.css에 --muted가 없다');
+  }
+  return match[1];
+}
+
+const MUTED_COLOR = extractMutedColor(tokensCssRaw);
+
 export default defineBackground(() => {
   const writer = createStorageWriter();
   const relay = createRelay();
   const frameStates: FrameStates = {};
   (globalThis as typeof globalThis & { frameStates: FrameStates }).frameStates = frameStates;
+
+  // URL 규칙만으로 판정(Task 2) — content script 응답 없음 판정은 Task 3에서 더한다.
+  async function updateActionForTab(tabId: number, url: string | undefined): Promise<void> {
+    if (isUnsupportedUrl(url)) {
+      await chrome.action.setTitle({ tabId, title: UNSUPPORTED_TITLE });
+      await chrome.action.setBadgeText({ tabId, text: UNSUPPORTED_BADGE });
+      await chrome.action.setBadgeBackgroundColor({ tabId, color: MUTED_COLOR });
+      return;
+    }
+    await chrome.action.setTitle({ tabId, title: SUPPORTED_TITLE });
+    await chrome.action.setBadgeText({ tabId, text: '' });
+  }
+
+  chrome.tabs.onActivated.addListener(({ tabId }) => {
+    void chrome.tabs.get(tabId).then((tab) => updateActionForTab(tabId, tab.url));
+  });
+
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === 'complete') {
+      void updateActionForTab(tabId, tab.url);
+    }
+  });
+
+  // 시작 때(SW가 막 깨어났을 때): 이미 열려 있는 활성 탭들에도 바로 반영한다.
+  void chrome.tabs.query({ active: true }).then((tabs) => {
+    for (const tab of tabs) {
+      if (tab.id !== undefined) {
+        void updateActionForTab(tab.id, tab.url);
+      }
+    }
+  });
 
   chrome.runtime.onInstalled.addListener(() => {
     void writer.ensureDefaultSettings();

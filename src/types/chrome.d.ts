@@ -47,7 +47,8 @@ declare namespace chrome.tabs {
     url?: string;
   }
 
-  function query(queryInfo: { url?: string | string[] }): Promise<Tab[]>;
+  function query(queryInfo: { url?: string | string[]; active?: boolean; currentWindow?: boolean }): Promise<Tab[]>;
+  function get(tabId: number): Promise<Tab>;
 
   // frameId를 생략하면 그 탭의 모든 프레임에 보낸다(hints/state 방송에 씀).
   function sendMessage(tabId: number, message: unknown, options?: { frameId?: number }): Promise<unknown>;
@@ -63,4 +64,18 @@ declare namespace chrome.tabs {
   const onUpdated: {
     addListener(callback: (tabId: number, changeInfo: TabChangeInfo, tab: Tab) => void): void;
   };
+
+  const onActivated: {
+    addListener(callback: (activeInfo: { tabId: number; windowId: number }) => void): void;
+  };
+}
+
+// 확장 아이콘(D-21): 제목·배지로 "도울 수 없음"을 알린다. tabId를 생략하면 기본값에 적용된다
+// (이 계획들은 항상 tabId를 명시해서 쓴다).
+declare namespace chrome.action {
+  function setTitle(details: { tabId?: number; title: string }): Promise<void>;
+  function getTitle(details: { tabId?: number }): Promise<string>;
+  function setBadgeText(details: { tabId?: number; text: string }): Promise<void>;
+  function getBadgeText(details: { tabId?: number }): Promise<string>;
+  function setBadgeBackgroundColor(details: { tabId?: number; color: string }): Promise<void>;
 }

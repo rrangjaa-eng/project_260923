@@ -72,6 +72,11 @@ ${tokensCss}
 .action-word {
   font-size: var(--text-body);
 }
+.unsupported-message {
+  margin: 0 0 var(--space-4) 0;
+  font-size: var(--text-body);
+  color: var(--fg);
+}
 `;
 shadow.append(style);
 
@@ -84,6 +89,12 @@ title.textContent = '손 떨림 도우미';
 
 const status = document.createElement('p');
 status.className = 'status';
+
+// "도울 수 없음" 안내(D-21, SYSTEM.md 카피 규칙 "원인. 다음 행동."): 대상 탭이 도울 수 없는
+// 페이지면 카드 격자 위에 이 한 줄만 보여 준다(Plan 01-13 Task 2).
+const unsupportedMessage = document.createElement('p');
+unsupportedMessage.className = 'unsupported-message';
+unsupportedMessage.textContent = '이 페이지에서는 도울 수 없어요. 다른 탭에서 쓰세요.';
 
 const cards = document.createElement('div');
 cards.className = 'cards';
@@ -176,6 +187,33 @@ cards.append(helperCard.element, dwellCard.element, dragTwoPressCard.element);
 container.append(title, status, cards);
 shadow.append(container);
 
+// 대상 탭 결정(Plan 01-13 Task 2): 쿼리 tabId가 있으면 그 탭, 없으면 현재 활성 탭. 쿼리는 시험
+// 전용(popup.html이 시험에서는 실제 탭으로 열려 스스로 활성 탭이 되기 때문 — fixtures.ts openPopup).
+async function resolveTargetTabId(): Promise<number | undefined> {
+  const fromQuery = new URLSearchParams(location.search).get('tabId');
+  if (fromQuery !== null) {
+    const parsed = Number(fromQuery);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tabs[0]?.id;
+}
+
+// 대상 탭이 "도울 수 없음"인지는 background.ts가 이미 계산해 둔 아이콘 제목으로 판단한다(단일
+// 판정 소스 — Task 3의 content script 응답 없음 판정도 background.ts 쪽에서만 더해진다).
+async function renderForTargetTab(): Promise<void> {
+  const tabId = await resolveTargetTabId();
+  if (tabId === undefined) {
+    return;
+  }
+  const title = await chrome.action.getTitle({ tabId });
+  if (title === '도울 수 없음') {
+    container.insertBefore(unsupportedMessage, cards);
+  } else {
+    unsupportedMessage.remove();
+  }
+}
+
 function renderStatus(enabled: boolean): void {
   status.textContent = enabled ? '지금: 켜짐' : '지금: 꺼짐';
 }
@@ -216,3 +254,4 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 });
 
 void loadInitial();
+void renderForTargetTab();
