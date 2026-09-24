@@ -2,7 +2,7 @@
 
 > Full coverage by default. Opt-outs are explicit, reasoned decisions.
 > 범위: service worker의 AI 창구 한 곳(`src/worker/ai/client.ts`)이 부르는 Anthropic API 표면. 근거: 06-CONTEXT.md D-04·D-07·D-08·D-09·D-12·D-18·D-25, 06-RESEARCH.md "Standard Stack"·"Don't Hand-Roll", claude-api 스킬(2026-06 캐시).
-> 한도 단위(횟수/금액)는 사용자 확인 대기다. 금액으로 바뀌면 `response usage tokens` 행을 INTEGRATE로 다시 정한다(06-03 계획 "사용자 확인 대기 선택" 참고).
+> 한도 단위(횟수/금액)는 사용자 확인 대기다. 금액으로 바뀌면 `response usage tokens` 행을 INTEGRATE로 다시 정한다(06-06 계획 "사용자 확인 대기 선택" 참고).
 
 | capability | decision | reason |
 |---|---|---|

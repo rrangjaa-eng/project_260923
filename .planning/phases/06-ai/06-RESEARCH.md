@@ -436,22 +436,25 @@ export async function requestCleanupPicks(
 | A7 | Playwright `PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1`가 MV3 확장 background SW 자신의 `fetch()`도 가로챈다 | Pitfall 6 | 틀리면 1차 시험 전략이 무효 — 문서 접근이 egress 프록시에 막혀 확정하지 못함, 스파이크로 반드시 선(先)검증 |
 | A8 | 스코프 요소 목록 상한 150개, 이름 60자 절단 | Code Examples(request-builder.ts) | 너무 작으면 중요한 요소가 후보에서 빠짐, 너무 크면 토큰 비용·프롬프트 잡음 증가 — 명시적 결정 없음 |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **`dangerouslyAllowBrowser`의 정확한 감지 조건**
+1. **`dangerouslyAllowBrowser`의 정확한 감지 조건** (RESOLVED)
    - What we know: 플래그가 없으면 브라우저류 전역에서 SDK가 막는다는 것은 SDK의 공개 동작(공식 문서·블로그로 확인)이다.
    - What's unclear: MV3 `ServiceWorkerGlobalScope`가 정확히 어떤 전역 신호(`window` 유무, `navigator.userAgent` 등)로 "브라우저"로 판정되는지는 SDK 소스 코드 확인이 필요하다(이번 세션엔 하지 않음).
    - Recommendation: 계획의 첫 task를 "SDK 초기화 스파이크"로 두고, 실패하면 `fetch` 직접 구현(D-25 대안)으로 즉시 전환할 수 있게 request-builder.ts/response-schema.ts는 SDK와 무관하게 설계했다(이미 그렇게 함 — `client.ts`만 SDK를 import).
+   - **RESOLVED:** 06-04 Task 1의 스파이크 A(승인된 SDK 설치 직후, 프로덕션 빌드 SW에서 `dangerouslyAllowBrowser: true`로 초기화·가짜 AI 호출)가 확인하고 결과를 06-04-SUMMARY에 적는다. 실패하면 D-25 대안인 `fetch` 직접 구현으로 바꾼다 — 06-01 Task 1의 `reject-fetch` 선택과 같은 경로이고, `client.ts`만 바뀐다.
 
-2. **Playwright로 확장 service worker의 outbound fetch를 가로챌 수 있는가**
+2. **Playwright로 확장 service worker의 outbound fetch를 가로챌 수 있는가** (RESOLVED)
    - What we know: 실험적 환경변수가 존재하고, 일반 페이지 요청은 기존 fixtures.ts 패턴으로 확실히 가로챈다.
    - What's unclear: 확장 background SW 전용 사례의 공식 검증 사례를 찾지 못함(egress 차단으로 1차 문서 접근 실패).
    - Recommendation: Pitfall 6의 2단계 스파이크(환경변수 우선, 실패 시 빌드 모드 baseURL 치환)를 계획 첫 wave에 포함.
+   - **RESOLVED:** 06-01 Task 2(wave 1)의 스파이크 B가 이 두 단계를 순서대로 시도하고, 양성 대조(SW에서 `api.anthropic.com`으로 보낸 요청이 가짜 AI에 잡힘)로 확인한 방법을 06-01-SUMMARY에 적는다. SDK 경로에서 같은 가로채기가 되는지는 06-04 Task 1이 다시 확인한다.
 
-3. **캐시·한도의 정확한 정책(discretion 항목 다수)**
+3. **캐시·한도의 정확한 정책(discretion 항목 다수)** (RESOLVED)
    - What we know: CONTEXT.md가 이미 "사용자 확인 질문을 스레드에 올렸다"고 여러 항목에 명시했다.
    - What's unclear: 그 스레드의 실제 답변이 이 연구 시점에는 반영되지 않았을 수 있다.
    - Recommendation: `/gsd-plan-phase` 실행 전 CONTEXT.md의 최신 상태(사용자 답변 반영 여부)를 다시 확인 — 이 문서의 A3·A4·A6은 답변이 없을 때의 기본 제안이다.
+   - **RESOLVED:** 06-06 "사용자 확인 대기 선택"이 기본 제안으로 정했다 — 한도 단위는 보낸 요청 수, 저장된 번호는 "화면 정리" 카드를 다시 누를 때만 쓴다. 저장 열쇠·낡음 판정은 06-06 Task 1, 사용량을 세는 시점은 06-06 Task 2, 취소한 요청의 사용량은 06-07 Task 1이 맡는다. 이용자 답이 다르면 바꿀 자리가 06-06의 그 절에 적혀 있다.
 
 ## Environment Availability
 
