@@ -204,8 +204,13 @@ export default defineBackground(() => {
         return true;
       }
       // recordPress(D-11, T-01-16): 보낸 프레임의 실제 origin은 sender.url에서 계산한다 —
-      // 요청 안의 origin 문자열은 신뢰하지 않고 storage-writer.ts가 둘을 대조한다.
-      const senderOrigin = sender.url ? new URL(sender.url).origin : '';
+      // 요청 안의 origin 문자열은 신뢰하지 않고 storage-writer.ts가 둘을 대조한다. WR-05: 자식
+      // 프레임도 이제 "사이트 = 맨 위 페이지 출처"(D-20)로 기록한다 — 요청 origin이 자기 프레임
+      // 출처 또는(그 프레임이 속한 탭의) 맨 위 문서 출처와 같으면 받아들인다(site/query와 같은
+      // "모든 프레임의 sender.tab.url은 항상 맨 위 문서의 주소와 같다" 전제).
+      const frameOrigin = sender.url ? new URL(sender.url).origin : '';
+      const tabOrigin = sender.tab?.url ? new URL(sender.tab.url).origin : undefined;
+      const senderOrigin = message.op.origin === tabOrigin ? tabOrigin : frameOrigin;
       void writer.recordPress(message.op.origin, senderOrigin, message.op.fingerprint).then(sendResponse);
       return true;
     }

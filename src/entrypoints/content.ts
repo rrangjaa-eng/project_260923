@@ -95,10 +95,18 @@ function parseHintKey(key: string): { frameId: number; itemId: string } {
 
 // 자주 누른 기록(D-11, D-23): 번호표·자석 커서로 요소를 누를 때마다 SW에 부탁만 한다(쓰기는
 // storage-writer.ts에서만, D-24). 응답을 기다리지 않는다.
+//
+// WR-05: 사이트 = 맨 위 페이지 출처(D-20) — 자식 프레임(특히 다른 출처)이 자기 window.location
+// .origin으로 기록하면 맨 위의 readPinsAndPresses()(항상 자기 출처만 읽는다)가 그 기록을 영영
+// 못 본다. site/query 응답으로 한 번 배운 맨 위 출처를 여기 저장해 모든 프레임이 같은 키에
+// 기록하게 한다(응답이 아직 없으면 자기 출처로 대체 — D-06과 같은 완화, 맨 위 프레임 자신은
+// 늘 자기 출처 = 맨 위 출처라 이 대체값도 옳다).
+let cachedTopOrigin: string | null = null;
+
 function sendRecordPress(fingerprint: Fingerprint): void {
   void chrome.runtime.sendMessage({
     type: 'storage/request',
-    op: { kind: 'recordPress', origin: window.location.origin, fingerprint },
+    op: { kind: 'recordPress', origin: cachedTopOrigin ?? window.location.origin, fingerprint },
   });
 }
 
@@ -118,6 +126,14 @@ export default defineContentScript({
     });
 
     const isTopFrame = window.top === window;
+    // WR-05: 자석·머무르기·스페이스바로 이 프레임 안에서 곧바로 누른 것은 진짜 합성 framePath
+    // (composeTree가 맨 위에서 트리를 내려가며 계산하는 값, 이 프레임 혼자서는 모른다)를 대신할
+    // 수 없다. item.fingerprint.framePath를 그대로([]) 두면 "맨 위 자신의 항목"과 자리 표시가
+    // 같아져, 여러 프레임에 반복되는 흔한 템플릿(같은 domPath+글자)이 서로 다른 요소인데도 같은
+    // 기록으로 잘못 합쳐질 수 있다. 정확한 경로까지는 아니어도(번호표를 거친 누르기는 이미
+    // press/request의 message.framePath로 정확하다) 최소한 "맨 위가 아니다"와 "어느 문서인지"는
+    // 구분해 서로 다른 프레임끼리도, 맨 위와도 섞이지 않게 한다.
+    const localPressFramePath = isTopFrame ? [] : [`local:${window.location.href}`];
     let currentEnabled: boolean | undefined;
     let currentSettings: SettingsV1 = defaultSettings();
     // 지금 사이트에서만 끄기(Plan 01-13, D-20): 사이트 = 맨 위 페이지 출처. 전역 enabled와 합쳐
@@ -226,7 +242,7 @@ export default defineContentScript({
       if (result.fire) {
         const el = collector.get(currentTargetId);
         if (el) {
-          pressOrDrag(currentTargetId, el, item.fingerprint, item.danger);
+          pressOrDrag(currentTargetId, el, { ...item.fingerprint, framePath: localPressFramePath }, item.danger);
         }
       }
       requestAnimationFrame(dwellTick);
@@ -571,7 +587,7 @@ export default defineContentScript({
         return false;
       }
       return () => {
-        pressOrDrag(item.id, el, item.fingerprint, item.danger);
+        pressOrDrag(item.id, el, { ...item.fingerprint, framePath: localPressFramePath }, item.danger);
       };
     });
 
@@ -586,7 +602,7 @@ export default defineContentScript({
       if (!item || !el) {
         return false;
       }
-      pressOrDrag(item.id, el, item.fingerprint, item.danger);
+      pressOrDrag(item.id, el, { ...item.fingerprint, framePath: localPressFramePath }, item.danger);
       return true;
     });
 
@@ -907,6 +923,7 @@ export default defineContentScript({
       if (!topOrigin) {
         return;
       }
+      cachedTopOrigin = topOrigin; // WR-05: sendRecordPress가 이 값을 쓴다.
       const key = siteKey(topOrigin);
 
       void chrome.storage.sync.get(key).then((stored) => {
