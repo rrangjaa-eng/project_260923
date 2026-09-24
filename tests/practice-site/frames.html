@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>프레임 연습</title>
+  </head>
+  <body style="margin: 0">
+    <script>
+      // D-28: 이 파일 하나가 practice.test·other.test 두 출처 모두에서 서빙된다(호스트는 상관없이
+      // 경로로만 찾는 테스트 fixture). ?child= 쿼리로 맨 위/자식/손자 화면을 나눈다.
+      var params = new URLSearchParams(location.search);
+      var child = params.get('child');
+
+      function makeCounterButton(name) {
+        var btn = document.createElement('button');
+        btn.id = 'btn-' + name;
+        btn.textContent = name;
+        btn.style.cssText = 'width:16px;height:16px;margin:20px;padding:0';
+        var count = document.createElement('span');
+        count.id = name + '-count';
+        count.textContent = '0';
+        var n = 0;
+        btn.addEventListener('click', function () {
+          n += 1;
+          count.textContent = String(n);
+        });
+        document.body.append(btn, count);
+      }
+
+      function renderTop() {
+        makeCounterButton('top');
+
+        var removeBtn = document.createElement('button');
+        removeBtn.id = 'remove-cross';
+        removeBtn.textContent = '지우기';
+        removeBtn.style.cssText = 'width:80px;height:30px;margin:20px;display:block';
+        removeBtn.addEventListener('click', function () {
+          var el = document.getElementById('frame-cross');
+          if (el) {
+            el.remove();
+          }
+        });
+        document.body.append(removeBtn);
+
+        var scrollBox = document.createElement('div');
+        scrollBox.id = 'scroll-box';
+        scrollBox.style.cssText = 'width:280px;height:150px;overflow:auto;border:1px solid #999;margin:20px';
+        var frameSame = document.createElement('iframe');
+        frameSame.id = 'frame-same';
+        frameSame.title = '같은 출처';
+        frameSame.src = '/frames.html?child=same';
+        frameSame.style.cssText = 'width:260px;height:300px;border:0;display:block';
+        scrollBox.append(frameSame);
+        document.body.append(scrollBox);
+
+        var frameCross = document.createElement('iframe');
+        frameCross.id = 'frame-cross';
+        frameCross.title = '다른 출처';
+        frameCross.src = 'http://other.test/frames.html?child=cross';
+        frameCross.style.cssText = 'width:200px;height:150px;border:0;margin:20px;display:block';
+        document.body.append(frameCross);
+
+        var frameNest = document.createElement('iframe');
+        frameNest.id = 'frame-nest';
+        frameNest.title = '중첩';
+        frameNest.src = '/frames.html?child=nest';
+        frameNest.style.cssText = 'width:200px;height:300px;border:0;margin:20px;display:block';
+        document.body.append(frameNest);
+      }
+
+      function renderNest() {
+        makeCounterButton('nest');
+
+        var frameLeaf = document.createElement('iframe');
+        frameLeaf.id = 'frame-leaf';
+        frameLeaf.title = '손자';
+        frameLeaf.src = 'http://other.test/frames.html?child=leaf';
+        frameLeaf.style.cssText = 'width:200px;height:150px;border:0;margin:20px;display:block';
+        document.body.append(frameLeaf);
+      }
+
+      function renderLeaf() {
+        makeCounterButton('leaf');
+
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'input-leaf';
+        input.style.cssText = 'display:block;width:100px;margin:20px';
+        document.body.append(input);
+      }
+
+      if (!child) {
+        renderTop();
+      } else if (child === 'nest') {
+        renderNest();
+      } else if (child === 'leaf') {
+        renderLeaf();
+      } else {
+        makeCounterButton(child);
+      }
+    </script>
+  </body>
+</html>
