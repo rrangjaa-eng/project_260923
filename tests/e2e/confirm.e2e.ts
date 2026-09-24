@@ -351,6 +351,33 @@ test('확인 화면에 "1초 뒤에 누를 수 있어요" 글자와 1s linear �
   await page.keyboard.press('Enter');
 });
 
+test('CR-02: 확인 화면이 떠 있을 때 도우미를 껐다 다시 켜면 옛 확인이 화면 없이 다시 무장되지 않는다', async ({
+  context,
+  openPopup,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/danger.html');
+  await waitForHelperReady(page);
+
+  await openDangerConfirm(page, 'btn-delete-solo');
+  await page.waitForTimeout(1100); // 보호 시간이 지난 뒤 끈다 — CR-02 재현 조건(guard가 이미 지남).
+
+  const popup = await openPopup(page);
+  await popup.getByRole('button', { name: '도우미 끄기' }).click();
+  await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(false);
+
+  await popup.getByRole('button', { name: '도우미 켜기' }).click();
+  await popup.close();
+  await waitForHelperReady(page);
+
+  // 평범한 Enter — 화면에 확인 대화상자는 없다. 옛 확인이 조용히 다시 무장돼 있으면 안 된다.
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(150);
+
+  await expect(page.locator('#btn-delete-solo-count')).toHaveText('0');
+  expect(await readDialog(page)).toBeNull();
+});
+
 test('CR-01: 확인 화면이 떠 있을 때 취소 버튼 근처(48px 안) 페이지 버튼이 대신 눌리지 않고 취소 클릭이 통한다', async ({
   context,
 }) => {
