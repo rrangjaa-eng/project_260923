@@ -308,6 +308,28 @@ test('번호표를 켜고 삭제의 번호를 눌러도 삭제 카운터가 0이
   await expect(page.locator('#btn-delete-solo-count')).toHaveText('0');
 });
 
+test('CR-05: <input type=button value=삭제>, <a><img alt=삭제>, aria-labelledby 버튼도 위험으로 잡힌다', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/danger.html');
+  await waitForHelperReady(page);
+
+  for (const selector of ['#btn-delete-input', '#link-delete-img', '#btn-delete-labelledby']) {
+    const box = await boxOf(page, selector);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+
+    await expect.poll(() => ringMatches(page, expectedRingFor(box))).toBe(true);
+    const ring = await readRing(page);
+    expect(ring?.borderStyle, `${selector}는 점선 테두리여야 한다`).toBe('dashed');
+    expect(ring?.borderColorMatchesDanger, `${selector}는 danger 색이어야 한다`).toBe(true);
+
+    const label = await readDangerLabel(page);
+    expect(label?.visible, `${selector}는 "! 위험" 글자가 보여야 한다`).toBe(true);
+    expect(label?.text).toBe('! 위험');
+  }
+});
+
 test('커서가 삭제 위에 정확히 있을 때 스페이스바를 누르면 삭제 카운터가 1이 된다', async ({ context }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/danger.html');

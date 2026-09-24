@@ -63,6 +63,80 @@
         document.body.append(a, count);
       }
 
+      // CR-05: <input type="button" value="삭제"> — computeName()이 textContent만 보면(입력칸은
+      // 늘 빈 텍스트) 이름이 ''이 되어 danger 판정이 통째로 빠진다.
+      function makeInputButton(id, value, x, y, w, h) {
+        var input = document.createElement('input');
+        input.type = 'button';
+        input.id = id;
+        input.value = value;
+        input.style.cssText = 'position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;padding:0;margin:0';
+        var count = document.createElement('span');
+        count.id = id + '-count';
+        count.textContent = '0';
+        count.style.cssText = 'position:absolute;left:' + x + 'px;top:' + (y + h + 4) + 'px';
+        var n = 0;
+        input.addEventListener('click', function () {
+          n += 1;
+          count.textContent = String(n);
+        });
+        document.body.append(input, count);
+      }
+
+      // CR-05: <a><img alt="삭제"></a> — 레거시 인트라넷의 흔한 아이콘 버튼. 앵커 자신은 텍스트가
+      // 없고, alt는 자손 img에만 있다(computeName이 자신의 alt 속성만 보면 놓친다).
+      function makeImgLink(id, alt, x, y, w, h) {
+        var a = document.createElement('a');
+        a.id = id;
+        a.href = 'javascript:void(0)';
+        a.style.cssText = 'position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;display:block';
+        var img = document.createElement('img');
+        img.alt = alt;
+        img.width = w;
+        img.height = h;
+        a.append(img);
+        var count = document.createElement('span');
+        count.id = id + '-count';
+        count.textContent = '0';
+        count.style.cssText = 'position:absolute;left:' + x + 'px;top:' + (y + h + 4) + 'px';
+        var n = 0;
+        a.addEventListener('click', function (event) {
+          event.preventDefault();
+          n += 1;
+          count.textContent = String(n);
+        });
+        document.body.append(a, count);
+      }
+
+      // CR-05: aria-labelledby로 다른 요소의 글자를 이름으로 삼는 버튼 — 버튼 자신은 텍스트가
+      // 없다(computeName이 aria-labelledby를 안 보면 놓친다). 참조 대상 span은 화면 밖에 둔다.
+      function makeLabelledByButton(id, labelText, x, y, w, h) {
+        var labelId = id + '-label';
+        var label = document.createElement('span');
+        label.id = labelId;
+        label.textContent = labelText;
+        label.style.cssText = 'position:absolute;left:-9999px;top:0px';
+        document.body.append(label);
+
+        var btn = document.createElement('div');
+        btn.id = id;
+        btn.setAttribute('role', 'button');
+        btn.setAttribute('tabindex', '0');
+        btn.setAttribute('aria-labelledby', labelId);
+        btn.style.cssText =
+          'position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;background:#eee;cursor:pointer';
+        var count = document.createElement('span');
+        count.id = id + '-count';
+        count.textContent = '0';
+        count.style.cssText = 'position:absolute;left:' + x + 'px;top:' + (y + h + 4) + 'px';
+        var n = 0;
+        btn.addEventListener('click', function () {
+          n += 1;
+          count.textContent = String(n);
+        });
+        document.body.append(btn, count);
+      }
+
       if (child === '1') {
         // 다른 출처 iframe 안 위험한 버튼 하나(Plan 01-09용).
         makeButton('btn-child-delete', '삭제', 0, 0, 60, 30);
@@ -99,10 +173,15 @@
         makeButton('btn-submit', '상신', 150, 450, 60, 30);
         makeButton('btn-hold', '보류', 150, 540, 60, 30);
 
+        // CR-05: 텍스트가 아닌 경로로만 "삭제"라는 이름이 드러나는 세 가지 흔한 레거시 패턴.
+        makeInputButton('btn-delete-input', '삭제', 150, 630, 60, 30);
+        makeImgLink('link-delete-img', '삭제', 150, 720, 60, 30);
+        makeLabelledByButton('btn-delete-labelledby', '삭제', 150, 810, 60, 30);
+
         var topCounter = document.createElement('span');
         topCounter.id = 'site-keydown';
         topCounter.textContent = '0';
-        topCounter.style.cssText = 'position:absolute;left:150px;top:630px';
+        topCounter.style.cssText = 'position:absolute;left:150px;top:900px';
         document.body.append(topCounter);
 
         var frame = document.createElement('iframe');
