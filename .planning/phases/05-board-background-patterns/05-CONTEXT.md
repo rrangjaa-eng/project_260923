@@ -44,7 +44,7 @@
 - **D-13:** **숨은 탭에서의 실행 속도를 측정하고 결과를 기록한다**(설계 11장 ③, ROADMAP 성공 기준 2). 브라우저는 뒤쪽 탭의 타이머를 늦추므로(숨은 탭 타이머 최소 1초, 오래 숨으면 더 느려짐), 뒤에서 도는 실행은 content script의 `setTimeout` 사슬에 기대지 않고 **service worker 조정 + DOM 이벤트(MutationObserver)** 로 진행한다(연구 STACK.md·PITFALLS.md).
 - **D-14:** 뒤에서 도는 탭이 **닫히거나 로그아웃되면** 그 틀을 멈추고 작업판에 이유를 표시한다(BG-02, 설계 9장). 멈출 때 제출 단계에 "누름" 기록만 있고 결과가 없으면 다시 누르지 않고 "확인 필요"로 둔다(설계 4장·9장, Phase 4 TMPL-13과 같은 규칙).
 - **D-15:** 틀마다 이미지·광고 차단을 켜고 끌 수 있다. 켜면 **그 틀을 실행하는 탭에서만** 이미지·광고 요청을 막는다(BG-03, 설계 6.8). 방식은 `declarativeNetRequest` **세션 규칙 + `tabIds` 조건**(전역 규칙 금지)이다(연구 ARCHITECTURE.md·PITFALLS.md). 틀이 끝나거나 멈추거나 탭이 닫히면 규칙을 걷어 낸다.
-- **D-16:** `declarativeNetRequest` 계열 권한은 Phase 1 권한(storage·scripting·tabs, host `<all_urls>`)에 없는 **새 권한**이다. 저장소 규칙(새 권한·새 의존성은 이유 한 줄 + 승인)과 설계 11장 ⑤의 선례("새 권한이라 만들 때 승인받는다")대로, **만들 때 이용자 승인을 받은 뒤에만** manifest에 넣는다. `debugger`·`webNavigation`·`contentSettings`는 이 단계에서도 넣지 않는다(Phase 1 D-13).
+- **D-16:** `declarativeNetRequest` 계열 권한은 Phase 1 권한(storage·scripting·tabs, host `<all_urls>`)에 없는 **새 권한**이다. 저장소 규칙(새 권한·새 의존성은 이유 한 줄 + 승인)과 설계 11장 ⑤의 선례("새 권한이라 만들 때 승인받는다")대로, **만들 때 이용자 승인을 받은 뒤에만** manifest에 넣는다. `debugger`·`webNavigation`·`contentSettings`는 이 단계에서도 넣지 않는다(Phase 1 D-13). 이용자가 2026-09-24 프로젝트 대화에서 "declarativeNetRequestWithHostAccess 허용"이라고 답해 `declarativeNetRequestWithHostAccess`를 승인했고(일반 `declarativeNetRequest`는 승인하지 않음), 05-08의 manifest 변경은 더 이상 질문을 기다리지 않는다.
 
 ### 반복 패턴 알림 (PATN-01)
 - **D-17:** 같은 사이트의 같은 입력칸 묶음에 **틀 없이 3번 이상** 입력하면 "이걸 틀로 저장할까요?"를 **한 번** 묻고, 거절하면 그 패턴은 **다시 묻지 않는다**(설계 6.8, AI 없음).
