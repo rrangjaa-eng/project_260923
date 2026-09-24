@@ -322,28 +322,47 @@ async function pressFUntilLabels(page: Page, minCount: number): Promise<void> {
   throw new Error(`번호표가 ${String(minCount)}개 이상 뜨지 않았다`);
 }
 
-async function numberForElement(page: Page, selector: string): Promise<string> {
+// CR-05가 danger.html에 요소 3개를 더해(맨 위 8→11개 + 자식 1개 = 12개) 한 장(최대 9개)에 다
+// 안 들어간다 — btn-delete-solo가 첫 장에 없을 수 있다(재현 확인). "0"으로 다음 장까지 넘겨 가며
+// 실제로 그 요소 자리에 번호표가 있는(20px 안) 장을 찾는다. 단순 최근접(어느 장이든 가장 가까운
+// 번호표를 돌려주는 방식)이면 엉뚱한 장의 다른 요소 번호를 돌려줘, 그 번호를 누르면 확인 화면이
+// 아예 안 뜬다(재현 확인 — 8건의 dom-audit 실패 원인).
+async function numberForElementAcrossChapters(page: Page, selector: string): Promise<string> {
   const box = await page.locator(selector).boundingBox();
   if (!box) {
     throw new Error(`요소를 찾지 못했다: ${selector}`);
   }
-  return page.evaluate(
-    ({ x, y }) => {
-      const labels = document.querySelector('tremor-helper-root')?.shadowRoot?.querySelectorAll('.hint-label');
-      let best = '';
-      let bestDistance = Number.POSITIVE_INFINITY;
-      for (const label of Array.from(labels ?? [])) {
-        const r = label.getBoundingClientRect();
-        const d = Math.hypot(r.x - (x - 14), r.y - (y - 14));
-        if (d < bestDistance) {
-          bestDistance = d;
-          best = label.textContent;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const result = await page.evaluate(
+      ({ x, y }) => {
+        const labels = document.querySelector('tremor-helper-root')?.shadowRoot?.querySelectorAll('.hint-label');
+        let best = '';
+        let bestDistance = Number.POSITIVE_INFINITY;
+        for (const label of Array.from(labels ?? [])) {
+          const r = label.getBoundingClientRect();
+          const d = Math.hypot(r.x - (x - 14), r.y - (y - 14));
+          if (d < bestDistance) {
+            bestDistance = d;
+            best = label.textContent;
+          }
         }
-      }
-      return best;
-    },
-    { x: box.x, y: box.y },
-  );
+        return { best, bestDistance };
+      },
+      { x: box.x, y: box.y },
+    );
+    if (result.bestDistance < 20) {
+      return result.best;
+    }
+    const hasNext = await page.evaluate(
+      () => document.querySelector('tremor-helper-root')?.shadowRoot?.querySelector('.hint-next-card') !== null,
+    );
+    if (!hasNext) {
+      break;
+    }
+    await page.keyboard.press('Digit0');
+    await page.waitForTimeout(100);
+  }
+  throw new Error(`번호표에서 ${selector}를 찾지 못했다(모든 장을 넘겨 봄)`);
 }
 
 async function dialogOpacity(page: Page): Promise<number> {
@@ -407,7 +426,7 @@ async function gatherAll(deps: AuditDeps): Promise<Sample[]> {
   await page.waitForTimeout(350);
   await pressFUntilLabels(page, 2);
   samples.push(...(await collect(page, 'overlay', 'danger.html(번호표)')));
-  const number = await numberForElement(page, '#btn-delete-solo');
+  const number = await numberForElementAcrossChapters(page, '#btn-delete-solo');
   await page.waitForTimeout(350);
   await page.keyboard.press(`Digit${number}`);
   await expect.poll(() => dialogOpacity(page)).toBe(1);
@@ -751,7 +770,7 @@ async function openDangerConfirm(page: Page): Promise<Sample[]> {
   await page.goto('http://practice.test/danger.html');
   await waitForHelperReady(page);
   await pressFUntilLabels(page, 2);
-  const number = await numberForElement(page, '#btn-delete-solo');
+  const number = await numberForElementAcrossChapters(page, '#btn-delete-solo');
   await page.waitForTimeout(350);
   await page.keyboard.press(`Digit${number}`);
   await expect.poll(() => dialogOpacity(page)).toBe(1);

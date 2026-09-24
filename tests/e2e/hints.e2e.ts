@@ -406,7 +406,10 @@ test('shortcuts.html에서 번호표가 떠 있을 때 1은 사이트 단축키 
   await waitForHelperReady(page);
 
   await page.keyboard.press('KeyF');
-  await page.waitForTimeout(50);
+  // WR-10과 같은 이유(고정 sleep 대신 조건 대기): openHints()는 storage 읽기 두 번을 기다린 뒤에야
+  // 번호표를 그린다 — 고정 50ms는 부하가 큰 상황(전체 스위트를 이어서 돌릴 때 재현됨)에서 아직
+  // 번호표가 안 뜬 채로 Digit1을 눌러, hintsActive가 아직 false라 그 키가 그대로 사이트로 샌다.
+  await expect.poll(() => labelTexts(page)).not.toEqual([]);
   await page.keyboard.press('Digit1');
   await page.waitForTimeout(50);
   await expect(page.locator('#site-keydown')).toHaveText('0');
