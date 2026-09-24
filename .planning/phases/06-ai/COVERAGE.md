@@ -2,7 +2,7 @@
 
 > Full coverage by default. Opt-outs are explicit, reasoned decisions.
 > 범위: service worker의 AI 창구 한 곳(`src/worker/ai/client.ts`)이 부르는 Anthropic API 표면. 근거: 06-CONTEXT.md D-04·D-07·D-08·D-09·D-12·D-18·D-25, 06-RESEARCH.md "Standard Stack"·"Don't Hand-Roll", claude-api 스킬(2026-06 캐시).
-> 한도 단위(횟수/금액)는 사용자 확인 대기다. 금액으로 바뀌면 `response usage tokens` 행을 INTEGRATE로 다시 정한다(06-06 계획 "사용자 확인 대기 선택" 참고).
+> 한도 단위(횟수/금액)는 사용자가 2026-09-24에 횟수로 확정했다. 나중에 금액으로 바꾸면 `response usage tokens` 행을 INTEGRATE로 다시 정한다(06-06 계획 "사용자 확정 선택" 참고).
 
 | capability | decision | reason |
 |---|---|---|
@@ -24,7 +24,7 @@
 | extended / adaptive thinking | OPT-OUT | not needed — Haiku 4.5의 짧은 고르기 작업이라 지연과 비용만 는다 |
 | effort parameter | OPT-OUT | not needed — Haiku 4.5에서는 오류다(CONTEXT specifics) |
 | prompt caching | OPT-OUT | not needed — 고정 지시문이 Haiku 4.5 최소 캐시 길이(4096 토큰)보다 짧다 |
-| token counting endpoint | OPT-OUT | not needed yet — 한 달 한도 단위를 횟수로 계획했다(사용자 확인 대기) |
+| token counting endpoint | OPT-OUT | not needed yet — 한 달 한도 단위를 횟수로 계획했다(2026-09-24 사용자 확정) |
 | response usage tokens | OPT-OUT | not needed yet — 한도 단위가 횟수다. 사용자가 금액을 고르면 INTEGRATE로 바꾼다 |
 | multi-turn conversation | OPT-OUT | not needed — 화면 정리 한 번에 한 번 묻고 끝난다 |
 | sampling params and stop sequences | OPT-OUT | not needed — 답 형식은 구조화 출력이 정한다 |
