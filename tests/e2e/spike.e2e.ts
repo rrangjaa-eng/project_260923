@@ -207,10 +207,20 @@ test('파일 입력을 잡고 스페이스바를 누르면 filechooser 이벤트
   await waitForHelperReady(page);
 
   const c = center(await boxOf(page, '#file'));
+
+  // fix(01-12), 01-16 systematic-debugging: page.waitForEvent('filechooser', ...)가 브라우저에
+  // 가로채기(Page.setInterceptFileChooserDialog)를 실제로 거는 것은 이 호출이 돌려주는 값을 받는
+  // 시점과 별개로 시간이 걸린다(완료를 알려 주는 공개 신호가 없다). 이 등록 바로 다음 줄에서 신뢰된
+  // 스페이스바를 누르면 아주 드물게(CI=true로 이 파일 전체를 14번 돌려 2번, ~14%) 가로채기가 걸리기
+  // 전에 showPicker()가 열려 filechooser 이벤트를 놓치고 타임아웃했다(재현 확인). 자석이 #file을
+  // 잡는 데 필요한 마우스 이동 뒤 50ms 대기는 원래도 있었다 — 그 대기를 가로채기 등록 "뒤"로 옮기면
+  // 같은 대기가 가로채기가 걸릴 시간도 함께 벌어 준다. 이 파일의 매트릭스 E(파일선택) 시험은 방법마다
+  // "등록 → 마우스 이동 → waitForTimeout(50) → 스페이스바" 순서를 이미 쓰고 있어(applyMethod) 한
+  // 번도 이 실패를 보이지 않았다 — 시간을 늘린 게 아니라 이미 필요했던 대기를 올바른 자리로 옮겨
+  // 같은 순서로 맞췄다(CI=true 18회 연속 재현 없음으로 확인).
+  const chooserPromise = page.waitForEvent('filechooser', { timeout: 5000 });
   await page.mouse.move(c.x, c.y);
   await page.waitForTimeout(50);
-
-  const chooserPromise = page.waitForEvent('filechooser', { timeout: 5000 });
   await page.keyboard.press('Space');
   const chooser = await chooserPromise;
 
