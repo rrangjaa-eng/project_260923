@@ -152,6 +152,48 @@ test('SW에서 storage.sync.set으로 값을 바꾸면(다른 PC 동기화 흉�
   await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(false);
 });
 
+test('WR-06: 1을 틈 없이 두 번 누르면(떨림 두 번 탭) 한 번만 토글된다', async ({ serviceWorker, openPopup }) => {
+  const popup = await openPopup();
+
+  // 시작 상태는 기본값 켜짐(true) — 떨림 간격(기본 300ms) 안에 두 번 누른다.
+  await popup.keyboard.press('Digit1');
+  await popup.keyboard.press('Digit1');
+
+  // 한 번만 등록되면 꺼짐(false). 두 번 다 등록되면 다시 켜짐(true)으로 되돌아간다.
+  await expect.poll(() => readEnabled(serviceWorker)).toBe(false);
+  // 간격이 지난 뒤에도(두 번째 누름이 뒤늦게 등록되지 않는지) 값이 그대로인지 확인한다.
+  await popup.waitForTimeout(400);
+  expect(await readEnabled(serviceWorker)).toBe(false);
+});
+
+test('WR-06: 카드를 틈 없이 두 번 클릭하면(떨림 두 번 탭) 한 번만 토글된다', async ({ serviceWorker, openPopup }) => {
+  const popup = await openPopup();
+  const card = popup.locator('.card').first();
+
+  await card.click();
+  await card.click();
+
+  await expect.poll(() => readEnabled(serviceWorker)).toBe(false);
+  await popup.waitForTimeout(400);
+  expect(await readEnabled(serviceWorker)).toBe(false);
+});
+
+test('WR-06: 키를 계속 눌러 생기는 자동 반복(keydown repeat)은 토글하지 않는다', async ({ serviceWorker, openPopup }) => {
+  const popup = await openPopup();
+
+  // 먼저 한 번 진짜로 눌러 기준 상태를 만든다(true → false).
+  await popup.keyboard.press('Digit1');
+  await expect.poll(() => readEnabled(serviceWorker)).toBe(false);
+
+  // 그 뒤 자동 반복(repeat: true) keydown을 흉내 낸다 — 실제로 눌려 있는 키를 계속 붙잡고
+  // 있을 때 브라우저가 보내는 것과 같은 모양이다. 토글되면 안 된다.
+  await popup.evaluate(() => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '1', code: 'Digit1', repeat: true, bubbles: true }));
+  });
+  await popup.waitForTimeout(100);
+  expect(await readEnabled(serviceWorker)).toBe(false);
+});
+
 test('메뉴 카드 높이가 56px 이상이고 카드 안에 키 칩 "1"이 있다', async ({ openPopup }) => {
   const popup = await openPopup();
   const card = popup.locator('.card').first();
