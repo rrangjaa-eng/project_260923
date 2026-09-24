@@ -28,7 +28,9 @@ export type UpdateSettingsResult =
 
 export type RecordPressResult = { ok: true } | { ok: false; reason: 'origin-mismatch' | 'invalid-presses' };
 
-export type SetSiteDisabledResult = { ok: true } | { ok: false; reason: 'invalid-site' | 'item-too-large' };
+export type SetSiteDisabledResult =
+  | { ok: true }
+  | { ok: false; reason: 'invalid-site' | 'item-too-large' | 'write-failed' };
 
 // 사이트별 자주 누른 기록 상한(D-18 성격 — 무한정 커지지 않게, T-01-18).
 const MAX_PRESS_ENTRIES = 200;
@@ -152,17 +154,29 @@ export function createStorageWriter(): StorageWriter {
 
   async function runSiteWriteQueue(key: string, state: SiteWriteQueue): Promise<void> {
     state.writing = true;
-    while (state.pending !== null) {
-      const value = state.pending;
-      state.pending = null;
-      const waiters = state.waiters.splice(0, state.waiters.length);
-      // 실제 쓰기는 여전히 단일 저장자 큐를 거친다(D-24 — 다른 키 쓰기와도 순서를 지킨다).
-      const result = await enqueue(() => writeSiteDisabledOnce(key, value));
-      for (const resolve of waiters) {
-        resolve(result);
+    try {
+      while (state.pending !== null) {
+        const value = state.pending;
+        state.pending = null;
+        const waiters = state.waiters.splice(0, state.waiters.length);
+        // 실제 쓰기는 여전히 단일 저장자 큐를 거친다(D-24 — 다른 키 쓰기와도 순서를 지킨다).
+        // WR-07: chrome.storage.sync.set이 거부되면(할당량 초과 등) enqueue()가 돌려주는
+        // Promise가 그대로 거부된다 — 여기서 잡지 않으면 이 while 밖으로 던져져 state.writing이
+        // 영원히 true로 남고(다음 요청이 이 origin에서 전부 멈춘다), 지금 기다리던 waiters도
+        // 하나도 resolve되지 않는다(응답이 영영 안 온다).
+        let result: SetSiteDisabledResult;
+        try {
+          result = await enqueue(() => writeSiteDisabledOnce(key, value));
+        } catch {
+          result = { ok: false, reason: 'write-failed' };
+        }
+        for (const resolve of waiters) {
+          resolve(result);
+        }
       }
+    } finally {
+      state.writing = false;
     }
-    state.writing = false;
   }
 
   return {

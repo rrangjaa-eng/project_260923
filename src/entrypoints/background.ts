@@ -176,12 +176,25 @@ export default defineBackground(() => {
     const message = parsed.data;
 
     if (message.type === 'storage/request') {
+      // WR-07: writer.*()가 예기치 않게 거부되면(원래 storage-writer.ts 안에서 다 잡아야 하지만,
+      // 메시지 경계에서도 한 번 더 막아 둔다) .then(sendResponse)만으로는 sendResponse가 영영
+      // 불리지 않아 요청 쪽(팝업 등)이 응답 없이 멈춘다 — .catch로 반드시 한 번은 답한다.
       if (message.op.kind === 'setEnabled') {
-        void writer.setEnabled(message.op.enabled).then(sendResponse);
+        void writer
+          .setEnabled(message.op.enabled)
+          .then(sendResponse)
+          .catch(() => {
+            sendResponse({ ok: false });
+          });
         return true; // 비동기 응답을 위해 메시지 채널을 열어 둔다.
       }
       if (message.op.kind === 'updateSettings') {
-        void writer.updateSettings(message.op.patch).then(sendResponse);
+        void writer
+          .updateSettings(message.op.patch)
+          .then(sendResponse)
+          .catch(() => {
+            sendResponse({ ok: false });
+          });
         return true;
       }
       if (message.op.kind === 'setSiteDisabled') {
@@ -200,7 +213,9 @@ export default defineBackground(() => {
           }
           const result = await writer.setSiteDisabled(op.origin, op.disabled);
           sendResponse(result);
-        })();
+        })().catch(() => {
+          sendResponse({ ok: false });
+        });
         return true;
       }
       // recordPress(D-11, T-01-16): 보낸 프레임의 실제 origin은 sender.url에서 계산한다 —
@@ -211,7 +226,12 @@ export default defineBackground(() => {
       const frameOrigin = sender.url ? new URL(sender.url).origin : '';
       const tabOrigin = sender.tab?.url ? new URL(sender.tab.url).origin : undefined;
       const senderOrigin = message.op.origin === tabOrigin ? tabOrigin : frameOrigin;
-      void writer.recordPress(message.op.origin, senderOrigin, message.op.fingerprint).then(sendResponse);
+      void writer
+        .recordPress(message.op.origin, senderOrigin, message.op.fingerprint)
+        .then(sendResponse)
+        .catch(() => {
+          sendResponse({ ok: false });
+        });
       return true;
     }
 
