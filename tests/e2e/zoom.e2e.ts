@@ -156,3 +156,272 @@ test('확대 전에 연 탭과 확대 뒤에 연 탭(같은 출처) 모두 모�
   }
   expect(afterMetrics.fontSizePx * 1.1).toBeLessThanOrEqual(18.5);
 });
+
+// Task 2: 테두리·번호표·확인 화면·알림에 배율 적용(위치는 요소를 따라감).
+
+interface RingBox {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  borderTopWidth: number;
+}
+
+async function readRingBox(page: Page): Promise<RingBox | null> {
+  return page.evaluate(() => {
+    const el = document.querySelector('tremor-helper-root')?.shadowRoot?.querySelector('[data-part="ring"]');
+    if (!el || el.getAttribute('data-visible') !== 'true') {
+      return null;
+    }
+    const rect = el.getBoundingClientRect();
+    const style = getComputedStyle(el);
+    return { left: rect.left, top: rect.top, width: rect.width, height: rect.height, borderTopWidth: Number.parseFloat(style.borderTopWidth) };
+  });
+}
+
+test('200%에서 잡힌 요소의 테두리 두께·바깥 간격이 화면 크기로 유지되고 테두리 상자가 요소를 감싼다', async ({
+  context,
+  serviceWorker,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/targets.html');
+  await waitForHelperReady(page);
+
+  const box = await page.locator('#btn-tiny').boundingBox();
+  if (!box) {
+    throw new Error('버튼을 찾지 못했다');
+  }
+  await page.mouse.move(box.x - 30, box.y + box.height / 2);
+  await expect.poll(() => readRingBox(page)).not.toBeNull();
+
+  const tabId = await getTabId(serviceWorker, page);
+  await setZoom(serviceWorker, tabId, 2.0);
+  // 자석 재계산은 pointermove가 있어야 다시 돈다 — 살짝 흔들어 새 배율로 다시 그리게 한다.
+  await page.mouse.move(box.x - 31, box.y + box.height / 2);
+  await page.mouse.move(box.x - 30, box.y + box.height / 2);
+
+  await expect
+    .poll(async () => {
+      const ring = await readRingBox(page);
+      const scaled = ring ? ring.borderTopWidth * 2 : null;
+      return scaled !== null && scaled >= 4.5 && scaled <= 5.5;
+    })
+    .toBe(true);
+
+  const ring = await readRingBox(page);
+  if (!ring) {
+    throw new Error('테두리를 찾지 못했다');
+  }
+  const offsetLeft = (box.x - ring.left) * 2;
+  const offsetTop = (box.y - ring.top) * 2;
+  expect(offsetLeft).toBeGreaterThanOrEqual(7);
+  expect(offsetLeft).toBeLessThanOrEqual(9);
+  expect(offsetTop).toBeGreaterThanOrEqual(7);
+  expect(offsetTop).toBeLessThanOrEqual(9);
+
+  expect(ring.left).toBeLessThanOrEqual(box.x + 0.5);
+  expect(ring.top).toBeLessThanOrEqual(box.y + 0.5);
+  expect(ring.left + ring.width).toBeGreaterThanOrEqual(box.x + box.width - 0.5);
+  expect(ring.top + ring.height).toBeGreaterThanOrEqual(box.y + box.height - 0.5);
+});
+
+interface LabelBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+async function readLabelBoxes(page: Page): Promise<LabelBox[]> {
+  return page.evaluate(() => {
+    const host = document.querySelector('tremor-helper-root');
+    const labels = host?.shadowRoot?.querySelectorAll('.hint-label');
+    if (!labels) {
+      return [];
+    }
+    return Array.from(labels).map((el) => {
+      const r = el.getBoundingClientRect();
+      return { x: r.x, y: r.y, width: r.width, height: r.height };
+    });
+  });
+}
+
+function boxesOverlap(a: LabelBox, b: LabelBox): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
+const DENSE_BUTTONS_HTML = `<!doctype html><html><body style="margin:0">
+<script>
+  function makeBtn(id, x) {
+    var b = document.createElement('button');
+    b.id = id;
+    b.textContent = id;
+    b.style.position = 'absolute';
+    b.style.left = x + 'px';
+    b.style.top = '200px';
+    b.style.width = '30px';
+    b.style.height = '30px';
+    document.body.appendChild(b);
+  }
+  for (var i = 0; i < 5; i += 1) { makeBtn('d-' + i, 300 + i * 40); }
+</script>
+</body></html>`;
+
+test('200%·80%에서 번호표 너비가 화면 크기로 유지되고 번호표끼리 겹치지 않는다', async ({ context, serviceWorker, servePage }) => {
+  servePage('http://practice.test/zoom-hints.html', DENSE_BUTTONS_HTML);
+
+  for (const factor of [2.0, 0.8]) {
+    const page = await context.newPage();
+    await page.goto('http://practice.test/zoom-hints.html');
+    await waitForHelperReady(page);
+    await page.waitForTimeout(100);
+
+    const tabId = await getTabId(serviceWorker, page);
+    await setZoom(serviceWorker, tabId, factor);
+    await page.waitForTimeout(150);
+
+    await page.keyboard.press('KeyF');
+    await page.waitForTimeout(50);
+
+    const boxes = await readLabelBoxes(page);
+    expect(boxes.length).toBeGreaterThan(1);
+    for (const box of boxes) {
+      expect(box.width * factor).toBeGreaterThanOrEqual(27);
+      expect(box.width * factor).toBeLessThanOrEqual(29);
+    }
+    for (let i = 0; i < boxes.length; i += 1) {
+      for (let j = i + 1; j < boxes.length; j += 1) {
+        const a = boxes[i];
+        const b = boxes[j];
+        if (!a || !b) {
+          continue;
+        }
+        expect(boxesOverlap(a, b)).toBe(false);
+      }
+    }
+  }
+});
+
+interface DialogMetrics {
+  visible: boolean;
+  widthPx: number;
+  confirmButtonHeightPx: number;
+  cancelButtonHeightPx: number;
+}
+
+async function readDialogMetrics(page: Page): Promise<DialogMetrics | null> {
+  return page.evaluate(() => {
+    const shadow = document.querySelector('tremor-helper-root')?.shadowRoot;
+    const dialog = shadow?.querySelector('[data-part="confirm-dialog"]');
+    if (!shadow || !dialog) {
+      return null;
+    }
+    const rect = dialog.getBoundingClientRect();
+    const confirmBtn = shadow.querySelector('[data-part="confirm-button-confirm"]');
+    const cancelBtn = shadow.querySelector('[data-part="confirm-button-cancel"]');
+    return {
+      visible: dialog.getAttribute('data-visible') === 'true',
+      widthPx: rect.width,
+      confirmButtonHeightPx: confirmBtn ? confirmBtn.getBoundingClientRect().height : 0,
+      cancelButtonHeightPx: cancelBtn ? cancelBtn.getBoundingClientRect().height : 0,
+    };
+  });
+}
+
+async function numberForElement(page: Page, elementId: string): Promise<string> {
+  const box = await page.locator(`#${elementId}`).boundingBox();
+  if (!box) {
+    throw new Error(`요소를 찾지 못했다: ${elementId}`);
+  }
+  return page.evaluate(
+    ({ x, y }) => {
+      const host = document.querySelector('tremor-helper-root');
+      const labels = host?.shadowRoot?.querySelectorAll('.hint-label');
+      if (!labels) {
+        return '';
+      }
+      let closestText = '';
+      let closestDistance = Number.POSITIVE_INFINITY;
+      for (const label of Array.from(labels)) {
+        const rect = label.getBoundingClientRect();
+        const distance = Math.hypot(rect.x - (x - 14), rect.y - (y - 14));
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestText = label.textContent;
+        }
+      }
+      return closestText;
+    },
+    { x: box.x, y: box.y },
+  );
+}
+
+test('200%에서 확인 카드 너비·버튼 높이가 화면 크기로 유지된다', async ({ context, serviceWorker }) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/danger.html');
+  await waitForHelperReady(page);
+
+  const tabId = await getTabId(serviceWorker, page);
+  await setZoom(serviceWorker, tabId, 2.0);
+  await page.waitForTimeout(150);
+
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(50);
+  const number = await numberForElement(page, 'btn-delete-solo');
+  await page.keyboard.press(`Digit${number}`);
+  await page.waitForTimeout(100);
+
+  const dialog = await readDialogMetrics(page);
+  if (!dialog) {
+    throw new Error('확인 화면을 찾지 못했다');
+  }
+  expect(dialog.visible).toBe(true);
+  expect(Math.abs(dialog.widthPx * 2 - 600)).toBeLessThanOrEqual(1);
+  expect(dialog.confirmButtonHeightPx * 2).toBeGreaterThanOrEqual(64);
+  expect(dialog.cancelButtonHeightPx * 2).toBeGreaterThanOrEqual(64);
+});
+
+const MIGRATION_FAILED_TOAST_TEXT = '설정을 읽지 못해 기본 설정으로 동작해요. 원래 설정은 그대로 두었어요.';
+
+// lifecycle.e2e.ts와 같은 시험 준비 방식(제품 코드 아님) — notice:migration-failed를 미리 넣어
+// 두면 content.ts가 페이지를 열 때 토스트를 띄운다.
+async function seedMigrationFailure(serviceWorker: Worker): Promise<void> {
+  await expect.poll(() => serviceWorker.evaluate(async () => (await chrome.storage.sync.get('settings')).settings)).toBeDefined();
+  await serviceWorker.evaluate(async () => {
+    await chrome.storage.local.set({
+      'notice:migration-failed': { schemaVersion: 1, data: { key: 'settings', reason: 'newer-version', at: Date.now() } },
+    });
+  });
+}
+
+test('200%에서 알림(토스트) 글자 크기가 화면 크기로 유지된다', async ({ context, serviceWorker, servePage }) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/targets.html');
+  await waitForHelperReady(page);
+
+  const tabId = await getTabId(serviceWorker, page);
+  await setZoom(serviceWorker, tabId, 2.0);
+  await page.waitForTimeout(150);
+
+  await seedMigrationFailure(serviceWorker);
+  servePage('http://practice.test/toast-zoom.html', '<!doctype html><html><body></body></html>');
+  await page.goto('http://practice.test/toast-zoom.html');
+
+  async function toastMetrics(): Promise<{ text: string; fontSizePx: number } | null> {
+    return page.evaluate(() => {
+      const el = document.querySelector('tremor-helper-root')?.shadowRoot?.querySelector('.toast');
+      if (!el) {
+        return null;
+      }
+      return { text: el.textContent, fontSizePx: Number.parseFloat(getComputedStyle(el).fontSize) };
+    });
+  }
+
+  await expect.poll(async () => (await toastMetrics())?.text ?? null).toBe(MIGRATION_FAILED_TOAST_TEXT);
+  const metrics = await toastMetrics();
+  if (!metrics) {
+    throw new Error('토스트를 찾지 못했다');
+  }
+  expect(metrics.fontSizePx * 2).toBeGreaterThanOrEqual(17.5);
+  expect(metrics.fontSizePx * 2).toBeLessThanOrEqual(18.5);
+});
