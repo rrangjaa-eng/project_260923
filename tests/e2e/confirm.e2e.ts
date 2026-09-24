@@ -454,6 +454,37 @@ test('CR-01: 확인 화면이 떠 있을 때 취소 버튼 근처(48px 안) 페�
   await expect(page.locator('#btn-delete-solo-count')).toHaveText('0');
 });
 
+test('WR-02: 번호표가 뜬 뒤 요소 글자가 위험 단어로 바뀌면, 그 번호는 확인 없이 곧바로 누르지 않는다', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/danger.html');
+  await waitForHelperReady(page);
+
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(50);
+  const number = await numberForElement(page, 'btn-save');
+
+  // SPA 재렌더링 흉내: 번호표가 뜬 뒤(스냅샷을 만든 뒤) 이 요소의 글자가 위험 단어로 바뀐다.
+  // 번호는 아직 "저장"으로 열렸을 때의 스냅샷(danger:false)을 들고 있다.
+  await page.evaluate(() => {
+    const btn = document.getElementById('btn-save');
+    if (btn) {
+      btn.textContent = '삭제';
+    }
+  });
+  await page.waitForTimeout(150); // collector의 MutationObserver → rAF 재수집을 기다린다.
+
+  await page.keyboard.press(`Digit${number}`);
+  await page.waitForTimeout(100);
+
+  await expect(page.locator('#btn-save-count'), '위험해진 요소가 확인 없이 곧바로 눌리면 안 된다').toHaveText('0');
+  expect((await readDialog(page))?.visible, '대신 확인 화면이 떠야 한다').toBe(true);
+  expect((await readDialog(page))?.body).toContain('삭제');
+
+  await page.keyboard.press('Escape');
+});
+
 test('저장(위험 아님) 번호는 확인 화면 없이 곧바로 눌린다', async ({ context }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/danger.html');
