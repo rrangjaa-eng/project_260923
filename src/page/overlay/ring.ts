@@ -54,6 +54,13 @@ function ensureRingElement(): HTMLDivElement {
   border-style: dashed;
   border-color: var(--danger);
 }
+.${RING_CLASS}::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: calc(var(--halo-width) * var(--overlay-scale)) solid var(--halo);
+  border-radius: inherit;
+}
 .${DANGER_LABEL_CLASS} {
   position: fixed;
   left: 0;
@@ -66,6 +73,7 @@ function ensureRingElement(): HTMLDivElement {
   font-size: calc(var(--text-label) * var(--overlay-scale));
   font-weight: var(--weight-bold);
   font-variant-numeric: tabular-nums;
+  word-break: keep-all;
   text-shadow:
     calc(var(--halo-width) * var(--overlay-scale) * -1) 0 0 var(--halo),
     calc(var(--halo-width) * var(--overlay-scale)) 0 0 var(--halo),
