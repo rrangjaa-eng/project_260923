@@ -81,6 +81,27 @@ export function createInputPipeline(opts: {
   window.addEventListener('focusin', updateModeFromFocus, { capture: true, signal });
   window.addEventListener('focusout', updateModeFromFocus, { capture: true, signal });
 
+  // WR-01: 확인 화면의 스페이스바 "누르고 있기"는 keyup으로만 풀린다(D-19). alt-tab·다른 창
+  // 클릭으로 포커스가 떠나면 keyup이 아예 오지 않을 수 있어, 그대로 두면 tick()이 keydown
+  // 시각 기준으로 계속 시간을 세다 holdMs 뒤 저절로 confirm된다 — 잠깐의 떨림 탭과 구분이
+  // 안 된다. blur·visibilitychange를 keyup(release)으로 취급해 guard의 hold를 끊는다.
+  function releaseModalHold(): void {
+    if (!modalHandler) {
+      return;
+    }
+    modalHandler({ type: 'keyup', code: getSettings().data.keymap.press, repeat: false, t: performance.now() });
+  }
+  window.addEventListener('blur', releaseModalHold, { signal });
+  document.addEventListener(
+    'visibilitychange',
+    () => {
+      if (document.hidden) {
+        releaseModalHold();
+      }
+    },
+    { signal },
+  );
+
   window.addEventListener(
     'keydown',
     (event) => {
