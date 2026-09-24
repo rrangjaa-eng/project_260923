@@ -38,6 +38,7 @@ ${tokensCss}
   font-family: var(--font);
   line-height: var(--leading);
   letter-spacing: var(--tracking);
+  word-break: keep-all;
 }
 .title {
   margin: 0 0 var(--space-2) 0;
@@ -70,8 +71,7 @@ ${tokensCss}
   cursor: pointer;
 }
 .card:focus-visible {
-  outline: none;
-  border: var(--border-strong) solid var(--accent);
+  outline: var(--border-strong) solid var(--accent);
 }
 .key-chip {
   display: inline-flex;
