@@ -391,6 +391,9 @@ test('CR-02: 확인 화면이 떠 있을 때 도우미를 껐다 다시 켜면 �
   await popup.getByRole('button', { name: '도우미 끄기' }).click();
   await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(false);
 
+  // WR-06: 같은 카드를 다시 누르는 것 — 떨림 두 번 탭과 구분되도록 간격을 띄운다(helper-toggle
+  // .e2e.ts와 같은 관례).
+  await popup.waitForTimeout(350);
   await popup.getByRole('button', { name: '도우미 켜기' }).click();
   await popup.close();
   await waitForHelperReady(page);

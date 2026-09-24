@@ -239,6 +239,9 @@ test('CR-06: 도우미를 껐다 켜면 번호표 자리·크기가 무너지지
 
   const popup = await openPopup(page);
   await popup.getByRole('button', { name: '도우미 끄기' }).click();
+  // WR-06: 같은 카드를 다시 누르는 것 — 떨림 두 번 탭과 구분되도록 간격을 띄운다(다른 파일의
+  // 같은 관례와 같은 이유, helper-toggle.e2e.ts 참고).
+  await popup.waitForTimeout(350);
   await popup.getByRole('button', { name: '도우미 켜기' }).click();
   await popup.close();
   await waitForHelperReady(page);
