@@ -94,11 +94,12 @@ describe('pickTarget — 위험한 버튼 예외(D-18, Plan 01-08)', () => {
     expect(pick({ x: 5, y: 0 }, [danger], 'd')).toBeNull();
   });
 
-  it('위험 후보가 가장 가까워도 범위 안 다른 일반 후보가 있으면 일반 후보를 잡는다', () => {
+  it('CR-04: 커서가 danger 사각형 안(거리 0)이면 범위 안 일반 후보가 있어도 danger를 잡는다', () => {
     const danger: Candidate = { id: 'd', rect: { x: 0, y: 0, w: 1, h: 1 }, danger: true };
     const normal: Candidate = { id: 'n', rect: { x: 40, y: 0, w: 1, h: 1 } };
 
-    // 커서가 danger 안(거리 0)이라도 normal이 범위 안(거리 39)이면 normal을 잡는다.
-    expect(pick({ x: 0, y: 0 }, [danger, normal], null)).toBe('n');
+    // 커서가 danger 안(거리 0)이면, normal이 범위 안(거리 39)이라도 danger를 밀어내지 않는다 —
+    // §8: 위험한 버튼은 커서가 정확히 위에 있을 때 반드시 잡혀야 한다(CR-04).
+    expect(pick({ x: 0, y: 0 }, [danger, normal], null)).toBe('d');
   });
 });
