@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-14-PLAN.md
-last_updated: "2026-09-24T08:54:22.768Z"
+stopped_at: Completed 01-15-PLAN.md
+last_updated: "2026-09-24T09:29:52.495Z"
 last_activity: 2026-09-23
 last_activity_desc: Phase 1 execution started
-state_head: 463a2099293d263d876e880c5953aa45c0f1b119
+state_head: 6b87bd277efcc310075970e45993193a64df9a72
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 16
-  completed_plans: 14
+  completed_plans: 15
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 ## Current Position
 
 Phase: 1 (클릭 도우미 기반) — EXECUTING
-Plan: 15 of 16
+Plan: 16 of 16
 Status: Ready to execute
 Last activity: 2026-09-23 — Phase 1 execution started
 
@@ -72,6 +72,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P12 | 68min | 2 tasks | 6 files |
 | Phase 01 P13 | 46min | 3 tasks | 10 files |
 | Phase 01 P14 | N/A | 3 tasks | 9 files |
+| Phase 1 P15 | n/a | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,9 @@ Recent decisions affecting current work:
 - [Phase 1]: 사이트 = 맨 위 페이지 출처(origin)로 확정 — content script가 site/query로 SW에 물어 계산(자신은 교차 출처 iframe일 때 top origin을 모름)
 - [Phase 1]: onInstalled 재주입은 reason==='update'일 때만 — 'install'에서도 실행하면 시험 샌드박스처럼 매번 새로 확장을 올리는 환경에서 manifest 자연 주입과 경합해 content script가 이중 주입된다(실제 회귀를 CI 전체 시험으로 확인 후 수정)
 - [Phase 1]: Task 3 e2e는 reload() 기반 4개 대신 chrome.scripting.executeScript 직접 호출 기반 2개로 재설계 — 이 샌드박스는 reload() 뒤 옛 content script의 chrome.runtime.id를 무효화하지 못해 RED를 만들 수 없는 시험은 제거했다(Known Gap으로 SUMMARY에 기록)
+- [Phase 1]: [Phase 1] getOverlayScale()은 hostElement 인라인 style(리터럴)에서 읽는다 — calc()로 파생된 커스텀 프로퍼티는 getComputedStyle이 미해석 문자열을 돌려줄 수 있어(CSS 커스텀 프로퍼티 함정) 위치 계산용 배율은 원본 토큰 × getOverlayScale()로 JS에서 직접 곱한다
+- [Phase 1]: [Phase 1] mode-indicator.ts의 zoom/changed 구독은 자체 AbortController를 만들어 ensureOverlayRoot/destroyOverlayRoot 생명주기에 직접 묶었다(content.ts의 다른 컨트롤러를 관통시키지 않음)
+- [Phase 1]: [Phase 1] ring.ts의 --ring-offset/--space-2 오프셋 캐시를 없애고 showRing() 호출마다 다시 읽어 확대가 바뀌면 다음 자석 재계산 때 곧바로 반영되게 했다
 
 ### Pending Todos
 
@@ -148,6 +152,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-24T08:54:22.712Z
-Stopped at: Completed 01-14-PLAN.md
+Last session: 2026-09-24T09:29:41.310Z
+Stopped at: Completed 01-15-PLAN.md
 Resume file: None
