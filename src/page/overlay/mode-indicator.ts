@@ -144,7 +144,8 @@ ${tokensCss}
   line-height: var(--leading);
   letter-spacing: var(--tracking);
   border-radius: calc(var(--radius-button) * var(--overlay-scale));
-  box-shadow: 0 0 0 calc(var(--halo-width) * var(--overlay-scale)) var(--halo);
+  outline: calc(var(--halo-width) * var(--overlay-scale)) solid var(--halo);
+  word-break: keep-all;
   pointer-events: none;
   transition: left var(--motion-appear);
 }

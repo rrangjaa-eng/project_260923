@@ -47,7 +47,7 @@ function ensureStyle(root: ShadowRoot): void {
   font-weight: var(--weight-bold);
   font-variant-numeric: tabular-nums;
   border-radius: calc(var(--radius-label) * var(--overlay-scale));
-  box-shadow: 0 0 0 calc(var(--halo-width) * var(--overlay-scale)) var(--halo);
+  outline: calc(var(--halo-width) * var(--overlay-scale)) solid var(--halo);
   transition: opacity var(--motion-appear);
 }
 .${LABEL_CLASS}[data-danger="true"] {
@@ -66,6 +66,7 @@ function ensureStyle(root: ShadowRoot): void {
   font-family: var(--font);
   font-size: calc(var(--text-label) * var(--overlay-scale));
   font-weight: var(--weight-bold);
+  word-break: keep-all;
   text-shadow:
     calc(var(--halo-width) * var(--overlay-scale) * -1) 0 0 var(--halo),
     calc(var(--halo-width) * var(--overlay-scale)) 0 0 var(--halo),
@@ -89,7 +90,8 @@ function ensureStyle(root: ShadowRoot): void {
   font-size: calc(var(--text-body) * var(--overlay-scale));
   font-weight: var(--weight-regular);
   border-radius: calc(var(--radius-card) * var(--overlay-scale));
-  box-shadow: 0 0 0 calc(var(--halo-width) * var(--overlay-scale)) var(--halo);
+  outline: calc(var(--halo-width) * var(--overlay-scale)) solid var(--halo);
+  word-break: keep-all;
 }
 .${NEXT_CARD_KEY_CLASS} {
   display: inline-flex;
