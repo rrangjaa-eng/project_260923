@@ -81,3 +81,89 @@ test('연습 페이지 자신의 서체는 그대로고 서체 파일은 확장 
   expect(after).toBe(before);
   expect(blockedRequests).toEqual([]);
 });
+
+// Task 2: 5,000요소 연습 페이지에서 강조 반응 시간 50ms 측정(D-05, RESEARCH Pitfall 6).
+
+declare global {
+  interface Window {
+    __reactionSamples: number[];
+    __lastPointerMoveTs: number | null;
+    __ringObserverAttached: boolean;
+  }
+}
+
+interface ReactionStats {
+  count: number;
+  median: number;
+  p95: number;
+  max: number;
+}
+
+function percentile(sorted: number[], p: number): number {
+  const index = Math.min(sorted.length - 1, Math.floor(sorted.length * p));
+  return sorted[index] ?? Number.NaN;
+}
+
+// 30곳 이상을 차례로 겨눈다(각 이동 뒤 120ms 대기, 계획 behavior). 첫 이동은 프라이밍용(강조
+// 테두리가 아직 없으면 attachRingObserver의 rAF 폴링이 옵서버를 붙이기 전일 수 있다) — 표본에
+// 넣지 않는다.
+async function measureReactionTimes(page: Page, elementIds: string[]): Promise<ReactionStats> {
+  const primeId = elementIds[0];
+  if (primeId === undefined) {
+    throw new Error('측정할 요소가 없다');
+  }
+  const primeBox = await page.locator(`#${primeId}`).boundingBox();
+  if (!primeBox) {
+    throw new Error(`요소를 찾지 못했다: ${primeId}`);
+  }
+  await page.mouse.move(primeBox.x + primeBox.width / 2, primeBox.y + primeBox.height / 2);
+  await expect.poll(() => page.evaluate(() => window.__ringObserverAttached)).toBe(true);
+  await page.waitForTimeout(120);
+  await page.evaluate(() => {
+    window.__reactionSamples = [];
+    window.__lastPointerMoveTs = null;
+  });
+
+  for (const id of elementIds) {
+    const box = await page.locator(`#${id}`).boundingBox();
+    if (!box) {
+      throw new Error(`요소를 찾지 못했다: ${id}`);
+    }
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.waitForTimeout(120);
+  }
+
+  const samples = await page.evaluate(() => window.__reactionSamples);
+  const sorted = [...samples].sort((a, b) => a - b);
+  return { count: sorted.length, median: percentile(sorted, 0.5), p95: percentile(sorted, 0.95), max: sorted[sorted.length - 1] ?? Number.NaN };
+}
+
+// 첫 화면(스크롤 없이 보이는) 안에서 30곳 이상을 대각선으로 흩어 고른다 — COLS=25이므로 14씩
+// 건너뛰면 행·열이 고르게 섞인다.
+const TARGET_IDS = Array.from({ length: 32 }, (_, i) => `el-${(i * 14).toString()}`);
+
+test('5,000요소 페이지에서 강조가 50ms 안에 따라온다(정상)', async ({ context }, testInfo) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/big.html');
+  await waitForHelperReady(page);
+
+  const stats = await measureReactionTimes(page, TARGET_IDS);
+  console.log('overlay-perf 정상 모드:', stats);
+  await testInfo.attach('overlay-perf-normal', { body: JSON.stringify(stats, null, 2), contentType: 'application/json' });
+
+  expect(stats.count).toBeGreaterThanOrEqual(30);
+  expect(stats.p95).toBeLessThan(50);
+});
+
+test('5,000요소 페이지에서 강조가 50ms 안에 따라온다(화면 변화 부하)', async ({ context }, testInfo) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/big.html?churn=1');
+  await waitForHelperReady(page);
+
+  const stats = await measureReactionTimes(page, TARGET_IDS);
+  console.log('overlay-perf 부하 모드:', stats);
+  await testInfo.attach('overlay-perf-churn', { body: JSON.stringify(stats, null, 2), contentType: 'application/json' });
+
+  expect(stats.count).toBeGreaterThanOrEqual(30);
+  expect(stats.p95).toBeLessThan(50);
+});
