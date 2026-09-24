@@ -504,22 +504,27 @@ async function reconcileBlockingRules(): Promise<void> {
 | A6 | Phase 4 실행 상태 스키마가 D-24 서술대로 `{templateId, tabId, stepIndex, totalSteps, status, values}` 형태일 것 | Phase 4 최소 계약 | Phase 4 계획이 다르게 나오면 board.ts/runner-bridge.ts 인터페이스 전체를 다시 씀 — CONTEXT.md가 이미 "다르면 이 계획을 먼저 고친다"고 명시 |
 | A7 | 확장 아이콘 배지 기본 글자색이 흰색이라 `--accent` 배경과 대비가 충분 | 배지 | 대비가 부족하면 디자인 검토 단계에서 발견될 가능성 높음, 낮은 리스크 |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **declarativeNetRequest 세션 규칙과 Playwright CDP 요청 가로채기의 상호작용 순서**
+세 질문 모두 계획 단계에서 답이 정해졌다. 아래 **RESOLVED** 줄이 답을 가진 계획과 작업을 가리킨다. 실측으로만 알 수 있는 값(Q1의 (가)/(나) 판정)은 그 계획이 실행 때 재고, 어느 쪽이 나와도 이어지는 계획이 두 경우를 모두 다룬다.
+
+1. **declarativeNetRequest 세션 규칙과 Playwright CDP 요청 가로채기의 상호작용 순서** — RESOLVED
    - What we know: 둘 다 "요청이 나가기 전"에 개입하는 메커니즘이지만 서로 다른 레이어(Chrome 네트워크 서비스 vs CDP)라는 것.
    - What's unclear: 어느 쪽이 먼저 적용되는지, `context.route`가 이미 모든 요청을 가로채는 현재 `fixtures.ts` 구조에서 DNR 차단 효과를 e2e로 관찰할 수 있는지.
    - Recommendation: 이 phase 착수 전 Wave 0 스파이크로 먼저 확인. 안 되면 실제 로컬 HTTP 서버(정적 파일 서빙)로 전환하는 대안을 준비.
+   - **RESOLVED:** 05-11 Task 1(wave 1, 05-01과 병렬)의 스파이크 A4가 실측한다. 임시 시험용 확장으로 `tabIds` 세션 규칙을 걸고 (가) 기존 `context.route` 픽스처로 관찰되는지, 안 되면 (나) Node 내장 `http` 로컬 서버 + `--host-resolver-rules`로 관찰되는지를 기록한다. 판정은 05-11-SUMMARY "스파이크 결과"에 남는다. 05-08 Task 1은 이 판정을 precondition으로 읽고, (나)면 픽스처 옵션 `serveOverHttp`로 차단 e2e를 띄운다. 두 경우 모두 계획에 있으므로 BG-03 시험 설계를 다시 짤 일은 없다.
 
-2. **`chrome.commands` 단축키가 `chrome://newtab` 등 확장이 주입되지 않는 페이지에서도 발동하는지**
+2. **`chrome.commands` 단축키가 `chrome://newtab` 등 확장이 주입되지 않는 페이지에서도 발동하는지** — RESOLVED
    - What we know: 기본(비-global) 커맨드는 "브라우저가 포커스를 가지고 있을 때" 발동한다고 공식 문서가 설명하나, `chrome://` 시스템 페이지에 포커스가 있을 때도 포함되는지는 명시적으로 확인하지 못함.
    - What's unclear: discretion 항목("도우미가 뜰 수 없는 페이지에서 작업판을 어떻게 열지")의 답이 이 사실에 달려 있음.
    - Recommendation: 플래너가 실측(연습이 아닌 실제 `chrome://newtab` 탭에서 단축키 시험, 수동 확인 목록 또는 e2e `page.goto('chrome://newtab')` 가능 여부 확인)으로 조기에 검증. 안 되면 discretion이 이미 제시한 대안(아이콘 메뉴/확장 자체 페이지)으로 대체.
+   - **RESOLVED (답이 이 사실에 기대지 않게 설계):** 05-03이 `chrome.commands`를 넣지 않기로 정했다(05-03 "가정" 절). 도울 수 없는 페이지에서는 확장 아이콘 메뉴의 "작업판" 카드가 같은 작업판을 메뉴 안에 그린다(05-03 Task 3, `chrome://version` 대상 e2e). 그 메뉴에서 고른 확인 대기 항목은 실행 탭으로 옮겨 처리한다(05-06 Task 3). 그래서 `chrome://` 페이지에서 단축키가 발동하는지는 이 phase의 동작을 바꾸지 않는다. 키보드만으로 그 메뉴를 쓰는 확인은 05-10 Task 2의 수동 확인 목록에 있다. `chrome.commands`는 권한이 필요 없어 나중에 더할 수 있다.
 
-3. **웨일·엣지에서 `declarativeNetRequestWithHostAccess`·`chrome.storage.session`·`tabs.lastAccessed` 동작 차이**
+3. **웨일·엣지에서 `declarativeNetRequestWithHostAccess`·`chrome.storage.session`·`tabs.lastAccessed` 동작 차이** — RESOLVED
    - What we know: Phase 1 D-29 선례대로 이 phase도 엣지·웨일은 수동 확인 목록으로 미룬다.
    - What's unclear: 크로미움 기반이라 대체로 동일할 것으로 보이나 확인된 바 없음(STACK.md가 이미 웨일 sync 동작을 LOW로 표시한 것과 같은 성격의 불확실성).
    - Recommendation: 이 phase 범위에서는 크롬만 자동 시험, 수동 확인 목록에 declarativeNetRequest 차단·작업판 단축키 항목 추가.
+   - **RESOLVED:** 자동 시험은 크로미움만 한다(D-29). 엣지·웨일은 05-10 Task 2의 수동 확인 목록에 한 항목으로 남는다. 그 항목이 세 API를 이름으로 든다: 이미지·광고 막기(`declarativeNetRequest` 세션 규칙, 05-11 결정의 권한 이름), SW가 다시 떠도 확인 대기가 이어지는지(`chrome.storage.session`), 열린 탭 최근 쓴 순서(`tabs.lastAccessed`). 작업판 단축키도 같은 항목에 있다. `tabs.lastAccessed`가 없는 브라우저의 동작(원래 순서)은 05-02 "가정" 절과 `orderTabs` 단위 시험이 이미 정한다.
 
 ## Environment Availability
 
