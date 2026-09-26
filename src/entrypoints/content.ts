@@ -115,6 +115,7 @@ function sendRecordPress(fingerprint: Fingerprint): void {
 export default defineContentScript({
   matches: ['<all_urls>'],
   allFrames: true,
+  matchAboutBlank: true,
   runAt: 'document_start',
   main() {
     // 새로 시작할 때 문서에 이미 tremor-helper-root가 있으면 지운다(D-22): 옛 도우미가 미처
