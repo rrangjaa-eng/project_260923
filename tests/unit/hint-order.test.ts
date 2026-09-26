@@ -299,4 +299,73 @@ describe('placeLabels', () => {
       expect(overlapsOther, `자리가 있는데도 ${other}와 겹치면 안 된다`).toBe(false);
     }
   });
+
+  // B1(DOM 감사 5회차, 사용자 결정): 다섯 자리가 모두 "화면 밖"(막힌 게 아니라)이면, 밀어 넣기
+  // 전 "요소 안쪽" 자리(candidates[4])가 보호 영역(장애물·"! 위험" 표시)과 안 겹쳐 링 탐색을
+  // 건너뛰었다 — 그 뒤 화면 안 밀어 넣기가 번호표를 옮기면서 이웃의 "! 위험" 표시를 가렸다.
+  // 실측(ringcheck.mjs, synth5.txt g-mixed-right, synth4.mjs g-mixed-right 정의 그대로): 뷰포트
+  // 1280×720, 오른쪽 끝 y=300에 버튼 셋 — right:0 "삭제"(위험) · right:45 "저장" · right:90
+  // "삭제"(위험). 번호표 3!(1199.9,300→1227.9,328)이 번호표 1의 "! 위험" 표시(1172,286→1214,314)와
+  // 14×14 겹쳤다. 실측 좌표를 그대로 재현한다 — 시험이 통과하기 쉬운 쪽으로 배치를 옮기지 않는다.
+  it.each([1, 0.75])('B1: 다섯 자리 모두 화면 밖이면 밀어 넣은 뒤에도 "! 위험" 표시를 가리면 안 된다(확대 %s)', (zoom) => {
+    const viewportWidth = 1280 / zoom;
+    const viewportHeight = 720 / zoom;
+    const labelSize = 28 / zoom;
+    const dangerGap = 8 / zoom;
+    const dangerTagWidth = 42.1 / zoom;
+    const haloWidth = 2 / zoom;
+
+    // synth4.mjs g-mixed-right: 오른쪽 끝(top:300)에 나란한 버튼 셋 — right:90(삭제,위험) →
+    // right:45(저장) → right:0(삭제,위험) 순서로 DOM에 있고, 커서 거리 순으로 번호 1·2·3이 된다
+    // (orderHints) — 이 시험은 placeLabels만 보므로 이미 그 순서로 entries를 준다.
+    const entries = [
+      { itemId: 'c', rect: { x: viewportWidth - 90 - 40, y: 300, w: 40, h: 30 }, danger: true }, // 번호 1
+      { itemId: 'b', rect: { x: viewportWidth - 45 - 40, y: 300, w: 40, h: 30 }, danger: false }, // 번호 2
+      { itemId: 'a', rect: { x: viewportWidth - 0 - 40, y: 300, w: 40, h: 30 }, danger: true }, // 번호 3
+    ];
+
+    const placements = placeLabels(entries, labelSize, {
+      viewportWidth,
+      viewportHeight,
+      dangerTagWidth,
+      dangerGap,
+      haloWidth,
+    });
+
+    type Box = { x: number; y: number; w: number; h: number; danger: boolean };
+    const boxes: Box[] = [];
+    for (const entry of entries) {
+      const p = placements.find((pl) => pl.itemId === entry.itemId);
+      if (!p) {
+        throw new Error(`${entry.itemId} 자리가 없다`);
+      }
+      boxes.push({ x: p.x, y: p.y, w: labelSize, h: labelSize, danger: false });
+      if (entry.danger) {
+        if (p.dangerTagX === undefined || p.dangerTagY === undefined) {
+          throw new Error(`${entry.itemId} 위험 표시 자리가 없다`);
+        }
+        boxes.push({ x: p.dangerTagX, y: p.dangerTagY, w: dangerTagWidth, h: labelSize, danger: true });
+      }
+    }
+
+    const overlaps = (x: Box, y: Box) => x.x < y.x + y.w && x.x + x.w > y.x && x.y < y.y + y.h && x.y + x.h > y.y;
+
+    // 모든 "! 위험" 표시가 어떤 번호표·표시와도 겹침 0.
+    for (const tag of boxes.filter((b) => b.danger)) {
+      for (const other of boxes) {
+        if (other === tag) {
+          continue;
+        }
+        expect(overlaps(tag, other), '"! 위험" 표시가 다른 번호표·표시와 겹치면 안 된다').toBe(false);
+      }
+    }
+
+    // 모든 번호표·표시가 화면 안(후광 여백 포함)에 들어온다.
+    for (const box of boxes) {
+      expect(box.x, '후광까지 화면 안(왼쪽)').toBeGreaterThanOrEqual(haloWidth - 1e-6);
+      expect(box.y, '후광까지 화면 안(위쪽)').toBeGreaterThanOrEqual(haloWidth - 1e-6);
+      expect(box.x + box.w, '후광까지 화면 안(오른쪽)').toBeLessThanOrEqual(viewportWidth - haloWidth + 1e-6);
+      expect(box.y + box.h, '후광까지 화면 안(아래쪽)').toBeLessThanOrEqual(viewportHeight - haloWidth + 1e-6);
+    }
+  });
 });
