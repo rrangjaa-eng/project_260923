@@ -566,6 +566,52 @@ test('ISSUE-002·003: danger.html에서 F를 누르면 모든 번호표가 화�
   }
 });
 
+// F4(/design-review 3회차, 사용자 결정, DECISIONS.md 2026-09-26): 번호표는 도우미 자신의 모드
+// 표시(왼쪽 아래)도 다른 번호표처럼 장애물로 피한다.
+test('F4: 번호표가 도우미 자신의 모드 표시와 겹치지 않는다', async ({ context, servePage }) => {
+  servePage('http://practice.test/f4-mode.html', '<!doctype html><html><body style="margin:0"></body></html>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/f4-mode.html');
+  await waitForHelperReady(page);
+
+  const indicatorBox = await page.evaluate(() => {
+    const host = document.querySelector('tremor-helper-root');
+    const el = host?.shadowRoot?.querySelector('.mode-indicator');
+    const r = el?.getBoundingClientRect();
+    return r ? { x: r.x, y: r.y, width: r.width, height: r.height } : null;
+  });
+  if (!indicatorBox) {
+    throw new Error('모드 표시를 찾지 못했다');
+  }
+
+  // 번호표의 기본 자리(요소 왼쪽 위 바깥 −14px,−14px)가 모드 표시를 정확히 덮도록 버튼을 넣는다.
+  await page.evaluate(
+    ({ x, y }) => {
+      const b = document.createElement('button');
+      b.id = 'btn-over-indicator';
+      b.textContent = '겹침';
+      b.style.cssText = `position:absolute;left:${x.toString()}px;top:${y.toString()}px;width:20px;height:20px`;
+      document.body.appendChild(b);
+    },
+    { x: indicatorBox.x + 14, y: indicatorBox.y + 14 },
+  );
+  await page.waitForTimeout(100);
+
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(100);
+
+  const boxes = await labelBoxes(page);
+  expect(boxes.length).toBeGreaterThan(0);
+  for (const box of boxes) {
+    const overlap =
+      box.x < indicatorBox.x + indicatorBox.width &&
+      box.x + box.width > indicatorBox.x &&
+      box.y < indicatorBox.y + indicatorBox.height &&
+      box.y + box.height > indicatorBox.y;
+    expect(overlap, '번호표가 모드 표시와 겹치면 안 된다').toBe(false);
+  }
+});
+
 test('ISSUE-002: blank-popup.html(화면 왼쪽 위 링크)에서 F를 누르면 그 번호표도 화면 안에 있다', async ({ context }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/blank-popup.html');
