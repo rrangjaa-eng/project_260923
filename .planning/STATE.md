@@ -4,10 +4,10 @@ current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
 stopped_at: Completed 01-19-PLAN.md
-last_updated: "2026-09-26T16:44:38.041Z"
+last_updated: "2026-09-26T17:33:02.762Z"
 last_activity: 2026-09-24
 last_activity_desc: Phase 01 execution started
-state_head: 687e380fe2ec14813361199a20a7ea2e961309e6
+state_head: 4addac52b08057979eca797f817ff4ec22a05933
 progress:
   total_phases: 6
   completed_phases: 0
@@ -155,6 +155,7 @@ Recent decisions affecting current work:
 - [Phase 1]: 번호표 마지막 자리(다섯 자리 모두 막힘): 요소 주변을 가까운 곳부터 넓혀 가며 모드 표시·'다음' 카드·다른 번호표·'! 위험' 표시와 겹치지 않는 화면 안(후광 여백 포함) 자리를 찾는다. 그래도 없으면 도우미 표시·위험 표시는 절대 가리지 않고 번호표끼리만 겹침 허용. 도울 수 없는 페이지 팝업의 안내·경고 카드 순서도 F6 기준점으로 고정(사용자 결정 2026-09-26, DOM 감사 4회차)
 - [Phase 1]: Post-build 진행 방식: 남은 단계(/design-review 마무리 감사 5회차, /cso, /ship)는 머지를 막는 항목(Critical·차단)만 고치고, 경고·작은 지적은 Phase 2 후속 목록으로 넘긴다. 단계 하나가 끝날 때마다 /gsd-pause-work로 인계하고 새 세션에서 이어 간다(사용자 결정 2026-09-26)
 - [Phase 1]: 후속(Phase 2, 비차단 N1): 번호표끼리만 막힌 경우 코드는 링 탐색 없이 요소 안쪽(SYSTEM.md 64행)을 쓰지만 새 규칙 줄·DECISIONS.md는 '자리가 정말 없을 때만' 번호표끼리 겹침 허용 — 문서와 코드 불일치. 50%·67% 축소 big.html에서만 발생(100/75/150%는 0). 어느 규칙을 따를지 Phase 2에서 결정
+- [Phase 1]: /cso(Post-build 4) 완료 — 머지 차단 0. gstack cso 실행기(build:cso)로 제품 코드 사본(벤더링 .claude/skills·gsd-core 제외, 스냅샷 1 MiB 한도) 대상 3회 실행: daily 1790442962041-81fe8594fa6d5ce9(partial, 발견 없음), --supply-chain 1790443163664-3647266704dc6681(partial, 발견 없음; 번들 런타임 zod 4.6.5 권고 0, 잠금 274개 권고 0, CI pull_request·contents:read·시크릿 없음), --code 1790443157658-e9a56262a0374698(partial, F1 medium·F2 low). F1(다른 출처 iframe 위험 확인을 맨 위 open shadow root에 그려 악성 맨 위 페이지가 번호표·확인 문구를 바꿔 우회)과 F2(다른 출처 iframe 위험 버튼 글자·위치 노출)는 Phase 2 후속. 후속 권고: 다른 출처 프레임 확인을 그 프레임/확장 UI로 옮기고 confirmed 불신, 프로덕션 closed shadow root, 액션 SHA 고정, install_pkgs.sh gstack 설치 frozen·ignore-scripts, 시험 훅 빌드 플래그 제거(IN-02), settings-schema·git 이력·OSV 재감사. 보고서 /root/.gstack/security/cso/4a29baba43a59ab40b80efb9/<run>/report.md(컨테이너 로컬). — 사용자 결정: F1은 Critical이 아니고 근본 수정은 확인 화면 위치를 바꾸는 설계 변경(SYSTEM.md·DESIGN §4 절차 대상)이라 Phase 2 후속으로 넘기고 머지(차단만 머지 전 수정 기준).
 
 ### Pending Todos
 

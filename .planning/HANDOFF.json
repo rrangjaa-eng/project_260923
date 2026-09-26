@@ -1,11 +1,11 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-26T17:05:58.502Z",
+  "timestamp": "2026-09-26T17:33:38.297Z",
   "phase": "1",
   "phase_name": "클릭 도우미 기반",
   "phase_dir": ".planning/phases/01-click-helper-foundation",
   "plan": 19,
-  "task": 4,
+  "task": 5,
   "total_tasks": 5,
   "status": "paused",
   "completed_tasks": [
@@ -50,14 +50,15 @@
       "name": "전체 게이트 CI=true pnpm test 한 번(HEAD 41e00e1, 코드 6f720f7) — 단위 14파일 112 passed, e2e 253 passed(6.7m), 0 failed·0 flaky, editor-frames 16, exit 0",
       "status": "done",
       "commit": "41e00e1"
+    },
+    {
+      "id": "post-build-4",
+      "name": "/cso — 실행기 build:cso 후 제품 코드 사본 대상 daily·--supply-chain·--code 3회(모두 partial). 차단 0. F1(medium)·F2(low) 다른 출처 iframe 확인 화면 위조·노출은 사용자 결정으로 Phase 2 후속(STATE.md 결정)",
+      "status": "done",
+      "commit": "4addac5"
     }
   ],
   "remaining_tasks": [
-    {
-      "id": "post-build-4",
-      "name": "/cso 보안 감사 (필수: 모든 프레임·about: 새 창 주입, 확장 메시지, storage, 사이트 정체 판정을 건드림) — 차단 항목만 수정",
-      "status": "not_started"
-    },
     {
       "id": "post-build-5",
       "name": "/ship — PR #7 main 머지: 머지 커밋(squash·rebase 금지), 브랜치 삭제 금지(PR #8~#12가 이 브랜치를 base로 쌓여 있음). PR 제목·본문 갱신(커밋 범위 (04)/(05) 오표기 언급)",
@@ -98,9 +99,14 @@
       "decision": "머지해도 된다는 권한: 조건(게이트 초록, /review·/qa·/cso 차단 0, GitHub CI 초록, 충돌 없음) 충족 시 오케스트레이터가 머지",
       "rationale": "사용자 위임",
       "phase": "1"
+    },
+    {
+      "decision": "/cso F1·F2는 Phase 2 후속으로 넘기고 머지",
+      "rationale": "사용자 결정: Critical 아님, 근본 수정은 확인 화면 위치 설계 변경",
+      "phase": "1"
     }
   ],
   "uncommitted_files": [],
-  "next_action": "/gsd-resume-work → (얕은 복제면 git fetch --unshallow 후 원격 맞춤, pnpm typecheck로 .wxt 생성) → /cso(gstack .claude/skills/gstack/cso/SKILL.md, opus 에이전트, 보고만) → 차단 항목만 TDD(RED 먼저 커밋) → 단계 끝나면 /gsd-pause-work",
+  "next_action": "/ship — PR #7 제목·본문 갱신, GitHub CI 초록 확인(get_check_runs), 머지 커밋으로 main 머지(squash·rebase 금지), 브랜치 삭제 금지 → 머지 직후 D-25 /gsd-quick",
   "context_notes": "Phase 1 코드·검증은 끝났고 Post-build 5단계 중 3단계 완료(/review, /qa, /design-review). 후속(비차단) 목록은 STATE.md 결정에 있음: 교차 출처 iframe 정방향 Tab 맨 위 표시, N1 번호표끼리 겹침 규칙 불일치(50/67%), /qa ISSUE-004 유지·005 후속. 브랜치 claude/project-thread-ew8d9u, PR rrangjaa-eng/project_260923#7(draft, main 대상). PR 구독 도구는 이 환경에서 실패했음 — CI는 get_check_runs로 직접 조회. | 전체 게이트 기록: 이 세션 첫 실행은 새 작업 트리에 .wxt/tsconfig.json이 없어 단위 14파일이 시험 0개로 실패(환경 원인: .wxt는 pnpm typecheck의 wxt prepare가 만들고 CI도 typecheck를 먼저 돈다) → typecheck·lint 통과 뒤 두 번째 실행이 유효 결과."
 }
