@@ -81,6 +81,16 @@ export function escapeDocumentEditor(root: Element | null): void {
 // 돌아올 때·다른 요소로 focusin일 때는 false — 브라우저가 이미(또는 곧) 초점을 옮기므로 복원하지
 // 않는다.
 export function resumeDocumentEditor(opts: { restoreSelection: boolean }): void {
+  // 사용자 결정(/review): root가 문서 변화로 이미 떨어져 나갔으면(예: 사이트가 편집 영역을
+  // 통째로 다시 만듦) restoreSelection:true라도 되돌아갈 편집 루트가 없다 — escaped 표시를
+  // 그대로 두어(false로 미리 풀지 않음) 나옴 표시와 초점(여전히 focus sink)이 어긋나지 않게
+  // 한다. 초점은 그대로 focus sink에 남고, 이후 실제 초점 이동(Tab·다른 요소 focusin)이 있으면
+  // 위 focusin 처리기(F1·F2)가 정리한다.
+  if (opts.restoreSelection && (escapedRoot === null || !escapedRoot.isConnected)) {
+    escapedRoot = null;
+    savedRanges = [];
+    return;
+  }
   escapedFromDocumentEditor = false;
   const root = escapedRoot;
   escapedRoot = null;

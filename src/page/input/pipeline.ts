@@ -133,23 +133,26 @@ export function createInputPipeline(opts: {
     setMode(currentMode());
   }
 
-  // Task 3(01-18, KEY-01): 초점이 다른 요소로 옮겨 가면(focusin) "나옴" 상태를 되돌린다 — 새
-  // 대상이 여전히 같은 문서 전체 편집기가 아닐 때만(예: 편집기 안 다른 프레임으로 옮겨간 경우
-  // 등은 그 프레임 자신의 escapedFromDocumentEditor로 따로 다룬다).
+  // F1·F2(/review 사용자 결정): 복귀 규칙은 하나뿐이다 — 초점이 focus sink를 떠나면 무조건
+  // 입력 중으로 복귀한다. 새 초점이 편집 루트로 돌아온 경우(편집기 누름, 사이트 스크립트의
+  // editor.focus() 등, F2)도 복귀로 본다 — 예전에는 이 경우를 빼고 pointerdown에서만 따로
+  // 복귀시켰는데(그 코드는 없앴다, F1), 자석·떨림 필터가 그 누름을 대신 처리하거나 거절하면
+  // 초점이 실제로는 전혀 안 옮겨졌는데도 나옴 표시가 먼저 풀려 표시와 초점이 어긋났다. 우리가
+  // escapeDocumentEditor()로 옮긴 오버레이 자신(focus sink)으로의 focusin만 뺀다(isFocusSink) —
+  // 그 경우는 우리가 일으킨 것이라 복귀 신호가 아니다.
   window.addEventListener(
     'focusin',
     () => {
       const active = deepActiveElement();
-      if (
-        isHelperEnabled() &&
-        isEscapedFromDocumentEditor() &&
-        !isDocumentEditingRoot(active) &&
-        !isFocusSink(active)
-      ) {
-        // 다른 요소로 초점이 옮겨 간 경우다(우리가 escapeDocumentEditor()로 옮긴 오버레이 초점
-        // 대상 자신으로의 focusin은 뺀다 — isFocusSink) — 저장한 선택 범위는 복원하지 않는다(그
-        // 편집기는 더 이상 초점이 없다).
+      if (isHelperEnabled() && isEscapedFromDocumentEditor() && !isFocusSink(active)) {
+        // 저장한 선택 범위는 복원하지 않는다(브라우저가 이미 실제 초점 대상에 캐럿을 두었거나,
+        // 그 편집기는 더 이상 초점이 없다).
         resumeDocumentEditor({ restoreSelection: false });
+        // content.ts가 focusin에 따로 건 자기 리스너(sendModeReport·refreshModeDisplay, 자식→맨 위
+        // 보고용)는 이 파이프라인 리스너보다 먼저 등록돼(등록 순서) 같은 focusin에서 먼저 실행될
+        // 수 있다 — 바로 위 resumeDocumentEditor()가 나옴 표시를 풀기 전에 currentMode()를 읽어
+        // "도우미"를 잘못 보낸다. onModeChange로 다시 한번 알려 방금 갱신된 진짜 모드로 덮어쓴다.
+        onModeChange?.();
       }
       updateModeFromFocus();
     },
@@ -321,15 +324,13 @@ export function createInputPipeline(opts: {
       if (!event.isTrusted || !isHelperEnabled()) {
         return;
       }
-      // Task 3(01-18, KEY-01): 문서 전체 편집기를 "나옴" 상태에서 주 버튼으로 다시 누르면 곧바로
-      // 입력으로 돌아간다 — 모달·자석 판단보다 먼저 두어 누르기 경로 자체는 바꾸지 않는다.
-      if (isEscapedFromDocumentEditor() && event.button === 0 && event.isPrimary) {
-        // 편집기를 눌러 돌아온다 — 브라우저가 누른 자리에 캐럿을 두므로 저장한 범위는 복원하지
-        // 않는다.
-        resumeDocumentEditor({ restoreSelection: false });
-        setMode(currentMode());
-        onModeChange?.();
-      }
+      // F1(/review 사용자 결정): 문서 전체 편집기를 "나옴" 상태에서 주 버튼으로 다시 누르면 입력
+      // 으로 돌아간다 — 예전에는 이 pointerdown에서 곧바로 resumeDocumentEditor()를 불렀는데, 그
+      // 시점엔 아직 필터·자석 판단 전이라 이 누름이 뒤에서 거절되거나(떨림 필터) 다른 요소가
+      // 대신 눌려도(자석) 나옴 표시가 이미 풀려 있었다(초점은 그대로 focus sink인데 표시만
+      // "입력 중"이 되어 버림). 이 코드는 없앴다 — 복귀는 위 focusin 처리기(F1·F2)가 실제로
+      // 초점이 옮겨 갈 때만 하므로, 누름이 거절·대체되면(초점이 실제로 안 옮겨짐) 표시도 그대로
+      // "도우미"에 머문다.
       if (modalHandler) {
         // CR-01: 확인 화면이 떠 있으면 포인터는 자석·떨림 필터를 거치지 않고 그대로 통과한다 —
         // 스크림·그림자 DOM 대화상자가 직접 받는다(취소 버튼의 실제 클릭이 여기서 막히면 안 된다).
