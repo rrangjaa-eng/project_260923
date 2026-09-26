@@ -108,4 +108,55 @@ describe('createStorageWriter setEnabled — D-25', () => {
     const storedFlag = (await local.get(HELPER_OFF_KEY))[HELPER_OFF_KEY];
     expect(storedFlag).toBeUndefined();
   });
+
+  it('단위 D: 설정이 깨져 있고 local에 꺼짐 표시가 있을 때 setEnabled(true)는 표시만 지우고 sync는 불변이다', async () => {
+    const corrupted = { schemaVersion: 99, data: { corrupted: true } };
+    await sync.set({ [SETTINGS_KEY]: corrupted });
+    await local.set({ [HELPER_OFF_KEY]: { schemaVersion: 1, data: { at: 1 } } });
+    sync.setCalls.length = 0;
+
+    const writer = createStorageWriter();
+    const result = await writer.setEnabled(true);
+
+    expect(result).toEqual({ ok: true });
+    const storedFlag = (await local.get(HELPER_OFF_KEY))[HELPER_OFF_KEY];
+    expect(storedFlag).toBeUndefined();
+    const storedSettings = (await sync.get(SETTINGS_KEY))[SETTINGS_KEY];
+    expect(JSON.stringify(storedSettings)).toBe(JSON.stringify(corrupted));
+    expect(sync.setCalls.length).toBe(0);
+  });
+
+  it('단위 E: 설정이 멀쩡(enabled:false)하고 local에 꺼짐 표시가 있을 때 setEnabled(true)는 sync enabled를 true로 쓰고 표시도 지운다', async () => {
+    const base = defaultSettings();
+    await sync.set({ [SETTINGS_KEY]: { ...base, data: { ...base.data, enabled: false } } });
+    await local.set({ [HELPER_OFF_KEY]: { schemaVersion: 1, data: { at: 1 } } });
+
+    const writer = createStorageWriter();
+    const result = await writer.setEnabled(true);
+
+    expect(result).toEqual({ ok: true });
+    const storedSettings = (await sync.get(SETTINGS_KEY))[SETTINGS_KEY] as { data: { enabled: boolean } };
+    expect(storedSettings.data.enabled).toBe(true);
+    const storedFlag = (await local.get(HELPER_OFF_KEY))[HELPER_OFF_KEY];
+    expect(storedFlag).toBeUndefined();
+  });
+
+  it('단위 F: 설정이 깨진 채 끄기 뒤 기다리지 않고 바로 켜기를 불러도(큐 순서) 둘 다 성공하고 최종 local엔 표시가 없다', async () => {
+    const corrupted = { schemaVersion: 99, data: { corrupted: true } };
+    await sync.set({ [SETTINGS_KEY]: corrupted });
+    sync.setCalls.length = 0;
+
+    const writer = createStorageWriter();
+    const offPromise = writer.setEnabled(false);
+    const onPromise = writer.setEnabled(true);
+
+    expect(await offPromise).toEqual({ ok: true });
+    expect(await onPromise).toEqual({ ok: true });
+
+    const storedFlag = (await local.get(HELPER_OFF_KEY))[HELPER_OFF_KEY];
+    expect(storedFlag).toBeUndefined();
+    const storedSettings = (await sync.get(SETTINGS_KEY))[SETTINGS_KEY];
+    expect(JSON.stringify(storedSettings)).toBe(JSON.stringify(corrupted));
+    expect(sync.setCalls.length).toBe(0);
+  });
 });

@@ -243,6 +243,46 @@ test('D-25: 설정이 깨져도 도우미 끄기가 된다 — 이 PC의 storage
   await page2.close();
 });
 
+test('D-25: 깨진 설정에서 끈 뒤 팝업은 지금: 꺼짐을 보이고, 켜기는 꺼짐 표시만 지운다', async ({
+  context,
+  serviceWorker,
+  openPopup,
+  servePage,
+}) => {
+  await seedMigrationFailure(serviceWorker);
+  servePage('http://practice.test/', '<!doctype html><html><body><h1>연습 사이트</h1></body></html>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/');
+  await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(true);
+
+  let popup = await openPopup(page);
+  await popup.getByRole('button', { name: '도우미 끄기' }).click();
+
+  await expect(popup.getByText('지금: 꺼짐', { exact: true })).toBeVisible();
+  await expect(popup.getByRole('button', { name: '도우미 켜기' })).toBeVisible();
+
+  // 팝업을 닫고 다시 열어도 같다.
+  await popup.close();
+  popup = await openPopup(page);
+  await expect(popup.getByText('지금: 꺼짐', { exact: true })).toBeVisible();
+  await expect(popup.getByRole('button', { name: '도우미 켜기' })).toBeVisible();
+
+  // WR-06: 떨림 필터 간격(기본 300ms)보다 넉넉히 띄운 뒤 켠다.
+  await popup.waitForTimeout(350);
+  await popup.getByRole('button', { name: '도우미 켜기' }).click();
+
+  await expect.poll(() => readLocalKey(serviceWorker, HELPER_OFF_KEY)).toBeUndefined();
+  await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(true);
+  await expect(popup.getByText('지금: 켜짐', { exact: true })).toBeVisible();
+  await expect(popup.getByRole('button', { name: '도우미 끄기' })).toBeVisible();
+
+  const settingsAfter = await readSyncKey(serviceWorker, 'settings');
+  expect(settingsAfter).toEqual({ schemaVersion: 99, data: { corrupted: true } });
+
+  await popup.close();
+  await page.close();
+});
+
 // F3(/review 사용자 결정): popup/main.ts의 hideWarningCard()가 토글 성공 때마다 지금 떠 있는
 // 안내를 종류와 무관하게 지웠다 — 형식 변환 실패(D-25) 경고가 뜬 상태에서 사이트 카드 토글이
 // 성공하면(원인이 서로 다른데) 그 경고까지 함께 지워졌다. 토글 성공은 자기(토글) 종류 안내만
