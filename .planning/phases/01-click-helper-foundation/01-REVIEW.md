@@ -1,227 +1,272 @@
 ---
 phase: 01-click-helper-foundation
-reviewed: 2026-09-26T06:30:34Z
+reviewed: 2026-09-26T07:28:34Z
 depth: deep
-files_reviewed: 29
+iteration: 2
+diff_base: eb0f96b
+files_reviewed: 9
 files_reviewed_list:
-  - src/core/unsupported-url.ts
   - src/entrypoints/background.ts
   - src/entrypoints/content.ts
   - src/entrypoints/popup/main.ts
-  - src/page/collector/collector.ts
-  - src/page/input/mode.ts
   - src/page/input/pipeline.ts
-  - src/shared/messages.ts
-  - src/types/chrome.d.ts
-  - src/worker/relay.ts
-  - src/worker/storage-writer.ts
-  - wxt.config.ts
   - tests/e2e/blank-popup.e2e.ts
-  - tests/e2e/confirm.e2e.ts
   - tests/e2e/doc-editor.e2e.ts
-  - tests/e2e/dom-audit.e2e.ts
-  - tests/e2e/dwell.e2e.ts
   - tests/e2e/editor-frames.e2e.ts
-  - tests/e2e/fonts.e2e.ts
   - tests/e2e/frames.e2e.ts
-  - tests/e2e/helper-toggle.e2e.ts
-  - tests/e2e/hints.e2e.ts
-  - tests/e2e/lifecycle.e2e.ts
   - tests/e2e/site-toggle.e2e.ts
-  - tests/practice-site/blank-popup.html
-  - tests/practice-site/doc-editor.html
-  - tests/practice-site/dwell-frame.html
-  - tests/practice-site/editor-frames.html
-  - tests/unit/unsupported-url.test.ts
 findings:
   critical: 1
-  warning: 8
-  info: 4
-  total: 13
+  warning: 6
+  info: 3
+  total: 10
 status: issues_found
 ---
 
-# Phase 1: 코드 리뷰 보고서
+# Phase 1: 코드 리뷰 보고서 (수정 반복 2회차)
 
-**리뷰 시각:** 2026-09-26T06:30:34Z
+**리뷰 시각:** 2026-09-26T07:28:34Z
 **깊이:** deep
-**리뷰한 파일:** 29
+**리뷰한 파일:** 9 (참고: `src/page/input/mode.ts`, `src/page/overlay/mode-indicator.ts`, `src/page/collector/collector.ts`, `src/types/chrome.d.ts`, `wxt.config.ts`)
 **상태:** issues_found
+**범위:** `git diff eb0f96b..HEAD`의 수정 커밋 9739ee3..755f43f(CR-01, WR-01~WR-08). `pnpm typecheck`·`pnpm lint`는 통과했다. e2e는 다시 돌리지 않았다. 아래 판정은 코드 사실에 근거한다. 실측이 필요한 곳은 따로 적었다.
 
-## 요약
+## 1회차 항목별 판정
 
-범위는 `git diff ae3cdf8..HEAD`이다. 지난 리뷰의 CR/WR 수정분과 보완 계획 01-17(srcdoc·document.write 편집기 프레임), 01-18(자식 프레임 확인 화면 방어, IN-04 fail-closed, 문서 전체 편집기 Esc), 01-19(주소 없는 새 창, editor-frames flaky 수정)를 읽었다. background → relay → content → pipeline/mode로 호출 사슬을 따라갔고, 사이트 정체(`topDocOrigins`·`siteOriginOfTab`·`inheritedSiteOrigin`)가 메시지 경계를 넘을 때 어떤 값을 믿는지 대조했다.
+| 1회차 | 판정 | 근거 / 이번 항목 |
+|---|---|---|
+| CR-01 한글 IME F → 입력 복귀 | **새 문제로 바뀜** | 원래 증상은 CDP 재현 기준으로 막았다. 대신 쓴 수단(편집 루트 `innerHTML` 통째 복원)이 이용자의 문서·편집기를 망가뜨린다. → **CR-01** |
+| WR-01 `documentWasRewritten()` 추측성 방어 | 해결됨 | 7fcabd9가 함수와 사용처를 모두 되돌렸다. `documentRewriteWatcher` 경로만 남았다(content.ts:161-177). |
+| WR-02 "옛 인스턴스 조용함" 단언 | 해결됨 | 새 인스턴스의 true 뒤를 기준점으로 잡고, 그 frameId의 frame/state 0건을 본다(editor-frames.e2e.ts). frame/state는 값이 바뀔 때만 보내므로(content.ts:589-623) 정상 인스턴스가 관찰 창을 오염시키지 않는다. |
+| WR-03 `topDocOrigins` 옛 문서 덮어쓰기 | 해결됨(잔여 있음) | 가드 방향이 맞다. 경쟁 창이 크게 줄었다. 남는 창과 RED 부재 → **IN-01** |
+| WR-04 noopener 아이콘·메뉴 시험 | 해결됨 | 조건 대기(`expect.poll`), 양성 대조, 메뉴 안내·카드 부재를 모두 단언한다. |
+| WR-05 사이트 카드 SW 거절 무시 | **부분 해결** | 사이트 카드는 거절·거부 모두 되돌린다. 도우미 카드(전역 끄기)는 거부(reject)를 처리하지 않는다. 두 카드 모두 무응답 시간 제한이 없고, 되돌릴 때 안내도 없다. → **WR-03** |
+| WR-06 ping 1회 경쟁 | 해결됨(잔여 있음) | 재시도와 세대 번호가 옛 결과 덮어쓰기를 막는다. 새 누수는 없다. 재시도 창이 500ms 고정 추정이고, action API 호출 사이 섞임이 남았다. → **IN-02** |
+| WR-07 `local:<전체 URL>` | **부분 해결** | 질의 문자열은 빠졌다. 경로 안 세션 ID(`;jsessionid=`)는 남는다. 그 기록은 여전히 번호 순서에 쓰이지 않는다. → **WR-04** |
+| WR-08 keydown 직접 편집 | **새 문제로 바뀜** | Enter·Backspace 등은 막았다. 대신 Ctrl/Meta 조합을 **전부** 삼켜 찾기·복사·인쇄·저장·확대를 막는다(**WR-01**). 키보드 밖 편집 경로(붙여넣기·잘라내기·끌어 놓기)는 여전히 열려 있다(**WR-02**). |
+| IN-01~IN-04 | 범위 밖, 변화 없음 | 지시대로 손대지 않았다. 이월 항목이며 이번 집계에서 뺐다. D-25 참고 항목도 그대로다. |
 
-사이트 정체 위조 방지 설계는 대체로 맞다. `topDocOrigins`는 Chrome이 채운 `sender.origin`으로만 채우고, `recordPress`·`setSiteDisabled`는 요청 본문 origin을 그 값과 대조한다. 요청 본문 문자열만으로 다른 사이트를 끄거나 기록을 쌓는 경로는 찾지 못했다. 문제는 세 곳이다.
+## 오케스트레이터 요청 항목 판정
 
-- **(1)** 01-18의 문서 전체 편집기 "나옴" 상태가 한글 IME에서 깨진다. 이 제품의 실제 이용자 환경이다.
-- **(2)** 55acdd0의 `documentWasRewritten()` 방어는 근거가 서로 맞지 않는 추측성 코드다. 그 경로에 실제로 들어가면 새 도우미를 넣지 못한다.
-- **(3)** `topDocOrigins`의 수명 관리가 설계가 아니라 이벤트 도착 순서에 기대고 있다.
+### 1. CR-01 수정(63d8eff)의 innerHTML 스냅숏 복원: **BLOCKER. 즉시 되돌리고 "나옴 = 선택 범위 해제" 방식으로 바꿀 것을 권고한다**
 
-### 오케스트레이터 요청 항목 판정
+사실관계(코드):
+- 스냅숏 대상은 `deepActiveElement()`이고, `isDocumentEditingRoot`를 통과한 `body` 또는 `documentElement`다(pipeline.ts:375-379, mode.ts:41-47). designMode나 contenteditable 본문이면 **body 전체**다.
+- 조합이 끝날 때까지 **모든** `input`마다 `root.innerHTML = snapshot`으로 body의 자식 전체를 새로 파싱한 노드로 갈아 끼운다(pipeline.ts:392-403).
+- 도우미 호스트는 `document.documentElement.append(hostElement)`로 붙는다(mode-indicator.ts:124). 그래서 루트가 **body이면 호스트는 살아남는다.** 루트가 `documentElement`이면(`<html contenteditable>`처럼 activeElement가 html인 경우. 코드가 명시적으로 허용하는 경로다) `innerHTML`에 `<head>`와 `<tremor-helper-root>`가 함께 들어간다. 이 경우 섀도 루트 없는 빈 호스트로 바뀌고, 도우미 오버레이가 조용히 사라진다. `documentRewriteWatcher`는 `document`의 childList만 보므로(content.ts:177) 이를 감지하지 못한다. 실제 사이트에서 이 경로의 빈도는 낮다고 본다(확신 중간).
 
-**1. editor-frames flaky 수정(55acdd0) — 시험 쪽 변경은 "완화"가 아니다. content.ts 쪽 변경은 근본 수정이 아니라 추측성 코드다.**
+피해는 CR-01 본문에 적었다. 요약하면 노드 정체성·선택 범위·되돌리기 스택·리스너·위젯·내부 iframe·폼 상태가 깨진다. 캐럿이 문서 처음으로 간다. 300ms 창 오탐으로 이용자 입력이 사라진다. 조합 확정 경로는 시험되지 않았다. 성능(큰 문서에서 input마다 직렬화·비교)은 v1 범위 밖이라 결함으로 세지 않았다.
 
-- **(a) 옛 인스턴스의 frame/state(true)는 제품에서 무해하다.** `frameStates`(background.ts:29-30, 355-365)를 읽는 곳은 시험(`globalThis.frameStates`)뿐이다. relay.ts는 frame/state를 받지도 않는다. 옛 인스턴스가 보낼 수 있는 true는 부모 인라인 스크립트의 `d.open()`보다 **먼저** 도착한 설정 읽기뿐이다. HTML 파서가 `<iframe>`과 `<script>` 사이에서 양보하면 그 사이에 IPC 태스크가 끼어들 수 있다. `d.open()` 뒤에는 MutationObserver 콜백(마이크로태스크)이 다음 IPC 태스크보다 반드시 먼저 돈다. 그래서 cleanedUp이 늦게 서는 일은 없다. `cleanupOldHelper()`는 frame/state(false)를 보내지 않으므로 순서가 뒤집혀 false가 남는 일도 없다. 남는 부작용은 하나다. 다시 넣기가 실패하면 `frameStates`에 옛 true가 그대로 남는다. 제품에는 영향이 없고 시험 오라클만 낡는다(IN-02).
-- **(b) 남은 두 단언이 실제 위협은 막는다.** 옛 `onMessage` 리스너가 남는 경우와 새 인스턴스가 두 번 들어가는 경우는 누르기 횟수 1 단언이 잡는다. 두 경우 모두 press/request 한 번에 리스너 두 개가 동기로 반응해 카운터가 2가 되기 때문이다. 다만 "호스트 1개" 단언은 거의 항상 참이다. 새 인스턴스가 시작할 때 `tremor-helper-root`를 모두 지우므로(content.ts:145-147), 옛 인스턴스가 정리되지 않은 회귀는 이 단언으로 잡히지 않는다. 지운 단언이 맡던 "다시 쓰기 **이후** 옛 인스턴스가 조용하다"는 관찰은 결정적으로 되살릴 수 있다. WR-02를 보라.
-- **(c)** `documentWasRewritten`을 겨냥한 실패 시험이 없다. 필요한가 이전에, 이 코드는 **남기면 안 된다**(WR-01). 남은 `waitForTimeout(1500)`은 실패를 일으키는 flaky의 씨앗은 아니다. 다만 이제 그 대기에 기대는 단언이 없어 흔적만 남은 대기이고, 부하 시 늦은 오동작을 놓치는 거짓 통과의 씨앗이다(WR-02).
+대안 비교:
 
-**2. noopener 새 창의 아이콘·메뉴는 코드 경로상 "도울 수 없음"을 보인다. 시험이 이를 확인하지 않아 경고로 둔다(WR-04).**
-경로는 이렇다. `updateActionForTab`은 `about:` 주소에서 주소 규칙을 건너뛴다(background.ts:76). 이어 `respondsToSitePing`이 보낸 `chrome.tabs.sendMessage`가 수신자 없음으로 거부되어 false가 되고, `markUnsupported`로 간다. 메뉴는 아이콘 제목 `도울 수 없음`을 보고 안내를 띄운다(popup/main.ts:334-337). 제목이 아직 설정되기 전에 메뉴를 열면 `resolveSiteOrigin`의 ping이 실패해 사이트 카드를 만들지 않는다(popup/main.ts:344-347). 이때는 "도울 수 없음" 안내도 없이 카드 1·3·4만 보인다. 거짓으로 "돕는 중"을 보이지는 않지만 상태가 애매하다.
+| 대안 | 조합 차단 효과 | 사이트 부작용 | 되돌림 안전성 | 판정 |
+|---|---|---|---|---|
+| (현행) innerHTML 복원 | 조합 뒤 DOM을 되감는다 | 매우 큼: 노드·선택·undo·리스너·위젯 파괴 | 나쁨: 되돌릴 수 없는 DOM 교체 | **기각** |
+| A. Esc 때 선택 범위 저장 후 `getSelection().removeAllRanges()`. 초점은 body에 둔다 | Chrome은 선택의 편집 루트가 없으면 text input type을 none으로 보고 IME를 끈다고 알고 있다. F가 keyCode 70으로 오고 조합이 시작되지 않을 것으로 **예상한다. 확신 중간이며 실측이 필요하다** | 작음: `selectionchange` 1회, 편집기 도구 막대 상태 갱신. DOM·undo는 건드리지 않는다. focus/blur는 뜨지 않는다 | 좋음: 도우미가 죽어도 캐럿만 없다. 이용자가 누르면 복구된다 | **권고(1순위)** |
+| B. Esc 때 도우미 자신의 비편집 초점 대상(섀도 호스트 안 `tabindex=-1`)으로 초점 이동, 선택 범위 저장 | 비편집 요소 초점이라 IME가 확실히 꺼진다 | 중간: 편집기에 blur/focusout이 뜬다(CKEditor 4 `blur` → 도구 막대 숨김·자동 저장 등). 01-18 probe가 blur를 기각한 이유(캐럿 소실)는 저장 범위 복원으로 풀린다. focusin 처리기(pipeline.ts:112-121)를 고쳐야 한다 | 좋음 | A가 실측에서 실패할 때의 2순위. 키가 body 리스너에 닿지 않아 WR-01·WR-02의 상당 부분도 구조적으로 해결된다 |
+| C. 나옴 동안 `designMode='off'` 또는 `contentEditable='false'`, 복귀 때 원상복구 | 확실 | 큼: 속성 변이가 사이트에 보이고, 사이트가 저장할 때 직렬화될 수 있다. 편집기의 읽기 전용 상태와 어긋난다. designMode 전환은 선택·undo에 영향이 있다 | **최악**: 확장 업데이트·정리(`cleanupOldHelper`)·탭 종료 경합으로 복구가 빠지면 문서가 편집 불가로 남는다 | 기각 |
+| D. `compositionstart`에서 초점 이동 | 늦음: 조합이 이미 시작됐다. Chrome은 blur 때 조합을 **확정(commit)** 하므로 'ㄹ'이 문서에 남는다 | 중간 | 보통 | 기각 |
 
-**3. 사이트 정체 위조 방지 — 메시지 본문을 믿는 곳은 없다. 탭 이동 때 낡은 값이 다시 들어올 수 있는 경쟁이 있다(WR-03).**
-`topDocOrigins.set`(background.ts:223-225)은 `sender.origin`만 쓴다. `inheritedSiteOrigin`은 불투명·비 http(s)·스토어 출처를 거절한다. `setSiteDisabled`(:251-253)와 `recordPress`(:268-270)는 본문 origin을 `siteOriginOfTab` 결과와 대조한다. 그러나 `loading` 때 지운 뒤(:104-109), 아직 살아 있는 **옛 문서**의 frameId 0 메시지가 도착하면 옛 출처가 다시 기록된다. 문서 식별자가 없어 이를 막지 못한다. 닫힌 탭은 `onRemoved`로 지운다(:115-117).
+**A의 제약(사용자 결정 필요):** 나옴 상태에서 조합이 시작되지 않으므로 "한글을 치면 입력으로 복귀"(01-18 설계)가 사라진다. 복귀 수단은 주 버튼 누르기(pipeline.ts:262-266, 이미 있음)와, 필요하면 정한 키 하나가 된다. 설계 변경이라 §3.1과 §7("이미 정한 결정은 바꾸지 않는다")에 따라 **먼저 사용자 승인을 받는다.** A를 쓰면 나옴 상태에서 Ctrl+A가 선택을 되살려 IME를 다시 켤 수 있다. 그래서 WR-01 허용 목록에서 KeyA를 뺐다.
 
-**4. `window.opener` 등 noopener 구분 장치 — 없다(준수).** `src/`에서 `opener`는 content.ts:133 주석 한 곳뿐이다.
+**검증 방법:** CDP `Input.imeSetComposition`은 IME 활성 여부와 무관하게 조합을 주입한다. 그래서 A의 핵심 가정("선택이 없으면 IME가 꺼진다")을 증명하지 못한다. 수동 UAT 항목을 둔다. Windows + MS 한국어 입력기에서 크롬·엣지·웨일로 Esc → F → 숫자를 누르고, `compositionstart`가 없는지와 keydown `keyCode !== 229`인지 확인한다. 자동 시험은 "Esc 뒤 `rangeCount === 0`", "복귀 뒤 같은 노드·같은 오프셋", "노드 정체성 유지"를 단언한다.
+
+### 2. WR-08 수정(755f43f)의 Ctrl/Meta 전부 삼키기: **WARNING(과잉 차단). 허용 목록 방식으로 좁힐 것을 권고한다** → WR-01
+
+문서를 망가뜨리지는 않는다. 다만 나옴 상태에서 편집기에 초점이 있는 동안 Ctrl+F/G(찾기), Ctrl+C(복사), Ctrl+P(인쇄), Ctrl+S(사이트 저장. 업무 양식에서 중요하다), Ctrl +/−/0(확대. 이 이용자에게 중요하다), Ctrl+R/F5, Ctrl+L이 **모두** 막힌다. 막히는 이유를 이용자에게 알리는 것도 없다. Ctrl+T/W/N/Tab처럼 Chrome이 예약한 조합은 페이지가 막을 수 없으므로 영향이 없다. 권장 범위와 코드는 WR-01에 있다.
+
+### 3. WR-03(ee05e56): **코드상 수정은 맞다. 잔여 경쟁은 이론상 남고 INFO 수준이다** → IN-01
+
+`sender.tab.url`은 Chrome이 메시지를 받을 때 채우는 **마지막으로 커밋된** 탭 주소다(`tabs` 권한 있음, wxt.config.ts:9). 이동 시작부터 커밋 전까지 옛 https 문서가 보낸 메시지는 이제 기록되지 않는다. 1회차가 지적한 주 경로(`loading`에서 지운 뒤 옛 문서가 다시 기록함)는 닫혔다. 남는 창은 두 가지다.
+- (a) 옛 문서가 커밋 **직전에** 보낸 메시지를 브라우저가 커밋 **뒤에** 처리하는 경우. 이때 `tab.url`은 about:blank이고 `sender.origin`은 옛 출처다. 서로 다른 프로세스 IPC 사이에는 순서 보장이 없다.
+- (b) about: → about: 이동. `tab.url`이 계속 about:이다.
+
+새 about: 문서의 첫 frameId 0 메시지가 덮어쓰므로 창은 매우 짧다. 새 문서에 content script가 없는 경우(불투명 출처)만 값이 남는다. 이때는 이미 "도울 수 없음"이라 메뉴가 사이트 카드를 만들지 않는다. 수정자가 경쟁을 재현하지 못한 것은 정직하게 보고됐다. 가드 자체를 겨냥한 RED 시험은 없다(IN-01·IN-03).
+
+### 4. WR-06 재시도·세대 번호 / WR-05 팝업 되돌림
+
+- **WR-06: 새 누수나 치명적 경쟁은 없다.** `actionGenerationByTab`은 `onRemoved`에서 지운다. `Promise.race`의 타임아웃 타이머는 정리하지 않지만 1초 뒤 스스로 끝난다. 늦게 끝난 `sendMessage`의 거부도 `race`가 처리하므로 unhandled rejection은 없다. 잔여 셋은 IN-02에 적었다. (1) 500ms 재시도 창은 추정치다. 부하 때 다시 넣기 왕복이 더 걸리면 "도울 수 없음"으로 굳는다. (2) `isCurrent()`를 ping 직후 한 번만 본다. `markUnsupported`의 세 await 사이에 새 호출이 끼면 제목과 배지가 섞일 수 있다. (3) `tabs.onReplaced`는 처리하지 않는다.
+- **WR-05: SW 거절(`ok !== true`)은 두 카드 모두 처리한다. 무응답과 거부는 부분적으로만 다룬다.** 사이트 카드는 거부(reject)를 되돌린다. **도우미 카드는 `.then` 하나뿐이라 거부 때 되돌리지 않고 unhandled rejection이 난다**(popup/main.ts:229-239). 두 카드 모두 응답이 오지 않고 대기만 이어질 때의 시간 제한이 없다. 되돌릴 때 안내 문구도 없어서, "끄지 못했다"는 사실이 이용자에게 전해지지 않는다. → WR-03
+
+### 5. TDD 증거·시험 완화·고정 대기
+
+- **RED 커밋:** 따로 있는 것은 CR-01(9739ee3)뿐이다. WR-05~WR-08은 시험과 수정이 한 커밋이다. RED는 수정 보고서의 뮤테이션 확인 서술로만 남아 있다. WR-03은 RED가 없다(자인함). WR-05의 도우미 카드 변경(`ok !== true` 확대)과 사이트 카드의 reject 경로는 시험이 없다. → IN-03
+- **시험 완화:** 없다. 테스트 diff에서 지운 줄은 WR-01 관련 주석과, 번호만 바뀐 주석뿐이다. 단언은 모두 추가만 됐다.
+- **새 고정 대기:** 4곳이다. WR-07 시험(frames.e2e.ts:424, 431, 433)은 300ms 뒤 `entries.length === 1`을 고정 단언해 부하 때 거짓 실패를 낸다. WR-08 시험(doc-editor.e2e.ts:199)은 200ms 뒤 부재를 단언한다. keydown이 동기라 거짓 통과 위험은 낮다. → WR-06
+- **CR-01 RED 시험의 질:** 300ms 창과 시험 속 `expect.poll` 대기가 결합돼 부하 때 거짓 실패를 낸다. 반대로 조합 확정·노드 정체성·캐럿 위치를 보지 않아 CR-01(신규)을 놓치고 거짓 통과한다. → WR-05
 
 ## Critical Issues
 
-### CR-01: 문서 전체 편집기 "나옴" 상태에서 한글 IME가 켜져 있으면 F가 'ㄹ'로 들어가고 입력 모드로 돌아간다. 번호표는 뜨지만 숫자는 문서에 입력된다
+### CR-01: CR-01 수정의 `innerHTML` 스냅숏 복원이 조합 동안 편집 루트(body) 전체를 다시 파싱해 편집기 노드·선택·되돌리기·위젯을 파괴하고, 캐럿을 문서 처음으로 보내고, 이용자의 정상 입력을 지운다
 
-**파일:** `src/page/input/pipeline.ts:128-178, 331-346`, `src/page/input/mode.ts:51-69`
-**문제:** 01-18은 문서 전체 편집기(designMode·contenteditable 본문)에서 Esc를 누르면 `blur()` 대신 `escapedFromDocumentEditor` 표시만 켠다. 그래서 **초점은 계속 편집 가능한 본문에 남는다.** 이 상태에서 한글 입력기가 켜진 채 F를 누르면 다음 순서로 진행된다.
-1. keydown(code `KeyF`, key `Process`, keyCode 229)이 들어온다. 도우미 키 처리기가 번호표를 열고 `preventDefault()`한다.
-2. 그러나 IME가 이미 받은 키는 keydown 취소로 되돌릴 수 없다. Chrome/Windows의 알려진 동작이다.
-3. `compositionstart`가 뜬다. 339-345행이 `resumeDocumentEditor()`를 불러 입력 모드로 되돌리고, 'ㄹ'이 문서에 조합된다.
-4. 이어 숫자를 누르면 `currentMode() === 'typing'`이라 164-167행에서 도우미 키 처리기를 건너뛴다. 자식 프레임 쪽도 같은 파이프라인이라 hints/key를 보내지 않는다. 번호표는 떠 있는데 숫자가 편집 중인 문서에 들어간다.
+**파일:** `src/page/input/pipeline.ts:68-80, 191, 371-411` (관련: `src/page/input/mode.ts:41-47`, `src/page/overlay/mode-indicator.ts:124`)
+**문제:**
+1. **노드 정체성 파괴(확실).** `root.innerHTML = snapshot`(399행)은 body의 모든 자손을 떼고 새 노드를 만든다. 텍스트가 같아도 전혀 다른 객체다. 다음이 모두 끊긴다.
+   - 편집기가 쥔 요소 참조: CKEditor 4 위젯의 `wrapper`·`element`, SmartEditor 2의 저장 범위·북마크
+   - 자손 노드에 붙은 이벤트 리스너
+   - 내부 `<iframe>`·`<video>` 상태(다시 로드된다), 폼 컨트롤의 현재 값·체크 상태(속성이 아니면 사라진다), 사용자 정의 요소 인스턴스
 
-한국어 문서를 쓰는 이용자는 한글 입력기를 켜 둔 채인 경우가 보통이다. KEY-01의 기본 흐름(Esc → F → 번호)이 주 이용자 환경에서 문서 내용을 오염시킨다. doc-editor.e2e.ts는 `page.keyboard`(IME 없음)와 CDP `imeSetComposition`(F 없이 조합만)만 쓴다. 그래서 이 조합은 시험되지 않는다. 확인 화면이 떠 있는 동안에는 `modalHandler`가 먼저 가로채므로 위험 버튼 확인 흐름은 해당하지 않는다.
-**재현(실측 필요):** Windows Chrome에서 한글 입력기를 켠다. `doc-editor.html` `#frame-design` 본문을 클릭하고, Esc → F → 숫자를 누른다. 본문 글자와 `data-mode`를 확인한다.
-**수정:** "나옴" 상태에서는 편집 가능한 초점을 실제로 놓아야 IME가 조합을 시작하지 않는다. 캐럿을 지우지 않고 초점만 옮기는 방법을 쓴다. 예: 나올 때 선택 범위를 저장하고 `window.getSelection().removeAllRanges()`를 부른다. 그러면 문서 초점이 편집 불가 상태가 된다. 다시 누르면 저장한 범위를 복원한다. 또는 나옴 상태에서 도우미 키로 쓴 keydown의 `isComposing`/`keyCode === 229`를 보고 이어지는 `compositionstart`를 입력 복귀 신호로 쓰지 않는다. 이 경우 `compositionend` 전까지 `beforeinput`(insertCompositionText 포함)과 조합 결과를 취소한다. 어느 쪽이든 실제 한글 IME로 RED 시험(수동 UAT 항목 가능)을 먼저 만든다.
+   되돌리기 스택도 끊긴다. Chrome 기본 undo 단계와 편집기 자체 undo 모두 떼어진 노드를 가리키게 되어, 이후 Ctrl+Z가 헛돌거나 엉뚱하게 동작한다. 사이트 입장에서는 스크립트가 문서를 통째로 바꾼 것이다. 편집기의 MutationObserver와 변경 감지가 "문서가 바뀜"으로 보고, 더럽힘 표시나 자동 저장이 실행될 수 있다. "이용자의 문서·사이트를 망가뜨리지 않는 것"을 정면으로 어긴다.
+2. **캐럿이 문서 처음으로 간다(높은 확신).** 선택 범위가 들어 있던 노드가 제거되면 경계점이 부모(body)의 오프셋 0 근처로 붙는다. 수정은 선택을 저장·복원하지 않는다. 이후 01-18 설계대로 한글을 쳐서 입력으로 돌아가면 글자가 **원래 캐럿이 아니라 문서 첫머리에** 들어간다. 이것도 문서 오염이다.
+3. **IME 상태 불일치(실측 필요).** 조합 중 조합 텍스트 노드가 사라지면 Chrome의 조합 범위도 무너진다. 이후 `compositionupdate`나 확정(commit)이 어디에 글자를 넣을지는 Chrome 내부 동작에 달렸다. 확정의 `input`이 `compositionend`보다 **먼저** 오면 복원되고, 나중에 오면 'ㄹ'이 (문서 처음에) 남는다. Chrome은 대체로 input → compositionend 순서로 알고 있으나 **확신이 없다.** 시험(doc-editor.e2e.ts:163)은 `imeSetComposition`만 보내고 조합을 확정하지 않는다. 이 경로는 전혀 검증되지 않았다.
+4. **300ms 창 오탐으로 이용자의 입력이 사라진다(확실).** 무시 조건은 "마지막 도우미 키 소비 뒤 300ms 안의 `compositionstart`"뿐이다(372행). 도우미 키가 조합을 일으키지 않는 키인 경우가 있다. 스페이스·숫자이거나, IME가 영문 상태인 F가 그렇다. 그런 키를 누른 뒤 300ms 안에 이용자가 한글을 치기 시작하면, 그 조합은 입력 복귀가 아니라 무시·복원 대상이 된다. 확정될 때까지 친 글자가 조용히 지워지고 모드는 계속 "도우미"다. 떨림 이용자는 의도치 않은 빠른 연속 입력이 흔하다.
+5. **`input` 리스너에 `isTrusted`와 `isHelperEnabled()` 확인이 없다(392-403행).** 무시 중에 메뉴로 도우미를 꺼도 `compositionend`까지 복원이 계속된다. 사이트가 합성한 `input`에도 반응한다.
+6. **루트가 `documentElement`인 경로(확신 중간, 빈도 낮음).** `isDocumentEditingRoot`는 html 요소도 허용한다. 이 경우 스냅숏에 `<head>`와 도우미 호스트(`documentElement`에 붙음)가 포함된다. 복원하면 섀도 루트 없는 빈 `<tremor-helper-root>`로 바뀌고 오버레이가 조용히 사라진다.
+
+**수정:**
+1. 63d8eff의 스냅숏·`input` 복원·`compositionend` 해제(76-80행, 373-380행, 390-411행)를 **즉시 되돌린다.** 이 복원은 원래 CR-01보다 해롭다.
+2. 사용자 승인을 받은 뒤 "나옴 = 선택 범위 해제"로 바꾼다(위 판정 1의 대안 A). 초점은 그대로 둔다.
 ```ts
-// pipeline.ts compositionstart: 도우미 키 직후의 조합은 입력 복귀 신호가 아니다
-let lastHelperKeyAt = -Infinity;
-// keyHandlers가 true를 돌려준 곳에서: lastHelperKeyAt = event.timeStamp;
-if (isEscapedFromDocumentEditor()) {
-  if (event.timeStamp - lastHelperKeyAt < 50) { /* 조합을 막고 나옴 유지 */ return; }
-  resumeDocumentEditor(); ...
+// mode.ts
+let savedRanges: Range[] = [];
+export function escapeDocumentEditor(doc: Document): void {
+  escapedFromDocumentEditor = true;
+  const sel = doc.getSelection();
+  savedRanges = [];
+  if (sel) {
+    for (let i = 0; i < sel.rangeCount; i += 1) savedRanges.push(sel.getRangeAt(i).cloneRange()); // Range는 DOM 변화를 따라간다
+    sel.removeAllRanges(); // 선택의 편집 루트가 없으면 IME가 조합을 시작하지 않는다(실측 필요)
+  }
+}
+export function resumeDocumentEditor(opts: { restoreSelection: boolean }): void {
+  escapedFromDocumentEditor = false;
+  const ranges = savedRanges;
+  savedRanges = [];
+  if (!opts.restoreSelection) return; // 포인터 복귀는 클릭이 캐럿을 새로 놓는다
+  const sel = document.getSelection();
+  const alive = ranges.filter((r) => r.startContainer.isConnected && r.endContainer.isConnected);
+  if (sel && alive.length > 0) {
+    sel.removeAllRanges();
+    alive.forEach((r) => sel.addRange(r));
+  }
 }
 ```
+3. 기존 `compositionstart` → 복귀 경로(01-18)는 대안 A가 실패하는 브라우저를 위한 안전망으로 남긴다. 그 경우 표시와 실제 입력이 최소한 일치한다. 300ms 시간 창은 없앤다. 꼭 남겨야 한다면, 도우미가 소비한 keydown이 `event.isComposing || event.keyCode === 229`였고 바로 다음 태스크의 `compositionstart`일 때로만 좁힌다.
+4. RED 시험을 먼저 만든다. (a) `#doc-text` 노드에 표식을 달고 Esc → F(229) → 조합 → 확정(`Input.insertText` 또는 `imeCommitText`) 뒤 **같은 노드**인지 본다. (b) 캐럿 오프셋이 보존되는지 본다. (c) Esc 뒤 `getSelection().rangeCount === 0`인지 본다. 실제 IME 동작은 수동 UAT 항목으로 둔다(판정 1의 검증 방법).
 
 ## Warnings
 
-### WR-01: `documentWasRewritten()` 방어(55acdd0)는 근거가 모순된 추측성 코드다. 그 경로에 들어가면 frame/reinject 없이 정리되어 그 프레임의 도우미가 사라진다
+### WR-01: WR-08 수정이 나옴 상태에서 Ctrl/Meta 조합을 전부 삼켜 찾기·복사·인쇄·저장·확대까지 막는다. 떨어진 Ctrl keydown도 삼켜 keydown/keyup 짝이 깨진다
 
-**파일:** `src/entrypoints/content.ts:161-170, 598-604, 1212-1216`
-**문제:**
-1. **근거가 서로 다르다.** 커밋 메시지는 원인을 "옛 인스턴스의 설정 읽기가 `document.open()` **이전에** 끝남"이라고 적었다. 이 경우 `documentWasRewritten()`은 false라 이 방어와 무관하다. 코드 주석(164-165행)은 "설정 읽기가 MutationObserver 콜백보다 먼저 끝남"이라고 적었다. 이는 이벤트 루프상 일어날 수 없다. MO 콜백은 변이를 일으킨 스크립트가 끝난 직후의 마이크로태스크 체크포인트에서 돌고, storage IPC 응답은 그 뒤의 별도 태스크다.
-2. **효과를 보인 근거가 없다.** 같은 커밋에서 시험 단언을 바꿨으므로 "수정 후 25회 무실패"는 이 코드의 효과가 아니다. 뮤테이션 확인도 `removeListener`에 대해서만 했다. 이 방어를 겨냥한 RED 시험도 없다(CLAUDE.md §5 TDD·"추측 수정 금지" 위반).
-3. **들어가면 해롭다.** 이 경로는 `cleanupOldHelper()`만 부르고 frame/reinject를 보내지 않는다. `cleanupOldHelper()`는 1213행에서 `documentRewriteWatcher.disconnect()`를 부른다. MutationObserver의 `disconnect()`는 쌓여 있던 레코드를 버리므로 대기 중이던 MO 콜백(180-185행, reinject를 보내는 유일한 곳)이 영영 불리지 않는다. 결과적으로 다시 쓴 편집기 프레임에는 도우미가 하나도 없다. 조용히 도울 수 없게 되고, 아이콘이나 메뉴에는 드러나지 않는다.
+**파일:** `src/page/input/pipeline.ts:34-36, 203-209`
+**문제:** 조건은 `EDITING_KEYCODES.has(code) || ctrlKey || metaKey`다.
+- Ctrl+F/G, Ctrl+C, Ctrl+P, Ctrl+S, Ctrl +/−/0, Ctrl+R 같은 편집이 아닌 조합이 모두 `preventDefault`와 `stopImmediatePropagation`으로 사라진다. 특히 확대와 사이트 저장이 막힌다. 표시("도우미" 모드)만으로는 이유를 알 수 없다.
+- Control 키만 누른 keydown(`ControlLeft`, ctrlKey true)도 삼킨다. `swallowedKeyCodes`에 넣지 않으므로 keyup은 사이트에 그대로 간다. keydown 없는 keyup이 되어, 수정 키 상태를 추적하는 사이트 스크립트를 혼란시킨다. Enter·Backspace도 keydown만 삼키고 keyup은 흘린다. CKEditor 4는 keyup에서 undo 스냅숏 등을 처리하는데, 이 동작과 어긋난다.
 
-**수정:** 되돌리는 것이 맞다. 남겨야 할 근거가 생기면 두 경로가 같은 처리기를 쓰게 하고, 그 경로를 결정적으로 재현하는 시험을 먼저 만든다.
+**수정:** 편집 가능성이 있는 조합은 기본적으로 막는다(안전). 편집을 일으키지 않는 브라우저·사이트 명령만 허용 목록으로 통과시킨다. 삼킨 키는 keyup까지 일관되게 삼킨다.
 ```ts
-function handleDocumentRewrite(): void {
-  if (cleanedUp) return;
-  cleanupOldHelper();
-  if (isExtensionContextValid()) {
-    void chrome.runtime.sendMessage({ type: 'frame/reinject' }).catch(() => {});
+const MODIFIER_ONLY = new Set(['ControlLeft', 'ControlRight', 'MetaLeft', 'MetaRight', 'ShiftLeft', 'ShiftRight', 'AltLeft', 'AltRight']);
+// 편집을 일으키지 않는 조합만 통과: 복사·찾기·인쇄·저장·확대·새로고침.
+// KeyA(전체 선택)는 대안 A(선택 해제)와 충돌하므로 뺀다.
+// KeyL·KeyE·KeyJ·KeyR은 일부 편집기가 링크·정렬에 쓰므로 넣을지는 사용자 결정 사항이다.
+const PASS_CTRL_CODES = new Set(['KeyC', 'Insert', 'KeyF', 'KeyG', 'F3', 'KeyP', 'KeyS', 'Equal', 'Minus', 'Digit0', 'NumpadAdd', 'NumpadSubtract', 'Numpad0', 'F5']);
+if (isEscapedFromDocumentEditor() && isDocumentEditingRoot(deepActiveElement()) && !MODIFIER_ONLY.has(event.code)) {
+  const mod = event.ctrlKey || event.metaKey;
+  const block = mod
+    ? !(PASS_CTRL_CODES.has(event.code) && !event.altKey)
+    : EDITING_KEYCODES.has(event.code) || (event.shiftKey && event.code === 'Insert'); // Shift+Insert = 붙여넣기
+  if (block) {
+    swallowedKeyCodes.add(event.code); // keypress·keyup도 함께 삼킨다
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
   }
 }
-// MO 콜백과 applyEnabled 양쪽에서 handleDocumentRewrite()를 부른다
 ```
+시험: 나옴 상태에서 Ctrl+B는 막히고(fixture가 keydown으로 `<b>` 삽입), Ctrl+F·Ctrl+=는 사이트 keydown 리스너에 도달하는지 단언한다.
 
-### WR-02: editor-frames "옛 인스턴스는 조용하다" 시험 — 호스트 수 단언은 거의 항상 참이고, 1500ms 고정 대기는 흔적만 남았다. "다시 쓰기 이후 조용함"을 결정적으로 보는 단언이 사라졌다
+### WR-02: 나옴 상태의 편집 차단이 키보드 밖 경로(오른쪽 메뉴 붙여넣기·잘라내기, Shift+Insert, 끌어 놓기)를 막지 않아 편집기가 직접 문서를 고칠 수 있다
 
-**파일:** `tests/e2e/editor-frames.e2e.ts:414-427`
-**문제:** 새 인스턴스는 시작할 때 문서의 모든 `tremor-helper-root`를 지운다(content.ts:145-147). 그래서 `hostCount === 1`은 옛 인스턴스의 정리 여부와 무관하게 참이다. 새 인스턴스가 생긴 **뒤에** 옛 인스턴스가 호스트를 새로 만드는 경우만 잡는다. `waitForTimeout(1500)` 뒤의 두 단언은 이 대기에 기대지 않는다. 대기의 본래 목적(옛 인스턴스가 늦게 오동작할 틈을 주고 관찰)은 관찰 수단과 함께 사라졌다. 부하 시 1500ms 뒤에 오는 옛 인스턴스의 활동은 어떤 단언도 보지 못한다.
-**수정:** 지운 누적 개수 대신, 경쟁이 없는 관찰 창을 쓴다. `waitForFrameHelperAlive`가 통과한 시점에는 새 인스턴스가 이미 true를 보냈다. 그 시점부터 그 frameId의 frame/state가 **0건**인지 본다. 기록기는 `setupFrameStateRecorder`를 그대로 쓴다. 이렇게 하면 원래 의도("다시 쓰기 뒤 옛 인스턴스가 켜지지 않는다")를 경쟁 없이 되살린다. 1500ms는 그 관찰 창 길이로만 남기거나 `expect.poll`로 바꾼다.
-```ts
-await setupFrameStateRecorder(serviceWorker);
-// ... page.goto, waitForFrameHelperAlive ...
-const childFrameId = /* frameStates에서 frameId !== 0인 키 */;
-const baseline = await frameStateRecordCount(serviceWorker, childFrameId);
-await page.waitForTimeout(1500);
-expect(await frameStateRecordCount(serviceWorker, childFrameId) - baseline).toBe(0);
-```
+**파일:** `src/page/input/pipeline.ts:198-209, 413-426, 262`
+**문제:** WR-08의 목표는 "나옴 상태에서 문서가 조용히 바뀌지 않음"이다. 그런데 차단 수단은 keydown과 `beforeinput` 취소뿐이다. 다음 경로가 남는다.
+- CKEditor 4 clipboard 플러그인 같은 편집기는 `paste`·`drop` 이벤트에서 기본 동작을 취소하고 자신의 API(execCommand 또는 DOM 조작)로 넣는다. 이 경로는 `beforeinput`을 거치지 않는다. 동작은 1회차 WR-08과 같은 근거이며, CKEditor 4 실제 동작은 실측이 필요하다.
+- 오른쪽 클릭은 `button === 0` 조건 때문에 나옴 상태를 풀지 않는다(262행). 그래서 "도우미" 표시인 채로 메뉴의 붙여넣기가 실행된다.
+- Shift+Insert는 ctrlKey가 없고 `EDITING_KEYCODES`에도 없어 그대로 통과한다.
 
-### WR-03: `topDocOrigins`는 탭 이동 중 옛 문서가 보낸 메시지로 낡은 출처가 다시 기록될 수 있다. 문서 식별 없이 "마지막 frameId 0 메시지"가 이긴다
+**수정:** 나옴 상태이고 초점이 문서 편집 루트이면 `paste`·`cut`·`drop`·`dragover`를 window capture에서 `preventDefault()`와 `stopImmediatePropagation()`으로 막는다. `isTrusted`이고 `isHelperEnabled()`일 때만 막는다. Shift+Insert는 WR-01 코드에 포함했다. 시험 fixture: `paste` 리스너에서 `preventDefault` 후 `<p>`를 넣는 편집기로 RED를 만든다.
 
-**파일:** `src/entrypoints/background.ts:36, 104-109, 223-225`
-**문제:** `tabs.onUpdated`의 `status: 'loading'`은 이동이 **시작될 때** 온다. 새 문서가 커밋되기 전까지 옛 문서는 살아 있고, collector의 rAF 보고, frame/state, hints/state 같은 frameId 0 메시지를 계속 보낼 수 있다. 이 메시지가 `loading` 처리 뒤에 도착하면 `topDocOrigins`에 옛 출처가 다시 들어간다.
+### WR-03: 도우미 카드(전역 끄기)는 SW 응답 거부를 처리하지 않고, 두 카드 모두 무응답 시간 제한과 실패 안내가 없다. 이용자는 "껐다"고 믿지만 켜져 있을 수 있다
 
-탭이 `about:blank`로 커밋되면 `siteOriginOfTab`은 그 옛 출처를 새 문서의 사이트로 답한다. 예를 들어 https://a.com 탭을 다른 창(b.com, opener)이 `about:blank`로 이동시키면, 새 문서는 b.com 출처를 물려받는다. 그 새 문서의 맨 위 첫 메시지가 덮어쓰기 전까지, 자식 프레임의 site/query는 a.com을 받는다. 그래서 a.com의 사이트 끄기 상태를 읽고, `recordPress`는 a.com 키에 기록된다. 불투명 출처 about:blank(주소창 입력 등, content script 없음)로 가면 덮어쓸 메시지가 없어 낡은 값이 탭이 닫힐 때까지 남는다. 지금은 메뉴가 사이트 카드를 안 만들어 소비되지 않을 뿐이다.
+**파일:** `src/entrypoints/popup/main.ts:226-240, 294-312`
+**문제:**
+- `helperCard`는 `sendMessage(...).then(onFulfilled)`뿐이다. SW가 요청 도중 종료되는 등으로 포트가 닫히면 promise가 거부된다. 이때 되돌리지 않고, unhandled rejection이 나며, 카드는 "도우미 켜기"(=꺼짐)로 남는다. 이 카드는 가장 중요한 안전 스위치다.
+- 두 카드 모두 응답이 계속 오지 않으면 낙관적 렌더가 무기한 남는다.
+- 되돌릴 때 문구가 없다. 떨림 이용자는 글자가 잠깐 바뀌었다 돌아온 것을 놓치기 쉽다. §7("문구는 오류에만 한 줄로, 무엇을 하면 되는지")에도 어긋난다.
 
-01-19 금지사항("그 창 문서 **자신의** 출처로만")을 설계가 아니라 이벤트 도착 순서가 지키고 있다. 같은 문서 안 이동(해시·pushState)도 `loading`을 일으키면 값이 지워진다. 그러면 다음 frameId 0 메시지 전까지 메뉴 사이트 끄기가 `origin-mismatch`로 조용히 거절된다(WR-05와 겹친다).
-**수정:** 옛 https 문서의 메시지는 about: 탭 해석에 쓰지 않는다. Chrome이 채운 `sender.tab.url`(메시지 처리 시점의 커밋된 탭 주소)이 `about:`일 때만 기록한다. 그러면 이동 시작 뒤에도 탭 주소가 아직 옛 https인 동안의 메시지는 무시된다. document.write 새 창은 탭 주소가 about:blank로 남으므로(probe) 그대로 동작한다. 가능하면 `sender.documentId`를 함께 저장해 about: → about: 이동도 구분한다.
-```ts
-if (sender.frameId === 0 && sender.tab?.id !== undefined && sender.origin && sender.tab.url?.startsWith('about:')) {
-  topDocOrigins.set(sender.tab.id, sender.origin);
-}
-```
-
-### WR-04: noopener 새 창의 아이콘·메뉴가 "도울 수 없음"인지 시험하지 않는다. 있는 시험도 고정 1초 뒤 "없음"만 단언해 부하 시 거짓 통과한다
-
-**파일:** `tests/e2e/blank-popup.e2e.ts:309-327`
-**문제:** 요청 항목 2의 코드 경로는 맞다(위 판정). 그러나 SAFE-05("도울 수 없음 표시가 실제와 같음")의 noopener 쪽 근거가 되는 시험은 `tremor-helper-root` 부재만 본다. 아이콘 제목·배지와 메뉴 안내는 보지 않는다. 또 `waitForTimeout(1000)` 뒤의 부재 단언이라, 부하로 주입이 1초보다 늦어지면 실제 동작과 무관하게 통과한다. 양성 대조(같은 시간 안에 일반 새 창에는 도우미가 들어옴)도 없다. 이 시험 하나가 "Chrome은 noopener에 주입하지 않는다"는 실측의 유일한 근거다.
-**수정:** 두 noopener 탭 각각에 대해 `expect.poll(() => tabTitle(sw, id)).toBe('도울 수 없음')`과 배지 `없음`을 단언한다. `popup.html?tabId=`로 메뉴를 열어 안내 문구가 보이고 사이트 카드가 없는지도 확인한다. 부재 단언 앞에는 같은 여는 쪽에서 `openDomPopup`으로 도우미가 뜨는 것을 먼저 확인해 양성 대조로 삼는다.
-
-### WR-05: 메뉴의 "이 사이트에서 끄기" 카드가 SW 거절(`origin-mismatch`·`write-failed` 등)을 무시해 실제로는 켜져 있는데 꺼짐으로 보인다
-
-**파일:** `src/entrypoints/popup/main.ts:287-301`
-**문제:** `createSiteCard`의 `onToggle`은 `render(next)` 뒤 응답을 보지 않는다. 01-19로 about: 탭은 `topDocOrigins`에 기대게 됐다. 그래서 SW 재시작 직후, WR-03의 이동 경쟁, 같은 문서 안 이동 뒤에는 `siteOriginOfTab`이 undefined가 되어 `origin-mismatch`로 거절되는 경우가 늘었다. `storage.onChanged`도 오지 않으니 카드는 "이 사이트에서 켜기"(=꺼짐)로 남는다. "즉시 끌 수 있음"이 핵심 안전 요구인데, 이용자는 껐다고 믿지만 도우미는 계속 돈다. `helperCard`도 `preserved-original` 외의 `{ ok: false }`(item-too-large, 경계 catch)는 되돌리지 않는다.
 **수정:**
 ```ts
-onToggle: (next, render, revert) => {
-  render(next);
-  void chrome.runtime.sendMessage(message).then((response) => {
-    if ((response as { ok?: boolean } | undefined)?.ok !== true) {
-      revert();
-    }
-  }, () => { revert(); });
-},
+function sendWithRevert(message: Message, revert: () => void, onFail: (reason?: string) => void): void {
+  let settled = false;
+  const timer = setTimeout(() => { if (!settled) { settled = true; revert(); onFail('timeout'); } }, 3000);
+  chrome.runtime.sendMessage(message).then(
+    (response) => {
+      if (settled) return;
+      settled = true; clearTimeout(timer);
+      const r = response as { ok?: boolean; reason?: string } | undefined;
+      if (r?.ok !== true) { revert(); onFail(r?.reason); }
+    },
+    () => { if (settled) return; settled = true; clearTimeout(timer); revert(); onFail('rejected'); },
+  );
+}
+// 사이트 카드 실패 안내 예: "이 사이트를 끄지 못했어요. 1을 눌러 도우미를 끄세요."
 ```
-`helperCard`도 `ok !== true`면 `revert()`하도록 맞춘다.
+시험: 도우미 카드의 거부 경로(SW 쪽 훅으로 응답 없이 포트를 닫음)와 사이트 카드의 안내 문구를 추가한다.
 
-### WR-06: 쓰기 새 창(document.write)과 맨 위 다시 쓰기 탭의 아이콘은 ping 한 번에 기대 다시 넣기와 경쟁한다. 이를 시험하지 않는다
+### WR-04: WR-07 수정 뒤에도 자식 프레임 직접 누르기 기록은 경로 속 세션 ID(`;jsessionid=` 등)를 저장하고, 여전히 번호 순서에 쓰이지 않는 기록만 쌓는다
 
-**파일:** `src/entrypoints/background.ts:55-89`, `tests/e2e/blank-popup.e2e.ts:332-358`
-**문제:** `document.open()`으로 문서를 다시 쓰면 옛 인스턴스는 `onMessage` 리스너를 떼고, 새 인스턴스는 frame/reinject → `executeScript` 왕복 뒤에야 site/ping에 답한다. 그 사이에 `onUpdated`(complete)나 `onActivated`로 `updateActionForTab`이 돌면 수신자 없음으로 곧바로 실패한다. 그러면 탭이 "도울 수 없음"으로 표시되고, 다음 활성화나 이동 전까지 그대로 남는다. ping에는 재시도가 없고, 겹친 두 호출은 순서 보장 없이 마지막에 끝난 쪽이 이긴다. 제목과 배지가 서로 다른 호출 값으로 섞일 수도 있다. 아이콘 제목 시험은 DOM 새 창(`openDomPopup`)만 보고, 쓰기 새 창(`openWritePopup`)과 editor-frames의 맨 위 다시 쓰기는 보지 않는다.
-**수정:** ping 실패 시 짧은 간격(예: 250ms × 3)으로 다시 확인한다. 탭별 세대 번호로 늦게 끝난 옛 호출의 결과를 버린다. 새 인스턴스가 시작할 때 맨 위에서 SW에 "준비됨"을 알려 `updateActionForTab`을 다시 부르게 하는 방법도 있다. `openWritePopup` 탭에 대해 `expect.poll(tabTitle).toBe('손 떨림 도우미')`를 추가한다.
+**파일:** `src/entrypoints/content.ts:193-195, 316, 700, 715`
+**문제:** `location.pathname`에는 Java 서블릿의 URL 재작성 세션 ID(`/app/page.do;jsessionid=ABC…`)와 경로형 문서 번호·토큰이 그대로 들어간다. 사내 업무 시스템(전자정부 프레임워크·Spring 등)에서 흔한 형태다. 1회차가 지적한 근본 문제도 그대로 남았다. `local:` framePath는 번호표 항목의 framePath와 절대 일치하지 않는다(`isSameElement`는 framePath 완전 일치를 요구한다). 그래서 이 기록은 D-11 순서에 쓰이지 않고 200개 상한만 채운다. 쓰이지 않는 데이터에 경로 정보가 계속 쌓이는 셈이다.
+**수정:** 1회차 권고의 두 번째 안을 적용한다. 맨 위가 정확한 framePath를 알려 주기 전까지는 자식 프레임의 직접 누르기를 **기록하지 않는다**(framePath를 모르면 `recordPress`를 보내지 않음). 최소 수정으로 남긴다면 `location.origin`만 쓴다. 이 경우 한 출처의 여러 프레임은 구분되지 않지만 어차피 쓰이지 않는다.
+```ts
+const localPressFramePath: string[] | null = isTopFrame ? [] : null; // null이면 기록 생략
+```
+시험: `;jsessionid=secret` 경로의 자식 프레임에서 직접 누른 뒤 저장소에 그 문자열이 없는지(또는 기록 0건인지) 단언한다.
 
-### WR-07: 자식 프레임의 자석·머무르기·스페이스바 기록은 `local:<전체 URL>` framePath로 저장되어 번호 순서에 영영 쓰이지 않는다. URL 전체(질의 문자열 포함)가 저장소에 남는다
+### WR-05: CR-01 RED 시험이 300ms 창에 결합돼 부하 때 거짓 실패하고, 조합 확정·노드 정체성·캐럿 위치를 보지 않아 CR-01(신규)을 놓친다
 
-**파일:** `src/entrypoints/content.ts:197-204, 325, 716, 731`
-**문제:** `hint-order.ts:62`는 `isSameElement(p.fingerprint, item.fingerprint)`로 기록을 찾는다. 이 함수는 framePath가 완전히 같아야 점수를 준다(`fingerprint.ts:13`). 번호표 항목의 framePath는 composeTree가 만든 경로이고, `local:${location.href}`와는 절대 같지 않다. 그래서 자식 프레임 안에서 자석·머무르기·스페이스바로 누른 기록은 D-11(자주 누른 순서)에 전혀 반영되지 않는다. 그런 기록은 200개 상한만 채운다. 또 `location.href`에 세션 토큰이나 캐시 무효화 질의가 붙으면 매번 새 항목이 된다. 사내 업무 시스템 주소의 질의 문자열(문서 번호·토큰 등)이 `chrome.storage.local`에 그대로 쌓이는 것도 문제다.
-**수정:** 최소한 `location.origin + location.pathname`만 쓴다. 근본적으로는 맨 위가 composeTree로 아는 정확한 경로를 자식에 방송한다(frames/reports 수신 뒤 hints/state처럼 `frame/path` 방송). 그러면 자식이 직접 누른 경우에도 번호표 경로와 같은 framePath로 기록된다. 그 전까지 `local:` 기록은 보내지 않는 편이 낫다(쓰이지 않는 데이터).
+**파일:** `tests/e2e/doc-editor.e2e.ts:138-170`
+**문제:**
+- keydown(229)과 `imeSetComposition` 사이에 `expect.poll(hintLabelCount)`(161행)가 있다. 부하 때 번호표가 300ms 넘게 걸리면 `compositionstart`가 창 밖으로 나가 입력 복귀가 되고 시험이 실패한다. 실제 IME에서는 두 이벤트가 같은 순간에 오는데, 시험은 인위적 간격을 넣는다.
+- 단언은 `textContent`가 같은지뿐이다. 그래서 노드가 통째로 교체되고(CR-01 신규), 캐럿이 문서 처음으로 가고, 조합 확정 뒤 글자가 남아도 통과한다.
 
-### WR-08: "나옴" 상태에서 편집기가 keydown으로 직접 처리하는 편집(Enter·Backspace·Tab·Ctrl+B 등)은 막히지 않는다
+**수정:** keydown과 조합을 연속으로 보내고, 번호표 확인은 뒤로 옮긴다. `Input.insertText`로 확정까지 보낸다. 노드 표식 정체성과 캐럿 오프셋을 단언한다. CR-01을 대안 A로 고치면 이 시험은 "Esc 뒤 rangeCount 0", "복귀 뒤 같은 노드·같은 오프셋"으로 바꾼다.
 
-**파일:** `src/page/input/pipeline.ts:128-178, 349-362`
-**문제:** 나옴 상태의 편집 차단은 `beforeinput`의 `preventDefault()`뿐이다(355-358행). CKEditor 4·SmartEditor 2 같은 사내 편집기는 Enter(문단 나누기), Backspace·Delete(블록 병합), Tab, 서식 단축키를 **keydown 처리기에서 직접 DOM을 고쳐** 처리한다. 이 경우 `beforeinput`이 아예 뜨지 않는다. 파이프라인 keydown은 도우미 키가 아니면 통과시킨다(169-178행). 그래서 모드 표시가 "도우미"인 채로 문서가 바뀐다. 01-18 SUMMARY가 약속한 "모드 표시가 도우미인데 글자가 조용히 들어가는 일이 없게"와 어긋난다. doc-editor.e2e.ts는 designMode 기본 편집(`beforeinput`이 뜨는 경로)만 시험한다.
-**수정:** 나옴 상태이고 `isDocumentEditingRoot(deepActiveElement())`이면, 도우미 키 처리기가 쓰지 않은 keydown도 편집 키(Enter·Backspace·Delete·Tab, Ctrl/Meta 조합)이면 `preventDefault()`와 `stopImmediatePropagation()`으로 삼킨다. 편집기 keydown 처리기를 흉내 낸 fixture(keydown에서 Enter를 가로채 `<p>`를 넣음)로 RED 시험을 먼저 만든다.
+### WR-06: 수정 시험에 새 고정 대기가 들어갔다. WR-07 시험은 300ms 뒤 저장소 개수를 고정 단언해 부하 때 거짓 실패한다
+
+**파일:** `tests/e2e/frames.e2e.ts:424, 431, 433-436`, `tests/e2e/doc-editor.e2e.ts:199`
+**문제:**
+- WR-07 시험은 `waitForTimeout(200)`, `(50)`, `(300)` 뒤 `entries.length === 1`을 단언한다. 기록 쓰기는 content → SW → storage 왕복이라 300ms를 넘을 수 있다. 같은 파일의 기존 시험(386행)과 같은 패턴을 복제한 것이다.
+- WR-08 시험은 200ms 뒤 부재를 단언한다. keydown 처리가 동기라 거짓 통과 위험은 낮지만, 대기 자체가 불필요하다.
+
+**수정:** WR-07은 `await expect.poll(async () => (await pressesEntries(sw, origin)).length).toBe(1)` 뒤에 framePath를 단언한다. 200ms와 50ms 대기는 모드 표시 폴링이나 테두리 표시 폴링으로 바꾼다. WR-08의 200ms 대기는 지운다(`keyboard.press`가 돌아온 시점에 동기 처리기는 이미 끝났다).
 
 ## Info
 
-### IN-01: `setSiteDisabled`는 본문 `tabId`를 믿고, 보낸 쪽이 메뉴(확장 페이지)인지 확인하지 않는다
+### IN-01: WR-03 잔여: 커밋 직전 옛 문서 메시지와 about: → about: 이동은 여전히 구분하지 않는다. 가드를 겨냥한 RED 시험이 없다
 
-**파일:** `src/entrypoints/background.ts:241-259`
-**문제:** origin은 대상 탭의 실제 출처와 대조하므로 사이트 정체는 위조되지 않는다. 다만 아무 content script(다른 탭)도 `tabId`를 바꿔 다른 탭 사이트를 끄고 켤 수 있다. 페이지는 runtime 메시지를 보낼 수 없어 지금 위협은 렌더러 침해 수준뿐이다.
-**수정:** `if (sender.tab !== undefined) { sendResponse({ ok: false, reason: 'origin-mismatch' }); return true; }`처럼 확장 페이지에서 온 요청만 받는다.
+**파일:** `src/entrypoints/background.ts:246-248`, `tests/e2e/blank-popup.e2e.ts`(WR-03 시험)
+**문제:** 판정 3의 (a)와 (b)다. 새 시험은 정상 경로 회귀 안전망일 뿐이다. 가드를 되돌려도 통과한다(수정자 확인).
+**수정:** 새 권한 없이 쓸 수 있는 `sender.documentLifecycle === 'active'`(Chrome 106+) 조건을 더해 `pending_deletion` 문서를 거른다. 가능하면 `sender.documentId`를 함께 저장한다. `src/types/chrome.d.ts`의 `MessageSender`에 두 필드를 추가한다. 조건을 `shouldRecordTopDocOrigin(sender)` 순수 함수로 빼면 Vitest로 RED/GREEN을 결정적으로 만들 수 있다.
 
-### IN-02: `frameStates`는 탭이 닫히거나 이동해도 지우지 않고, 옛 인스턴스 정리도 false를 보고하지 않는다. 시험 오라클이 낡을 수 있다
+### IN-02: WR-06 잔여: 재시도 창(250ms × 2)은 추정치이고, 세대 확인이 action API 호출 사이에서 다시 이뤄지지 않는다
 
-**파일:** `src/entrypoints/background.ts:29-30, 355-365`, `src/entrypoints/content.ts:1173-1249`
-**문제:** 다시 넣기가 실패하면 그 frameId에는 옛 true가 남는다. 사라진 프레임의 항목도 남는다. `blank-popup.e2e.ts:437-445`나 `site-toggle.e2e.ts`의 "every enabled" 폴링이 낡은 true로 통과할 수 있다. 제품 기능에는 영향이 없다.
-**수정:** `tabs.onRemoved`/`loading`에서 `delete frameStates[tabId]`를 한다. 시험은 frameId 집합과 함께 판정한다.
+**파일:** `src/entrypoints/background.ts:58-112, 129-132`
+**문제:**
+- 다시 넣기 왕복이 약 0.5초(실패가 즉시 오는 경우)를 넘으면 여전히 "도울 수 없음"으로 굳는다. 이때 메뉴는 사이트 카드를 숨긴다. 전역 끄기 카드는 남는다.
+- `isCurrent()`는 ping 직후 한 번만 본다. `markUnsupported`의 `setTitle` → `setBadgeText` → `setBadgeBackgroundColor` 사이에 새 호출이 끝나면 제목과 배지가 섞일 수 있다.
+- `tabs.onReplaced`(프리렌더 교체)로 바뀐 옛 tabId 항목은 지우지 않는다(작은 누수).
 
-### IN-03: `inheritedSiteOrigin`은 출처만 받아 경로 접두어가 있는 스토어 규칙(`chrome.google.com/webstore`, `microsoftedge.microsoft.com/addons`)을 적용할 수 없다
+**수정:** 새 인스턴스가 맨 위에서 시작을 마치면 SW에 `frame/ready`를 보내고, SW가 `updateActionForTab`을 다시 부르게 한다(시간 추정 제거). 각 action API 호출 직전에 `isCurrent()`를 다시 확인한다. `onReplaced`에서 옛 id를 지운다.
 
-**파일:** `src/core/unsupported-url.ts:62-68`
-**문제:** `isUnsupportedUrl(documentOrigin)`의 pathname은 항상 `/`라서 두 규칙은 절대 걸리지 않는다. Chrome이 그 스토어에서 연 about: 창에 주입하지 않으면 실제 피해는 없다. 다만 단위 시험이 "스토어 출처는 null"을 이 두 호스트로 확인하지 않는다.
-**수정:** 두 호스트는 about: 상속 판정에서 호스트 단위로 거절하거나, 한계를 주석과 단위 시험으로 남긴다.
+### IN-03: TDD 증거가 고르지 않다. 따로 된 RED 커밋은 CR-01뿐이고, WR-05의 도우미 카드 변경과 사이트 카드 reject 경로는 시험이 없다
 
-### IN-04: 시험 전용 훅이 프로덕션 SW 전역에 노출된다
-
-**파일:** `src/entrypoints/background.ts:30, 142-164`
-**문제:** `frameStates`·`disconnectAlivePorts`·`resetRelayForE2E`·`failSiteQueryForE2E`는 프로덕션 빌드에도 들어간다. 페이지는 닿지 못하지만 SW 개발자 도구에서 `failSiteQueryForE2E(1e9)` 한 줄로 모든 자식 프레임을 끌 수 있고, 제품 코드에 시험 분기가 섞여 있다.
-**수정:** `import.meta.env.MODE !== 'production'` 같은 빌드 조건으로 감싸거나, e2e 전용 빌드 플래그로만 등록한다. 기존 관례라 이번 범위 밖이면 백로그로 남긴다.
-
-### 참고(새 결함 아님)
-
-D-25 결정(7d6b593: 설정이 깨져도 "도우미 끄기"는 항상 된다)은 아직 구현되지 않았다. 지금은 `storage-writer.ts:363-366`이 `preserved-original`로 거절하고 메뉴가 되돌린다. "즉시 끌 수 있음" 안전 요구의 알려진 공백이다. 사용자 결정대로 머지 직후 `/gsd-quick`으로 처리할 항목이며, ship 판단 때 함께 본다.
+**파일:** 커밋 a61c308, 755f43f, a07c2f5, 16145b7, ee05e56 / `tests/e2e/site-toggle.e2e.ts:570-594`
+**문제:** WR-05~WR-08은 시험과 수정을 한 커밋에 넣었다. RED는 보고서 서술로만 남았다. WR-05 시험의 `hasHelperRoot(page)` 폴링(591행)은 누르기 전에도 참이라 아무것도 증명하지 않는다. 시험 완화는 없었다.
+**수정:** 다음 수정부터는 RED 커밋을 분리한다(CLAUDE.md §5). WR-05 시험에 도우미 카드 거절·거부 경로를 추가한다. 591행은 "사이트 항목이 여전히 깨진 원본 그대로"(쓰기 안 됨)를 단언하도록 바꾼다.
 
 ---
 
-_리뷰 시각: 2026-09-26T06:30:34Z_
+_리뷰 시각: 2026-09-26T07:28:34Z_
 _리뷰어: Claude (gsd-code-reviewer)_
 _깊이: deep_
+_반복: 2_
