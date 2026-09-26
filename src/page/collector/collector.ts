@@ -99,6 +99,27 @@ function isInViewport(rect: DOMRect): boolean {
   return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.right > 0 && rect.top < window.innerHeight && rect.left < window.innerWidth;
 }
 
+// F3(/design-review 3회차, 사용자 결정): 크기·위치(rect)가 조상과 정확히 같은 자식(예: <a> 안
+// cursor:pointer를 상속한 <img>)은 하나로 합친다 — 누르면 같은 동작이라 번호표 두 개가 무의미
+// 하다. 부분 픽셀 오차를 위해 아주 작은 허용치(0.5px)를 둔다.
+function sameRect(a: Rect, b: Rect): boolean {
+  return Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5 && Math.abs(a.w - b.w) < 0.5 && Math.abs(a.h - b.h) < 0.5;
+}
+
+// document.querySelectorAll은 문서 순서(조상이 자식보다 먼저)로 돌려주므로, 조상을 훑을 때
+// keptRects에 이미 들어 있다 — 조상 쪽으로 거슬러 올라가며 같은 자리를 가진 것이 있으면 합친다.
+function hasKeptAncestorWithSameRect(el: Element, rect: Rect, keptRects: Map<Element, Rect>): boolean {
+  let node = el.parentElement;
+  while (node) {
+    const ancestorRect = keptRects.get(node);
+    if (ancestorRect && sameRect(ancestorRect, rect)) {
+      return true;
+    }
+    node = node.parentElement;
+  }
+  return false;
+}
+
 function normalizeText(text: string | null | undefined): string {
   return (text ?? '').trim().replace(/\s+/g, ' ');
 }
@@ -462,6 +483,9 @@ export function createCollector(opts: { signal: AbortSignal; getDangerWords: () 
     // collect() 한 번 안에서만 유효한 캐시(fix 주석은 domPathOf 옆) — 매 collect() 호출마다
     // 새로 만들어 이전 화면과 섞이지 않는다.
     const ordinalCache = new Map<Element, Map<Element, number>>();
+    // F3: 이번 collect()에서 실제로 남긴(합쳐지지 않은) 요소의 rect만 기억한다 — document 순서가
+    // 조상을 자식보다 먼저 주므로, 자식을 볼 때 조상이 이미 여기 들어 있다.
+    const keptRects = new Map<Element, Rect>();
     for (const el of document.querySelectorAll(SELECTOR)) {
       if (isDisabled(el)) {
         continue;
@@ -482,12 +506,20 @@ export function createCollector(opts: { signal: AbortSignal; getDangerWords: () 
       if (isHiddenAncestor(el)) {
         continue;
       }
+      const r: Rect = { x: rect.x, y: rect.y, w: rect.width, h: rect.height };
+      // F3(/design-review 3회차, 사용자 결정): 크기·위치가 이미 남긴 조상과 같으면(예: <a> 안
+      // cursor:pointer 상속 <img>) 하나로 합친다 — 조상을 남기고 이 자식은 건너뛴다(누르면 같은
+      // 동작이라 번호표 두 개가 무의미하다).
+      if (hasKeptAncestorWithSameRect(el, r, keptRects)) {
+        continue;
+      }
+      keptRects.set(el, r);
       const id = idFor(el);
       nextById.set(id, el);
       const name = computeName(el);
       next.push({
         id,
-        rect: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
+        rect: r,
         name,
         kind: kindOf(el),
         fingerprint: computeFingerprint(el, ordinalCache),
