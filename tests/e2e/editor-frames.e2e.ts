@@ -79,18 +79,35 @@ async function numberForLocator(page: Page, locator: Locator): Promise<string> {
   throw new Error('번호표에서 요소를 찾지 못했다(모든 장을 넘겨 봄)');
 }
 
-// 초점을 맨 위로 되돌리고 F를 누른 뒤 번호가 뜰 때까지 기다리고(expect.poll, 고정 sleep 금지)
-// 그 번호 키를 누른다.
+// F를 누른 뒤 번호가 뜰 때까지 기다리고(expect.poll, 고정 sleep 금지) 그 번호를 찾는다. 방금
+// 나타난 프레임(about:blank 뒤 이동·다른 출처 안 srcdoc)은 collect() → frame/report → relay →
+// frames/reports 왕복이 F를 누른 그 순간에는 아직 안 왔을 수 있다 — openHints()는 그 순간의
+// 스냅샷만 쓰므로, 번호를 못 찾으면 닫았다 다시 열어 새 스냅샷으로 다시 찾는다(고정 sleep 대신
+// 조건 재시도).
+async function findHintNumberFor(page: Page, locator: Locator): Promise<string> {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await pressFUntilLabels(page, 1);
+    try {
+      const number = await numberForLocator(page, locator);
+      if (number) {
+        return number;
+      }
+    } catch {
+      // 이 요소의 보고가 이 스냅샷엔 없었다 — 닫고 다시 열어 본다.
+    }
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+  }
+  throw new Error('번호를 찾지 못했다');
+}
+
+// 초점을 맨 위로 되돌리고 번호를 찾아 누른다.
 async function pressHintFor(page: Page, locator: Locator): Promise<void> {
   await page.evaluate(() => {
     (document.activeElement as HTMLElement | null)?.blur();
     document.body.focus();
   });
-  await pressFUntilLabels(page, 1);
-  const number = await numberForLocator(page, locator);
-  if (!number) {
-    throw new Error('번호를 찾지 못했다');
-  }
+  const number = await findHintNumberFor(page, locator);
   await page.keyboard.press(`Digit${number}`);
 }
 
@@ -398,4 +415,112 @@ test('document.write로 채운 프레임이 막 생겨도 옛 인스턴스는 �
   expect(childRecords.length, '자식 프레임 frameId의 frame/state(true)는 정확히 1번이어야 한다(옛 인스턴스가 함께 켜지지 않음)').toBe(
     1,
   );
+});
+
+// Task 3: 나머지 편집기 프레임 모양과 경계 — 나중에 이동하는 about:blank, 다른 출처 안 srcdoc,
+// 번호 중복 없음, 기록 출처. 맨 위 about: 새 창(window.open('')) 관련 가드·시험은 이용자 결정으로
+// 이 계획 범위에서 뺐다(SUMMARY 참고 — 전체 지원은 01-18).
+
+test('about:blank로 시작해 이동한 프레임의 버튼도 번호·필터가 정확히 한 번씩 동작한다', async ({ context }) => {
+  const page = await context.newPage();
+  await openEditorFrames(page);
+
+  const btn = page.frameLocator('#frame-nav').locator('#btn-nav');
+  await expect(btn).toBeVisible({ timeout: 5000 });
+
+  await pressHintFor(page, btn);
+  await page.waitForTimeout(300);
+  await expect(page.frameLocator('#frame-nav').locator('#btn-nav-count')).toHaveText('1');
+
+  const box = await btn.boundingBox();
+  if (!box) {
+    throw new Error('버튼을 찾지 못했다');
+  }
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.click(x, y);
+  await page.waitForTimeout(100);
+  await page.mouse.click(x, y);
+  await page.waitForTimeout(300);
+  await expect(page.frameLocator('#frame-nav').locator('#btn-nav-count')).toHaveText('2');
+});
+
+test('다른 출처(other.test) 안 srcdoc 손자 프레임의 버튼도 번호로 정확히 한 번 눌린다', async ({ context }) => {
+  const page = await context.newPage();
+  await openEditorFrames(page);
+
+  const btn = page.frameLocator('#frame-host').frameLocator('#frame-nested').locator('#btn-nested');
+  await pressHintFor(page, btn);
+  await page.waitForTimeout(300);
+
+  await expect(page.frameLocator('#frame-host').frameLocator('#frame-nested').locator('#btn-nested-count')).toHaveText('1');
+});
+
+test('F를 누른 뒤 모든 장을 넘겨도 한 장 안에서 번호가 겹치지 않고, 편집기 다섯 버튼이 모두 어느 한 장에서 번호표를 받는다 (ELEM-02)', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await openEditorFrames(page);
+  await expect(page.frameLocator('#frame-nav').locator('#btn-nav')).toBeVisible({ timeout: 5000 });
+
+  await pressFUntilLabels(page, 1);
+  const chapters: string[][] = [];
+  for (;;) {
+    chapters.push(await labelTexts(page));
+    const hasNext = await page.evaluate(
+      () => document.querySelector('tremor-helper-root')?.shadowRoot?.querySelector('.hint-next-card') !== null,
+    );
+    if (!hasNext) {
+      break;
+    }
+    await page.keyboard.press('Digit0');
+    await page.waitForTimeout(100);
+  }
+  for (const chapter of chapters) {
+    expect(new Set(chapter).size, '한 장 안에서 번호가 겹치면 안 된다').toBe(chapter.length);
+  }
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(350);
+
+  const targets: Array<[string, Locator]> = [
+    ['#btn-srcdoc', page.frameLocator('#frame-srcdoc').locator('#btn-srcdoc')],
+    ['#btn-write', page.frameLocator('#frame-write').locator('#btn-write')],
+    ['#btn-write-delete', page.frameLocator('#frame-write').locator('#btn-write-delete')],
+    ['#btn-nav', page.frameLocator('#frame-nav').locator('#btn-nav')],
+    ['#btn-nested', page.frameLocator('#frame-host').frameLocator('#frame-nested').locator('#btn-nested')],
+  ];
+  for (const [name, locator] of targets) {
+    const number = await findHintNumberFor(page, locator);
+    expect(number, `${name}가 어느 한 장에서 기본 자리에 번호표를 받아야 한다`).not.toBe('');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(350);
+  }
+});
+
+test('편집기 iframe 안에서 누른 기록은 맨 위 사이트 출처 키에 쌓이고 presses:null은 생기지 않는다', async ({
+  context,
+  serviceWorker,
+}) => {
+  const page = await context.newPage();
+  await openEditorFrames(page);
+
+  const srcdocBtn = page.frameLocator('#frame-srcdoc').locator('#btn-srcdoc');
+  await pressHintFor(page, srcdocBtn);
+  await page.waitForTimeout(300);
+
+  await waitForFrameHelperAlive(page, '#frame-write', '#btn-write');
+  const writeBtn = page.frameLocator('#frame-write').locator('#btn-write');
+  await pressHintFor(page, writeBtn);
+  await page.waitForTimeout(300);
+
+  const nestedBtn = page.frameLocator('#frame-host').frameLocator('#frame-nested').locator('#btn-nested');
+  await pressHintFor(page, nestedBtn);
+  await page.waitForTimeout(300);
+
+  const allKeys = await serviceWorker.evaluate(async () => {
+    const all = await chrome.storage.local.get(null);
+    return Object.keys(all);
+  });
+  expect(allKeys, '맨 위 사이트 출처 키가 있어야 한다').toContain('presses:http://practice.test');
+  expect(allKeys, '불투명 출처(null) 키가 생기면 안 된다').not.toContain('presses:null');
 });

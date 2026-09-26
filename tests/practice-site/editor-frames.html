@@ -5,7 +5,6 @@
     <title>편집기 프레임 연습</title>
   </head>
   <body style="margin: 0">
-    <h1 style="margin: 20px">편집기 프레임 연습</h1>
     <script>
       // D-28: 이 파일 하나가 practice.test·other.test 두 출처 모두에서 서빙된다(호스트는 상관없이
       // 경로로만 찾는 테스트 fixture, frames.html과 같은 방식). ?child= 쿼리로 맨 위/자식 화면을
@@ -53,8 +52,21 @@
       }
 
       // ?child=nav: about:blank로 시작했다가 300ms 뒤 이 주소로 이동해 온 #frame-nav 화면.
+      // innerHTML로 넣으면 안 된다 — innerHTML로 삽입된 <script>는 실행되지 않아(브라우저 표준
+      // 동작, XSS 방지) counterMarkup의 클릭 리스너가 절대 안 걸린다(재현 확인, Rule 1). 요소를
+      // 직접 만들고 addEventListener로 진짜 리스너를 건다.
       function renderNav() {
-        document.body.innerHTML = counterMarkup('nav');
+        var btn = document.createElement('button');
+        btn.id = 'btn-nav';
+        btn.textContent = 'nav';
+        btn.style.cssText = 'width:100px;height:32px;margin:20px;padding:0';
+        var count = document.createElement('span');
+        count.id = 'btn-nav-count';
+        count.textContent = '0';
+        btn.addEventListener('click', function () {
+          count.textContent = String(Number(count.textContent) + 1);
+        });
+        document.body.append(btn, count);
       }
 
       // ?child=host: other.test에서 서빙되는 화면 — 그 안에 다시 srcdoc 손자 프레임을 만든다.
@@ -68,6 +80,15 @@
       }
 
       function renderTop() {
+        // 제목은 맨 위 화면에만 둔다(01-17 Task 1) — child 화면(nav·host)의 정적 마크업에 두면
+        // 그 문서마다 제목 높이만큼 아래로 밀려, 작은 iframe 컨테이너(300×140) 안에 든 자식·손자
+        // 프레임이 그 높이를 넘겨 잘린다(재현 확인 — frame-host 안 frame-nested가 clip 11px로
+        // 잘려 번호표를 못 받던 원인, Rule 1).
+        var title = document.createElement('h1');
+        title.style.cssText = 'margin: 20px';
+        title.textContent = '편집기 프레임 연습';
+        document.body.append(title);
+
         // #frame-srcdoc: srcdoc 속성에 버튼(+카운터)과 입력칸.
         var frameSrcdoc = makeFrame('frame-srcdoc', 'srcdoc 편집기');
         frameSrcdoc.srcdoc = childDoc(counterMarkup('srcdoc') + inputMarkup('srcdoc'));
