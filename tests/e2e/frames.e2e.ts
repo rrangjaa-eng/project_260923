@@ -395,35 +395,37 @@ test('WR-05: 같은 출처 자식 프레임과 맨 위가 똑같은 틀(글자·
   }
 });
 
-// WR-07(01-REVIEW.md): 자식 프레임 안에서 자석·머무르기·스페이스바로 직접 누른 기록의 framePath는
-// `local:${location.href}`로 저장돼 쿼리 문자열(토큰 등)까지 그대로 storage.local에 남는다. 최소한
-// origin+pathname만 쓴다.
-test('WR-07: 자식 프레임 안에서 자석으로 직접 누른 기록의 framePath에는 쿼리 문자열이 남지 않는다', async ({
+// WR-04(01-REVIEW.md 2회차): WR-07이 쿼리 문자열은 뺐지만, 경로 안 세션 ID(예: 서블릿 URL
+// 재작성 `;jsessionid=…`, 전자정부 프레임워크·Spring 등에서 흔하다)는 origin+pathname 좁히기로도
+// 그대로 남는다. 이 근사 framePath는 D-11 번호 순서에 쓰이지 않는(hints 경로만 정확히 쓰인다)
+// 죽은 데이터라 — 자식 프레임의 자석·머무르기·스페이스바 직접 누르기는 이제 기록을 전혀 보내지
+// 않는다(누르기 자체는 그대로 한다).
+test('WR-04: 자식 프레임 안에서 자석으로 직접 누른 것은 경로 안 세션 ID를 저장소에 남기지 않는다(기록 자체를 보내지 않는다)', async ({
   context,
   servePage,
   serviceWorker,
 }) => {
   servePage(
-    'http://practice.test/wr07-child.html',
+    'http://practice.test/wr04-child.html;jsessionid=secret123',
     '<!doctype html><html><body style="margin:0">' +
       '<button style="position:absolute;left:20px;top:20px;width:40px;height:40px">child</button>' +
       '</body></html>',
   );
   servePage(
-    'http://practice.test/wr07-top.html',
+    'http://practice.test/wr04-top.html',
     '<!doctype html><html><body style="margin:0">' +
-      '<iframe id="frame-wr07" src="/wr07-child.html?token=secret123" style="position:absolute;left:0;top:0;width:200px;height:200px;border:0"></iframe>' +
+      '<iframe id="frame-wr04" src="/wr04-child.html;jsessionid=secret123" style="position:absolute;left:0;top:0;width:200px;height:200px;border:0"></iframe>' +
       '</body></html>',
   );
 
   const page = await context.newPage();
-  await page.goto('http://practice.test/wr07-top.html');
+  await page.goto('http://practice.test/wr04-top.html');
   await expect
     .poll(() => page.evaluate(() => document.querySelector('tremor-helper-root')?.shadowRoot?.querySelector('.mode-indicator')?.textContent))
     .toBe('도우미');
   await page.waitForTimeout(200);
 
-  const childBox = await page.frameLocator('#frame-wr07').locator('button').boundingBox();
+  const childBox = await page.frameLocator('#frame-wr04').locator('button').boundingBox();
   if (!childBox) {
     throw new Error('자식 프레임 안 버튼을 찾지 못했다');
   }
@@ -433,9 +435,5 @@ test('WR-07: 자식 프레임 안에서 자석으로 직접 누른 기록의 fra
   await page.waitForTimeout(300);
 
   const entries = await pressesEntries(serviceWorker, 'http://practice.test');
-  expect(entries.length, '기록이 하나 쌓여야 한다').toBe(1);
-  const framePath = entries[0]?.fingerprint.framePath ?? [];
-  expect(framePath.some((p) => p.includes('token=secret123')), 'framePath에 쿼리 문자열(토큰)이 남으면 안 된다').toBe(
-    false,
-  );
+  expect(entries.length, 'framePath를 모르는 자식 프레임 직접 누르기는 기록을 보내지 않아야 한다').toBe(0);
 });
