@@ -181,6 +181,11 @@ export default defineContentScript({
     let childHintsVisible = false;
     let lastChildMode: 'helper' | 'typing' | null = null;
 
+    // Task 1(01-18, CLICK-04, SAFE-01, T-01-54): 자식 프레임만 쓴다 — 맨 위가 위험 확인 화면을
+    // 여는 동안 이 자식 프레임의 자석·머무르기가 스크림 뒤에서 계속 진행되지 않게 한다(맨 위
+    // openDangerConfirm의 CR-01 정리와 같은 목적, 자식 쪽 대응).
+    let childConfirmOpen = false;
+
     // 확인 화면(Plan 01-09 Task 3, D-03, D-09): 맨 위만 쓴다 — 현재 열린 확인의 guard로 보내는
     // 함수(confirm/key로 자식이 전달한 키도 이 함수를 부른다, t는 맨 위 시계로 다시 잰다).
     let activeConfirmKeyHandler: ((e: ModalEvent) => void) | null = null;
@@ -379,6 +384,13 @@ export default defineContentScript({
         // Task 3(D-09, T-01-24): 맨 위가 확인 화면을 열고 닫을 때 자식 프레임에 방송한다 — 이
         // 프레임도 자기 isTrusted 키를 모두 삼켜 confirm/key로 맨 위에 보낸다(직접 판단하지 않음).
         if (message.open) {
+          // Task 1(CR-01과 같은 세 가지 정리): 확인 화면이 뜨는 순간 이 프레임이 잡고 있던 것·
+          // 테두리·머무르기 진행을 모두 놓는다 — 그대로 두면 스크림 뒤에서 dwellTick이 계속
+          // 진행돼 확인 화면이 열려 있는 동안에도 다른 요소가 눌릴 수 있다(재현 확인).
+          childConfirmOpen = true;
+          currentTargetId = null;
+          hideRing();
+          stopDwellLoopIfRunning();
           inputPipeline.setModal((e) => {
             if (e.type === 'tick') {
               // 보호·누르고 있기 시간은 언제나 맨 위 시계 기준(맨 위가 잰다) — 여기선 무시.
@@ -387,6 +399,7 @@ export default defineContentScript({
             void chrome.runtime.sendMessage({ type: 'confirm/key', kind: e.type, code: e.code, repeat: e.repeat });
           });
         } else {
+          childConfirmOpen = false;
           inputPipeline.setModal(null);
         }
         return undefined;
@@ -434,8 +447,10 @@ export default defineContentScript({
     function evaluateMagnet(cursor: { x: number; y: number }): void {
       // CR-01: 확인 화면이 떠 있는 동안 자석이 스크림 밑 페이지 요소를 다시 잡지 못하게 한다 —
       // openDangerConfirm이 이미 currentTargetId를 비우고 테두리·머무르기를 껐어도, 이후
-      // pointermove가 evaluateMagnet을 다시 부르면 되돌아온다.
-      if (!currentEnabled || activeConfirmKeyHandler) {
+      // pointermove가 evaluateMagnet을 다시 부르면 되돌아온다. childConfirmOpen(Task 1)은 같은
+      // 목적의 자식 프레임 쪽 신호 — 맨 위가 연 확인 화면이 떠 있는 동안 이 자식 프레임도 다시
+      // 잡지 못하게 한다.
+      if (!currentEnabled || activeConfirmKeyHandler || childConfirmOpen) {
         return;
       }
       const candidates = grid.nearby(cursor, currentSettings.data.captureMarginPx);
