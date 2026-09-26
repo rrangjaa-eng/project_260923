@@ -739,7 +739,7 @@ test('F6: 경고 카드(형식 변환 실패)가 siteStatus보다 먼저 떠도 
       if (!popupEl) {
         return [];
       }
-      return Array.from(popupEl.children).map((el) => ({ cls: el.className, text: el.textContent ?? '' }));
+      return Array.from(popupEl.children).map((el) => ({ cls: el.className, text: el.textContent }));
     });
   }
 
