@@ -190,7 +190,9 @@ export default defineContentScript({
     // 기록으로 잘못 합쳐질 수 있다. 정확한 경로까지는 아니어도(번호표를 거친 누르기는 이미
     // press/request의 message.framePath로 정확하다) 최소한 "맨 위가 아니다"와 "어느 문서인지"는
     // 구분해 서로 다른 프레임끼리도, 맨 위와도 섞이지 않게 한다.
-    const localPressFramePath = isTopFrame ? [] : [`local:${window.location.href}`];
+    // WR-07(01-REVIEW.md): 세션 토큰·캐시 무효화 쿼리 등이 storage.local에 그대로 쌓이지 않게
+    // 최소한 origin+pathname만 쓴다(질의 문자열 제외).
+    const localPressFramePath = isTopFrame ? [] : [`local:${window.location.origin}${window.location.pathname}`];
     let currentEnabled: boolean | undefined;
     let currentSettings: SettingsV1 = defaultSettings();
     // 지금 사이트에서만 끄기(Plan 01-13, D-20): 사이트 = 맨 위 페이지 출처. 전역 enabled와 합쳐

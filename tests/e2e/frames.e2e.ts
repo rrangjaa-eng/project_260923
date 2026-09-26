@@ -394,3 +394,48 @@ test('WR-05: 같은 출처 자식 프레임과 맨 위가 똑같은 틀(글자·
     expect(entry.count, '서로 다른 요소의 기록이 하나로 합쳐지면 안 된다').toBe(1);
   }
 });
+
+// WR-07(01-REVIEW.md): 자식 프레임 안에서 자석·머무르기·스페이스바로 직접 누른 기록의 framePath는
+// `local:${location.href}`로 저장돼 쿼리 문자열(토큰 등)까지 그대로 storage.local에 남는다. 최소한
+// origin+pathname만 쓴다.
+test('WR-07: 자식 프레임 안에서 자석으로 직접 누른 기록의 framePath에는 쿼리 문자열이 남지 않는다', async ({
+  context,
+  servePage,
+  serviceWorker,
+}) => {
+  servePage(
+    'http://practice.test/wr07-child.html',
+    '<!doctype html><html><body style="margin:0">' +
+      '<button style="position:absolute;left:20px;top:20px;width:40px;height:40px">child</button>' +
+      '</body></html>',
+  );
+  servePage(
+    'http://practice.test/wr07-top.html',
+    '<!doctype html><html><body style="margin:0">' +
+      '<iframe id="frame-wr07" src="/wr07-child.html?token=secret123" style="position:absolute;left:0;top:0;width:200px;height:200px;border:0"></iframe>' +
+      '</body></html>',
+  );
+
+  const page = await context.newPage();
+  await page.goto('http://practice.test/wr07-top.html');
+  await expect
+    .poll(() => page.evaluate(() => document.querySelector('tremor-helper-root')?.shadowRoot?.querySelector('.mode-indicator')?.textContent))
+    .toBe('도우미');
+  await page.waitForTimeout(200);
+
+  const childBox = await page.frameLocator('#frame-wr07').locator('button').boundingBox();
+  if (!childBox) {
+    throw new Error('자식 프레임 안 버튼을 찾지 못했다');
+  }
+  await page.mouse.move(childBox.x - 10, childBox.y + childBox.height / 2);
+  await page.waitForTimeout(50);
+  await page.mouse.click(childBox.x - 10, childBox.y + childBox.height / 2);
+  await page.waitForTimeout(300);
+
+  const entries = await pressesEntries(serviceWorker, 'http://practice.test');
+  expect(entries.length, '기록이 하나 쌓여야 한다').toBe(1);
+  const framePath = entries[0]?.fingerprint.framePath ?? [];
+  expect(framePath.some((p) => p.includes('token=secret123')), 'framePath에 쿼리 문자열(토큰)이 남으면 안 된다').toBe(
+    false,
+  );
+});
