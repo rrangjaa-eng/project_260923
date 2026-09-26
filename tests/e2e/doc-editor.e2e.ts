@@ -462,6 +462,62 @@ test('나옴 상태에서 Tab·Shift+Tab을 삼키지 않고 초점이 focus sin
   await expect.poll(() => dataMode(page)).toBe('typing');
 });
 
+// 오케스트레이터 후속 지적(CR-01 구멍 재발 가능성): 위 "Tab 통과" 시험이 확인한 실측(정방향 Tab은
+// focus sink가 문서 순서상 맨 뒤라 갈 다음 대상이 없어 브라우저가 focusin 없이 조용히 초점을
+// 비운다)에는 빈틈이 있다 — focusin이 안 뜨면 escaped 표시가 안 풀려 그대로 "도우미"로 남는데,
+// designMode·contenteditable 문서에서는 이때 실제 document.activeElement가 편집 루트(body)가
+// 되어 문서 전체가 다시 편집 가능한 상태다. (a) 모드 표시가 실제 초점(입력 중)과 일치해야 하고,
+// (b) 안전망으로 그 상태에서 CDP 조합·삽입 시도로 문서가 바뀌었다면 표시는 반드시 "입력 중"이어야
+// 한다(표시=도우미인데 조합이 문서를 바꾸면 CR-01이 애초에 막으려던 결함의 재발이다).
+async function runForwardTabGapScenario(page: Page, frameSelector: string, textSelector: string): Promise<void> {
+  const text = page.frameLocator(frameSelector).locator(textSelector);
+  await text.click();
+  await expect.poll(() => dataMode(page)).toBe('typing');
+
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
+
+  await page.keyboard.press('Tab');
+
+  // (a) 모드 표시가 실제 초점(편집 루트, 입력 중)과 일치해야 한다.
+  await expect
+    .poll(() => dataMode(page), { timeout: 2000 })
+    .toBe('typing');
+
+  // (b) 안전망: 그 상태에서 CDP 조합·삽입을 시도한다 — 문서가 바뀌었다면 표시는 "입력 중"이어야
+  // 한다(위 (a)가 이미 확인했지만, 표시와 실제가 어긋난 채 편집만 조용히 들어가는 경우를 한 번 더
+  // 막는다).
+  const before = await elementText(page, frameSelector, textSelector);
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.imeSetComposition', { text: '가', selectionStart: 1, selectionEnd: 1 });
+  await cdp.send('Input.insertText', { text: '가' });
+  await flushEvents(page);
+
+  const after = await elementText(page, frameSelector, textSelector);
+  const modeAfter = await dataMode(page);
+  if (after !== before) {
+    expect(modeAfter, '문서가 바뀌었다면 표시는 입력 중이어야 한다(표시=도우미인데 편집되면 안 된다)').toBe(
+      'typing',
+    );
+  }
+}
+
+test('#frame-design(designMode)에서 나옴 → 정방향 Tab → 모드 표시가 실제 초점(입력 중)과 일치한다(CR-01 재발 방지)', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/doc-editor.html');
+  await runForwardTabGapScenario(page, '#frame-design', '#doc-text');
+});
+
+test('#frame-cebody(contenteditable 본문)에서도 나옴 → 정방향 Tab → 모드 표시가 실제 초점(입력 중)과 일치한다(CR-01 재발 방지)', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/doc-editor.html');
+  await runForwardTabGapScenario(page, '#frame-cebody', '#doc-text');
+});
+
 // 사용자 결정(/review): 도우미를 끄면 나옴 상태도 함께 풀린다 — 안 그러면 꺼진 동안 편집기를
 // 직접 눌러 입력을 재개해도(파이프라인이 관여하지 않아 가능하다) escaped 표시가 남아, 다시 켰을
 // 때 beforeinput이 계속 막혀 실제로 입력 중인 편집기에 글자가 들어가지 않는다.
