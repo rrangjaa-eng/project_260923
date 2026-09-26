@@ -34,6 +34,37 @@ const MODAL_TICK_INTERVAL_MS = 100;
 // WR-08: "나옴" 상태에서 편집기가 keydown으로 직접 처리하는 편집 키 — Ctrl/Meta 조합(서식
 // 단축키 등)은 아래에서 code와 무관하게 따로 본다.
 const EDITING_KEYCODES = new Set(['Enter', 'NumpadEnter', 'Backspace', 'Delete', 'Tab']);
+// WR-01: 수정자 키 단독 keydown(Ctrl·Meta·Shift·Alt만 누른 상태)은 삼키지 않는다 — keyup까지
+// 일관되게 삼키는 대상이 아니라 그냥 통과시킨다.
+const MODIFIER_ONLY_KEYCODES = new Set([
+  'ControlLeft',
+  'ControlRight',
+  'MetaLeft',
+  'MetaRight',
+  'ShiftLeft',
+  'ShiftRight',
+  'AltLeft',
+  'AltRight',
+]);
+// WR-01: 나옴 상태에서 Ctrl/Meta 조합 중 편집을 일으키지 않는 브라우저·사이트 명령만 허용
+// 목록으로 통과시킨다(복사·찾기·인쇄·저장·확대·새로고침). KeyA(전체 선택)는 선택을 다시
+// 만들어 CR-01의 "커서 숨기기"와 충돌하므로 뺐다.
+const PASS_CTRL_CODES = new Set([
+  'KeyC',
+  'Insert',
+  'KeyF',
+  'KeyG',
+  'F3',
+  'KeyP',
+  'KeyS',
+  'Equal',
+  'Minus',
+  'Digit0',
+  'NumpadAdd',
+  'NumpadSubtract',
+  'Numpad0',
+  'F5',
+]);
 
 export interface InputPipeline {
   onKey(handler: KeyHandler): void;
@@ -206,8 +237,22 @@ export function createInputPipeline(opts: {
       // 직접 DOM을 고쳐 처리한다. 이 경우 편집기의 keydown.preventDefault()가 브라우저 기본
       // 동작(beforeinput을 일으키는 원인)을 막아 beforeinput이 아예 뜨지 않는다 — 여기서 먼저
       // 삼켜야 편집기 자신의 keydown 처리기(더 안쪽 target)에 도달하지 못한다.
-      if (isEscapedFromDocumentEditor() && isDocumentEditingRoot(deepActiveElement())) {
-        if (EDITING_KEYCODES.has(event.code) || event.ctrlKey || event.metaKey) {
+      // WR-01: Ctrl/Meta 조합을 전부 삼키면 찾기·복사·인쇄·저장·확대까지 막힌다 — 편집 가능성이
+      // 있는 조합만 막고, 편집을 일으키지 않는 명령은 허용 목록으로 통과시킨다. 수정자 키 단독
+      // keydown은 아예 이 판단 대상에서 뺀다(통과).
+      if (
+        isEscapedFromDocumentEditor() &&
+        isDocumentEditingRoot(deepActiveElement()) &&
+        !MODIFIER_ONLY_KEYCODES.has(event.code)
+      ) {
+        const mod = event.ctrlKey || event.metaKey;
+        const block = mod
+          ? !(PASS_CTRL_CODES.has(event.code) && !event.altKey)
+          : EDITING_KEYCODES.has(event.code) || (event.shiftKey && event.code === 'Insert'); // Shift+Insert=붙여넣기
+        if (block) {
+          // 삼킨 키는 keyup(keypress)까지 일관되게 삼켜야 keydown 없는 keyup이 사이트로 가지
+          // 않는다(WR-01).
+          swallowedKeyCodes.add(event.code);
           event.preventDefault();
           event.stopImmediatePropagation();
           return;

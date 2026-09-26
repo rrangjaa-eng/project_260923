@@ -305,7 +305,10 @@ test('나옴 상태에서 편집기가 keydown으로 직접 처리하는 Enter�
 // WR-01(01-REVIEW.md): WR-08 수정이 나옴 상태에서 Ctrl/Meta 조합을 전부 삼켜 찾기·복사·인쇄·
 // 저장·확대까지 막았다 — 편집 가능성이 있는 조합(서식 단축키 등)만 막고, 편집을 일으키지 않는
 // 브라우저·사이트 명령(찾기·확대 등)은 허용 목록으로 통과시킨다.
-test('나옴 상태에서 Ctrl+B(서식) 편집은 막히고, Ctrl+F(찾기)·Ctrl+=(확대)는 사이트에 그대로 전달된다(WR-01)', async ({
+// KeyF는 도우미 자신의 keymap.toggleHints(D-11 기본값)라 Ctrl 여부와 무관하게 번호표 열기
+// 처리기가 먼저 소비한다(이 앱의 기존 동작, WR-01과 무관) — 그래서 "편집이 아닌 통과" 예시로는
+// 도우미 keymap과 안 겹치는 Ctrl+C(복사)·Ctrl+=(확대)를 쓴다.
+test('나옴 상태에서 Ctrl+B(서식) 편집은 막히고, Ctrl+C(복사)·Ctrl+=(확대)는 사이트에 그대로 전달된다(WR-01)', async ({
   context,
   servePage,
 }) => {
@@ -340,11 +343,12 @@ test('나옴 상태에서 Ctrl+B(서식) 편집은 막히고, Ctrl+F(찾기)·Ct
   // 관례).
   await page.waitForTimeout(350);
 
-  // Ctrl+F(찾기, 편집 아님) — 사이트 keydown 리스너에 그대로 도달해야 한다.
-  await page.keyboard.press('Control+F');
-  expect(await page.evaluate(() => (window as unknown as { __wr01Codes: string[] }).__wr01Codes), 'Ctrl+F는 사이트에 전달돼야 한다').toContain(
-    'KeyF',
-  );
+  // Ctrl+C(복사, 편집 아님) — 사이트 keydown 리스너에 그대로 도달해야 한다.
+  await page.keyboard.press('Control+C');
+  expect(
+    await page.evaluate(() => (window as unknown as { __wr01Codes: string[] }).__wr01Codes),
+    'Ctrl+C는 사이트에 전달돼야 한다',
+  ).toContain('KeyC');
 
   await page.waitForTimeout(350);
 
