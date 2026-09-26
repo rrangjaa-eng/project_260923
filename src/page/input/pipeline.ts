@@ -61,6 +61,19 @@ export function createInputPipeline(opts: {
   const pressHandlers: PressHandler[] = [];
   let modalHandler: ModalHandler | null = null;
   let modalTickInterval: ReturnType<typeof setInterval> | null = null;
+  // CR-01: 한글 IME가 켜진 채 도우미 키(F 등)를 누르면 Chrome은 keydown을 keyCode 229(Process)로
+  // 보내면서도 event.code는 물리 키 그대로라 도우미 키 처리기가 이를 정상적으로 소비한다. IME는
+  // 이미 받은 키를 keydown 취소로 되돌리지 못해(Chrome/Windows 알려진 동작) 곧바로
+  // compositionstart가 뜬다 — 이는 사용자가 다시 입력하려는 의도적 신호가 아니라 도우미 키
+  // 자체가 조합으로 잘못 들어간 것이다. 도우미 키 소비 직후(COMPOSITION_IGNORE_WINDOW_MS 안)
+  // 뜨는 compositionstart는 입력 복귀 신호로 보지 않는다.
+  const COMPOSITION_IGNORE_WINDOW_MS = 300;
+  let lastHelperKeyConsumedAt = -Infinity;
+  // beforeinput 취소로는 조합 입력 자체를 막을 수 없어(주석 참고, IME가 텍스트를 직접 넣는다) —
+  // 무시하기로 한 조합이 진행되는 동안(compositionend까지) 편집기 내용을 조합 시작 전 상태로
+  // 되돌려 문서가 바뀐 채로 남지 않게 한다.
+  let ignoredCompositionRoot: HTMLElement | null = null;
+  let ignoredCompositionSnapshot = '';
 
   // 설정이 바뀌면(interval·sameSpot) 새 값으로 필터를 다시 만든다. 그 외엔 상태(마지막 받아들인
   // 시각·자리)를 그대로 유지해야 하므로 매 이벤트마다 새로 만들지 않는다.
@@ -171,6 +184,7 @@ export function createInputPipeline(opts: {
           // 도우미가 이 키를 썼다(D-17) — 같은 code의 뒤따르는 keypress·keyup도 삼켜야
           // 사이트 단축키(keydown 대신 keypress·keyup을 쓰는 것 포함)보다 도우미가 앞선다.
           swallowedKeyCodes.add(event.code);
+          lastHelperKeyConsumedAt = event.timeStamp;
           event.preventDefault();
           event.stopImmediatePropagation();
           return;
@@ -338,10 +352,43 @@ export function createInputPipeline(opts: {
         return;
       }
       if (isEscapedFromDocumentEditor()) {
+        if (event.timeStamp - lastHelperKeyConsumedAt < COMPOSITION_IGNORE_WINDOW_MS) {
+          // CR-01: 도우미 키가 조합으로 잘못 들어간 것 — 입력 복귀로 보지 않는다. 'input'
+          // 처리기(아래)가 compositionend까지 조합 결과를 되돌린다.
+          const root = deepActiveElement();
+          if (root instanceof HTMLElement && isDocumentEditingRoot(root)) {
+            ignoredCompositionRoot = root;
+            ignoredCompositionSnapshot = root.innerHTML;
+          }
+          return;
+        }
         resumeDocumentEditor();
         setMode(currentMode());
         onModeChange?.();
       }
+    },
+    { capture: true, signal },
+  );
+
+  // CR-01: 무시하기로 한 조합이 진행되는 동안 뜨는 'input'(취소 불가, beforeinput 뒤에 항상
+  // 뜬다)마다 편집기 내용을 조합 시작 전으로 되돌린다. compositionend에서 이 방어를 끈다.
+  window.addEventListener(
+    'input',
+    () => {
+      if (ignoredCompositionRoot === null) {
+        return;
+      }
+      if (ignoredCompositionRoot.innerHTML !== ignoredCompositionSnapshot) {
+        ignoredCompositionRoot.innerHTML = ignoredCompositionSnapshot;
+      }
+    },
+    { capture: true, signal },
+  );
+  window.addEventListener(
+    'compositionend',
+    () => {
+      ignoredCompositionRoot = null;
+      ignoredCompositionSnapshot = '';
     },
     { capture: true, signal },
   );
