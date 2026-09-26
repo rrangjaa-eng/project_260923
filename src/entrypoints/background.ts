@@ -1,5 +1,5 @@
 import tokensCssRaw from '../../docs/design/tokens.css?raw';
-import { isUnsupportedUrl } from '@/core/unsupported-url';
+import { inheritedSiteOrigin, isUnsupportedUrl } from '@/core/unsupported-url';
 import { parseMessage } from '@/shared/messages';
 import { createRelay } from '@/worker/relay';
 import { createStorageWriter } from '@/worker/storage-writer';
@@ -29,6 +29,20 @@ export default defineBackground(() => {
   const frameStates: FrameStates = {};
   (globalThis as typeof globalThis & { frameStates: FrameStates }).frameStates = frameStates;
 
+  // 탭별 맨 위 문서 출처 기록(01-19 Task 2, T-01-59): frameId 0이 보낸 메시지의 Chrome
+  // sender.origin — 주소 없는 새 창(about: 탭)의 사이트 정체를 이 값으로만 정한다. 페이지나
+  // 메시지 본문이 준 문자열은 신뢰하지 않는다. Map — 동적 delete가 인덱스 시그니처보다 안전하다.
+  const topDocOrigins = new Map<number, string>();
+
+  // about: 탭은 물려받은 출처(topDocOrigins)로, 그 밖은 지금처럼 tab.url의 출처로 사이트를
+  // 정한다. topDocOrigins에 아직 없으면(맨 위의 첫 보고 전) undefined — 호출부가 실패로 다룬다.
+  function siteOriginOfTab(tabId: number | undefined, tabUrl: string | undefined): string | undefined {
+    if (tabUrl?.startsWith('about:')) {
+      return tabId !== undefined ? (inheritedSiteOrigin(tabUrl, topDocOrigins.get(tabId)) ?? undefined) : undefined;
+    }
+    return tabUrl ? new URL(tabUrl).origin : undefined;
+  }
+
   async function markUnsupported(tabId: number): Promise<void> {
     await chrome.action.setTitle({ tabId, title: UNSUPPORTED_TITLE });
     await chrome.action.setBadgeText({ tabId, text: UNSUPPORTED_BADGE });
@@ -55,7 +69,10 @@ export default defineBackground(() => {
   }
 
   async function updateActionForTab(tabId: number, url: string | undefined): Promise<void> {
-    if (isUnsupportedUrl(url)) {
+    // Task 2(01-19): about: 탭(주소 없는 새 창)은 주소만으로 판정하지 않는다 — content script는
+    // Task 1의 맨 위 가드 때문에 물려받은 http(s) 출처가 있을 때만 시작하므로, ping 응답 여부가
+    // 곧 도울 수 있는지다. 그 밖의 주소(브라우저 내부·스토어)는 지금 규칙 그대로다.
+    if (!url?.startsWith('about:') && isUnsupportedUrl(url)) {
       await markUnsupported(tabId);
       return;
     }
@@ -72,9 +89,18 @@ export default defineBackground(() => {
   });
 
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === 'loading') {
+      // Task 2(01-19): 새 이동이 시작됐다 — 옛 문서의 물려받은 출처 기록을 지운다(다음 about:
+      // 문서가 다른 출처를 물려받을 수 있다).
+      topDocOrigins.delete(tabId);
+    }
     if (changeInfo.status === 'complete') {
       void updateActionForTab(tabId, tab.url);
     }
+  });
+
+  chrome.tabs.onRemoved.addListener((tabId) => {
+    topDocOrigins.delete(tabId);
   });
 
   // 시작 때(SW가 막 깨어났을 때): 이미 열려 있는 활성 탭들에도 바로 반영한다.
@@ -184,6 +210,12 @@ export default defineBackground(() => {
 
     const message = parsed.data;
 
+    // Task 2(01-19, T-01-59): 맨 위(frameId 0)가 보낸 메시지라면 어떤 종류든 그 탭의 물려받은
+    // 출처를 기록한다 — 다음 site/query·recordPress·setSiteDisabled 대조가 이 값을 쓴다.
+    if (sender.frameId === 0 && sender.tab?.id !== undefined && sender.origin) {
+      topDocOrigins.set(sender.tab.id, sender.origin);
+    }
+
     if (message.type === 'storage/request') {
       // WR-07: writer.*()가 예기치 않게 거부되면(원래 storage-writer.ts 안에서 다 잡아야 하지만,
       // 메시지 경계에서도 한 번 더 막아 둔다) .then(sendResponse)만으로는 sendResponse가 영영
@@ -215,7 +247,7 @@ export default defineBackground(() => {
             return;
           }
           const tab = await chrome.tabs.get(op.tabId).catch(() => undefined);
-          const tabOrigin = tab?.url ? new URL(tab.url).origin : undefined;
+          const tabOrigin = siteOriginOfTab(op.tabId, tab?.url);
           if (tabOrigin === undefined || tabOrigin !== op.origin) {
             sendResponse({ ok: false, reason: 'origin-mismatch' });
             return;
@@ -233,7 +265,7 @@ export default defineBackground(() => {
       // 출처 또는(그 프레임이 속한 탭의) 맨 위 문서 출처와 같으면 받아들인다(site/query와 같은
       // "모든 프레임의 sender.tab.url은 항상 맨 위 문서의 주소와 같다" 전제).
       const frameOrigin = sender.url ? new URL(sender.url).origin : '';
-      const tabOrigin = sender.tab?.url ? new URL(sender.tab.url).origin : undefined;
+      const tabOrigin = siteOriginOfTab(sender.tab?.id, sender.tab?.url);
       const senderOrigin = message.op.origin === tabOrigin ? tabOrigin : frameOrigin;
       void writer
         .recordPress(message.op.origin, senderOrigin, message.op.fingerprint)
@@ -272,8 +304,10 @@ export default defineBackground(() => {
         return undefined;
       }
       // 모든 프레임의 sender.tab.url은 항상 맨 위 문서의 주소와 같다 — 어느 프레임이 물어봐도
-      // 같은 답을 준다(D-20 "사이트 = 맨 위 페이지 출처").
-      const topOrigin = sender.tab?.url ? new URL(sender.tab.url).origin : '';
+      // 같은 답을 준다(D-20 "사이트 = 맨 위 페이지 출처"). about: 탭(01-19 Task 2)은
+      // siteOriginOfTab이 topDocOrigins로 풀어준다 — 아직 없으면(맨 위의 첫 보고 전) 빈 답을
+      // 주고, 자식은 01-18의 재시도로 기록이 채워질 때까지 기다린다.
+      const topOrigin = siteOriginOfTab(sender.tab?.id, sender.tab?.url) ?? '';
       sendResponse({ topOrigin });
       return undefined;
     }

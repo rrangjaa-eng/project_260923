@@ -303,6 +303,26 @@ function renderSiteStatus(disabled: boolean): void {
   siteStatus.textContent = disabled ? '이 사이트: 꺼짐' : '이 사이트: 켜짐';
 }
 
+// 주소 없는 새 창(01-19 Task 2, tab.url이 about:)의 사이트 출처는 URL로 계산할 수 없다 — 맨 위
+// content script의 site/ping 응답(origin, cachedTopOrigin)으로 얻는다. 표시용일 뿐이고 최종
+// 대조는 background.ts의 siteOriginOfTab(Chrome sender.origin)이 한다.
+async function resolveSiteOrigin(tabUrl: string, tabId: number): Promise<string | undefined> {
+  if (!tabUrl.startsWith('about:')) {
+    return new URL(tabUrl).origin;
+  }
+  const response = await chrome.tabs.sendMessage(tabId, { type: 'site/ping' }, { frameId: 0 }).catch(() => undefined);
+  const origin = (response as { ok?: boolean; origin?: string } | undefined)?.origin;
+  if (!origin) {
+    return undefined;
+  }
+  try {
+    const parsed = new URL(origin);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.origin : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // 대상 탭이 "도울 수 없음"인지는 background.ts가 이미 계산해 둔 아이콘 제목으로 판단한다(단일
 // 판정 소스 — Task 3의 content script 응답 없음 판정도 background.ts 쪽에서만 더해진다).
 async function renderForTargetTab(): Promise<void> {
@@ -321,7 +341,10 @@ async function renderForTargetTab(): Promise<void> {
   if (!tab.url) {
     return;
   }
-  const origin = new URL(tab.url).origin;
+  const origin = await resolveSiteOrigin(tab.url, tabId);
+  if (!origin) {
+    return;
+  }
   const key = siteKey(origin);
 
   const siteCard = createSiteCard(origin, tabId);

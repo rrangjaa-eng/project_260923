@@ -18,6 +18,9 @@ declare namespace chrome.runtime {
     tab?: { id?: number; url?: string };
     frameId?: number;
     url?: string;
+    // Chrome 80+, 보낸 문서의 실제 출처(01-19 Task 2, T-01-59): 주소 없는 새 창(about: 탭)에서도
+    // 이 값은 그 문서가 물려받은 http(s) 출처다 — tab.url("about:blank")과 달리 신뢰할 수 있다.
+    origin?: string;
   }
 
   const onMessage: {

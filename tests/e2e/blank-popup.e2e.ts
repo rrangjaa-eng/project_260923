@@ -134,12 +134,22 @@ async function openOpenerPage(context: BrowserContext): Promise<Page> {
   return page;
 }
 
-// Task 2 도우미: about:blank로 남는 새 창 탭은 url 매치 패턴 대신 정확한 문자열로 찾는다.
-async function tabIdByUrl(serviceWorker: Worker, url: string): Promise<number | undefined> {
-  const tabs = await serviceWorker.evaluate(async (u) => {
-    const all = await chrome.tabs.query({});
-    return all.filter((t) => t.url === u);
-  }, url);
+// Task 2 도우미: about:blank로 남는 새 창 탭은 url만으로 찾을 수 없다 — 새 컨텍스트가 만드는
+// 기본 빈 탭도 url이 about:blank라 같이 걸린다. openerUrl을 주면 그 탭이 연 것(openerTabId)만
+// 남긴다.
+async function tabIdByUrl(serviceWorker: Worker, url: string, openerUrl?: string): Promise<number | undefined> {
+  const tabs = await serviceWorker.evaluate(
+    async ({ u, openerUrl: openerU }) => {
+      const all = await chrome.tabs.query({});
+      const matching = all.filter((t) => t.url === u);
+      if (!openerU) {
+        return matching;
+      }
+      const openerId = all.find((t) => t.url === openerU)?.id;
+      return matching.filter((t) => (t as unknown as { openerTabId?: number }).openerTabId === openerId);
+    },
+    { u: url, openerUrl },
+  );
   return tabs[0]?.id;
 }
 
@@ -329,7 +339,7 @@ test('window.open(\'\') DOM 새 창 탭의 아이콘 제목이 "손 떨림 도�
   const popup = await openViaFn(page, context, 'openDomPopup');
   await waitForHelperReady(popup);
 
-  const popupTabId = await tabIdByUrl(serviceWorker, 'about:blank');
+  const popupTabId = await tabIdByUrl(serviceWorker, 'about:blank', 'http://practice.test/blank-popup.html');
   if (popupTabId === undefined) {
     throw new Error('새 창 탭을 찾지 못했다');
   }
@@ -353,14 +363,22 @@ test('window.open(\'\') DOM 새 창 탭의 아이콘 제목이 "손 떨림 도�
 test('새 창 탭을 대상으로 연 메뉴에 "도울 수 없음" 안내가 없고 "이 사이트에서 끄기"가 있다 — 누르면 여는 쪽 사이트가 꺼지고 새 창·여는 쪽 모두 호스트가 사라진다', async ({
   context,
   serviceWorker,
-  openPopup,
+  extensionId,
 }) => {
   const page = await openOpenerPage(context);
   await waitForHelperReady(page);
   const popup = await openViaFn(page, context, 'openDomPopup');
   await waitForHelperReady(popup);
 
-  const menu = await openPopup(popup);
+  // fixtures.ts의 openPopup(target)은 target.url()로 탭을 찾는데, 이 새 창은 url이
+  // about:blank라 컨텍스트의 기본 빈 탭과 구분이 안 된다 — openerTabId로 가려낸 tabIdByUrl로
+  // 직접 tabId를 구해 메뉴를 연다.
+  const popupTabId = await tabIdByUrl(serviceWorker, 'about:blank', 'http://practice.test/blank-popup.html');
+  if (popupTabId === undefined) {
+    throw new Error('새 창 탭을 찾지 못했다');
+  }
+  const menu = await context.newPage();
+  await menu.goto(`chrome-extension://${extensionId}/popup.html?tabId=${String(popupTabId)}`);
   await expect(menu.getByText('이 페이지에서는 도울 수 없어요. 다른 탭에서 쓰세요.')).toHaveCount(0);
   await expect(menu.getByRole('button', { name: /이 사이트에서 끄기/ })).toBeVisible();
 
@@ -405,7 +423,7 @@ test('새 창에 addSrcdocFrame으로 넣은 자식 iframe도 여는 쪽 사이�
 
   await addChildFrameToPopup(page);
 
-  const popupTabId = await tabIdByUrl(serviceWorker, 'about:blank');
+  const popupTabId = await tabIdByUrl(serviceWorker, 'about:blank', 'http://practice.test/blank-popup.html');
   if (popupTabId === undefined) {
     throw new Error('새 창 탭을 찾지 못했다');
   }

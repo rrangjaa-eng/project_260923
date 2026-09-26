@@ -345,7 +345,9 @@ export default defineContentScript({
       if (message.type === 'site/ping' && isTopFrame) {
         // background.ts의 "도울 수 없음" 응답 없음 판정(D-21) — 맨 위 프레임만 답한다. 도우미가
         // 전역·사이트로 꺼져 있어도 content script 자신은 살아 있으니 답한다(currentEnabled와 무관).
-        sendResponse({ ok: true });
+        // origin(01-19 Task 2): about: 탭(주소 없는 새 창)의 메뉴가 사이트 카드를 만들 때 쓴다 —
+        // 최종 대조는 SW의 siteOriginOfTab(Chrome sender.origin)이 한다.
+        sendResponse({ ok: true, origin: cachedTopOrigin ?? undefined });
         return undefined;
       }
 
