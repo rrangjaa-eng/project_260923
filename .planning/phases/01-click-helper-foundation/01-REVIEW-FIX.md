@@ -1,324 +1,170 @@
 ---
 phase: 01-click-helper-foundation
-fixed_at: 2026-09-24T13:25:00Z
+fixed_at: 2026-09-26T07:17:21Z
 review_path: .planning/phases/01-click-helper-foundation/01-REVIEW.md
 iteration: 1
-findings_in_scope: 18
-fixed: 18
+findings_in_scope: 9
+fixed: 9
 skipped: 0
 status: all_fixed
 ---
 
-# Phase 01: Code Review Fix Report
+# Phase 1: Code Review Fix Report
 
-**Fixed at:** 2026-09-24T13:25:00Z (warnings pass finished; critical pass finished 2026-09-24T12:15:28Z)
+**Fixed at:** 2026-09-26T07:17:21Z
 **Source review:** .planning/phases/01-click-helper-foundation/01-REVIEW.md
-**Iteration:** 1 (two passes: critical, then warnings)
-**Scope:** CR-01..CR-08 (Critical, first pass) + WR-01..WR-10 (Warnings, second pass) = 18 findings. IN-* (Info) is explicitly out of scope for both passes.
+**Iteration:** 1
 
-## Warnings pass (WR-01..WR-10) — added by second fixer
+**Scope:** CR-01, WR-01..WR-08(critical_warning). IN-01..IN-04와 참고 항목 D-25는 지시대로 범위 밖 — 손대지 않았다.
 
-**Method (user-specified):** reproduce first, then fix with TDD, same discipline as the critical pass. For each finding: RED test that fails for the stated reason → commit (RED) → minimal fix → GREEN → commit (fix). Verification ran in the main working tree (`workflow.use_worktrees` was not consulted for this run either — the launcher pinned the branch and working tree directly via `git_rules`/root-pin.sh, so all edits, test runs, and commits happened in `/home/user/project_260923` on branch `claude/project-thread-ew8d9u`, not an isolated worktree).
-
-**Summary (warnings pass only):**
-- Findings in scope: 10 (WR-01..WR-10)
-- Fixed: 10
-- Skipped: 0
-- Not reproduced: 0
-- Needs decision: 0
-
-### WR-01: Space-hold confirm could stay armed past a lost keyup (window blur)
-
-**Files modified:** `src/page/input/pipeline.ts`
-**RED commit:** `f247e3b` — reproduces window `blur` mid-hold not resetting the confirm guard's hold timer
-**Fix commit:** `7b07ec3`
-**Test file:** `tests/e2e/confirm.e2e.ts`
-**Applied fix:** `window` `blur` and `document` `visibilitychange` (when hidden) now send a synthetic `keyup` for `keymap.press` into the modal handler, resetting `confirm-guard.ts`'s `holdStartedAt`. A `document.hasFocus()` check inside the 100ms modal tick was also tried as a broader backstop, but reverted — it proved unreliable in this CI/headless environment (returned `false` spuriously during a legitimate held Space, breaking the pre-existing "hold for 1s confirms" test) — documented as a deliberate scope reduction.
-**Status:** fixed (the window-blur/visibilitychange path is fixed and tested; the secondary "focus moves into a same-tab child iframe without a content script" scenario described in the review was not independently reproduced/verified — `document.hasFocus()` is not a reliable signal for that case in this environment, so no code targets it specifically).
-
-### WR-02: Hint danger flag was a snapshot; a late-arriving danger never re-triggered confirm
-
-**Files modified:** `src/entrypoints/content.ts`, `src/worker/relay.ts`, `src/entrypoints/background.ts`, `src/shared/messages.ts`
-**RED commit:** `1542c9f`
-**Fix commit:** `18a797f`
-**Test file:** `tests/e2e/confirm.e2e.ts`
-**Applied fix:** `pressHintEntry(itemId, confirmed = false)` re-checks live `danger` (via `collector.items()`) before pressing. For the top frame's own items, a newly-dangerous element opens `openDangerConfirm` instead of pressing. For child-frame items, a new `press/refused` message (frame → SW → top, `frameId` overwritten by relay from `sender.frameId` the same way `frame/report` already does, for spoof-safety) lets the child frame refuse and the top frame open the confirm from its cached `composedItemsCache` entry. `hints/press`/`press/request` gained a `confirmed: boolean` field so a press that already went through confirm (`finish('confirm') → pressHintEntry(itemId, true)`) isn't asked twice.
-**Status:** fixed (frame-0 own-item path has a dedicated e2e test; the child-frame `press/refused` round trip is implemented per the review's exact suggestion and exercised implicitly by the existing cross-frame confirm e2e tests passing, but has no dedicated new test of its own — the frame-0 case was chosen for the dedicated RED/GREEN test because it's the simpler, directly reproducible scenario, and the child-frame code path reuses the identical `confirmed` gating logic).
-
-### WR-03: Hint labels didn't follow scroll or layout change while open
-
-**Files modified:** `src/entrypoints/content.ts`
-**RED commit:** `3beb3fc` (see fix commit's note below — the RED's chosen scroll target was clamped by the document's max scroll extent, so it failed for a coincidental rather than the intended reason; corrected and re-verified against unfixed code in the fix commit before fixing)
-**Fix commit:** `085c974`
-**Test file:** `tests/e2e/hints.e2e.ts`
-**Applied fix:** Extracted `composeCurrentItems()` (the compose logic `openHints()` already had) so it can be reused. `collector.onChange` (already fired on scroll/resize/DOM mutation, D-04) now, when `hintsActive`, rebuilds `composedItemsCache` and calls `openChapter(hintChapterIndex)` — same number-to-item assignment, freshly computed screen positions.
-**Status:** fixed.
-
-### WR-04: Press history never matched links/images/divs and froze at 200 entries
-
-**Files modified:** `src/page/collector/collector.ts`, `src/worker/storage-writer.ts`
-**RED commit:** `5fe99f3`
-**Fix commit:** `6df94f8`
-**Test file:** `tests/e2e/hints.e2e.ts`
-**Applied fix:** `buttonTextOf()` now also covers `<a>`/`<img>` — own text, then descendant `img[alt]` (same order as CR-05), then the anchor's `pathname` as a last resort — giving links without id/name/aria a second comparable fingerprint field (`domPath` + `buttonText` = matchScore 2). The 200-entry eviction in `recordPress` no longer blindly sorts-and-slices (which, being a stable sort, always put a freshly-appended count-1 entry last among ties and therefore evicted it immediately) — a just-inserted entry is now excluded from the sort/trim and re-appended afterward, so it's never the one evicted on the same write that created it.
-**Status:** fixed.
-
-### WR-05: Child-frame press history used the wrong origin and an inconsistent framePath
-
-**Files modified:** `src/entrypoints/content.ts`, `src/worker/relay.ts`, `src/entrypoints/background.ts`
-**RED commit:** `a9020d1`
-**Fix commit:** `47779c8`
-**Test file:** `tests/e2e/frames.e2e.ts`
-**Applied fix:** `sendRecordPress` now uses a `cachedTopOrigin` learned once from the existing `site/query` round trip (falls back to `window.location.origin` before that resolves, matching the D-06 "assume defaults before settings load" pattern elsewhere) instead of always using the sending frame's own origin — cross-origin child presses now land under the top page's `presses:<origin>` key, where `readPinsAndPresses()` actually looks. `background.ts`'s recordPress origin check now also accepts the sender's *tab* origin (not just the sending frame's own origin), matching `site/query`'s existing "every frame's `sender.tab.url` is the top document's URL" assumption. Direct in-frame presses (magnet/dwell/Space — not routed through the hints round trip, which already carries the correct composed `framePath`) now tag their fingerprint's `framePath` with a per-frame, non-`[]` marker (`local:<that frame's URL>`) instead of leaving it `[]` (indistinguishable from the top frame's own items) — this stops the described false-merge with an unrelated top-frame element sharing the same `domPath`+text (a common shared-template scenario), though it does not achieve full composed-path accuracy (a magnet press and a later hint press on the *same* child element won't accumulate under one entry) — a documented, deliberately smaller scope than a full framePath-plumbing change would have required.
-**Status:** fixed (scope note above).
-
-### WR-06: Popup cards had no tremor filtering (double-tap, held key)
-
-**Files modified:** `src/entrypoints/popup/main.ts`
-**RED commit:** `5ce13a9`
-**Fix commit:** `20cf465`, with a same-day follow-up `02c95f1` (see below)
-**Test file:** `tests/e2e/helper-toggle.e2e.ts`
-**Applied fix:** `createCard`'s `click`/`keydown` handlers now go through the same `core/tremor-filter.ts` the page pipeline uses, keyed on the card's own `getBoundingClientRect()` position (same card = same "spot" = filtered if within the interval; different card = different spot = not filtered). `keydown` `repeat` events are rejected before reaching the filter. The filter is built once from `defaultSettings()` and deliberately *never* rebuilt from the actually-stored `tremorIntervalMs` — an earlier version tried to "upgrade" to the stored value once `loadInitial()`'s async read resolved, but that resolution landing between two rapid presses discarded the filter's "just pressed here" memory and reopened the exact race being fixed (reproduced, then reverted); since Phase 1 has no UI to change this interval, the defaults-only filter is simpler and race-free with no practical loss.
-**Follow-up commit `02c95f1`:** running the full suite for the first time after this fix (during WR-09 verification) surfaced two more pre-existing tests with the same "turn card off, then immediately on, no wait" pattern that the tremor filter now legitimately treats as one action's accidental double-registration: `confirm.e2e.ts`'s CR-02 test and `hints.e2e.ts`'s CR-06 test. Both got the same fix as the tests already handled in the WR-06 commit (a 350ms wait between the two clicks, past the default 300ms interval) — this is the same adaptation every other "re-press the same thing" test in the suite already needed once the filter existed, just missed on the first pass since they live in different files.
-**Status:** fixed.
-
-### WR-07: A rejected `chrome.storage.sync.set` could deadlock the site-disable queue
-
-**Files modified:** `src/worker/storage-writer.ts`, `src/entrypoints/background.ts`
-**RED commit:** `289a8cc`
-**Fix commit:** `d4e7d9f`
-**Test file:** `tests/e2e/site-toggle.e2e.ts`
-**Applied fix:** `runSiteWriteQueue`'s loop body and `state.writing = false` are now wrapped in `try`/`finally`, and a rejected `enqueue(...)` is caught per-iteration and turned into `{ ok: false, reason: 'write-failed' }` (new `SetSiteDisabledResult` variant) for the waiters of that iteration, instead of throwing out of the loop and leaving `state.writing` stuck `true` forever with unresolved waiters. `background.ts`'s four `storage/request` message handlers (`setEnabled`, `updateSettings`, `setSiteDisabled`, `recordPress`) each got a `.catch(() => sendResponse({ ok: false }))` as defense-in-depth at the message boundary.
-**Status:** fixed.
-
-### WR-08: A missing `settings` key was treated as corruption; the migration-failed notice never cleared
-
-**Files modified:** `src/worker/storage-writer.ts`, `src/types/chrome.d.ts` (added `StorageArea.remove()`, needed by the fix)
-**RED commit:** `40c4c59`
-**Fix commit:** `6458c04`
-**Test file:** `tests/e2e/lifecycle.e2e.ts`
-**Applied fix:** `readAndValidateSettings()` now checks `raw === undefined` directly (before calling `migrate()`, which otherwise reports `no-version` — the same "corrupted" classification a genuinely malformed value gets) and writes `defaultSettings()` immediately rather than returning `preserved-original` forever. Every successful return path (freshly-defaulted, migrated-and-rewritten, or already-valid) now fires a fire-and-forget `chrome.storage.local.remove(MIGRATION_NOTICE_KEY)` — safe even when no notice exists — so a settings value that becomes valid again (self-heals via cross-device sync, or via this same fix) stops showing the stale toast/warning card on the next successful write.
-**Status:** fixed.
-
-### WR-09: Extension fonts were web-accessible without `use_dynamic_url` (extension-detection/fingerprinting risk)
-
-**Files modified:** `wxt.config.ts`
-**RED commit:** `242dbfe`
-**Fix commit:** `591d37d`
-**Test file:** `tests/e2e/fonts.e2e.ts` (new file)
-**Applied fix:** Added `use_dynamic_url: true` to the `fonts/*.woff2` `web_accessible_resources` entry. `chrome.runtime.getURL()` (already the only call site, in `mode-indicator.ts`) automatically returns the dynamic per-session URL form once this is set — no call-site changes needed. Verified a same-origin overlay-perf/hints smoke pass still loads fonts correctly (no visual/layout regression) after the change.
-**Status:** fixed. `matches` was left at `<all_urls>` (not narrowed) — the overlay itself needs to render on any site per D-02/D-21, so narrowing `web_accessible_resources.matches` would not reduce real exposure without also changing where the content script runs; left as the review's "also consider" (optional) item, not applied.
-
-### WR-10: Two confirm-flow e2e tests had a verification gap / relied on a fixed sleep
-
-**Files modified:** `tests/e2e/confirm.e2e.ts` (test-only; no source change)
-**Fix commit:** `7a7e9e3` (no separate RED commit — see method note below)
-**Method note:** this finding is about test quality, not product behaviour, so there is no product-code RED/GREEN cycle. Per the review's own suggested verification method, used mutation testing instead: temporarily removed `confirm-guard.ts`'s `keyup` → `holdStartedAt = null` reset, ran the *existing* "1초 전에 떼면 확인되지 않는다" test, confirmed it still **passed** against the broken guard (proving the gap the review described — the test only asserted the counter at ~300ms, long before the described bug's effect appears at 1000ms). Extended the test to also assert the counter is still `0` and the dialog still visible at 1200ms since the original keydown; re-ran against the same mutation and confirmed it now **fails**; reverted the mutation (clean `git diff`) and confirmed the updated test **passes** against the real code.
-**Applied fix:** (1) the space-hold-release test now re-checks the counter/dialog at 1200ms post-keydown, not just ~300ms. (2) `openDangerConfirm()`'s fixed 50ms sleep before reading hint labels (racing `openHints()`'s two `chrome.storage` reads) was replaced with `expect.poll(() => numberForElement(...)).not.toBe('')`. (3) `magnet.test.ts`'s danger-priority assertion, which the original review flagged as asserting the CR-04 defect as intended behaviour, was already inverted by the CR-04 commit (`d697430`, critical pass) — re-verified only, no further change needed here.
-**Status:** fixed.
-
-**Method (user-specified):** reproduce first, then fix with TDD. For each finding: RED test that fails for the stated reason → commit (RED) → minimal fix → GREEN → commit (fix). Verification ran in the main working tree (`workflow.use_worktrees` was not consulted for this run — the launcher pinned the branch and working tree directly via `git_rules`/root-pin.sh instead of the standard worktree bootstrap, so all edits, test runs, and commits happened in `/home/user/project_260923` on branch `claude/project-thread-ew8d9u`, not an isolated worktree).
+**검증 실행 위치:** 격리된 git worktree(`.claude/worktrees/rf-01-18975-1790404442`, 브랜치 `gsd-reviewfix/01-18975`), 메인 체크아웃과 같은 pnpm 저장소를 `pnpm install --frozen-lockfile`로 연결해 사용. `PLAYWRIGHT_BROWSERS_PATH`가 환경 공용이라 브라우저 재설치 없이 CI=true 프로덕션 빌드로 모든 e2e를 실제 실행했다. 변경 종료 후 이 브랜치를 `claude/project-thread-ew8d9u`로 fast-forward 병합하고 worktree를 정리한다.
 
 **Summary:**
-- Findings in scope: 8
-- Fixed: 8
+- Findings in scope: 9
+- Fixed: 9 (그중 1건, WR-03은 "fixed: requires human verification" — 아래 참고)
 - Skipped: 0
-- Not reproduced: 0
-- Needs decision: 0
 
 ## Fixed Issues
 
-### CR-01: Confirm modal did not block pointer or dwell input
+### CR-01: 문서 전체 편집기 "나옴" 상태에서 한글 IME가 켜져 있으면 F가 'ㄹ'로 들어가고 입력 모드로 돌아간다
 
-**Files modified:** `src/page/input/pipeline.ts`, `src/entrypoints/content.ts`
-**RED commit:** `ff6033e` — `test(01): CR-01 확인 화면 중 포인터가 모달을 무시하는 문제 재현 (RED)`
-**Fix commit:** `e70be54` — `fix(01): CR-01 확인 화면 중 포인터·자석·머무르기를 모달로 처리`
-**Test file:** `tests/e2e/confirm.e2e.ts` (new test: clicks the real cancel button while a page button sits 15px away, within the 48px capture margin)
-**Applied fix:** `pipeline.ts`'s `pointerdown` handler now checks `modalHandler` first and passes the event straight through (clearing `pressSwallowed`/`pendingPressExecute`) instead of running the magnet/tremor filter. `content.ts`'s `evaluateMagnet()` now also short-circuits while `activeConfirmKeyHandler` is set, and `openDangerConfirm()` clears `currentTargetId`, hides the ring, and stops the dwell loop the instant the dialog opens.
-**Status:** fixed
+**파일 수정:** `src/page/input/pipeline.ts`, `tests/e2e/doc-editor.e2e.ts`
+**커밋:** `9739ee3`(RED) → `63d8eff`(GREEN)
+**재현:** CDP `Input.dispatchKeyEvent`(keyCode 229 "Process", code "KeyF")로 도우미 키(F)가 IME에
+가로채진 keydown을 실측 재현한 뒤 `Input.imeSetComposition`으로 뒤따르는 compositionstart를
+재현했다 — 실제 재현됨(RED: dataMode가 'helper'→'typing'으로 바뀌고 조합 문자가 문서에 들어감).
+**적용한 수정:** 도우미 키가 소비한 keydown의 `event.timeStamp`를 기록해 두고(`lastHelperKeyConsumedAt`),
+그 뒤 300ms 안에 뜨는 compositionstart는 입력 복귀 신호로 보지 않는다(모드는 계속 'helper'). 다만
+beforeinput의 `insertCompositionText`는 Chrome에서 취소 불가라(기존 주석에도 명시) 조합 자체는
+막지 못한다 — 무시하기로 한 조합이 진행되는 동안(compositionend까지) 'input' 이벤트마다 편집기
+내용을 조합 시작 전 상태(innerHTML 스냅숏)로 되돌려 문서가 바뀐 채로 남지 않게 했다.
+**검증:** 뮤테이션 확인(가드 비활성화 시 RED 재현 확인) + `doc-editor.e2e.ts`(6개) +
+`input-filter.e2e.ts`·`frames.e2e.ts`·`confirm.e2e.ts`·`editor-frames.e2e.ts`(65개) 회귀 없음.
 
-### CR-02: Turning the helper off while confirm was open left an invisible, re-armable modal
+### WR-01: `documentWasRewritten()` 방어는 근거가 모순된 추측성 코드다
 
-**Files modified:** `src/entrypoints/content.ts`
-**RED commit:** `d24b825` — `test(01): CR-02 도우미 끄기·켜기가 열린 확인을 취소하지 않는 문제 재현 (RED)`
-**Fix commit:** `218da9c` — `fix(01): CR-02 도우미가 꺼질 때 열린 확인을 함께 취소`
-**Test file:** `tests/e2e/confirm.e2e.ts` (opens confirm, waits past the 1s guard, toggles the helper off then on via the popup, then presses a plain Enter and asserts the danger button was NOT pressed)
-**Applied fix:** `applyEnabled(false)` now cancels any open confirm (`inputPipeline.setModal(null)`, clears `activeConfirmKeyHandler`, calls `closeConfirm()`, broadcasts `confirm/state {open:false}`) — the same cleanup `finish('cancel')` does. `cleanupOldHelper()` does the same for the extension-invalidation path.
-**Status:** fixed
+**파일 수정:** `src/entrypoints/content.ts`
+**커밋:** `7fcabd9`
+**적용한 수정:** 55acdd0이 추가한 `documentWasRewritten()` 함수와 `applyEnabled()`의 그 사용을
+그대로 되돌렸다(리뷰 권고안대로). `startDocumentElement`·`documentRewriteWatcher`(01-17부터 있던
+원래 메커니즘)는 그대로 뒀다.
+**검증:** `editor-frames.e2e.ts` 16개 × 3회 반복(48/48) 무실패.
 
-### CR-03: "이 사이트에서 끄기" did not disable the input pipeline
+### WR-02: editor-frames "옛 인스턴스는 조용하다" 시험의 hostCount===1 단언은 거의 항상 참이다
 
-**Files modified:** `src/page/input/pipeline.ts`, `src/entrypoints/content.ts`
-**RED commit:** `6f5bee0` — `test(01): CR-03 사이트별 끄기가 입력 파이프라인을 끄지 못하는 문제 재현 (RED)`
-**Fix commit:** `2cf2809` — `fix(01): CR-03 사이트별 끄기가 입력 파이프라인 상태에도 반영되도록 연결`
-**Test file:** `tests/e2e/site-toggle.e2e.ts` (site-disable via popup, then asserts a 100ms-apart double click and a 5x auto-repeat key both reach the page unfiltered)
-**Applied fix:** `createInputPipeline` accepts an optional `isEnabled()` callback; `content.ts` passes `() => currentEnabled ?? true` (the `?? true` preserves the pre-existing D-06 "assume enabled before settings load" behaviour). `isHelperEnabled()` in the pipeline now prefers this combined callback over the raw global `settings.data.enabled`.
-**Status:** fixed
+**파일 수정:** `tests/e2e/editor-frames.e2e.ts`
+**커밋:** `804a88c`
+**적용한 수정:** `setupFrameStateRecorder`를 복원하고, `waitForFrameHelperAlive` 통과 시점(새
+인스턴스가 이미 true를 보낸 뒤) 이후 그 자식 frameId의 `frame/state(true)`가 1500ms 관찰 창 동안
+0건인지로 원래 의도("다시 쓰기 뒤 옛 인스턴스가 켜지지 않는다")를 경쟁 없이 되살렸다. 기존
+hostCount·누르기 정확히 1회 단언은 그대로 유지(시험 개수 16개 불변).
+**검증:** 뮤테이션 확인(cleanupOldHelper의 removeListener 비활성화 시 회귀 잡음 확인) + 16개 × 3회
+반복(48/48) 무실패.
 
-### CR-04: A precise click on a danger button was redirected to a normal neighbour
+### WR-03: `topDocOrigins`는 탭 이동 중 옛 문서 메시지로 낡은 출처가 다시 기록될 수 있다
 
-**Files modified:** `src/core/magnet.ts`
-**RED commit:** `fceff7a` — `test(01): CR-04 danger-at-zero 매그넷 우선순위 재현 (RED)` (inverted the encoding test at `tests/unit/magnet.test.ts:97-103`, per the required method's explicit instruction, since it asserted the bug as intended behaviour)
-**Fix commit:** `d697430` — `fix(01): CR-04 커서가 danger 위일 때 일반 후보로 새지 않도록 우선순위 수정`
-**Test file:** `tests/unit/magnet.test.ts` (pure `src/core` logic — used a Vitest unit test per the required method's preference)
-**Applied fix:** `pickTarget()` now checks `dangerAtZero` before `normalInRange` — swapped the order of the two existing branches so a cursor exactly on a danger rect always wins, even when a normal candidate is in capture range.
-**Status:** fixed
+**파일 수정:** `src/entrypoints/background.ts`, `tests/e2e/blank-popup.e2e.ts`
+**커밋:** `ee05e56`
+**상태: fixed — requires human verification**(정확한 경쟁 타이밍을 자동 시험으로 강제하지 못함,
+근거는 아래)
+**적용한 수정:** 리뷰 권고 코드를 그대로 적용 — `topDocOrigins.set`은 `sender.tab.url`이
+`about:`로 시작할 때만 기록한다(Chrome이 메시지 처리 시점에 채운, 커밋된 탭 주소). 이동이 막
+시작된(loading) 뒤에도 탭 주소가 아직 옛 https인 동안 온 메시지는 이제 무시된다.
+**검증의 한계(정직하게 보고):** 오프너가 실제 https 탭을 `about:blank`로 이동시키는 흐름의 최종
+상태(오프너 자신의 출처를 따름)를 확인하는 새 e2e를 추가했고 통과한다. 그러나 리뷰가 지목한 정확한
+경쟁 창(SW가 tabs.onUpdated 'loading'을 처리한 직후, 아직 살아 있는 옛 문서의 지연된 frameId 0
+메시지가 도착하는 순서)은 Playwright로 강제 재현하지 못했다 — 뮤테이션 테스트(가드 되돌리기,
+5회 반복)로도 이 신규 테스트가 그 특정 회귀를 잡지 못함을 확인했다(테스트는 정상 경로 회귀
+안전망일 뿐, 경쟁 자체의 RED/GREEN 증거는 아니다). 수정 자체는 리뷰의 코드까지 정확히 일치하고
+위험이 낮다(about: 탭에서만 쓰이는 값을 좁히는 것뿐, 기존 about:blank 새 창 흐름 전체 회귀 없음
+확인). 사람 검토 시 이 경계 조건(탭 이동 경쟁)을 실제 브라우저에서 재현·확인해 주길 권한다.
+**검증:** `blank-popup.e2e.ts`(10개) + `site-toggle.e2e.ts`(15개) 회귀 없음.
 
-### CR-05: Danger detection missed `<input type=button value=삭제>`, `<a><img alt=삭제></a>`, and `aria-labelledby` names
+### WR-04: noopener 새 창의 아이콘·메뉴 판정이 고정 1초 뒤 부재 단언뿐이다
 
-**Files modified:** `src/page/collector/collector.ts`, `tests/practice-site/danger.html`
-**RED commit:** `0bc613f` — `test(01): CR-05 레거시 위험 버튼 패턴 danger 미탐지 재현 (RED)`
-**Fix commit:** `cf6a7ae` — `fix(01): CR-05 레거시 위험 버튼 이름 판정 보강 (...)`
-**Test file:** `tests/e2e/danger.e2e.ts` (new practice-site buttons for all three patterns, asserts dashed border + "! 위험" label)
-**Applied fix:** `computeName()` now calls `ariaOf()` (already used by `computeFingerprint`, so aria-label *and* aria-labelledby are covered), widens the input-value check from `type==='submit'` to `submit|button|reset`, and falls back to a descendant `img[alt]` when the element itself has no text/alt. Also found and fixed a fixture bug during reproduction: a `src`-less `<img>` with only `width`/`height` *attributes* renders at Chromium's broken-image intrinsic size (48×21) rather than the requested size — fixed by also setting CSS `width`/`height` on the practice-site fixture image.
-**Status:** fixed
+**파일 수정:** `tests/e2e/blank-popup.e2e.ts`
+**커밋:** `a342019`
+**적용한 수정:** 코드 경로는 이미 올바르다(리뷰 판정과 동일) — 시험만 강화했다.
+`expect.poll(tabTitle).toBe('도울 수 없음')`·배지 `'없음'`을 두 noopener 경로(window.open,
+링크) 모두에 추가하고, `popup.html?tabId=`로 메뉴를 열어 안내 문구가 보이고 사이트 카드가 없는지
+확인했다. 부재 단언 앞에 같은 여는 쪽에서 `openDomPopup`으로 도우미가 뜨는 것을 먼저 확인해 양성
+대조로 삼았다.
+**검증:** 새 시험이 (수정 전 코드에서도) 통과함을 확인 — 코드가 이미 올바름을 실측으로 뒷받침.
+`blank-popup.e2e.ts`(10개) 전체 회귀 없음.
 
-### CR-06: Hint labels and the confirm dialog lost their styles after any helper off→on cycle
+### WR-05: "이 사이트에서 끄기" 카드가 SW 거절을 무시해 실제로는 켜져 있는데 꺼짐으로 보인다
 
-**Files modified:** `src/page/overlay/hints.ts`, `src/page/overlay/confirm-dialog.ts`
-**RED commit:** `3e9fec9` — `test(01): CR-06 도우미 껐다 켜기 뒤 번호표 스타일이 사라지는 문제 재현 (RED)`
-**Fix commit:** `ff8f7ad` — `fix(01): CR-06 번호표·확인 화면 스타일을 shadow root별로 기억`
-**Follow-up:** `238e990` — `test(01): CR-06 시험의 TS strict null 오류 수정` (typecheck fix for the new test, found by `pnpm typecheck` during final verification; no behavioural change)
-**Test file:** `tests/e2e/hints.e2e.ts` (opens hints, toggles the helper off/on via the popup, reopens hints, compares label position and size before/after)
-**Applied fix:** Replaced the module-level `styleInjected` boolean in both files with a `WeakSet<ShadowRoot>` keyed by the actual shadow root, matching the review's suggested pattern — so a freshly created shadow root (after `destroyOverlayRoot()`) gets its `<style>` re-injected instead of being silently skipped.
-**Status:** fixed
+**파일 수정:** `src/entrypoints/popup/main.ts`, `tests/e2e/site-toggle.e2e.ts`
+**커밋:** `a61c308`
+**재현:** `chrome.storage.sync`에 검사 실패하는 `site:` 항목을 미리 넣어(storage-writer.ts
+`invalid-site` 경로) SW가 실제로 거절하게 한 뒤 카드를 눌러 RED 확인(문구가 "끄기"로 되돌아가지
+않음).
+**적용한 수정:** `createSiteCard`의 `onToggle`이 `sendMessage` 응답의 `ok !== true`(또는 거부)면
+`revert()`한다(리뷰 권고 코드 그대로). `helperCard`도 `preserved-original`뿐 아니라 `ok !== true`
+전체에서 되돌리도록 넓혔다(item-too-large 등).
+**검증:** 뮤테이션 확인(되돌리기 로직 제거 시 RED 재현) + `site-toggle.e2e.ts`(16개) +
+`helper-toggle.e2e.ts`(11개) 회귀 없음.
 
-### CR-07: A stale `pendingPressExecute` could cause a phantom click
+### WR-06: document.write 새 창·맨 위 다시 쓰기 탭의 아이콘이 ping 한 번에 다시 넣기와 경쟁한다
 
-**Files modified:** `src/page/input/pipeline.ts`
-**RED commit:** `ae3cdf8` — `test(01): CR-07 오른쪽 클릭이 남긴 대신 누르기 예약이 되살아나는 문제 재현 (RED)`
-**Fix commit:** `b2fdf4e` — `fix(01): CR-07 새 누름 묶음마다 옛 대신 누르기 예약을 지운다`
-**Test file:** `tests/e2e/press.e2e.ts` (right-clicks near a magnet-capturable button, then left-clicks an unrelated empty spot, asserts the old button was not phantom-pressed)
-**Applied fix:** `pointerdown` now clears `pendingPressExecute` at the very start of every new gesture (before the button/isPrimary check), and short-circuits (without intercepting) for non-primary-button / non-primary-pointer events — this also fixes the secondary complaint that right/middle mousedown-mouseup was being swallowed, breaking sites' own context menus. Added a `pointercancel` listener that also clears `pendingPressExecute`.
-**Status:** fixed
+**파일 수정:** `src/entrypoints/background.ts`, `tests/e2e/blank-popup.e2e.ts`, `tests/e2e/editor-frames.e2e.ts`
+**커밋:** `16145b7`
+**재현:** `openWritePopup` 탭에 `expect.poll(tabTitle).toBe('손 떨림 도우미')`를 추가 — 수정 전
+8회 반복 8/8 실패(재현 안정적).
+**적용한 수정:** `respondsToSitePing`이 실패하면 250ms 간격으로 최대 2회 더 확인한다(리뷰 권고
+250ms×3). 탭별 세대 번호(`actionGenerationByTab`)로 겹친 `updateActionForTab` 호출 중 늦게 끝난
+옛 호출의 결과가 새 결과를 덮어쓰지 않게 했다. `editor-frames.e2e.ts`의 맨 위 다시 쓰기 시험에도
+같은 제목 확인을 더했다.
+**검증:** 뮤테이션 확인(재시도 delays를 빈 배열로 — 5회 반복 5/5 재현) + `blank-popup.e2e.ts`(10개
+× 8회 반복 포함) + `editor-frames.e2e.ts`(16개 × 4회) + `site-toggle.e2e.ts`(15개) 회귀 없음.
 
-### CR-08: Child-frame hint items disappeared after the service worker restarted from idle
+### WR-07: 자식 프레임 직접 누르기 framePath가 `local:<전체 URL>`이라 질의 문자열까지 저장된다
 
-**Files modified:** `src/page/collector/collector.ts`, `src/entrypoints/content.ts`, `src/worker/relay.ts`, `src/entrypoints/background.ts`
-**RED commit (v1):** `e72559c` — `test(01): CR-08 SW 재시작 뒤 자식 프레임 번호표 항목 소실 재현 (RED)` — added the `resetRelayForE2E` / matching `Relay.resetForE2E()` test-only hook (same pattern as the existing `disconnectAlivePorts` hook) needed to actually simulate relay memory loss in e2e, since the review noted the existing hook doesn't clear relay state.
-**RED commit (v2, corrected reproduction):** `257e1d2` — `test(01): CR-08 재현을 최소 2-프레임 페이지로 다시 만든다 (RED)` — the v1 reproduction reused `danger.html`, but CR-05's fix had added 3 buttons to that page, so the top frame alone could fill a full 9-item hint chapter and the test's `labelCount >= 9` assertion no longer proved the child frame was actually included. Replaced with a dedicated minimal 2-item (1 top + 1 cross-origin child) fixture page where the assertion is unambiguous.
-**Fix commit:** `e0f18f6` — `fix(01): CR-08 SW 재시작 신호를 받으면 프레임 보고를 강제로 다시 보낸다`
-**Test file:** `tests/e2e/lifecycle.e2e.ts`
-**Applied fix:** `collector.refresh(force?)` now accepts a `force` flag that clears `lastReportedJson` before re-collecting, bypassing the "don't resend unchanged content" dedup. `content.ts` calls `collector.refresh(true)` on `frame/refresh` receipt and calls it again when the `alive` port reconnects (`connectAlivePort(isReconnect)`) — both are legitimate signals that the relay's memory may have just been wiped by a service-worker restart. Since every frame independently reconnects its own `alive` port, both the top and child frames self-heal shortly after a restart, before the user does anything else.
-**Status:** fixed
+**파일 수정:** `src/entrypoints/content.ts`, `tests/e2e/frames.e2e.ts`
+**커밋:** `a07c2f5`
+**재현:** 질의 문자열(`?token=secret123`)이 있는 자식 프레임 주소에서 자석으로 직접 눌러 저장된
+framePath에 그 문자열이 남는지 확인 — RED 재현(포함됨).
+**적용한 수정:** `localPressFramePath`를 `local:${location.href}` 대신
+`local:${location.origin}${location.pathname}`으로 좁혔다(리뷰 권고 최소 수정안).
+**검증:** `frames.e2e.ts`(13개) + `hints.e2e.ts`(15개) + `blank-popup.e2e.ts`(10개) 회귀 없음.
+
+### WR-08: "나옴" 상태에서 편집기가 keydown으로 직접 처리하는 편집(Enter 등)이 막히지 않는다
+
+**파일 수정:** `src/page/input/pipeline.ts`, `tests/e2e/doc-editor.e2e.ts`
+**커밋:** `755f43f`
+**재현:** CKEditor류 편집기를 흉내 낸 fixture(keydown에서 Enter를 가로채 `preventDefault` 후
+직접 `<p>`를 추가) — beforeinput이 아예 뜨지 않아 RED 재현(문서가 바뀜).
+**적용한 수정:** 도우미 키 처리기가 쓰지 않은 keydown이라도, "나옴" 상태 + 문서 전체 편집기에
+초점이 있으면 편집 키(Enter·NumpadEnter·Backspace·Delete·Tab, Ctrl/Meta 조합)를
+`preventDefault()` + `stopImmediatePropagation()`으로 삼킨다 — 더 안쪽 target(편집기 자신의
+keydown 처리기)에 이벤트가 닿지 못하게 한다.
+**검증:** 뮤테이션 확인(가드 비활성화 시 RED 재현) + `doc-editor.e2e.ts`(7개) +
+`editor-frames.e2e.ts`·`frames.e2e.ts`·`input-filter.e2e.ts`·`confirm.e2e.ts`·`dwell.e2e.ts`(70개)
+회귀 없음.
 
 ## Skipped Issues
 
-None — all 8 in-scope findings were fixed.
+없음 — 범위 안 9건 모두 fixed(WR-03은 위에 적은 대로 "requires human verification" 단서 포함).
 
-## Verification (fresh, final run — all commands quoted verbatim)
+## 범위 밖(지시대로 손대지 않음)
 
-Ran in the main working tree at `/home/user/project_260923` (no isolated worktree; git_rules pinned this run to the main checkout directly).
+- IN-01..IN-04, 참고 항목 D-25(로컬 꺼짐 표시) — 오케스트레이터 지시로 이번 라운드 범위 밖.
 
-```
-$ pnpm lint
-> tremor-browser-helper@0.0.0 lint /home/user/project_260923
-> eslint .
-(exit 0, no output)
-```
+## 커밋 목록
 
-```
-$ pnpm typecheck
-> tremor-browser-helper@0.0.0 typecheck /home/user/project_260923
-> wxt prepare && tsc --noEmit
-
-WXT 0.21.4
-i Generating types...
-√ Finished in 372 ms
-(exit 0, no errors)
-```
-
-```
-$ pnpm test:unit
- Test Files  13 passed (13)
-      Tests  94 passed (94)
-```
-
-```
-$ CI=true pnpm exec playwright test tests/e2e/confirm.e2e.ts tests/e2e/danger.e2e.ts \
-    tests/e2e/magnet.e2e.ts tests/e2e/hints.e2e.ts tests/e2e/press.e2e.ts \
-    tests/e2e/dwell.e2e.ts tests/e2e/site-toggle.e2e.ts tests/e2e/helper-toggle.e2e.ts \
-    tests/e2e/lifecycle.e2e.ts
-Running 92 tests using 1 worker
-································································································
-············
-  92 passed (1.9m)
-```
-
-Note: `magnet.e2e.ts` does not exist as a separate e2e file in this codebase — magnet capture/danger-priority behaviour is covered by `tests/unit/magnet.test.ts` (unit) and `tests/e2e/danger.e2e.ts` (e2e). Both are included in the runs above.
-
-Full test suite (`pnpm test`, which also runs every other unaffected e2e file such as `frames.e2e.ts`, `drag.e2e.ts`, `input-filter.e2e.ts`, `overlay-perf.e2e.ts`, `zoom.e2e.ts`, `skeleton.e2e.ts`, `spike.e2e.ts`, `dom-audit.e2e.ts`) was **not** run in full per the scoping instruction ("Do not run the entire suite (the warnings pass will run the full gate once)") — the warnings-pass fixer should run `pnpm test` in full before considering the phase done.
-
-## Notes for the warnings-pass fixer
-
-- `danger.html` now has 11 top-level candidate elements (was 8) plus the cross-origin child (`btn-child-delete`) = 12 total, after CR-05 added 3 new buttons in a second column (`x=650`). Any warning-pass test relying on an exact "9 = 8+1" hint-chapter count against `danger.html` should be re-verified against the new total, or should assert on specific item identity rather than raw label count (this is exactly the trap CR-08's first reproduction attempt fell into).
-- Two new e2e-only test hooks now exist on `globalThis` in the background service worker, both guarded the same way as the pre-existing `disconnectAlivePorts`: `resetRelayForE2E()` (clears `relay.ts`'s in-memory `reportsByTab`). These are flagged by IN-02 (already out of scope for this CR-only pass) as "test-only hooks ship in the production service worker" — the warnings pass should decide whether to gate all three (`frameStates`, `disconnectAlivePorts`, `resetRelayForE2E`) behind `import.meta.env.MODE !== 'production'` together.
-- `pipeline.ts`'s `pointerdown` handler changed behaviour for right-click/middle-click: it now always passes them through untouched (previously it could swallow their mousedown/mouseup too). This is a side benefit of the CR-07 fix, not a new regression — but worth knowing if a warning-pass test specifically exercises context-menu behaviour.
-- WR-10 in the original review calls out that `magnet.test.ts:97-103` "asserts the CR-04 defect as intended behaviour" and needs inverting — this is now done (as part of the CR-04 fix above), so WR-10's fix scope should be reduced to just its other two items (the space-hold-guard timing test and the `openDangerConfirm` fixed-sleep flakiness).
+1. `9739ee3` test(RED): CR-01 재현
+2. `63d8eff` fix: CR-01 도우미 키 조합 무시 + 조합 결과 되돌리기
+3. `7fcabd9` fix: WR-01 documentWasRewritten() 되돌림
+4. `804a88c` fix: WR-02 옛 인스턴스 조용함 단언 복원
+5. `ee05e56` fix: WR-03 topDocOrigins about: 탭 주소 검사
+6. `a342019` fix: WR-04 noopener 아이콘·메뉴 시험 강화
+7. `a61c308` fix: WR-05 사이트 카드 SW 거절 되돌리기
+8. `16145b7` fix: WR-06 site/ping 재시도 + 세대 번호
+9. `a07c2f5` fix: WR-07 framePath 질의 문자열 제거
+10. `755f43f` fix: WR-08 keydown 직접 편집 삼키기
 
 ---
 
-## Skipped Issues (warnings pass)
-
-None — all 10 in-scope findings (WR-01..WR-10) were fixed. See the "Warnings pass (WR-01..WR-10)" section above for two documented scope reductions within otherwise-fixed findings: WR-01 (the window-blur/visibilitychange path is fixed; the harder-to-reproduce "focus into a same-tab child iframe" scenario is not independently verified) and WR-05 (child-frame framePath tagging prevents the described false-merge but does not achieve full composed-path accuracy).
-
-## Additional fixes required to reach a clean full-gate run (not WR-01..WR-10, found while running the gate)
-
-Running `pnpm test` in full for the first time (as instructed, exactly once after all WR fixes) surfaced pre-existing test-quality gaps that were not part of this review's WR-01..WR-10 findings, but blocked the "0 failed, 0 flaky" gate requirement. Per the required method ("the fixer adapts to current state, not historical review context") these were root-caused and fixed:
-
-1. **WR-06 regression, 2 missed spots** (`tests/e2e/confirm.e2e.ts` CR-02 test, `tests/e2e/hints.e2e.ts` CR-06 test) — commit `02c95f1`. Both had the same "turn card off, then immediately on, no wait" pattern already fixed in `helper-toggle.e2e.ts`/`site-toggle.e2e.ts` as part of the WR-06 commit, just in different files that weren't in that commit's verification run. Same fix (350ms wait between the two clicks).
-2. **`dom-audit.e2e.ts`, 7 tests** — commit `340c47d`. Latent break from CR-05 (critical pass, already committed before this pass started): `danger.html` grew from 9 to 12 hint-candidate items, so `numberForElement`'s "closest label in whichever chapter is currently open" no longer reliably found `btn-delete-solo` (it can now be on the second hint chapter). Replaced with `numberForElementAcrossChapters`, which pages through chapters (`Digit0`) until it finds a label actually near the target element. This is exactly the trap the critical-pass fixer's own handoff note (above, "Notes for the warnings-pass fixer") flagged in advance for `danger.html`-dependent tests.
-3. **`hints.e2e.ts` shortcuts.html test, 1 test** — commit `340c47d` (same commit as #2). Same root cause pattern as WR-10: a fixed 50ms sleep after `KeyF`, racing `openHints()`'s two `chrome.storage` reads. Flaky only under full-suite load (passed reliably in isolation and per-file), not reproducible as a deterministic red/green pair — replaced with `expect.poll` on the label list, per the same "replace fixed sleeps with condition waits" principle WR-10 already established for a different file.
-
-All three were verified fixed (Tier 1 re-read + the specific affected test files run green) before the mandatory single full-gate re-run below.
-
-## Final Verification — full gate, run once after all WR-01..WR-10 fixes and the three additional fixes above
-
-Ran in the main working tree at `/home/user/project_260923` (no isolated worktree for this pass either — `git_rules` pinned the run to the main checkout directly, same as the critical pass).
-
-```
-$ pnpm lint
-> tremor-browser-helper@0.0.0 lint /home/user/project_260923
-> eslint .
-(exit 0, no output)
-```
-
-```
-$ pnpm typecheck
-> tremor-browser-helper@0.0.0 typecheck /home/user/project_260923
-> wxt prepare && tsc --noEmit
-
-WXT 0.21.4
-i Generating types...
-√ Finished in 519 ms
-(exit 0, no errors)
-```
-
-```
-$ test -z "$(grep -rnE '\bfetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource' src/)"
-CLEAN: no matches (D-31 — no network egress in src/)
-```
-
-```
-$ CI=true pnpm test   # pnpm test:unit && pnpm test:e2e — the FULL suite, run exactly once, no filters
-> tremor-browser-helper@0.0.0 test:unit
- Test Files  13 passed (13)
-      Tests  94 passed (94)
-
-> tremor-browser-helper@0.0.0 test:e2e
-Running 182 tests using 1 worker
-[182 dots, no failures]
-  182 passed (4.4m)
-```
-
-**0 failed, 0 flaky** across all 182 e2e tests + 94 unit tests. (A prior run of this same full-suite command — before the three additional fixes above — surfaced 8 failures: 7 in `dom-audit.e2e.ts` and 1 in `hints.e2e.ts`, both root-caused and fixed per `systematic-debugging` as described above, then the full gate was re-run from a clean state and passed completely, satisfying the "re-run the full gate" instruction.)
-
-WR-10's mutation-testing check (temporarily removing `confirm-guard.ts`'s `keyup` hold-reset, confirming the pre-existing test still passed against it, extending the test, confirming it then failed against the same mutation, reverting the mutation, confirming the extended test passes against real code) was performed and reverted cleanly (`git diff` on `confirm-guard.ts` is empty) before this final gate run — the full gate above is evidence the revert left no residue.
-
-## Full commit list (both passes, in order)
-
-Critical pass (`ff6033e`..`238e990`): `ff6033e`, `e70be54`, `d24b825`, `218da9c`, `fceff7a`, `d697430`, `0bc613f`, `cf6a7ae`, `3e9fec9`, `ff8f7ad`, `ae3cdf8`, `b2fdf4e`, `e72559c`, `257e1d2`, `e0f18f6`, `238e990`, `948d355` (interim REVIEW-FIX.md, critical pass fixer).
-
-Warnings pass (`f247e3b`..`340c47d`): `f247e3b`, `7b07ec3`, `1542c9f`, `18a797f`, `3beb3fc`, `085c974`, `5fe99f3`, `6df94f8`, `a9020d1`, `47779c8`, `5ce13a9`, `20cf465`, `289a8cc`, `d4e7d9f`, `40c4c59`, `6458c04`, `242dbfe`, `591d37d`, `02c95f1`, `7a7e9e3`, `340c47d`.
-
-This `01-REVIEW-FIX.md` file itself is **not** committed by either fixer past the critical pass's interim commit (`948d355`) — per instructions, the orchestrator commits the final version.
+_Fixed: 2026-09-26T07:17:21Z_
+_Fixer: Claude (gsd-code-fixer)_
+_Iteration: 1_
