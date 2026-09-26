@@ -421,6 +421,93 @@ test('shortcuts.html에서 번호표가 떠 있을 때 1은 사이트 단축키 
   await expect(page.locator('#site-keydown')).toHaveText('1');
 });
 
+// ISSUE-001(/qa 사용자 결정 2026-09-26): Ctrl·Alt·Meta가 함께 눌린 키는 도우미 키(F 번호표 열기,
+// 번호표가 떠 있을 때 숫자 누르기 등)로 보지 않고 preventDefault 없이 브라우저·페이지로 넘긴다.
+// Shift+F는 그대로 번호표를 연다(유지).
+async function installBubbleKeyLogger(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    (window as unknown as { __bubbleKeyLog: Array<{ code: string; defaultPrevented: boolean }> }).__bubbleKeyLog = [];
+    window.addEventListener('keydown', (e) => {
+      (window as unknown as { __bubbleKeyLog: Array<{ code: string; defaultPrevented: boolean }> }).__bubbleKeyLog.push({
+        code: e.code,
+        defaultPrevented: e.defaultPrevented,
+      });
+    });
+  });
+}
+
+async function bubbleKeyLog(page: Page): Promise<Array<{ code: string; defaultPrevented: boolean }>> {
+  return page.evaluate(
+    () =>
+      (window as unknown as { __bubbleKeyLog?: Array<{ code: string; defaultPrevented: boolean }> }).__bubbleKeyLog ?? [],
+  );
+}
+
+test('ISSUE-001: Ctrl+F·Alt+F·Ctrl+Shift+F는 도우미 키로 보지 않아 번호표를 열지 않고 페이지 버블 리스너에 defaultPrevented=false로 도달한다', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/targets.html');
+  await waitForHelperReady(page);
+  await installBubbleKeyLogger(page);
+
+  await page.keyboard.press('Control+F');
+  await page.waitForTimeout(50);
+  expect((await labelTexts(page)).length, 'Ctrl+F는 번호표를 열면 안 된다').toBe(0);
+
+  // 같은 물리 키(KeyF)라 떨림 간격(기본 300ms, D-07)보다 넉넉히 띄운다(다른 시험과 같은 관례).
+  await page.waitForTimeout(350);
+  await page.keyboard.press('Alt+F');
+  await page.waitForTimeout(50);
+  expect((await labelTexts(page)).length, 'Alt+F는 번호표를 열면 안 된다').toBe(0);
+
+  await page.waitForTimeout(350);
+  await page.keyboard.press('Control+Shift+F');
+  await page.waitForTimeout(50);
+  expect((await labelTexts(page)).length, 'Ctrl+Shift+F는 번호표를 열면 안 된다').toBe(0);
+
+  const log = await bubbleKeyLog(page);
+  const fEvents = log.filter((entry) => entry.code === 'KeyF');
+  expect(fEvents.length, '세 조합 모두 페이지 버블 리스너에 닿아야 한다').toBe(3);
+  for (const entry of fEvents) {
+    expect(entry.defaultPrevented, '도우미 키가 아니므로 preventDefault 없이 넘어가야 한다').toBe(false);
+  }
+});
+
+test('ISSUE-001: 번호표가 떠 있을 때 Ctrl+1을 누르면 1번 요소가 눌리지 않고 번호표도 그대로 남는다', async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/targets.html');
+  await waitForHelperReady(page);
+
+  const box = await page.locator('#btn-tiny').boundingBox();
+  if (!box) {
+    throw new Error('버튼을 찾지 못했다');
+  }
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.waitForTimeout(50);
+
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(50);
+  expect((await labelTexts(page))[0]).toBe('1');
+
+  await page.keyboard.press('Control+Digit1');
+  await page.waitForTimeout(50);
+
+  await expect(page.locator('#btn-tiny-count')).toHaveText('0');
+  expect((await labelTexts(page)).length, 'Ctrl+1은 번호표를 쓰지 않으니 번호표가 그대로 남아야 한다').toBeGreaterThan(0);
+});
+
+test('ISSUE-001 회귀 방지: Shift+F는 그대로 번호표를 연다', async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/targets.html');
+  await waitForHelperReady(page);
+
+  await page.keyboard.press('Shift+F');
+  await page.waitForTimeout(50);
+
+  expect((await labelTexts(page)).length).toBeGreaterThan(0);
+});
+
 test('입력칸에 초점이 있으면 F는 글자로 들어간다(번호표 안 뜸)', async ({ context }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/shortcuts.html');

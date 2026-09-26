@@ -707,6 +707,42 @@ test('나옴 상태에서 Ctrl+B(서식) 편집은 막히고, Ctrl+C(복사)·Ct
   ).toContain('Equal');
 });
 
+// ISSUE-001(/qa 사용자 결정 2026-09-26): 나옴 상태에서도 Ctrl+F는 도우미 키(번호표 열기)로 보지
+// 않는다 — WR-01의 Ctrl 허용 목록(PASS_CTRL_CODES)에 KeyF가 이미 있으므로, 번호표가 그 키를
+// 먼저 삼키지 않고 그대로 편집기 프레임에 닿아야 한다.
+test('ISSUE-001: 나옴 상태에서 Ctrl+F는 번호표를 열지 않고 허용 목록대로 편집기 프레임에 그대로 닿는다', async ({
+  context,
+  servePage,
+}) => {
+  servePage(
+    'http://practice.test/issue001-ctrl-f-editor.html',
+    '<!doctype html><body style="margin:0" contenteditable="true" id="doc-text">ab' +
+      '<script>' +
+      'window.__issue001Codes=[];' +
+      "document.addEventListener('keydown',function(e){window.__issue001Codes.push(e.code);},true);" +
+      '</script>' +
+      '</body>',
+  );
+
+  const page = await context.newPage();
+  await page.goto('http://practice.test/issue001-ctrl-f-editor.html');
+
+  const text = page.locator('#doc-text');
+  await text.click();
+  await expect.poll(() => dataMode(page)).toBe('typing');
+
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
+
+  await page.keyboard.press('Control+F');
+
+  expect(await hintLabelCount(page), 'Ctrl+F는 나옴 상태에서도 번호표를 열면 안 된다').toBe(0);
+  expect(
+    await page.evaluate(() => (window as unknown as { __issue001Codes: string[] }).__issue001Codes),
+    'Ctrl+F는 허용 목록대로 편집기 프레임에 그대로 닿아야 한다',
+  ).toContain('KeyF');
+});
+
 // WR-02(01-REVIEW.md): 나옴 상태의 편집 차단은 keydown·beforeinput뿐이었다 — 끌어서 놓기(drop)
 // 처럼 키보드를 거치지 않는 경로는 편집기가 직접 문서를 고칠 수 있었다. 오른쪽 클릭 메뉴
 // 붙여넣기·잘라내기는 헤드리스 Playwright로 신뢰된(trusted) 이벤트를 재현할 수 없어(브라우저
