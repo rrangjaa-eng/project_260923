@@ -45,6 +45,10 @@ const DRAG_ARM_HINT = '놓을 곳을 누르세요 · Esc 취소';
 // 짧게, D-13·Plan 01-12 스파이크).
 const PICKER_BLOCKED_MESSAGE = '이 칸은 직접 눌러 주세요';
 
+// Task 2(01-18, IN-04, SAFE-04): 사이트 설정을 연속으로 못 읽을 때 자식 프레임에 한 번 띄운다
+// (CLAUDE.md §7, SYSTEM.md 카피 규칙 — 원인. 다음 행동 없이 스스로 돌아온다는 뜻만 전한다).
+const SITE_STATE_UNREADABLE_MESSAGE = '사이트 설정을 다시 읽는 동안 여기서는 도우미를 껐어요.';
+
 // 끌 수 있는 요소 판정(D-08 RESOLVED): 요소 자신이나 조상이 draggable="true"다.
 function isDraggableElement(el: Element): boolean {
   let node: Element | null = el;
@@ -98,15 +102,19 @@ function parseHintKey(key: string): { frameId: number; itemId: string } {
 //
 // WR-05: 사이트 = 맨 위 페이지 출처(D-20) — 자식 프레임(특히 다른 출처)이 자기 window.location
 // .origin으로 기록하면 맨 위의 readPinsAndPresses()(항상 자기 출처만 읽는다)가 그 기록을 영영
-// 못 본다. site/query 응답으로 한 번 배운 맨 위 출처를 여기 저장해 모든 프레임이 같은 키에
-// 기록하게 한다(응답이 아직 없으면 자기 출처로 대체 — D-06과 같은 완화, 맨 위 프레임 자신은
-// 늘 자기 출처 = 맨 위 출처라 이 대체값도 옳다).
+// 못 본다. 맨 위는 main() 시작부에서 곧바로 자기 출처로 채우고, 자식은 site/query 응답으로
+// 배운 값을 여기 저장해 모든 프레임이 같은 키에 기록하게 한다(Task 2, 01-18): 아직 모르면(자식이
+// 첫 site/query 왕복 전이거나 계속 실패하는 동안) 기록을 보내지 않는다 — 자기 출처로 대체하던
+// 옛 완화는 사이트가 다른데도 같은 키로 잘못 기록할 수 있어 없앴다.
 let cachedTopOrigin: string | null = null;
 
 function sendRecordPress(fingerprint: Fingerprint): void {
+  if (cachedTopOrigin === null) {
+    return;
+  }
   void chrome.runtime.sendMessage({
     type: 'storage/request',
-    op: { kind: 'recordPress', origin: cachedTopOrigin ?? window.location.origin, fingerprint },
+    op: { kind: 'recordPress', origin: cachedTopOrigin, fingerprint },
   });
 }
 
@@ -156,6 +164,11 @@ export default defineContentScript({
     documentRewriteWatcher.observe(document, { childList: true });
 
     const isTopFrame = window.top === window;
+    if (isTopFrame) {
+      // Task 2(01-18, D-20): 맨 위는 자기 출처가 곧 사이트다 — site/query 왕복 없이 곧바로
+      // 안다. about: 문서(주소 없는 새 창)에서는 "null" 문자열을 캐시할 수 있다(01-19가 고친다).
+      cachedTopOrigin = window.location.origin;
+    }
     // WR-05: 자석·머무르기·스페이스바로 이 프레임 안에서 곧바로 누른 것은 진짜 합성 framePath
     // (composeTree가 맨 위에서 트리를 내려가며 계산하는 값, 이 프레임 혼자서는 모른다)를 대신할
     // 수 없다. item.fingerprint.framePath를 그대로([]) 두면 "맨 위 자신의 항목"과 자리 표시가
@@ -169,6 +182,13 @@ export default defineContentScript({
     // 지금 사이트에서만 끄기(Plan 01-13, D-20): 사이트 = 맨 위 페이지 출처. 전역 enabled와 합쳐
     // applyEnabled에 넘긴다(syncEnabled) — 둘 중 하나라도 꺼지면 도우미는 꺼진다.
     let siteDisabled = false;
+    // Task 2(01-18, IN-04, SAFE-04, D-06, D-20): 사이트 설정 읽기 상태 — 'pending'(시작, D-06
+    // 기본값대로 동작)·'known'(읽었다)·'failed'(연속 실패, fail-closed). 재시도는 계속하고,
+    // 성공하거나 이 인스턴스가 정리될 때까지 실패 스트릭·타이머·알림 표시 여부를 추적한다.
+    let siteState: 'pending' | 'known' | 'failed' = 'pending';
+    let siteReadFailureStreak = 0;
+    let siteUnreadableNoticeShown = false;
+    let siteRetryTimerId: ReturnType<typeof setTimeout> | null = null;
     // 맨 위만 쓴다: relay.ts가 그대로 넘겨주는 탭의 모든 프레임 원본 보고(selfPath + 자식의
     // 상대 순번, D-03). 실제 frameId는 openHints 때 resolveReports로 맞춘다 — 자기 프레임(0)
     // 것은 최신성을 보장하려고 그때 collector에서 직접 다시 만들어 덮어쓴다(비동기 왕복 경합 방지).
@@ -585,12 +605,14 @@ export default defineContentScript({
       void chrome.runtime.sendMessage({ type: 'frame/state', enabled });
     }
 
-    // 전역 enabled와 지금 사이트에서만 끄기를 합친다(D-20) — 둘 중 하나라도 꺼지면 도우미는 꺼진다.
+    // 전역 enabled와 지금 사이트에서만 끄기를 합친다(D-20) — 셋 중 하나라도 꺼지면 도우미는
+    // 꺼진다. Task 2(IN-04, SAFE-04): siteState === 'failed'(사이트 설정을 계속 못 읽음)도 여기
+    // 넣어 fail-closed한다 — 'pending'(아직 첫 응답 전)은 D-06대로 켜진 것으로 본다.
     function syncEnabled(): void {
       if (cleanedUp) {
         return;
       }
-      applyEnabled(currentSettings.data.enabled && !siteDisabled);
+      applyEnabled(currentSettings.data.enabled && !siteDisabled && siteState !== 'failed');
     }
 
     // 설정을 읽기 전이라도 리스너를 먼저 걸어야 사이트보다 앞선다(D-06, Pattern 1) — 설정이
@@ -989,47 +1011,104 @@ export default defineContentScript({
     }
     chrome.storage.onChanged.addListener(handleSettingsStorageChange);
 
-    // 지금 사이트에서만 끄기(Plan 01-13, D-20): 사이트 = 맨 위 페이지 출처 — background.ts에
-    // site/query로 물어본다(모든 프레임의 tab.url이 맨 위 문서 주소와 같으므로 어느 프레임이
-    // 물어봐도 같은 답을 준다, T-01-38: 읽을 때 SiteEntryV1 검사, 실패하면 기본값 켜짐).
-    // Task 2(D-22): 사이트 키 리스너 참조 — cleanupOldHelper()가 removeListener로 뗀다.
+    // 지금 사이트에서만 끄기(Plan 01-13, D-20): 사이트 = 맨 위 페이지 출처 — 맨 위는
+    // cachedTopOrigin을 이미 안다(main() 시작부), 자식은 background.ts에 site/query로 물어본다
+    // (모든 프레임의 tab.url이 맨 위 문서 주소와 같으므로 어느 프레임이 물어봐도 같은 답을 준다).
+    // Task 2(01-18, IN-04, SAFE-04, D-22): 사이트 키 리스너 참조 — cleanupOldHelper()가
+    // removeListener로 뗀다.
     let siteChangeListener: ((changes: Record<string, chrome.storage.StorageChange>, areaName: string) => void) | null = null;
-    void chrome.runtime.sendMessage({ type: 'site/query' }).then((raw) => {
+
+    // Task 2(01-18, IN-04): 재시도 간격 — 연속 실패 수(1부터)로 인덱싱하고, 배열 끝을 넘으면
+    // 계속 5000ms다.
+    const SITE_RETRY_DELAYS_MS = [250, 500, 1000, 2000, 5000];
+
+    function scheduleSiteRetry(): void {
       if (cleanedUp) {
         return;
       }
-      const topOrigin = (raw as { topOrigin?: string } | undefined)?.topOrigin;
-      if (!topOrigin) {
+      const delayIndex = Math.min(siteReadFailureStreak - 1, SITE_RETRY_DELAYS_MS.length - 1);
+      const delay = SITE_RETRY_DELAYS_MS[Math.max(delayIndex, 0)] ?? SITE_RETRY_DELAYS_MS[SITE_RETRY_DELAYS_MS.length - 1];
+      siteRetryTimerId = setTimeout(() => {
+        siteRetryTimerId = null;
+        void attemptReadSiteState();
+      }, delay);
+    }
+
+    function handleSiteReadFailure(): void {
+      if (cleanedUp) {
         return;
       }
-      cachedTopOrigin = topOrigin; // WR-05: sendRecordPress가 이 값을 쓴다.
-      const key = siteKey(topOrigin);
+      siteReadFailureStreak += 1;
+      siteState = 'failed';
+      syncEnabled();
+      if (siteReadFailureStreak === 3 && !siteUnreadableNoticeShown) {
+        // 문구 상수(SYSTEM.md 카피 규칙, CLAUDE.md §7): 이용자가 할 일은 없다 — 도우미가 스스로
+        // 계속 다시 읽고, 읽히면 설정대로 돌아온다.
+        siteUnreadableNoticeShown = true;
+        showToast(SITE_STATE_UNREADABLE_MESSAGE);
+      }
+      scheduleSiteRetry();
+    }
 
-      void chrome.storage.sync.get(key).then((stored) => {
+    // 한 번의 시도(Task 2): 출처를 얻고(맨 위는 캐시, 자식은 site/query) → 사이트 키를 읽는다.
+    // 어디서든 실패하면(빈 topOrigin, storage.sync.get 거부) fail-closed하고 재시도를 예약한다.
+    // 재시도 타이머는 cleanupOldHelper()가 clearTimeout으로 멈추므로, 이 함수는 정리된 뒤에는
+    // 다시 불리지 않는다 — await 뒤(이미 시작된 시도가 진행 중일 때)만 cleanedUp을 본다.
+    async function attemptReadSiteState(): Promise<void> {
+      let topOrigin: string | undefined;
+      if (isTopFrame) {
+        topOrigin = cachedTopOrigin ?? undefined;
+      } else {
+        const raw = await chrome.runtime.sendMessage({ type: 'site/query' }).catch(() => undefined);
         if (cleanedUp) {
           return;
         }
-        const parsed = SiteEntryV1.safeParse(stored[key]);
-        siteDisabled = parsed.success ? parsed.data.data.disabled : false;
-        syncEnabled();
-      });
+        topOrigin = (raw as { topOrigin?: string } | undefined)?.topOrigin;
+        if (topOrigin) {
+          cachedTopOrigin = topOrigin; // WR-05: sendRecordPress가 이 값을 쓴다.
+        }
+      }
+      if (!topOrigin) {
+        handleSiteReadFailure();
+        return;
+      }
 
-      // Task 2: 사이트 키 리스너 등록도 cleanedUp 검사 뒤에서만 한다 — 정리 뒤에 걸리면 떼어지지
-      // 않기 때문이다.
-      siteChangeListener = (changes, areaName) => {
-        if (areaName !== 'sync') {
-          return;
-        }
-        const change = changes[key];
-        if (!change) {
-          return;
-        }
-        const parsed = SiteEntryV1.safeParse(change.newValue);
-        siteDisabled = parsed.success ? parsed.data.data.disabled : false;
-        syncEnabled();
-      };
-      chrome.storage.onChanged.addListener(siteChangeListener);
-    });
+      const key = siteKey(topOrigin);
+      const stored = await chrome.storage.sync.get(key).catch(() => undefined);
+      if (cleanedUp) {
+        return;
+      }
+      if (stored === undefined) {
+        handleSiteReadFailure();
+        return;
+      }
+
+      const parsed = SiteEntryV1.safeParse(stored[key]);
+      siteDisabled = parsed.success ? parsed.data.data.disabled : false;
+      siteState = 'known';
+      siteReadFailureStreak = 0;
+      syncEnabled();
+
+      // Task 2: 사이트 키를 처음 알게 된 순간 한 번만 리스너를 건다(재시도가 여러 번 돌아도
+      // 중복 등록하지 않는다). 등록도 cleanedUp 검사 뒤에서만 — 정리 뒤에 걸리면 떼어지지 않는다.
+      if (!siteChangeListener) {
+        siteChangeListener = (changes, areaName) => {
+          if (areaName !== 'sync') {
+            return;
+          }
+          const change = changes[key];
+          if (!change) {
+            return;
+          }
+          const changeParsed = SiteEntryV1.safeParse(change.newValue);
+          siteDisabled = changeParsed.success ? changeParsed.data.data.disabled : false;
+          syncEnabled();
+        };
+        chrome.storage.onChanged.addListener(siteChangeListener);
+      }
+    }
+
+    void attemptReadSiteState();
 
     // 옛 도우미 자기 정리(D-22, RESEARCH.md Pattern 6, Task 2 이어짐): 확장이 업데이트·다시
     // 불러오기·제거되거나(기존 경로) 페이지가 문서를 다시 쓰면(Task 2 새 경로) 이 컨텍스트는
@@ -1064,6 +1143,13 @@ export default defineContentScript({
         } catch {
           // 무시.
         }
+      }
+      // Task 2(01-18): 사이트 설정 재시도 타이머를 멈춘다 — 안 그러면 정리 뒤에도 타이머가
+      // attemptReadSiteState()를 계속 부른다(그 안의 cleanedUp 검사가 아무 일도 하지 않게 막긴
+      // 하지만, 타이머 자체를 지우는 편이 낫다).
+      if (siteRetryTimerId !== null) {
+        clearTimeout(siteRetryTimerId);
+        siteRetryTimerId = null;
       }
       try {
         alivePort?.disconnect();

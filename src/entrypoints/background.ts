@@ -114,6 +114,15 @@ export default defineBackground(() => {
     relay.resetForE2E();
   };
 
+  // e2e 전용 시험 훅(제품 기능 아님, 위 disconnectAlivePorts·resetRelayForE2E와 같은 이유,
+  // IN-02): site/query가 남은 횟수만큼 빈 답을 주게 한다 — 페이지·content script는 닿지 못하고
+  // (SW 전역, 개발자 도구·CDP에서만) 실제 site/query 실패(예: sender.tab.url 계산 불가)를 결정적
+  // 으로 재현한다(01-18 Task 2).
+  let siteQueryFailuresLeftForE2E = 0;
+  (globalThis as typeof globalThis & { failSiteQueryForE2E: (count: number) => void }).failSiteQueryForE2E = (count) => {
+    siteQueryFailuresLeftForE2E = Math.max(0, Math.trunc(count));
+  };
+
   // 업데이트 직후 새 도우미 넣기(D-22, RESEARCH.md Pattern 6): 이미 열려 있는 탭들에 지금
   // content script를 다시 넣는다 — 옛 도우미는 (열려 있었다면) 스스로 정리하고, 새 도우미가
   // 한 번만 들어간다. 도울 수 없는 주소는 건너뛴다(T-01-43).
@@ -256,6 +265,12 @@ export default defineBackground(() => {
     }
 
     if (message.type === 'site/query') {
+      // e2e 전용 훅(01-18 Task 2): 남은 횟수가 있으면 빈 답으로 실패를 흉내 낸다.
+      if (siteQueryFailuresLeftForE2E > 0) {
+        siteQueryFailuresLeftForE2E -= 1;
+        sendResponse({});
+        return undefined;
+      }
       // 모든 프레임의 sender.tab.url은 항상 맨 위 문서의 주소와 같다 — 어느 프레임이 물어봐도
       // 같은 답을 준다(D-20 "사이트 = 맨 위 페이지 출처").
       const topOrigin = sender.tab?.url ? new URL(sender.tab.url).origin : '';
