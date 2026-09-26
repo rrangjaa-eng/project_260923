@@ -4,10 +4,10 @@ current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
 stopped_at: Completed 01-19-PLAN.md
-last_updated: "2026-09-26T13:06:20.600Z"
+last_updated: "2026-09-26T13:55:34.811Z"
 last_activity: 2026-09-24
 last_activity_desc: Phase 01 execution started
-state_head: 523a7f7e627d5144f1820b1c27706900edf948f7
+state_head: f3c332b460cc202941d28bd5b31c3915d7491e80
 progress:
   total_phases: 6
   completed_phases: 0
@@ -150,6 +150,7 @@ Recent decisions affecting current work:
 - [Phase 1]: Phase 1 진행: 재검증 human_needed(자동 101/103, 실패 0). Post-build(/review→/qa→/design-review→/cso→/ship) 통과 시 main에 머지 커밋으로 머지(브랜치 유지, PR #8~#12 보호). 사람 확인 8개(01-UAT.md)는 Phase 2 이용자 시험 때 /gsd-verify-work 1로 처리, 그때 phase 완료 표시. D-25는 머지 직후 /gsd-quick(사용자 결정 2026-09-26)
 - [Phase 1]: /review F1·F2: 나옴 상태 복귀 규칙을 하나로 — 초점이 focus sink를 떠나면(편집기 누름·사이트의 editor.focus()·다른 요소) 무조건 입력 중으로 복귀. pointerdown으로 나옴을 푸는 코드는 없앤다. F3: 토글 성공 시 토글 실패 안내만 숨기고 형식 변환 실패(D-25) 경고는 유지. 함께: 낡은 주석 7곳 정정, 도우미 끌 때 나옴 상태 해제, focus sink role=group, 나옴 상태에서 Tab 통과(사용자 결정 2026-09-26)
 - [Phase 1]: 후속(비차단): 다른 출처 iframe에서 정방향 Tab이 초점을 조용히 리셋하면 맨 위 document.activeElement가 IFRAME→BODY로 이벤트 없이 바뀌어 content.ts refreshModeDisplay의 delegatedToChild 판정이 어긋나 맨 위 모드 표시만 잠깐 실제와 다르다. 편집 차단(escaped·beforeinput)은 프레임 자체 상태라 정상. Phase 2에서 처리
+- [Phase 1]: /qa 결정: ISSUE-001 Ctrl·Alt·Meta가 함께 눌린 키는 도우미 키(F·숫자 등)로 보지 않고 브라우저에 넘긴다(Shift+F는 유지). ISSUE-002·003 번호표를 화면 안으로 밀어 넣고 위험 표시와 겹치지 않게. ISSUE-004 Tab 0.3초 반복 거절은 D-07 설계대로 유지(값은 Phase 2 TEST-02). ISSUE-005(테스트 전용 경로 콘솔 오류)는 후속(사용자 결정 2026-09-26)
 
 ### Pending Todos
 
