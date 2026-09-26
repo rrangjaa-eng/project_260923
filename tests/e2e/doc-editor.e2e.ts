@@ -301,6 +301,51 @@ test('01-17 #frame-editor(document.write + designMode)에서도 초점 옮기기
   await runFocusShiftCompositionScenario(page, '#frame-editor', '#editor-text');
 });
 
+// DOM감사-4(독립 DOM 감사): focus sink(mode-indicator.ts getFocusSink)에 aria-hidden을 쓰면
+// 초점을 받는 요소를 숨기는 접근성 반패턴이 된다 — 대신 현재 상태를 말하는 접근 가능한 이름
+// (모드 표시와 같은 용어 "도우미")을 주고, 보이는 포커스 링은 outline: none으로 막는다(상태는
+// 이미 모드 표시가 보여 준다).
+async function focusSinkInfo(
+  page: Page,
+): Promise<{ role: string | null; ariaLabel: string | null; ariaHidden: string | null; outlineStyle: string; tag: string } | null> {
+  return page.evaluate(() => {
+    const root = document.querySelector('tremor-helper-root')?.shadowRoot;
+    const active = root?.activeElement as HTMLElement | null | undefined;
+    if (!active) {
+      return null;
+    }
+    const cs = getComputedStyle(active);
+    return {
+      role: active.getAttribute('role'),
+      ariaLabel: active.getAttribute('aria-label'),
+      ariaHidden: active.getAttribute('aria-hidden'),
+      outlineStyle: cs.outlineStyle,
+      tag: active.tagName,
+    };
+  });
+}
+
+test('#frame-design에서 Esc로 나오면 focus sink가 aria-hidden 없이 접근 가능한 이름을 갖고 포커스 링이 보이지 않는다(DOM감사-4)', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/doc-editor.html');
+
+  const text = page.frameLocator('#frame-design').locator('#doc-text');
+  await text.click();
+  await expect.poll(() => dataMode(page)).toBe('typing');
+
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
+
+  const sink = await focusSinkInfo(page);
+  expect(sink, '초점이 오버레이의 focus sink로 옮겨져 있어야 한다').not.toBeNull();
+  expect(sink?.ariaHidden, '초점을 받는 요소를 aria-hidden으로 숨기면 안 된다(접근성 반패턴)').toBeNull();
+  expect(sink?.role).toBe('application');
+  expect(sink?.ariaLabel, '모드 표시와 같은 용어를 쓴다').toBe('도우미');
+  expect(sink?.outlineStyle, '상태는 모드 표시로 이미 보이니 포커스 링은 보이지 않게 막는다').toBe('none');
+});
+
 // CR-01(01-REVIEW.md): 한글 IME가 켜진 채 도우미 키(F)를 누르면 Chrome은 keydown을 keyCode
 // 229(Process)로 보낸다 — event.code는 물리 키(KeyF) 그대로라 도우미 키 처리기는 F로 인식해
 // 번호표를 연다. 뒤따르는 조합 시도가 입력 복귀 신호가 되면 안 된다(번호표가 열린 채로 남아야

@@ -629,3 +629,79 @@ test('WR-03: 사이트 카드가 응답 없이 3초 넘게 기다리면 실제 �
   await popup.close();
   await page.close();
 });
+
+// DOM감사-2(독립 DOM 감사): "이 사이트에서 켜기"가 실패해도 지금까지는 끄기 실패용 문구
+// ("이 사이트를 끄지 못했어요...")가 그대로 떴다 — 원인과 다른 다음 행동을 알려준다. 켜기 실패는
+// 따로 문구를 둔다(§7: 한 문장, 원인 + 다음 행동, 사과 없음).
+const SITE_TOGGLE_ON_FAILED_TEXT = '이 사이트를 켜지 못했어요. 다시 눌러 보세요.';
+
+test('DOM감사-2: "이 사이트에서 켜기"가 응답 없이 3초 넘게 기다리면 켜기 실패 전용 문구가 뜬다', async ({
+  context,
+  serviceWorker,
+  openPopup,
+  servePage,
+}) => {
+  servePage('http://practice.test/', '<!doctype html><html><body><h1>연습 사이트</h1></body></html>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/');
+  await waitForHelperReady(page);
+
+  const popup = await openPopup(page);
+  // 먼저 정상적으로 끈다(켜기 시도의 출발 상태를 "꺼짐"으로 만든다).
+  await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
+  await expect(popup.getByRole('button', { name: /이 사이트에서 켜기/ })).toBeVisible();
+  await popup.waitForTimeout(350);
+
+  await serviceWorker.evaluate(() => {
+    (globalThis as unknown as { holdStorageResponseForE2E: (n: number) => void }).holdStorageResponseForE2E(1);
+  });
+  await popup.getByRole('button', { name: /이 사이트에서 켜기/ }).click();
+
+  // 낙관적 렌더 — 응답이 오기 전에는 즉시 "이 사이트에서 끄기"로 바뀐다.
+  await expect(popup.getByRole('button', { name: /이 사이트에서 끄기/ })).toBeVisible();
+
+  // 클라이언트 타임아웃(3초)이 지나면 실제 상태("이 사이트에서 켜기")로 되돌아가고, 켜기 실패
+  // 전용 문구가 뜬다(끄기 실패 문구와 달라야 한다).
+  await expect(popup.getByRole('button', { name: /이 사이트에서 켜기/ })).toBeVisible({ timeout: 4000 });
+  await expect(popup.locator('.warning-card')).toHaveText(SITE_TOGGLE_ON_FAILED_TEXT);
+
+  await popup.close();
+  await page.close();
+});
+
+// DOM감사-3(독립 DOM 감사): 실패 안내 카드가 뜬 뒤 같은(또는 다른) 토글이 성공해도 안내가
+// 화면에 그대로 남아 있었다 — 더는 맞지 않는 안내가 계속 보인다. 성공하면 안내를 숨긴다.
+test('DOM감사-3: 사이트 카드가 실패 안내를 보인 뒤 다시 눌러 성공하면 안내가 사라진다', async ({
+  context,
+  serviceWorker,
+  openPopup,
+  servePage,
+}) => {
+  servePage('http://practice.test/', '<!doctype html><html><body><h1>연습 사이트</h1></body></html>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/');
+  await waitForHelperReady(page);
+
+  // storage-writer.ts writeSiteDisabledOnce의 invalid-site 경로를 밟게 한다(검사 실패로 거절).
+  await serviceWorker.evaluate(async () => {
+    await chrome.storage.sync.set({ 'site:http://practice.test': { not: 'valid' } });
+  });
+
+  const popup = await openPopup(page);
+  await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
+  await expect(popup.locator('.warning-card')).toHaveText(SITE_TOGGLE_FAILED_TEXT);
+
+  // 근본 원인을 없앤 뒤(깨진 항목 제거) 다시 누르면 이번엔 성공한다.
+  await serviceWorker.evaluate(async () => {
+    await chrome.storage.sync.remove('site:http://practice.test');
+  });
+  await popup.waitForTimeout(350);
+  await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
+  await expect.poll(() => hasHelperRoot(page)).toBe(false);
+
+  // 성공했으니 실패 안내는 더는 화면에 남지 않는다.
+  await expect(popup.locator('.warning-card')).toHaveCount(0);
+
+  await popup.close();
+  await page.close();
+});

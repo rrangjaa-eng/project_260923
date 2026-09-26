@@ -245,3 +245,23 @@ test('WR-03: 도우미 카드가 응답 없이 3초 넘게 기다리면 실제 �
 
   await popup.close();
 });
+
+// DOM감사-1(독립 DOM 감사): 실패 안내 카드(.warning-card)는 시각으로만 전달돼 스크린리더
+// 이용자에게는 안내가 뜨는지 알 방법이 없었다 — 오류 알림이니 role="alert"(암묵적 aria-live=
+// assertive)를 준다.
+test('DOM감사-1: 도우미 카드가 실패로 안내 카드를 보이면 role="alert"로 스크린리더에도 알려진다', async ({
+  serviceWorker,
+  openPopup,
+}) => {
+  await serviceWorker.evaluate(() => {
+    (globalThis as unknown as { holdStorageResponseForE2E: (n: number) => void }).holdStorageResponseForE2E(1);
+  });
+
+  const popup = await openPopup();
+  await popup.getByRole('button', { name: '도우미 끄기' }).click();
+
+  await expect(popup.locator('.warning-card')).toHaveText(HELPER_TOGGLE_FAILED_TEXT, { timeout: 4000 });
+  await expect(popup.locator('.warning-card')).toHaveAttribute('role', 'alert');
+
+  await popup.close();
+});
