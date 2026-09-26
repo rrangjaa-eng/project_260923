@@ -235,6 +235,26 @@ export default defineBackground(() => {
       return true;
     }
 
+    if (message.type === 'frame/reinject') {
+      // 01-17 Task 2(D-22 문서 다시 쓰기 대응, T-01-49): 대상은 Chrome이 채운 sender.tab.id·
+      // sender.frameId뿐이다 — 메시지 본문의 값은 없다(스푸핑 방지, 위 sender.id 확인·parseMessage
+      // 검사를 이미 지났다). 보낸 프레임 하나에만 새 content script를 넣는다.
+      const tabId = sender.tab?.id;
+      const frameId = sender.frameId;
+      if (tabId === undefined || frameId === undefined) {
+        return undefined;
+      }
+      const manifest = chrome.runtime.getManifest();
+      const files = manifest.content_scripts?.[0]?.js ?? [];
+      if (files.length === 0) {
+        return undefined;
+      }
+      void chrome.scripting.executeScript({ target: { tabId, frameIds: [frameId] }, files }).catch(() => {
+        // 프레임이 그사이 사라졌을 수 있다(예: iframe 제거) — 무시.
+      });
+      return undefined;
+    }
+
     if (message.type === 'site/query') {
       // 모든 프레임의 sender.tab.url은 항상 맨 위 문서의 주소와 같다 — 어느 프레임이 물어봐도
       // 같은 답을 준다(D-20 "사이트 = 맨 위 페이지 출처").

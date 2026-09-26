@@ -190,6 +190,14 @@ const ZoomQueryMessage = z.object({
   type: z.literal('zoom/query'),
 });
 
+// content script(각 프레임) → SW(01-17 Task 2, D-22 문서 다시 쓰기 대응): 필드 없음 — 대상은
+// Chrome이 채운 sender.tab.id·sender.frameId뿐이다(스푸핑 방지, T-01-49). document.write로 문서를
+// 다시 쓴 프레임이 옛 인스턴스를 스스로 정리한 뒤 보낸다 — background.ts가 그 프레임 하나에만
+// content script를 다시 넣는다.
+const FrameReinjectMessage = z.object({
+  type: z.literal('frame/reinject'),
+});
+
 // SW → 탭의 모든 프레임(방송, T-01-47): chrome.tabs.onZoomChange가 오면 새 비율을 알린다.
 // zoom은 0.25~5 범위만 받는다(스푸핑·오류 값 방지) — 이 범위 밖 값은 parseMessage가 버린다.
 const ZoomChangedMessage = z.object({
@@ -215,6 +223,7 @@ export const Message = z.discriminatedUnion('type', [
   SiteQueryMessage,
   ZoomQueryMessage,
   ZoomChangedMessage,
+  FrameReinjectMessage,
 ]);
 export type Message = z.infer<typeof Message>;
 

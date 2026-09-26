@@ -67,6 +67,9 @@ declare namespace chrome.storage {
 
   const onChanged: {
     addListener(callback: (changes: Record<string, StorageChange>, areaName: string) => void): void;
+    // 옛 도우미 자기 정리(01-17 Task 2, D-22 문서 다시 쓰기 대응): cleanupOldHelper()가 이 인스턴스가
+    // 건 리스너를 뗀다 — addListener와 같은 콜백 모양이어야 뗄 수 있다.
+    removeListener(callback: (changes: Record<string, StorageChange>, areaName: string) => void): void;
   };
 }
 
@@ -115,7 +118,12 @@ declare namespace chrome.tabs {
 // 업데이트 직후 새 도우미 넣기(D-22, Plan 01-14): manifest의 scripting 권한으로 이미 열린
 // 탭에 content script를 다시 넣는다.
 declare namespace chrome.scripting {
-  function executeScript(details: { target: { tabId: number; allFrames?: boolean }; files: string[] }): Promise<unknown>;
+  // frameIds(01-17 Task 2, D-22 문서 다시 쓰기 대응): 보낸 프레임 하나에만 새 content script를
+  // 다시 넣는다 — allFrames(업데이트 직후 전체 재주입)와는 다른 좁은 대상.
+  function executeScript(details: {
+    target: { tabId: number; allFrames?: boolean; frameIds?: number[] };
+    files: string[];
+  }): Promise<unknown>;
 }
 
 // 확장 아이콘(D-21): 제목·배지로 "도울 수 없음"을 알린다. tabId를 생략하면 기본값에 적용된다

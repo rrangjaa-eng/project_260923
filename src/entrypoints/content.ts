@@ -126,6 +126,35 @@ export default defineContentScript({
       el.remove();
     });
 
+    // 옛 도우미 자기 정리(D-22, Task 2 이어짐): cleanupOldHelper()가 맨 먼저 true로 두는 플래그.
+    // 늦게 끝나는 비동기 이어짐(설정·알림·site/query·번호표 기록 읽기)이 정리 뒤에는 아무것도
+    // 하지 않도록 첫 사용보다 앞선 여기서 선언한다.
+    let cleanedUp = false;
+
+    // 문서 다시 쓰기 감시(Task 2, D-22, probe evidence 2·3번): document.open()은 문서·Window의
+    // 이벤트 리스너를 모두 지운다 — 지운 리스너는 되살릴 수 없으므로, 다시 쓰기가 감지되면 이
+    // 인스턴스는 스스로 정리하고 SW에 다시 넣어 달라고 부탁한다(frame/reinject). document.
+    // documentElement가 childList 변화로 바뀌는 모든 경우(대부분 document.open)를 새 도우미
+    // 하나로 대응한다.
+    let startDocumentElement: Element | null = document.documentElement;
+    const documentRewriteWatcher = new MutationObserver(() => {
+      const nowElement = document.documentElement;
+      if (startDocumentElement === null) {
+        // 시작 때 기억한 값이 없었다 — 처음 나타난 요소를 기억만 하고 다시 넣지 않는다.
+        startDocumentElement = nowElement;
+        return;
+      }
+      if (nowElement !== startDocumentElement) {
+        cleanupOldHelper();
+        if (isExtensionContextValid()) {
+          void chrome.runtime.sendMessage({ type: 'frame/reinject' }).catch(() => {
+            // 확장이 그사이 무효화됐을 수 있다 — 무시.
+          });
+        }
+      }
+    });
+    documentRewriteWatcher.observe(document, { childList: true });
+
     const isTopFrame = window.top === window;
     // WR-05: 자석·머무르기·스페이스바로 이 프레임 안에서 곧바로 누른 것은 진짜 합성 framePath
     // (composeTree가 맨 위에서 트리를 내려가며 계산하는 값, 이 프레임 혼자서는 모른다)를 대신할
@@ -261,7 +290,14 @@ export default defineContentScript({
 
     // 프레임 메시지(D-03, D-09): 맨 위는 frames/reports(전체 보고 모음)를 받고, 모든 프레임은
     // press/request(SW가 이 프레임에 누르기를 부탁)를 받는다.
-    chrome.runtime.onMessage.addListener((raw, _sender, sendResponse) => {
+    // 이름 붙인 리스너(Task 2, D-22): cleanupOldHelper()가 removeListener로 뗄 수 있으려면 같은
+    // 함수 참조가 필요하다 — probe evidence 4번: 이 리스너가 안 떼어지면 옛 인스턴스가 press/
+    // request를 함께 받아 번호 누르기가 +2(이중 누르기)였다.
+    function handleRuntimeMessage(
+      raw: unknown,
+      _sender: chrome.runtime.MessageSender,
+      sendResponse: (response?: unknown) => void,
+    ): boolean | undefined {
       const parsed = parseMessage(raw);
       if (!parsed.success) {
         return undefined;
@@ -364,7 +400,8 @@ export default defineContentScript({
       }
 
       return undefined;
-    });
+    }
+    chrome.runtime.onMessage.addListener(handleRuntimeMessage);
 
     // Task 3(D-03): 자식 프레임의 입력 모드를 맨 위에 알린다 — 맨 위 모드 표시가 초점이 위임된
     // iframe이 있으면 이 값을, 없으면 자기 모드를 쓴다(refreshModeDisplay, 맨 위 쪽에서 정의).
@@ -493,6 +530,9 @@ export default defineContentScript({
     );
 
     function applyEnabled(enabled: boolean): void {
+      if (cleanedUp) {
+        return;
+      }
       if (currentEnabled === enabled) {
         return;
       }
@@ -532,6 +572,9 @@ export default defineContentScript({
 
     // 전역 enabled와 지금 사이트에서만 끄기를 합친다(D-20) — 둘 중 하나라도 꺼지면 도우미는 꺼진다.
     function syncEnabled(): void {
+      if (cleanedUp) {
+        return;
+      }
       applyEnabled(currentSettings.data.enabled && !siteDisabled);
     }
 
@@ -777,6 +820,11 @@ export default defineContentScript({
       }
       const items = composed.map((c) => ({ id: hintKey(c.frameId, c.itemId), rect: c.rect, fingerprint: c.fingerprint }));
       const { pins, presses } = await readPinsAndPresses();
+      if (cleanedUp) {
+        // Task 2(D-22): await 동안 문서가 다시 쓰여 정리됐을 수 있다 — 옛 인스턴스가 번호표를
+        // 계속 열지 않는다.
+        return;
+      }
       hintChapters = orderHints({ items, pins, presses, cursor: lastCursorPos ?? { x: 0, y: 0 } });
       hintChapterIndex = 0;
       hintsActive = true;
@@ -874,6 +922,11 @@ export default defineContentScript({
     // 그대로 남는다.
     if (isTopFrame) {
       void chrome.storage.local.get(MIGRATION_NOTICE_KEY).then((stored) => {
+        if (cleanedUp) {
+          // Task 2(D-22): 옛 모듈의 showToast가 호스트를 새로 만들 수 있다 — 정리 뒤엔 아무것도
+          // 하지 않는다.
+          return;
+        }
         const parsed = MigrationNoticeV1.safeParse(stored[MIGRATION_NOTICE_KEY]);
         if (parsed.success) {
           showToast(MIGRATION_FAILED_MESSAGE);
@@ -882,6 +935,9 @@ export default defineContentScript({
     }
 
     void chrome.storage.sync.get(SETTINGS_KEY).then((stored) => {
+      if (cleanedUp) {
+        return;
+      }
       const parsed = SettingsV1.safeParse(stored[SETTINGS_KEY]);
       if (parsed.success) {
         if (parsed.data.data.dwellMs !== currentSettings.data.dwellMs) {
@@ -895,7 +951,8 @@ export default defineContentScript({
       }
     });
 
-    chrome.storage.onChanged.addListener((changes, areaName) => {
+    // 이름 붙인 리스너(Task 2, D-22): cleanupOldHelper()가 removeListener로 뗀다.
+    function handleSettingsStorageChange(changes: Record<string, chrome.storage.StorageChange>, areaName: string): void {
       if (areaName !== 'sync') {
         return;
       }
@@ -914,12 +971,18 @@ export default defineContentScript({
         collector.refresh();
         syncDwellLoop();
       }
-    });
+    }
+    chrome.storage.onChanged.addListener(handleSettingsStorageChange);
 
     // 지금 사이트에서만 끄기(Plan 01-13, D-20): 사이트 = 맨 위 페이지 출처 — background.ts에
     // site/query로 물어본다(모든 프레임의 tab.url이 맨 위 문서 주소와 같으므로 어느 프레임이
-    // 물어봐도 같은 답을 받는다, T-01-38: 읽을 때 SiteEntryV1 검사, 실패하면 기본값 켜짐).
+    // 물어봐도 같은 답을 준다, T-01-38: 읽을 때 SiteEntryV1 검사, 실패하면 기본값 켜짐).
+    // Task 2(D-22): 사이트 키 리스너 참조 — cleanupOldHelper()가 removeListener로 뗀다.
+    let siteChangeListener: ((changes: Record<string, chrome.storage.StorageChange>, areaName: string) => void) | null = null;
     void chrome.runtime.sendMessage({ type: 'site/query' }).then((raw) => {
+      if (cleanedUp) {
+        return;
+      }
       const topOrigin = (raw as { topOrigin?: string } | undefined)?.topOrigin;
       if (!topOrigin) {
         return;
@@ -928,12 +991,17 @@ export default defineContentScript({
       const key = siteKey(topOrigin);
 
       void chrome.storage.sync.get(key).then((stored) => {
+        if (cleanedUp) {
+          return;
+        }
         const parsed = SiteEntryV1.safeParse(stored[key]);
         siteDisabled = parsed.success ? parsed.data.data.disabled : false;
         syncEnabled();
       });
 
-      chrome.storage.onChanged.addListener((changes, areaName) => {
+      // Task 2: 사이트 키 리스너 등록도 cleanedUp 검사 뒤에서만 한다 — 정리 뒤에 걸리면 떼어지지
+      // 않기 때문이다.
+      siteChangeListener = (changes, areaName) => {
         if (areaName !== 'sync') {
           return;
         }
@@ -944,19 +1012,73 @@ export default defineContentScript({
         const parsed = SiteEntryV1.safeParse(change.newValue);
         siteDisabled = parsed.success ? parsed.data.data.disabled : false;
         syncEnabled();
-      });
+      };
+      chrome.storage.onChanged.addListener(siteChangeListener);
     });
 
-    // 옛 도우미 자기 정리(D-22, RESEARCH.md Pattern 6): 확장이 업데이트·다시 불러오기·제거되면
-    // 이 컨텍스트는 무효화되지만 문서 안 JS는 그대로 남는다 — 방치하면 window capture 리스너가
-    // 계속 키를 가로챈다. "alive" 포트를 열어 두고 onDisconnect가 오면 chrome.runtime?.id로
-    // 실제 무효화인지(확장 제거·업데이트) 아니면 SW가 잠깐 쉬었다 끊긴 것뿐인지 구분한다.
-    let cleanedUp = false;
+    // 옛 도우미 자기 정리(D-22, RESEARCH.md Pattern 6, Task 2 이어짐): 확장이 업데이트·다시
+    // 불러오기·제거되거나(기존 경로) 페이지가 문서를 다시 쓰면(Task 2 새 경로) 이 컨텍스트는
+    // 무효화되지만 문서 안 JS는 그대로 남는다 — 방치하면 window capture 리스너가 계속 키를
+    // 가로채거나(무효화 경로) 옛 인스턴스가 press/request를 함께 받아 이중 누르기가 된다(다시
+    // 쓰기 경로, probe evidence 4번). "alive" 포트를 열어 두고 onDisconnect가 오면
+    // chrome.runtime?.id로 실제 무효화인지(확장 제거·업데이트) 아니면 SW가 잠깐 쉬었다 끊긴
+    // 것뿐인지 구분한다.
     function cleanupOldHelper(): void {
       if (cleanedUp) {
         return;
       }
       cleanedUp = true;
+      // T-01-50: 예약된 rAF(자석 재계산·머무르기)와 확대 구독 콜백이 아무 일도 하지 않게 먼저
+      // 둔다.
+      currentEnabled = false;
+      currentTargetId = null;
+
+      try {
+        chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
+      } catch {
+        // 이미 무효화된 컨텍스트일 수 있다 — 무시.
+      }
+      try {
+        chrome.storage.onChanged.removeListener(handleSettingsStorageChange);
+      } catch {
+        // 무시.
+      }
+      if (siteChangeListener) {
+        try {
+          chrome.storage.onChanged.removeListener(siteChangeListener);
+        } catch {
+          // 무시.
+        }
+      }
+      try {
+        alivePort?.disconnect();
+      } catch {
+        // 무시.
+      }
+      try {
+        documentRewriteWatcher.disconnect();
+      } catch {
+        // 무시.
+      }
+
+      if (hintsActive) {
+        closeHints();
+      }
+      if (activeConfirmKeyHandler) {
+        // T-01-26과 같은 이유: 자식 프레임이 모달에 갇히지 않게 한다. 컨텍스트가 무효화됐으면
+        // sendMessage 자체가 던질 수 있어 try로 감싼다.
+        if (isExtensionContextValid()) {
+          try {
+            void chrome.runtime.sendMessage({ type: 'confirm/state', open: false });
+          } catch {
+            // 무시.
+          }
+        }
+        // 파이프라인의 모달 tick 타이머를 멈춘다.
+        inputPipeline.setModal(null);
+      }
+
+      // 기존 정리(그대로 둔다).
       magnetController.abort();
       pipelineController.abort();
       stopDwellLoopIfRunning();
@@ -993,6 +1115,7 @@ export default defineContentScript({
         cleanupOldHelper();
         return;
       }
+      alivePort = port; // Task 2: cleanupOldHelper()가 disconnect()할 수 있게 기억해 둔다.
       if (isReconnect) {
         // CR-08: 끊긴 뒤 다시 연결됐다는 것은 SW가 잠깐 쉬었다 다시 시작했다는 뜻이다 —
         // relay.ts의 기억(reportsByTab)이 사라졌을 수 있으니, 보고 내용이 이전과 같아 보여도
@@ -1000,6 +1123,11 @@ export default defineContentScript({
         collector.refresh(true);
       }
       port.onDisconnect.addListener(() => {
+        if (cleanedUp) {
+          // Task 2: 이 disconnect는 cleanupOldHelper() 자신이 부른 것이다 — 다시 연결하면 정리된
+          // 옛 인스턴스가 되살아난다.
+          return;
+        }
         if (!isExtensionContextValid()) {
           cleanupOldHelper();
           return;
@@ -1008,6 +1136,7 @@ export default defineContentScript({
         connectAlivePort(true);
       });
     }
+    let alivePort: chrome.runtime.Port | null = null;
     connectAlivePort();
   },
 });
