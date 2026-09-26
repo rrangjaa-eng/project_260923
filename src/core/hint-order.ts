@@ -174,6 +174,10 @@ export interface PlaceLabelsOptions {
   // 재 이 함수에 넘긴다 — 이 파일은 순수 함수라 폰트를 직접 재지 않는다.
   dangerTagWidth?: number;
   dangerGap?: number;
+  // F4(/design-review 3회차, 사용자 결정, DECISIONS.md 2026-09-26): entries에 없는 장애물
+  // 사각형(도우미 자신의 모드 표시·"다음" 카드) — 다른 번호표처럼 겹침을 피하지만, 자기 자리는
+  // 옮기지 않는다(entries가 아니라 이 목록에 있는 항목만).
+  obstacles?: Rect[];
 }
 
 export interface LabelPlacement {
@@ -195,6 +199,7 @@ export function placeLabels(
     viewportHeight = Number.POSITIVE_INFINITY,
     dangerTagWidth = 0,
     dangerGap = 8,
+    obstacles = [],
   } = opts;
 
   // ISSUE-002·003(사용자 결정): 위험 항목을 먼저 자리 잡아야 그 "! 위험" 표시가 다른 번호표의
@@ -208,7 +213,9 @@ export function placeLabels(
       return da !== db ? da - db : a.index - b.index;
     });
 
-  const placed: Array<{ x: number; y: number; w: number; h: number }> = [];
+  // F4: 장애물은 처음부터 놓인 것으로 취급한다 — entries 어느 것도 이 자리를 옮기지 못하고,
+  // 다른 번호표만 이 자리를 피한다.
+  const placed: Array<{ x: number; y: number; w: number; h: number }> = obstacles.map((o) => ({ x: o.x, y: o.y, w: o.w, h: o.h }));
   const resultByItemId = new Map<string, { x: number; y: number; dangerTagX?: number; dangerTagY?: number }>();
 
   for (const { entry } of order) {

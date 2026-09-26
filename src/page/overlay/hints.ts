@@ -1,3 +1,4 @@
+import type { Rect } from '@/core/grid-index';
 import { ensureOverlayRoot, getOverlayScale } from '@/page/overlay/mode-indicator';
 
 // 번호표 오버레이(D-11, D-26, D-27): mode-indicator.ts·ring.ts와 같은 shadow root를 이어 쓴다.
@@ -201,4 +202,22 @@ export function showNextCard(): void {
 
   nextCardElement.append(key, label);
   root.append(nextCardElement);
+}
+
+// F4(/design-review 3회차, 사용자 결정, DECISIONS.md 2026-09-26): "다음 번호" 카드가 떠 있으면
+// content.ts가 번호표 자리를 계산할 때 이 카드도 다른 번호표처럼 피할 장애물로 넘긴다. 떠 있지
+// 않으면 null.
+export function getNextCardRect(): Rect | null {
+  if (!nextCardElement?.isConnected) {
+    return null;
+  }
+  const rect = nextCardElement.getBoundingClientRect();
+  return { x: rect.x, y: rect.y, w: rect.width, h: rect.height };
+}
+
+// F4: 이 장(chapter)에는 "다음" 카드가 필요 없어졌으면(예: 마지막 장) content.ts가 자리 계산
+// 전에 미리 지운다 — hideHints()처럼 번호표까지 함께 지우지 않는, 카드만 지우는 좁은 버전이다.
+export function hideNextCard(): void {
+  nextCardElement?.remove();
+  nextCardElement = null;
 }

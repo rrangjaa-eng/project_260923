@@ -26,6 +26,7 @@ import { createInputPipeline, type ModalEvent } from '@/page/input/pipeline';
 import { currentMode, resumeDocumentEditor } from '@/page/input/mode';
 import { closeConfirm, openConfirm } from '@/page/overlay/confirm-dialog';
 import {
+  getModeIndicatorRect,
   getOverlayScale,
   hideModeIndicator,
   onOverlayScaleChange,
@@ -34,7 +35,7 @@ import {
   showModeIndicator,
   showTransientMessage,
 } from '@/page/overlay/mode-indicator';
-import { hideHints, measureDangerTag, showHints, showNextCard } from '@/page/overlay/hints';
+import { getNextCardRect, hideHints, hideNextCard, measureDangerTag, showHints, showNextCard } from '@/page/overlay/hints';
 import { hideRing, setDwellProgress, showRing } from '@/page/overlay/ring';
 import { showToast } from '@/page/overlay/toast';
 import { parseMessage } from '@/shared/messages';
@@ -773,6 +774,21 @@ export default defineContentScript({
       // exactOptionalPropertyTypes: dangerTagWidth·dangerGap 키 자체를 위험 항목이 있을 때만 넣는다
       // (undefined를 값으로 주지 않는다, PlaceLabelsOptions와 맞춘다).
       const dangerTagOpts = dangerTag ? { dangerTagWidth: dangerTag.width, dangerGap: dangerTag.gap } : {};
+
+      // F4(/design-review 3회차, 사용자 결정, DECISIONS.md 2026-09-26): 번호표는 도우미 자신의
+      // 모드 표시·"다음" 카드도 다른 번호표처럼 장애물로 피한다. "다음" 카드는 이 장에 필요할
+      // 때만(needsNextCard) 자리를 먼저 잡아 둔다 — 내용·자리·크기가 장과 무관해 몇 줄 뒤
+      // hideHints()가 지웠다가 다시 그려도 같은 자리다.
+      const needsNextCard = hintChapters.length > index + 1;
+      if (needsNextCard) {
+        showNextCard();
+      } else {
+        hideNextCard();
+      }
+      const obstacles = [getModeIndicatorRect(), needsNextCard ? getNextCardRect() : null].filter(
+        (rect): rect is NonNullable<typeof rect> => rect !== null,
+      );
+
       // 확대 역보정(Plan 01-15, D-26): 번호표 실제 화면 크기(28px × 배율)로 겹침 판정을 해야
       // 확대·축소해도 배치가 화면과 맞는다.
       const placements = new Map(
@@ -780,6 +796,7 @@ export default defineContentScript({
           viewportWidth: window.innerWidth,
           viewportHeight: window.innerHeight,
           ...dangerTagOpts,
+          ...(obstacles.length > 0 ? { obstacles } : {}),
         }).map((p) => [p.itemId, p]),
       );
       type HintLabel = { number: number; x: number; y: number; danger: boolean; dangerTagX?: number; dangerTagY?: number };
@@ -799,7 +816,7 @@ export default defineContentScript({
 
       hideHints();
       showHints(labels);
-      if (hintChapters.length > index + 1) {
+      if (needsNextCard) {
         showNextCard();
       }
     }

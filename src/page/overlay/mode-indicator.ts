@@ -1,4 +1,5 @@
 import tokensCss from '../../../docs/design/tokens.css?inline';
+import type { Rect } from '@/core/grid-index';
 import { parseMessage } from '@/shared/messages';
 
 // 오버레이 = Shadow DOM(open) + 토큰만(D-26). 프레임마다 호스트 하나(tremor-helper-root), 사이트
@@ -279,6 +280,17 @@ export function showModeIndicator(): void {
     root.append(indicatorElement);
   }
   renderIndicatorContent();
+}
+
+// F4(/design-review 3회차, 사용자 결정, DECISIONS.md 2026-09-26): content.ts가 번호표 자리를
+// 계산할 때 이 모드 표시도 다른 번호표처럼 피할 장애물로 넘긴다. 떠 있지 않으면(꺼짐, 아직
+// showModeIndicator() 전) null — 호출부가 obstacles 목록에 넣지 않으면 된다.
+export function getModeIndicatorRect(): Rect | null {
+  if (!indicatorElement) {
+    return null;
+  }
+  const rect = indicatorElement.getBoundingClientRect();
+  return { x: rect.x, y: rect.y, w: rect.width, h: rect.height };
 }
 
 export function hideModeIndicator(): void {
