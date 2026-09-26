@@ -18,6 +18,7 @@ import {
   pressesKey,
   siteKey,
 } from '@/core/settings-schema';
+import { inheritedSiteOrigin } from '@/core/unsupported-url';
 import { buildFrameReport, createCollector, type Item } from '@/page/collector/collector';
 import { synthesizeDrag } from '@/page/click/drag';
 import { synthesizePress } from '@/page/click/press';
@@ -126,6 +127,17 @@ export default defineContentScript({
   matchAboutBlank: true,
   runAt: 'document_start',
   main() {
+    // Task 1(01-19, ELEM-02, SAFE-04, SAFE-05): 맨 위 about: 문서(주소 없는 새 창, 예: 결재
+    // 팝업이 window.open('')으로 열고 DOM이나 document.write로 채운 경우)는 문서 자신의 출처
+    // (window.origin — 격리 세계에서 읽는 값이라 페이지가 바꿀 수 없다)가 http(s) 사이트에서
+    // 물려받은 것일 때만 시작한다. 물려받지 못하면(불투명 출처, noopener로 열려 Chrome이 애초에
+    // 이 스크립트를 주입하지 않는 경우는 여기 도달조차 하지 않는다, 브라우저가 연 빈 탭 등)
+    // 시작하지 않고 돌아간다 — 아이콘의 "도울 수 없음" 판정과 일치시킨다. 자식 프레임의 about:
+    // 문서(srcdoc 편집기 등, 01-17)는 이 가드 밖이다 — matchAboutBlank로 이미 동작한다.
+    if (window.top === window && location.protocol === 'about:' && inheritedSiteOrigin(location.href, window.origin) === null) {
+      return;
+    }
+
     // 새로 시작할 때 문서에 이미 tremor-helper-root가 있으면 지운다(D-22): 옛 도우미가 미처
     // 스스로 지우지 못했을 수 있다 — 호스트는 늘 1개여야 하므로, 이 새 인스턴스가 자기 것을
     // 만들기 전에 남아 있는 옛 것부터 없앤다(mode-indicator.ts의 shadowRoot는 이 실행 컨텍스트
@@ -166,8 +178,9 @@ export default defineContentScript({
     const isTopFrame = window.top === window;
     if (isTopFrame) {
       // Task 2(01-18, D-20): 맨 위는 자기 출처가 곧 사이트다 — site/query 왕복 없이 곧바로
-      // 안다. about: 문서(주소 없는 새 창)에서는 "null" 문자열을 캐시할 수 있다(01-19가 고친다).
-      cachedTopOrigin = window.location.origin;
+      // 안다. Task 1(01-19): about: 문서(주소 없는 새 창)는 위 가드를 이미 통과했으므로
+      // inheritedSiteOrigin이 물려받은 http(s) 출처를 돌려준다(null이 아님이 보장됨).
+      cachedTopOrigin = location.protocol === 'about:' ? inheritedSiteOrigin(location.href, window.origin) : window.location.origin;
     }
     // WR-05: 자석·머무르기·스페이스바로 이 프레임 안에서 곧바로 누른 것은 진짜 합성 framePath
     // (composeTree가 맨 위에서 트리를 내려가며 계산하는 값, 이 프레임 혼자서는 모른다)를 대신할
@@ -748,9 +761,17 @@ export default defineContentScript({
     }
 
     // 번호 순서에 반영할 고정 번호·자주 누른 기록을 읽기만 한다(D-11, D-24) — 쓰기는 항상
-    // storage-writer.ts에서만.
+    // storage-writer.ts에서만. 맨 위에서만 불린다(openHints는 handleTopHintKey를 거쳐야 불리고,
+    // 그 경로는 isTopFrame일 때만 산다) — Task 1(01-19): window.location.origin 대신
+    // cachedTopOrigin을 쓴다. about: 새 창(주소 없는 팝업)의 window.location.origin은 "null"
+    // 문자열이라 그 값으로 읽으면 site:null·presses:null 키를 읽어 여는 쪽 사이트의 고정 번호·
+    // 기록과 섞이지 않는다 — 맨 위는 main() 시작부에서 cachedTopOrigin을 이미 물려받은 출처로
+    // 채워 둔다(위 가드를 통과했으므로 null이 아님이 보장된다).
     async function readPinsAndPresses(): Promise<{ pins: SiteEntryV1['data']['pins']; presses: PressesV1['data']['counts'] }> {
-      const origin = window.location.origin;
+      const origin = cachedTopOrigin;
+      if (origin === null) {
+        return { pins: [], presses: [] };
+      }
       const [siteStored, pressesStored] = await Promise.all([
         chrome.storage.sync.get(siteKey(origin)),
         chrome.storage.local.get(pressesKey(origin)),

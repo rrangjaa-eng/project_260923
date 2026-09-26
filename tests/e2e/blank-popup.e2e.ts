@@ -122,7 +122,8 @@ async function pressHintFor(page: Page, locator: Locator): Promise<void> {
 async function openViaFn(page: Page, context: BrowserContext, fnName: string): Promise<Page> {
   const waiter = context.waitForEvent('page');
   await page.evaluate((name: string) => {
-    (window as unknown as Record<string, () => void>)[name]();
+    const fn = (window as unknown as Record<string, (() => void) | undefined>)[name];
+    fn?.();
   }, fnName);
   return waiter;
 }
