@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>주소 없는 새 창 열기</title>
+  </head>
+  <body style="margin: 0">
+    <!-- D-28: 여는 쪽 페이지. 새 창은 이 페이지 스크립트가 window.open('')으로 열고 DOM이나
+    document.write로 채운다(결재 팝업 흉내, 01-19 Task 1). 설명 글자와 noopener 링크만 정적으로 둔다. -->
+    <h1>주소 없는 새 창 열기</h1>
+    <a id="noopener-link" href="about:blank" target="_blank" rel="noopener">noopener 링크</a>
+    <script>
+      // 새 창 안 버튼 마크업(document.write 쪽에서만 쓴다) — 인라인 <script>는 진짜 문서 파싱을
+      // 거쳐야 실행된다(editor-frames.html과 같은 이유, innerHTML 금지). <\/script>는 이 문자열이
+      // 부모 문서의 인라인 스크립트 블록 안에 있는 동안 파서가 조기에 블록을 닫지 못하게 하는
+      // 표준 이스케이프다.
+      function writeDocBody() {
+        return (
+          '<!doctype html><meta charset="utf-8"><body>' +
+          '<button id="popup-btn">누르기</button>' +
+          '<span id="popup-count">0</span>' +
+          '<input id="popup-input">' +
+          '<script>' +
+          'var n=0;' +
+          'document.getElementById("popup-btn").addEventListener("click",function(){' +
+          'n+=1;document.getElementById("popup-count").textContent=String(n);});' +
+          '<\/script>' +
+          '</body>'
+        );
+      }
+
+      // DOM으로 채우기: 요소를 직접 만들고 addEventListener를 건다(01-17 fixture 교훈 — innerHTML로
+      // 넣은 <script>는 실행되지 않는다).
+      function openDomPopup() {
+        var w = window.open('');
+        var btn = w.document.createElement('button');
+        btn.id = 'popup-btn';
+        btn.textContent = '누르기';
+        var count = w.document.createElement('span');
+        count.id = 'popup-count';
+        count.textContent = '0';
+        var input = w.document.createElement('input');
+        input.id = 'popup-input';
+        var n = 0;
+        btn.addEventListener('click', function () {
+          n += 1;
+          count.textContent = String(n);
+        });
+        w.document.body.append(btn, count, input);
+        return w;
+      }
+
+      // document.write로 채우기: 여는 쪽 문서 출처로 location이 바뀐다(probe evidence) — 탭 url은
+      // about:blank로 남는다.
+      function openWritePopup() {
+        var w = window.open('');
+        w.document.open();
+        w.document.write(writeDocBody());
+        w.document.close();
+        return w;
+      }
+
+      // noopener: window.opener가 없다 — 실측대로 다룬다(구분 장치 없음).
+      function openNoopenerPopup() {
+        return window.open('', '_blank', 'noopener');
+      }
+
+      // 이미 연 새 창(win)에 자식 srcdoc iframe을 넣는다(Task 2가 쓴다).
+      function addSrcdocFrame(win) {
+        var frame = win.document.createElement('iframe');
+        frame.id = 'popup-child';
+        frame.srcdoc = '<!doctype html><body><button id="child-btn">자식 누르기</button></body>';
+        win.document.body.append(frame);
+        return frame;
+      }
+    </script>
+  </body>
+</html>
