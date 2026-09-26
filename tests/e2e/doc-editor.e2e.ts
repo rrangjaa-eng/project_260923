@@ -106,9 +106,113 @@ test('#frame-design에서 Esc로 나온 뒤 F를 누르면 번호표가 뜨고(�
     .toBe(0);
 });
 
-// behavior 5(가능할 때만): CDP 조합 입력(가)이 이 샌드박스에서 trusted compositionstart를 만드는지
-// 실측으로 확인했다(SUMMARY 참고) — 만든다. 표시와 실제 입력이 어긋나지 않게 입력으로 돌아간다.
-test('#frame-design에서 Esc로 나온 뒤 CDP 조합 입력을 보내면 입력 중으로 돌아가고 본문에 들어간다', async ({ context }) => {
+// CR-01(01-REVIEW.md 2회차, 사용자 결정): innerHTML 스냅숏 복원(63d8eff)은 노드 정체성·선택·
+// 되돌리기를 파괴해 원래 결함보다 해로웠다 — 되돌리고 "커서 숨기기" 방식으로 바꿨다. Esc로 나올
+// 때 선택 범위를 저장·해제하고(초점은 그대로, DOM은 건드리지 않음), 복귀 신호에서 한글 조합
+// 시작을 뺐다(선택이 없으면 IME가 조합을 시작하지 않을 것으로 예상 — 실측 필요, 아래 별도 표시).
+// 복귀 신호는 이제 Esc 다시 누름·편집기 누름·다른 요소로 focusin 세 가지뿐이다.
+async function markNodeIdentity(page: Page, frameSelector: string, textSelector: string): Promise<void> {
+  await page.frameLocator(frameSelector).locator(textSelector).evaluate((el) => {
+    (window as unknown as { __crMark?: Node }).__crMark = el;
+  });
+}
+async function nodeIdentityPreserved(page: Page, frameSelector: string, textSelector: string): Promise<boolean> {
+  return page
+    .frameLocator(frameSelector)
+    .locator(textSelector)
+    .evaluate((el) => (window as unknown as { __crMark?: Node }).__crMark === el);
+}
+async function caretOffset(page: Page, frameSelector: string, textSelector: string): Promise<number> {
+  return page
+    .frameLocator(frameSelector)
+    .locator(textSelector)
+    .evaluate((el) => {
+      const sel = el.ownerDocument.getSelection();
+      if (!sel || sel.rangeCount === 0) return -1;
+      return sel.getRangeAt(0).startOffset;
+    });
+}
+// 고정 waitForTimeout 대신 rAF 두 번으로 브라우저가 保류 중인 이벤트(조합 시도 등)를 처리할
+// 시간을 준다 — 조건이 없는 "아무 일도 안 일어남" 단언에 필요한 최소한의 플러시.
+async function flushEvents(page: Page): Promise<void> {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            resolve();
+          });
+        });
+      }),
+  );
+}
+
+// 결정적(비-CDP) 시험 — Esc가 선택을 저장·해제하고, Esc를 다시 누르면 정확히 그 자리로 복원한다.
+// mode.ts의 escapeDocumentEditor/resumeDocumentEditor만 실제로 검증한다(조합 없음).
+test('#frame-design에서 Esc로 나오면 선택 범위가 지워지고, Esc를 다시 누르면 저장한 캐럿 자리로 복원된다(CR-01)', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/doc-editor.html');
+
+  const text = page.frameLocator('#frame-design').locator('#doc-text');
+  await text.click();
+  await expect.poll(() => dataMode(page)).toBe('typing');
+
+  // 캐럿을 "가나" 사이(오프셋 1)에 둔다.
+  await page.frameLocator('#frame-design').locator('#doc-text').evaluate((el) => {
+    const doc = el.ownerDocument;
+    const sel = doc.getSelection();
+    const range = doc.createRange();
+    range.setStart(el.firstChild as Node, 1);
+    range.collapse(true);
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  });
+  await markNodeIdentity(page, '#frame-design', '#doc-text');
+  const before = await elementText(page, '#frame-design', '#doc-text');
+
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
+
+  // 실측(뮤테이션 확인 로그): escapeDocumentEditor() 안에서 sel.removeAllRanges() 직후에는
+  // rangeCount가 0이지만, 실제 신뢰된(trusted) 키 이벤트가 초점 있는 편집 가능 영역에 닿으면
+  // Chrome이 짧은 시간 안에(수백 ms) 선택을 스스로 되살린다(Escape뿐 아니라 ArrowLeft·Shift
+  // 단독으로도 재현됨 — 이 시험 파일 작성 중 뮤테이션으로 확인, 우리 코드와 무관한 Chrome 내부
+  // 동작). 그래서 "Esc 뒤 rangeCount===0"을 지속 상태로 단언하면 타이밍에 따라 flaky하고, 실제로
+  // 거짓이다 — 여기서는 단언하지 않는다(REVIEW-FIX.md에 사람 확인 항목으로 남긴다). 대신 우리가
+  // 실제로 통제하는 불변(문서·노드는 안 바뀜, 아래 Esc 다시 누르면 저장한 캐럿으로 강제 복원됨)만
+  // 단언한다.
+  expect(await elementText(page, '#frame-design', '#doc-text'), 'Esc만으로 문서가 바뀌면 안 된다').toBe(before);
+  expect(
+    await nodeIdentityPreserved(page, '#frame-design', '#doc-text'),
+    '편집 루트 자식 노드가 통째로 교체되면 안 된다(스냅숏 복원 회귀 방지)',
+  ).toBe(true);
+
+  // D-07(떨림 필터): 같은 키(Escape)는 tremorIntervalMs(기본 300ms) 안의 재입력을 걸러낸다 —
+  // 다른 시험(drag.e2e.ts 등)과 같은 관례로 그 간격만큼 기다린 뒤 다시 누른다.
+  await page.waitForTimeout(350);
+  // Esc를 다시 누르면 저장한 캐럿 자리로 복원되며 입력으로 돌아간다.
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page)).toBe('typing');
+  expect(await caretOffset(page, '#frame-design', '#doc-text'), '캐럿 오프셋이 나오기 전과 같아야 한다').toBe(1);
+  expect(
+    await nodeIdentityPreserved(page, '#frame-design', '#doc-text'),
+    '복귀 뒤에도 편집 루트 자식 노드가 같아야 한다',
+  ).toBe(true);
+});
+
+// CDP 조합 시험 — 실측 한계가 있다(REVIEW.md 판정 1 "검증 방법" 참고). Chrome DevTools Protocol의
+// Input.imeSetComposition은 실제 OS IME와 달리 선택(Selection)이 비어 있어도 편집 루트 시작
+// 위치에 조합 문자를 강제로 삽입하는 것을 이 샌드박스에서 실측으로 확인했다(rangeCount 0인 상태로
+// imeSetComposition을 보내면 rangeCount가 1로 바뀌고 문서 맨 앞에 글자가 들어간다) — 그래서
+// "선택이 없으면 IME가 조합을 시작하지 않는다"는 가정을 CDP로는 증명도 반증도 완전히 할 수 없다.
+// 이 시험은 우리가 실제로 통제하는 불변(모드가 조합으로 입력 상태로 튀지 않는다, 편집 루트 노드
+// 자체가 통째로 교체되지 않는다)만 자동으로 단언한다. "선택 해제가 실제 IME 조합 자체를 막는지"는
+// Windows + MS 한국어 입력기로 사람이 확인해야 한다(REVIEW-FIX.md에 별도 항목으로 남긴다).
+test('#frame-design에서 Esc로 나온 뒤 조합을 시도해도 입력 복귀 신호가 되지 않고 편집 루트 노드가 교체되지 않는다(CR-01, CDP 한계 있음)', async ({
+  context,
+}) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/doc-editor.html');
 
@@ -118,24 +222,24 @@ test('#frame-design에서 Esc로 나온 뒤 CDP 조합 입력을 보내면 입�
 
   await page.keyboard.press('Escape');
   await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
-
-  const before = await elementText(page, '#frame-design', '#doc-text');
+  await markNodeIdentity(page, '#frame-design', '#doc-text');
 
   const cdp = await context.newCDPSession(page);
   await cdp.send('Input.imeSetComposition', { text: '가', selectionStart: 1, selectionEnd: 1 });
-  await expect.poll(() => dataMode(page)).toBe('typing');
+  await flushEvents(page);
 
-  await cdp.send('Input.insertText', { text: '가' });
-  await expect.poll(async () => (await elementText(page, '#frame-design', '#doc-text')).length).toBe(before.length + 1);
+  expect(await dataMode(page), '선택이 없으면 조합 시도가 입력 복귀 신호가 되면 안 된다').toBe('helper');
+  expect(
+    await nodeIdentityPreserved(page, '#frame-design', '#doc-text'),
+    '편집 루트 자식 노드가 통째로 교체되면 안 된다(스냅숏 복원 회귀 방지) — CDP가 문서에 강제로 글자를 넣더라도 노드 자체는 그대로여야 한다',
+  ).toBe(true);
 });
 
 // CR-01(01-REVIEW.md): 한글 IME가 켜진 채 도우미 키(F)를 누르면 Chrome은 keydown을 keyCode
 // 229(Process)로 보낸다 — event.code는 물리 키(KeyF) 그대로라 도우미 키 처리기는 F로 인식해
-// 번호표를 연다. IME가 이미 받은 키는 keydown 취소로 되돌릴 수 없어(Chrome/Windows 알려진
-// 동작), 곧바로 compositionstart가 뜬다 — 이건 사용자가 다시 입력하려는 의도적 신호가 아니라
-// F 키 자체가 조합으로 잘못 들어간 것이다. 입력 복귀 신호로 보면 안 된다(번호표가 열린 채
-// 문서가 오염되면 안 된다).
-test('#frame-design에서 나온 상태로 F(번호표 열기)를 누른 직후 바로 뜨는 조합 시작은 입력 복귀 신호가 아니다(CR-01)', async ({
+// 번호표를 연다. 뒤따르는 조합 시도가 입력 복귀 신호가 되면 안 된다(번호표가 열린 채로 남아야
+// 한다). 문서 오염 자체의 CDP 한계는 위 시험과 같다.
+test('#frame-design에서 나온 상태로 F(번호표 열기)를 누른 직후 조합을 시도해도 입력 복귀 신호가 아니다(CR-01)', async ({
   context,
 }) => {
   const page = await context.newPage();
@@ -148,8 +252,6 @@ test('#frame-design에서 나온 상태로 F(번호표 열기)를 누른 직후 
   await page.keyboard.press('Escape');
   await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
 
-  const before = await elementText(page, '#frame-design', '#doc-text');
-
   const cdp = await context.newCDPSession(page);
   await cdp.send('Input.dispatchKeyEvent', {
     type: 'rawKeyDown',
@@ -161,12 +263,10 @@ test('#frame-design에서 나온 상태로 F(번호표 열기)를 누른 직후 
   await expect.poll(() => hintLabelCount(page)).toBeGreaterThan(0);
 
   await cdp.send('Input.imeSetComposition', { text: 'ㄹ', selectionStart: 1, selectionEnd: 1 });
+  await flushEvents(page);
 
-  await expect.poll(() => dataMode(page)).toBe('helper');
-  expect(
-    await elementText(page, '#frame-design', '#doc-text'),
-    '번호표를 연 F가 조합으로 문서에 들어가면 안 된다',
-  ).toBe(before);
+  expect(await dataMode(page), '번호표를 연 F 뒤 조합 시도가 입력 복귀 신호가 되면 안 된다').toBe('helper');
+  expect(await hintLabelCount(page), '조합 시도로 번호표가 닫히면 안 된다').toBeGreaterThan(0);
 });
 
 // WR-08(01-REVIEW.md): "나옴" 상태의 편집 차단은 beforeinput 취소뿐이다 — CKEditor 4·SmartEditor 2
