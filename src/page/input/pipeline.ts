@@ -162,7 +162,62 @@ export function createInputPipeline(opts: {
     },
     { capture: true, signal },
   );
-  window.addEventListener('focusout', updateModeFromFocus, { capture: true, signal });
+  // 오케스트레이터 후속 결정(CR-01 구멍 재발 방지): focus sink가 문서 순서상 맨 뒤라(D-26)
+  // 정방향 Tab처럼 "갈 다음 탭 대상이 없는" 경우 브라우저가 focusin 없이 조용히 초점을 비운다
+  // (실측) — 위 focusin 처리기만으로는 이 경우 escaped 표시가 안 풀린다. sink 자신의 focusout을
+  // (relatedTarget과 무관하게, sink를 떠나는 모든 경우를) 복귀 신호로 추가한다. escapeDocumentEditor()
+  // 가 편집 루트에서 sink로 초점을 옮기는 순간의 focusout은 event.target이 sink가 아니라 옛 편집
+  // 루트이므로 isFocusSink(event.target)이 이미 걸러낸다.
+  window.addEventListener(
+    'focusout',
+    (event) => {
+      if (isHelperEnabled() && isEscapedFromDocumentEditor() && isFocusSink(event.target as Element | null)) {
+        resumeDocumentEditor({ restoreSelection: false });
+        onModeChange?.();
+      }
+      updateModeFromFocus();
+    },
+    { capture: true, signal },
+  );
+
+  // 실측(추가 조사): 위 focusout 리스너로도 못 잡는 경우가 있다 — contenteditable 문서에서
+  // 정방향 Tab이 "갈 다음 탭 대상 없음"으로 초점을 조용히 리셋할 때, Chromium은 focusout·focusin·
+  // blur·selectionchange·visibilitychange·window blur 중 아무 이벤트도 안 쏜다(raw 리스너로 직접
+  // 확인, 우리 코드와 무관한 브라우저 동작) — 걸어 둘 이벤트가 없다. escaped인 동안만 짧게 도는
+  // rAF 감시로 초점이 조용히 sink를 벗어났는지 직접 확인한다(dwellTick과 같은 "짧게만 도는 rAF
+  // 루프" 관례) — 숨겨진(백그라운드) 탭에서는 rAF 자체가 브라우저에 의해 멈춘다.
+  //
+  // document.hasFocus() 대신 document.hidden을 쓴다(실측): #frame-cebody처럼 다른 출처 iframe
+  // 안에서는 이 조용한 리셋이 일어난 뒤 그 프레임 자신의 document.hasFocus()가 창이 그대로
+  // 활성인데도 false를 돌려준다(교차 출처 iframe의 포커스 판정이 꼬이는 별개의 실측 결함) —
+  // hasFocus()를 쓰면 정상적인 복귀조차 막힌다. document.hidden(탭 자체의 보임 여부)은 출처와
+  // 무관하게 일관되고, "탭 전환"이라는 원래 의도(창이 돌아왔을 때도 sink가 그대로면 나옴 유지)를
+  // 그대로 만족한다.
+  let escapeWatchdogHandle: number | null = null;
+  function escapeWatchdogTick(): void {
+    escapeWatchdogHandle = null;
+    if (!isHelperEnabled() || !isEscapedFromDocumentEditor()) {
+      return;
+    }
+    if (!document.hidden && !isFocusSink(deepActiveElement())) {
+      resumeDocumentEditor({ restoreSelection: false });
+      onModeChange?.();
+      updateModeFromFocus();
+      return;
+    }
+    escapeWatchdogHandle = requestAnimationFrame(escapeWatchdogTick);
+  }
+  function startEscapeWatchdog(): void {
+    if (escapeWatchdogHandle === null) {
+      escapeWatchdogHandle = requestAnimationFrame(escapeWatchdogTick);
+    }
+  }
+  signal.addEventListener('abort', () => {
+    if (escapeWatchdogHandle !== null) {
+      cancelAnimationFrame(escapeWatchdogHandle);
+      escapeWatchdogHandle = null;
+    }
+  });
 
   // WR-01: 확인 화면의 스페이스바 "누르고 있기"는 keyup으로만 풀린다(D-19). alt-tab·다른 창
   // 클릭으로 포커스가 떠나면 keyup이 아예 오지 않을 수 있어, 그대로 두면 tick()이 keydown
@@ -216,6 +271,7 @@ export function createInputPipeline(opts: {
           // 옮긴다(mode.ts escapeDocumentEditor, "초점 옮기기") — 아래 setMode('helper')로 나옴
           // 표시를 갱신한다.
           escapeDocumentEditor(active);
+          startEscapeWatchdog();
         } else if (active instanceof HTMLElement) {
           active.blur();
         }
