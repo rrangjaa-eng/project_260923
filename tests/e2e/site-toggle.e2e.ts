@@ -4,6 +4,9 @@ import type { Page, Worker } from '@playwright/test';
 // D-20(SAFE-04)·D-21(SAFE-05)·D-23·D-24(STOR-01): 지금 사이트에서만 끄기와 확장이 동작하지 않는
 // 페이지의 "도울 수 없음" 표시. 연습 사이트는 servePage가 등록하는 로컬 고정물이다(D-28).
 
+// WR-03(01-REVIEW.md): 사이트 카드가 실패로 되돌아갈 때의 안내 문구(popup/main.ts와 같은 문자열).
+const SITE_TOGGLE_FAILED_TEXT = '이 사이트를 끄지 못했어요. 1을 눌러 도우미를 끄세요.';
+
 // 지금 활성 탭의 확장 아이콘 제목·배지를 SW 안에서 직접 읽는다(별도로 tabId를 주고받지 않는다 —
 // active 탭을 찾는 것 자체가 background.ts가 하는 일과 같은 필터라 시험도 그대로 재사용한다).
 async function activeTabTitle(serviceWorker: Worker): Promise<string> {
@@ -589,6 +592,39 @@ test('SW가 setSiteDisabled를 거절하면(저장된 site 항목이 깨짐) 카
 
   await expect(popup.getByRole('button', { name: /이 사이트에서 끄기/ })).toBeVisible();
   await expect.poll(() => hasHelperRoot(page)).toBe(true);
+  // WR-03: 되돌아간 이유를 한 줄로 알린다(이전엔 조용히 되돌아가기만 했다).
+  await expect(popup.locator('.warning-card')).toHaveText(SITE_TOGGLE_FAILED_TEXT);
+
+  await popup.close();
+  await page.close();
+});
+
+// WR-03(01-REVIEW.md): 사이트 카드도 응답이 계속 오지 않으면(무응답) 낙관적 렌더가 무기한
+// 남는다 — 시간 제한이 없었다. 도우미 카드와 같은 e2e 훅으로 재현한다.
+test('WR-03: 사이트 카드가 응답 없이 3초 넘게 기다리면 실제 상태로 되돌아가고 안내 문구가 뜬다', async ({
+  context,
+  serviceWorker,
+  openPopup,
+  servePage,
+}) => {
+  servePage('http://practice.test/', '<!doctype html><html><body><h1>연습 사이트</h1></body></html>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/');
+  await waitForHelperReady(page);
+
+  await serviceWorker.evaluate(() => {
+    (globalThis as unknown as { holdStorageResponseForE2E: (n: number) => void }).holdStorageResponseForE2E(1);
+  });
+
+  const popup = await openPopup(page);
+  await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
+
+  // 낙관적 렌더 — 응답이 오기 전에는 즉시 "이 사이트에서 켜기"로 바뀐다.
+  await expect(popup.getByRole('button', { name: /이 사이트에서 켜기/ })).toBeVisible();
+
+  // 클라이언트 타임아웃(3초)이 지나면 실제 상태로 되돌아가고 안내가 뜬다.
+  await expect(popup.getByRole('button', { name: /이 사이트에서 끄기/ })).toBeVisible({ timeout: 4000 });
+  await expect(popup.locator('.warning-card')).toHaveText(SITE_TOGGLE_FAILED_TEXT);
 
   await popup.close();
   await page.close();
