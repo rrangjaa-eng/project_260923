@@ -106,11 +106,14 @@ test('#frame-design에서 Esc로 나온 뒤 F를 누르면 번호표가 뜨고(�
     .toBe(0);
 });
 
-// CR-01(01-REVIEW.md 2회차, 사용자 결정): innerHTML 스냅숏 복원(63d8eff)은 노드 정체성·선택·
-// 되돌리기를 파괴해 원래 결함보다 해로웠다 — 되돌리고 "커서 숨기기" 방식으로 바꿨다. Esc로 나올
-// 때 선택 범위를 저장·해제하고(초점은 그대로, DOM은 건드리지 않음), 복귀 신호에서 한글 조합
-// 시작을 뺐다(선택이 없으면 IME가 조합을 시작하지 않을 것으로 예상 — 실측 필요, 아래 별도 표시).
-// 복귀 신호는 이제 Esc 다시 누름·편집기 누름·다른 요소로 focusin 세 가지뿐이다.
+// CR-01(01-REVIEW-FIX.md iteration 3→4, 사용자 결정): innerHTML 스냅숏 복원(63d8eff)은 노드
+// 정체성·선택·되돌리기를 파괴해 원래 결함보다 해로웠다 — 되돌렸다. iteration 3의 "커서 숨기기"
+// (선택 범위만 저장·해제, 초점은 편집 루트에 그대로 둠)는 트러스트된 키 이벤트마다 Chrome이 지운
+// 선택을 되살려 CDP IME 조합을 막지 못했다(실측, iteration 3 REVIEW-FIX.md). iteration 4부터는
+// "초점 옮기기"로 바꿨다 — Esc로 나올 때 선택 범위를 저장·해제하고, 초점 자체를 도우미 오버레이의
+// 비편집 tabindex=-1 요소(mode.ts escapeDocumentEditor → mode-indicator.ts getFocusSink)로 옮긴다.
+// 복귀 신호는 Esc 다시 누름·편집기 누름·다른 요소로 focusin 세 가지뿐이다(한글 조합 시작은
+// iteration 3에서 이미 뺐다, 사용자 결정).
 async function markNodeIdentity(page: Page, frameSelector: string, textSelector: string): Promise<void> {
   await page.frameLocator(frameSelector).locator(textSelector).evaluate((el) => {
     (window as unknown as { __crMark?: Node }).__crMark = el;
@@ -175,14 +178,12 @@ test('#frame-design에서 Esc로 나오면 선택 범위가 지워지고, Esc를
   await page.keyboard.press('Escape');
   await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
 
-  // 실측(뮤테이션 확인 로그): escapeDocumentEditor() 안에서 sel.removeAllRanges() 직후에는
-  // rangeCount가 0이지만, 실제 신뢰된(trusted) 키 이벤트가 초점 있는 편집 가능 영역에 닿으면
-  // Chrome이 짧은 시간 안에(수백 ms) 선택을 스스로 되살린다(Escape뿐 아니라 ArrowLeft·Shift
-  // 단독으로도 재현됨 — 이 시험 파일 작성 중 뮤테이션으로 확인, 우리 코드와 무관한 Chrome 내부
-  // 동작). 그래서 "Esc 뒤 rangeCount===0"을 지속 상태로 단언하면 타이밍에 따라 flaky하고, 실제로
-  // 거짓이다 — 여기서는 단언하지 않는다(REVIEW-FIX.md에 사람 확인 항목으로 남긴다). 대신 우리가
-  // 실제로 통제하는 불변(문서·노드는 안 바뀜, 아래 Esc 다시 누르면 저장한 캐럿으로 강제 복원됨)만
-  // 단언한다.
+  // iteration 3에서는 escapeDocumentEditor()가 초점을 편집 루트에 그대로 두어, 실제 신뢰된
+  // (trusted) 키 이벤트가 초점 있는 편집 가능 영역에 닿으면 Chrome이 지운 선택을 스스로 되살렸다
+  // (실측). iteration 4부터는 초점 자체를 오버레이 focusSink로 옮기므로 이 되살아남 자체가
+  // 일어나지 않는다(runFocusShiftCompositionScenario의 CDP 조합·확정 시험이 이를 직접 단언한다).
+  // 이 시험은 조합 없이 순수 Esc→Esc-다시 흐름만 보므로, 여기서는 우리가 늘 통제하는 불변(문서·
+  // 노드는 안 바뀜, 아래 Esc 다시 누르면 저장한 캐럿으로 강제 복원됨)만 단언한다.
   expect(await elementText(page, '#frame-design', '#doc-text'), 'Esc만으로 문서가 바뀌면 안 된다').toBe(before);
   expect(
     await nodeIdentityPreserved(page, '#frame-design', '#doc-text'),
@@ -202,43 +203,109 @@ test('#frame-design에서 Esc로 나오면 선택 범위가 지워지고, Esc를
   ).toBe(true);
 });
 
-// CDP 조합 시험 — 실측 한계가 있다(REVIEW.md 판정 1 "검증 방법" 참고). Chrome DevTools Protocol의
-// Input.imeSetComposition은 실제 OS IME와 달리 선택(Selection)이 비어 있어도 편집 루트 시작
-// 위치에 조합 문자를 강제로 삽입하는 것을 이 샌드박스에서 실측으로 확인했다(rangeCount 0인 상태로
-// imeSetComposition을 보내면 rangeCount가 1로 바뀌고 문서 맨 앞에 글자가 들어간다) — 그래서
-// "선택이 없으면 IME가 조합을 시작하지 않는다"는 가정을 CDP로는 증명도 반증도 완전히 할 수 없다.
-// 이 시험은 우리가 실제로 통제하는 불변(모드가 조합으로 입력 상태로 튀지 않는다, 편집 루트 노드
-// 자체가 통째로 교체되지 않는다)만 자동으로 단언한다. "선택 해제가 실제 IME 조합 자체를 막는지"는
-// Windows + MS 한국어 입력기로 사람이 확인해야 한다(REVIEW-FIX.md에 별도 항목으로 남긴다).
-test('#frame-design에서 Esc로 나온 뒤 조합을 시도해도 입력 복귀 신호가 되지 않고 편집 루트 노드가 교체되지 않는다(CR-01, CDP 한계 있음)', async ({
+// CR-01 iteration 4(초점 옮기기, 사용자 결정): iteration 3의 "커서 숨기기"(선택 해제, 초점은
+// 편집 루트에 그대로 둠)는 CDP 조합 시험을 "우리가 실제로 통제하는 불변만" 단언하도록 일부러
+// 완화해야 했다 — 실측(뮤테이션 확인)으로 트러스트된 키 이벤트가 초점 있는 편집 가능 영역에 닿으면
+// Chrome이 지운 선택을 스스로 되살려, CDP Input.imeSetComposition·insertText가 편집 루트 시작
+// 위치에 실제로 글자를 삽입할 수 있었기 때문이다(iteration 3 REVIEW-FIX.md 실측 로그). 이 시험은
+// 나올 때 초점 자체를 도우미 오버레이의 비편집 tabindex=-1 요소로 옮기는 새 구현을 겨냥한다 —
+// spike 실측(scratchpad/spike-ime, designMode·contenteditable 모두, 5/5): 이 요소로 초점을 옮기면
+// CDP 조합·확정 시도가 편집 루트·이 요소 어디에도 글자를 넣지 못한다. 세 편집기 모양
+// (#frame-design·#frame-cebody·01-17 #frame-editor) 모두에서 (a) 문서 텍스트 불변 (b) 편집 루트
+// 자식 노드 동일성 (c) 모드는 도우미 유지 (d) F 도우미 키 동작(번호표) (e) Esc 다시 누름 뒤 캐럿
+// 오프셋 복원을 단언한다. iteration 3의 "커서 숨기기" 코드에서는 (a)가 실패한다(RED, 실제 실행으로
+// 확인 — REVIEW-FIX.md iteration 4 절 참고).
+async function runFocusShiftCompositionScenario(page: Page, frameSelector: string, textSelector: string): Promise<void> {
+  const text = page.frameLocator(frameSelector).locator(textSelector);
+  await text.click();
+  await expect.poll(() => dataMode(page)).toBe('typing');
+
+  // 캐럿을 첫 글자 뒤(오프셋 1)에 둔다 — 세 practice 페이지 fixture 모두 #doc-text/#editor-text의
+  // 첫 글자 문자열 길이가 1 이상이라 유효한 오프셋이다.
+  await page.frameLocator(frameSelector).locator(textSelector).evaluate((el) => {
+    const doc = el.ownerDocument;
+    const sel = doc.getSelection();
+    const range = doc.createRange();
+    range.setStart(el.firstChild as Node, 1);
+    range.collapse(true);
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  });
+  await markNodeIdentity(page, frameSelector, textSelector);
+  const before = await elementText(page, frameSelector, textSelector);
+
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
+
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.imeSetComposition', { text: '가', selectionStart: 1, selectionEnd: 1 });
+  await cdp.send('Input.insertText', { text: '가' }); // 조합 확정까지 시도한다
+  await flushEvents(page);
+
+  // (a) 문서 텍스트 불변.
+  expect(await elementText(page, frameSelector, textSelector), 'CDP 조합·확정 시도로 문서가 바뀌면 안 된다').toBe(before);
+  // (b) 편집 루트 자식 노드 동일성 — 스냅숏 복원 회귀 방지.
+  expect(
+    await nodeIdentityPreserved(page, frameSelector, textSelector),
+    '편집 루트 자식 노드가 통째로 교체되면 안 된다(스냅숏 복원 회귀 방지)',
+  ).toBe(true);
+  // (c) 모드는 도우미로 유지.
+  expect(await dataMode(page), '조합 시도가 입력 복귀 신호가 되면 안 된다').toBe('helper');
+
+  // (d) F 도우미 키는 여전히 동작한다(번호표가 열린다).
+  await page.keyboard.press('KeyF');
+  await expect.poll(() => hintLabelCount(page)).toBeGreaterThan(0);
+  // 번호표를 닫는다 — Esc 첫 번째는 번호표를 닫을 뿐 입력으로 돌아가지 않는다(고정 sleep 대신 조건
+  // 재시도, editor-frames.e2e.ts findHintNumberFor와 같은 규칙).
+  await expect
+    .poll(async () => {
+      await page.keyboard.press('Escape');
+      return hintLabelCount(page);
+    }, { timeout: 3000 })
+    .toBe(0);
+  await expect.poll(() => dataMode(page)).toBe('helper');
+
+  // D-07(떨림 필터): 다음 Escape 전에 tremorIntervalMs(기본 300ms)만큼 기다린다.
+  await page.waitForTimeout(350);
+  // (e) Esc를 다시 누르면 저장한 캐럿 자리로 복원되며 입력으로 돌아간다.
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page)).toBe('typing');
+  expect(await caretOffset(page, frameSelector, textSelector), '캐럿 오프셋이 나오기 전과 같아야 한다').toBe(1);
+  expect(
+    await nodeIdentityPreserved(page, frameSelector, textSelector),
+    '복귀 뒤에도 편집 루트 자식 노드가 같아야 한다',
+  ).toBe(true);
+}
+
+test('#frame-design에서 초점 옮기기로 CDP 조합·확정이 막히고 노드·모드·도우미 키·캐럿 복원이 모두 유지된다(CR-01 iteration 4)', async ({
   context,
 }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/doc-editor.html');
+  await runFocusShiftCompositionScenario(page, '#frame-design', '#doc-text');
+});
 
-  const text = page.frameLocator('#frame-design').locator('#doc-text');
-  await text.click();
-  await expect.poll(() => dataMode(page)).toBe('typing');
+test('#frame-cebody(다른 출처, contenteditable 본문)에서도 초점 옮기기로 CDP 조합·확정이 막힌다(CR-01 iteration 4)', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/doc-editor.html');
+  await runFocusShiftCompositionScenario(page, '#frame-cebody', '#doc-text');
+});
 
-  await page.keyboard.press('Escape');
-  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
-  await markNodeIdentity(page, '#frame-design', '#doc-text');
-
-  const cdp = await context.newCDPSession(page);
-  await cdp.send('Input.imeSetComposition', { text: '가', selectionStart: 1, selectionEnd: 1 });
-  await flushEvents(page);
-
-  expect(await dataMode(page), '선택이 없으면 조합 시도가 입력 복귀 신호가 되면 안 된다').toBe('helper');
-  expect(
-    await nodeIdentityPreserved(page, '#frame-design', '#doc-text'),
-    '편집 루트 자식 노드가 통째로 교체되면 안 된다(스냅숏 복원 회귀 방지) — CDP가 문서에 강제로 글자를 넣더라도 노드 자체는 그대로여야 한다',
-  ).toBe(true);
+test('01-17 #frame-editor(document.write + designMode)에서도 초점 옮기기로 CDP 조합·확정이 막힌다(CR-01 iteration 4)', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/editor-frames.html');
+  await runFocusShiftCompositionScenario(page, '#frame-editor', '#editor-text');
 });
 
 // CR-01(01-REVIEW.md): 한글 IME가 켜진 채 도우미 키(F)를 누르면 Chrome은 keydown을 keyCode
 // 229(Process)로 보낸다 — event.code는 물리 키(KeyF) 그대로라 도우미 키 처리기는 F로 인식해
 // 번호표를 연다. 뒤따르는 조합 시도가 입력 복귀 신호가 되면 안 된다(번호표가 열린 채로 남아야
-// 한다). 문서 오염 자체의 CDP 한계는 위 시험과 같다.
+// 한다). 위 runFocusShiftCompositionScenario와 달리 이 시험은 229/Process 키코드 모양 자체를
+// 겨냥한다.
 test('#frame-design에서 나온 상태로 F(번호표 열기)를 누른 직후 조합을 시도해도 입력 복귀 신호가 아니다(CR-01)', async ({
   context,
 }) => {

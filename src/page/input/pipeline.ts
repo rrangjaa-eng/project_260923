@@ -8,7 +8,7 @@ import {
   isEscapedFromDocumentEditor,
   resumeDocumentEditor,
 } from '@/page/input/mode';
-import { setMode, updateIndicatorProximity } from '@/page/overlay/mode-indicator';
+import { isFocusSink, setMode, updateIndicatorProximity } from '@/page/overlay/mode-indicator';
 
 // 입력 파이프라인(D-06, D-09): window capture로 키·포인터 입력을 가장 먼저 받아 떨림을 거르고
 // (isTrusted가 아닌 입력은 통과, 도우미 꺼짐이면 통과), 남은 입력만 등록된 처리기에 넘긴다.
@@ -96,12 +96,15 @@ export function createInputPipeline(opts: {
   const pressHandlers: PressHandler[] = [];
   let modalHandler: ModalHandler | null = null;
   let modalTickInterval: ReturnType<typeof setInterval> | null = null;
-  // CR-01(01-REVIEW.md 2회차, 사용자 결정): 63d8eff의 innerHTML 스냅숏 복원(조합 동안 편집 루트를
-  // 통째로 다시 파싱)은 노드 정체성·선택·되돌리기·위젯을 파괴해 원래 결함보다 해로웠다 — 되돌렸다.
-  // 대신 mode.ts의 escapeDocumentEditor()가 나올 때 선택 범위를 지운다("커서 숨기기") — 편집
-  // 루트의 선택이 없으면 IME가 조합을 시작하지 않을 것으로 예상한다(실측 필요). 한글 조합 시작을
-  // 입력 복귀 신호로 보던 것도 없앴다(사용자 결정) — 복귀 신호는 Esc 다시 누름·편집기 누름·다른
-  // 요소로 focusin 세 가지뿐이다.
+  // CR-01(01-REVIEW-FIX.md iteration 3→4, 사용자 결정): 63d8eff의 innerHTML 스냅숏 복원(조합 동안
+  // 편집 루트를 통째로 다시 파싱)은 노드 정체성·선택·되돌리기·위젯을 파괴해 원래 결함보다 해로웠다
+  // — 되돌렸다. iteration 3의 "커서 숨기기"(선택 범위만 지우고 초점은 그대로 둠)는 트러스트된 키
+  // 이벤트마다 Chrome이 지운 선택을 되살려 CDP IME 조합을 막지 못했다(실측). 지금은 mode.ts의
+  // escapeDocumentEditor()가 나올 때 선택을 저장·해제하고 초점을 도우미 오버레이의 비편집
+  // tabindex=-1 요소로 옮긴다("초점 옮기기", spike 실측으로 조합 삽입 없음 확인). 한글 조합 시작을
+  // 입력 복귀 신호로 보던 것도 없앴다(사용자 결정, iteration 3) — 복귀 신호는 Esc 다시 누름·편집기
+  // 누름·다른 요소로 focusin 세 가지뿐이다. 초점이 옮겨간 오버레이 요소 자신으로의 focusin은 우리가
+  // 일으킨 것이라 복귀 신호로 보지 않는다(isFocusSink, 아래 focusin 처리기).
 
   // 설정이 바뀌면(interval·sameSpot) 새 값으로 필터를 다시 만든다. 그 외엔 상태(마지막 받아들인
   // 시각·자리)를 그대로 유지해야 하므로 매 이벤트마다 새로 만들지 않는다.
@@ -136,9 +139,16 @@ export function createInputPipeline(opts: {
   window.addEventListener(
     'focusin',
     () => {
-      if (isHelperEnabled() && isEscapedFromDocumentEditor() && !isDocumentEditingRoot(deepActiveElement())) {
-        // 다른 요소로 초점이 옮겨 간 경우다 — 저장한 선택 범위는 복원하지 않는다(그 편집기는 더
-        // 이상 초점이 없다).
+      const active = deepActiveElement();
+      if (
+        isHelperEnabled() &&
+        isEscapedFromDocumentEditor() &&
+        !isDocumentEditingRoot(active) &&
+        !isFocusSink(active)
+      ) {
+        // 다른 요소로 초점이 옮겨 간 경우다(우리가 escapeDocumentEditor()로 옮긴 오버레이 초점
+        // 대상 자신으로의 focusin은 뺀다 — isFocusSink) — 저장한 선택 범위는 복원하지 않는다(그
+        // 편집기는 더 이상 초점이 없다).
         resumeDocumentEditor({ restoreSelection: false });
       }
       updateModeFromFocus();
@@ -195,8 +205,9 @@ export function createInputPipeline(opts: {
         if (isDocumentEditingRoot(active)) {
           // Task 3(01-18, KEY-01): 문서 전체 편집기는 blur() 대신 "나옴" 표시만 한다 — blur가
           // 캐럿을 지워 편집기가 이후 키를 받지 못하게 만들기 때문(probe evidence). CR-01: 선택
-          // 범위도 함께 저장·해제한다(mode.ts escapeDocumentEditor).
-          escapeDocumentEditor();
+          // 범위도 저장·해제하고, 초점을 도우미 오버레이의 비편집 요소로 옮긴다(mode.ts
+          // escapeDocumentEditor, "초점 옮기기").
+          escapeDocumentEditor(active);
         } else if (active instanceof HTMLElement) {
           active.blur();
         }
@@ -224,8 +235,10 @@ export function createInputPipeline(opts: {
       // CR-01(사용자 결정): 문서 전체 편집기에서 이미 나온 상태로 Esc를 다시 누르면 저장한 선택
       // 범위를 복원하고 입력으로 돌아간다 — 도우미 키 처리기(번호표 닫기 등)가 먼저 Esc를 쓸
       // 기회를 갖도록 keyHandlers 뒤에 둔다(번호표가 열려 있으면 Esc는 번호표를 닫을 뿐, 입력으로
-      // 돌아가지 않는다).
-      if (event.code === 'Escape' && isEscapedFromDocumentEditor() && isDocumentEditingRoot(deepActiveElement())) {
+      // 돌아가지 않는다). "초점 옮기기"(iteration 4)로 나온 상태의 초점은 편집 루트가 아니라
+      // 오버레이 focusSink에 있으므로, isEscapedFromDocumentEditor() 표시 하나로만 이 상태를
+      // 판단한다(deepActiveElement()가 documentEditingRoot일 것을 더 요구하지 않는다).
+      if (event.code === 'Escape' && isEscapedFromDocumentEditor()) {
         resumeDocumentEditor({ restoreSelection: true });
         setMode(currentMode());
         onModeChange?.();
@@ -239,12 +252,12 @@ export function createInputPipeline(opts: {
       // 삼켜야 편집기 자신의 keydown 처리기(더 안쪽 target)에 도달하지 못한다.
       // WR-01: Ctrl/Meta 조합을 전부 삼키면 찾기·복사·인쇄·저장·확대까지 막힌다 — 편집 가능성이
       // 있는 조합만 막고, 편집을 일으키지 않는 명령은 허용 목록으로 통과시킨다. 수정자 키 단독
-      // keydown은 아예 이 판단 대상에서 뺀다(통과).
-      if (
-        isEscapedFromDocumentEditor() &&
-        isDocumentEditingRoot(deepActiveElement()) &&
-        !MODIFIER_ONLY_KEYCODES.has(event.code)
-      ) {
+      // keydown은 아예 이 판단 대상에서 뺀다(통과). "초점 옮기기"(iteration 4)로 나온 상태의
+      // 초점은 오버레이 focusSink에 있어 deepActiveElement()가 documentEditingRoot가 아니다 —
+      // 그래도 편집기가 초점과 무관하게 document 캡처 리스너로 Enter·Ctrl+B 등을 직접 처리하는
+      // 경우(WR-08 fixture)에 대비해 isEscapedFromDocumentEditor() 표시만으로 계속 막는다(window
+      // capture 리스너가 document보다 먼저 실행되므로 이 차단은 초점 위치와 무관하게 유효하다).
+      if (isEscapedFromDocumentEditor() && !MODIFIER_ONLY_KEYCODES.has(event.code)) {
         const mod = event.ctrlKey || event.metaKey;
         const block = mod
           ? !(PASS_CTRL_CODES.has(event.code) && !event.altKey)
@@ -436,8 +449,11 @@ export function createInputPipeline(opts: {
 
   // WR-02: "나옴" 상태의 편집 차단은 keydown·beforeinput뿐이었다 — 오른쪽 클릭 메뉴 붙여넣기·
   // 잘라내기, 끌어서 놓기(drag & drop)는 키보드를 거치지 않아 그대로 편집기에 닿을 수 있었다.
-  // 초점이 문서 전체 편집기일 때 이 네 이벤트를 window capture에서 막는다. dragover도 막아야
-  // drop 이벤트가 실제로 편집을 일으키기 전에 일관되게 차단된다.
+  // 나온 상태(isEscapedFromDocumentEditor)면 이 네 이벤트를 window capture에서 막는다. dragover도
+  // 막아야 drop 이벤트가 실제로 편집을 일으키기 전에 일관되게 차단된다. drop·dragover는 초점이
+  // 아니라 포인터 좌표로 대상이 정해지므로("초점 옮기기"로 초점은 오버레이 focusSink에 있어도)
+  // deepActiveElement()가 documentEditingRoot일 것을 요구하지 않는다 — window capture 리스너가
+  // 편집기 자신의 document 캡처 리스너보다 먼저 실행되므로 초점 위치와 무관하게 유효하다.
   for (const type of ['paste', 'cut', 'drop', 'dragover'] as const) {
     window.addEventListener(
       type,
@@ -445,7 +461,7 @@ export function createInputPipeline(opts: {
         if (!event.isTrusted || !isHelperEnabled()) {
           return;
         }
-        if (isEscapedFromDocumentEditor() && isDocumentEditingRoot(deepActiveElement())) {
+        if (isEscapedFromDocumentEditor()) {
           event.preventDefault();
           event.stopImmediatePropagation();
         }

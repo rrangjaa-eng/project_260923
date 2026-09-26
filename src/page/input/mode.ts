@@ -1,5 +1,7 @@
 // 입력칸 판정과 현재 모드(D-16). document를 읽는 page-context 모듈.
 
+import { getFocusSink, isFocusSink } from '@/page/overlay/mode-indicator';
+
 const NON_TYPING_INPUT_TYPES = new Set([
   'checkbox',
   'radio',
@@ -50,13 +52,19 @@ export function isDocumentEditingRoot(el: Element | null): boolean {
 // 받지 못하게 만든다 — 그래서 blur 대신 이 표시만 바꾼다). 프레임(모듈 인스턴스)마다 독립이다.
 let escapedFromDocumentEditor = false;
 
-// CR-01(01-REVIEW.md 2회차, 사용자 결정): "커서 숨기기" 방식 — 나올 때 선택 범위(Range)를
-// 저장해 두고 지운다(초점은 그대로 둔다, DOM·편집 속성은 건드리지 않는다). 선택의 편집 루트가
-// 없으면 한글 IME가 조합을 시작하지 않을 것으로 예상한다(실측 필요, REVIEW.md 판정 1 참고).
+// CR-01(01-REVIEW-FIX.md iteration 4, 사용자 결정): "초점 옮기기" 방식 — iteration 3의 "커서
+// 숨기기"(선택 범위만 지우고 초점은 그대로 둠)는 실측상 트러스트된 키 이벤트마다 Chrome이 지운
+// 선택을 스스로 되살려, CDP IME 조합이 편집 루트에 실제로 삽입되는 것을 막지 못했다(iteration 3
+// REVIEW-FIX.md 실측). 대신 나올 때 선택을 저장·해제하고 초점 자체를 도우미 오버레이의 비편집
+// tabindex=-1 요소(mode-indicator.ts getFocusSink)로 옮긴다 — spike 실측(designMode·
+// contenteditable 모두, closed/open shadow·plain div 모두): 이 요소로 초점을 옮기면 CDP 조합·확정
+// 시도가 편집 루트·이 요소 어디에도 삽입되지 않는다(5/5).
 let savedRanges: Range[] = [];
+let escapedRoot: HTMLElement | null = null;
 
-export function escapeDocumentEditor(): void {
+export function escapeDocumentEditor(root: Element | null): void {
   escapedFromDocumentEditor = true;
+  escapedRoot = root instanceof HTMLElement ? root : null;
   const sel = document.getSelection();
   savedRanges = [];
   if (sel) {
@@ -65,17 +73,23 @@ export function escapeDocumentEditor(): void {
     }
     sel.removeAllRanges();
   }
+  getFocusSink().focus();
 }
 
-// restoreSelection: Esc를 다시 눌러 돌아올 때만 true(저장한 범위를 복원한다). 편집기를 눌러
-// 돌아올 때는 false — 브라우저가 누른 자리에 캐럿을 이미 두므로 복원하지 않는다.
+// restoreSelection: Esc를 다시 눌러 돌아올 때만 true(편집 루트에 초점을 되돌리고 저장한 범위를
+// 복원한다 — 아무도 다른 수단으로 초점을 되돌리지 않으므로 여기서 직접 해야 한다). 편집기를 눌러
+// 돌아올 때·다른 요소로 focusin일 때는 false — 브라우저가 이미(또는 곧) 초점을 옮기므로 복원하지
+// 않는다.
 export function resumeDocumentEditor(opts: { restoreSelection: boolean }): void {
   escapedFromDocumentEditor = false;
+  const root = escapedRoot;
+  escapedRoot = null;
   const ranges = savedRanges;
   savedRanges = [];
   if (!opts.restoreSelection) {
     return;
   }
+  root?.focus();
   const sel = document.getSelection();
   const alive = ranges.filter((r) => r.startContainer.isConnected && r.endContainer.isConnected);
   if (sel && alive.length > 0) {
@@ -92,6 +106,14 @@ export function isEscapedFromDocumentEditor(): boolean {
 
 export function currentMode(): 'typing' | 'helper' {
   const active = deepActiveElement();
+  // 초점이 우리 오버레이의 focusSink 자신이면 언제나 도우미다 — designMode 문서에서는
+  // HTMLElement.isContentEditable이 문서 전체에 적용돼(contentEditable과 달리 부분 트리가
+  // 아니라 document.designMode 하나로 결정된다) 이 shadow DOM 안 평범한 div도 true를 돌려준다
+  // (실측으로 확인: 이 검사 없이는 designMode 문서에서 나온 상태가 즉시 "입력 중"으로 잘못
+  // 보고된다). isTypingTarget보다 먼저 검사해야 한다.
+  if (isFocusSink(active)) {
+    return 'helper';
+  }
   if (escapedFromDocumentEditor && isDocumentEditingRoot(active)) {
     return 'helper';
   }
