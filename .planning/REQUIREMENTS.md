@@ -16,8 +16,8 @@
 
 ### 떨림 걸러내기 (FILT)
 
-- [ ] **FILT-01**: 같은 키·같은 자리 클릭이 설정한 간격 안에 다시 들어오면 한 번으로 처리된다 (5)
-- [ ] **FILT-02**: 키를 오래 눌러도 한 번만 입력된다(자동 반복 끔) (5)
+- [x] **FILT-01**: 같은 키·같은 자리 클릭이 설정한 간격 안에 다시 들어오면 한 번으로 처리된다 (5)
+- [x] **FILT-02**: 키를 오래 눌러도 한 번만 입력된다(자동 반복 끔) (5)
 - [ ] **FILT-03**: 의도치 않게 들어온 더블클릭이 한 번 클릭으로 줄어든다 (5)
 - [ ] **FILT-04**: 이용자가 버튼을 계속 누르지 않고 "끌기 시작 → 놓을 곳 누르기" 두 번 누르기로 끌어서 놓기를 할 수 있다 (5)
 
@@ -189,8 +189,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ELEM-02 | Phase 1 | Gaps Found |
 | ELEM-03 | Phase 1 | Gaps Found |
 | ELEM-04 | Phase 1 | Gaps Found |
-| FILT-01 | Phase 1 | Gaps Found |
-| FILT-02 | Phase 1 | Gaps Found |
+| FILT-01 | Phase 1 | Complete |
+| FILT-02 | Phase 1 | Complete |
 | FILT-03 | Phase 1 | Gaps Found |
 | FILT-04 | Phase 1 | Gaps Found |
 | CLICK-01 | Phase 1 | Gaps Found |

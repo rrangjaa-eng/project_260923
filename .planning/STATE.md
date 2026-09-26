@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-16-PLAN.md — Phase 01 전체 완료(16/16)
-last_updated: "2026-09-26T03:21:13.831Z"
+stopped_at: Completed 01-17-PLAN.md
+last_updated: "2026-09-26T03:55:50.736Z"
 last_activity: 2026-09-24
 last_activity_desc: Phase 01 execution started
-state_head: bf4f67c4482c72d1312987a5bbfeba8cdc3ab218
+state_head: fc587cfc8425010ec844efc18c7a6bb9d61df6cd
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 19
-  completed_plans: 16
+  completed_plans: 17
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 ## Current Position
 
 Phase: 1 (클릭 도우미 기반) — READY TO EXECUTE
-Plan: 2 of 16
+Plan: 3 of 16
 Status: Ready to execute
 Last activity: 2026-09-24 — Phase 01 execution started
 
@@ -74,6 +74,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P14 | N/A | 3 tasks | 9 files |
 | Phase 1 P15 | n/a | 2 tasks | 10 files |
 | Phase 01 P16 | 이어진 세션 | 3 tasks | 17 files |
+| Phase 01 P17 | 40min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -132,6 +133,8 @@ Recent decisions affecting current work:
 - [Phase 01]: [Phase 1] 강조 테두리 안쪽 흰 후광은 ::before + inset:0(부모 padding 경계 = 테두리 안쪽)로 그린다 — 바깥은 outline
 - [Phase 01]: [Phase 1] .card:focus-visible은 border 대신 outline 3px --accent — border는 레이아웃을 밀지만 outline은 밀지 않는다
 - [Phase 01]: [Phase 1] 흰 후광(halo)은 box-shadow가 아니라 outline(바깥)·::before 테두리(안쪽)로 그린다(SYSTEM.md 그림자 금지)
+- [Phase 01]: matchAboutBlank:true 하나로 srcdoc·document.write iframe 주입 해결, document rewrite watcher + frame/reinject로 옛 도우미 정리 후 재주입 — 01-VERIFICATION BLOCKER(srcdoc/about:blank iframe 미주입) 해소
+- [Phase 01]: User decision(실행 중): 맨 위 about:blank 새 창(결재 팝업 패턴)에도 도우미가 들어가야 한다 — PLAN.md의 about: 최상위 문서 가드는 구현하지 않음, 전체 지원은 01-18/01-19로 이관 — 오케스트레이터를 통해 전달된 이용자 결정
 
 ### Pending Todos
 
@@ -159,6 +162,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-24T11:22:35.036Z
-Stopped at: Completed 01-16-PLAN.md — Phase 01 전체 완료(16/16)
+Last session: 2026-09-26T03:55:50.680Z
+Stopped at: Completed 01-17-PLAN.md
 Resume file: None
