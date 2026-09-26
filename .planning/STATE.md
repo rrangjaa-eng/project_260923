@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 Phase: 1 (클릭 도우미 기반) — READY TO EXECUTE
 Plan: 5 of 16
 Status: Ready to execute
-Last activity: 2026-09-24 — Phase 01 execution started
+Last activity: 2026-09-26 - Completed quick task 260926-pa1: D-25 깨진 설정에서도 도우미 끄기
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -169,6 +169,12 @@ None yet.
 - GSTACK REVIEW REPORT에서 디자인 리뷰·엔지니어링 리뷰가 PENDING — UI가 있는 Phase 1 계획 전에 저장소 워크플로대로 처리
 - 웨일의 `chrome.storage.sync` 동작 미확인 — 파일 내보내기·가져오기를 기본 수단으로
 - 저장소 루트 CLAUDE.md의 제품·스택 설명은 다른 제품(PLANT8 ERP) — 규칙만 적용
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260926-pa1 | D-25 깨진 설정에서도 도우미 끄기(storage.local 꺼짐 표시, sync 원본 불변) — 전체 게이트 단위 121·e2e 255 통과, 독립 DOM 감사 차단 0(후속: 경고 카드 상태 팝업 높이 639px > 600px, 기존 문제) | 2026-09-26 | 3cca741 | [260926-pa1-d-25](./quick/260926-pa1-d-25/) |
 
 ### Roadmap Evolution
 
