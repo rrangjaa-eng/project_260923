@@ -231,6 +231,16 @@ async function frameStateRecordCount(serviceWorker: Worker, frameId: number): Pr
   return records.filter((r) => r.frameId === frameId && r.enabled).length;
 }
 
+// WR-01(01-REVIEW.md): setupFrameStateRecorder가 켜져 있어야 자식 프레임의 frameId를 알 수
+// 있다 — waitForFrameHelperAlive가 통과한 시점에는 새 인스턴스가 이미 true를 보낸 뒤다.
+async function childFrameIdFromRecords(serviceWorker: Worker): Promise<number | null> {
+  const records = await serviceWorker.evaluate(
+    () => (globalThis as typeof globalThis & { __frameStateRecords?: Array<{ frameId: number; enabled: boolean }> }).__frameStateRecords ?? [],
+  );
+  const found = records.find((r) => r.frameId !== 0 && r.enabled);
+  return found ? found.frameId : null;
+}
+
 test('document.write 프레임: 커서를 대면 그 프레임 안에 강조 테두리가 그려진다(살아 있는 도우미 확인)', async ({ context }) => {
   const page = await context.newPage();
   await openEditorFrames(page);
@@ -376,19 +386,16 @@ test('맨 위 문서를 document.open/write/close로 다시 쓰면 옛 도우미
   await expect(page.locator('#btn-rewrite-count')).toHaveText('1');
 });
 
-// 01-19 Task 3(systematic-debugging, CPU 부하 재현으로 근본 원인 확정 — SUMMARY 참고): 이 시험은
-// 원래 SW가 받은 frame/state(enabled:true) 메시지의 누적 개수가 정확히 1이어야 한다고 단언했다.
-// 큰 순차 묶음·CPU 부하에서 산발적으로 실패해 조사한 결과, 이 개수는 "옛 인스턴스가 조용한지"를
-// 보장하지 않는 시험 자체의 경쟁 조건이었다(제품 결함 아님) — 옛 인스턴스의 설정 읽기(실제 확장
-// IPC 왕복)가 여는 쪽 스크립트의 document.open() 실행(동기, 그러나 부하 시 지연될 수 있음)보다
-// 먼저 끝나면, 옛 인스턴스는 그 순간 진짜로 살아 있는 상태였으므로 자기 상태를 정확하게 보고한다
-// — 이는 버그가 아니라 그 인스턴스가 정리되기 직전까지 정상 동작했다는 뜻이다(cleanedUp 가드가
-// 그 이후의 모든 이어짐을 여전히 올바르게 막는다). 실제 안전 요구사항(이중 누르기 없음, 호스트
-// 하나)은 이미 결정적으로(경쟁 없이) 검증 가능하므로 그 값으로 바꿨다. 그래도 방어를 하나 더
-// 뒀다(fix, content.ts): applyEnabled()가 cleanedUp 플래그(비동기 알림)뿐 아니라
-// document.documentElement 자체(항상 즉시 최신인 동기 값)도 직접 확인해, 알림이 늦게 오는 쪽
-// 변형 경쟁은 원천 차단한다.
-test('document.write로 채운 프레임이 막 생겨도 옛 인스턴스는 조용하다(자식 프레임)', async ({ context, servePage }) => {
+// WR-01/WR-02(01-REVIEW.md): 01-19의 documentWasRewritten() 방어(content.ts)는 근거가 서로
+// 모순되는 추측성 코드였고 되돌렸다(WR-01) — 다시 쓰기 경로에 실제로 들어가면 frame/reinject
+// 없이 정리돼 그 프레임의 도우미가 통째로 사라지는 부작용이 있었다. 그때 함께 바뀐 이 시험의
+// hostCount===1 단언은 새 인스턴스가 시작할 때 tremor-helper-root를 모두 지우므로(content.ts)
+// 옛 인스턴스의 정리 여부와 무관하게 거의 항상 참이라 "다시 쓰기 뒤 옛 인스턴스가 조용함"을
+// 결정적으로 보지 못했다 — waitForFrameHelperAlive가 통과한 시점(새 인스턴스가 이미 true를
+// 보낸 뒤) 이후 그 자식 frameId의 frame/state가 관찰 창(1500ms) 동안 0건인지로 원래 의도를
+// 경쟁 없이 되살렸다(WR-02).
+test('document.write로 채운 프레임이 막 생겨도 옛 인스턴스는 조용하다(자식 프레임)', async ({ context, servePage, serviceWorker }) => {
+  await setupFrameStateRecorder(serviceWorker);
   // 인라인 스크립트가 iframe 하나를 붙이자마자 open/write/close로 버튼+카운터를 쓴다(맨 위에는
   // 누를 요소가 없다) — CKEditor 4 classic이 편집 영역을 만드는 바로 그 패턴.
   servePage(
@@ -412,14 +419,24 @@ test('document.write로 채운 프레임이 막 생겨도 옛 인스턴스는 �
   const page = await context.newPage();
   await page.goto('http://practice.test/write-child.html');
   await waitForFrameHelperAlive(page, '#frame-w', '#btn-w');
-  await page.waitForTimeout(1500);
 
-  // 결정적(경쟁 없는) 안전 확인 1: 옛 인스턴스가 스스로 지운 자기 호스트든, 새 인스턴스가 시작할 때
-  // 지우는 남은 옛 호스트든, 정리 시점과 무관하게 최종 상태는 항상 호스트 정확히 1개다.
+  // 결정적(경쟁 없는) 안전 확인 1: 새 인스턴스가 이미 true를 보낸 시점부터, 그 frameId의
+  // frame/state(true)가 관찰 창 동안 0건이어야 한다(옛 인스턴스가 함께·뒤늦게 켜지지 않음).
+  const childFrameId = await childFrameIdFromRecords(serviceWorker);
+  expect(childFrameId, '새 인스턴스의 frame/state(true) 기록을 찾지 못했다').not.toBeNull();
+  const baseline = await frameStateRecordCount(serviceWorker, childFrameId as number);
+  await page.waitForTimeout(1500);
+  expect(
+    (await frameStateRecordCount(serviceWorker, childFrameId as number)) - baseline,
+    '다시 쓰기 뒤 관찰 창 동안 그 frameId의 frame/state(true)가 새로 오면 안 된다(옛 인스턴스가 조용함)',
+  ).toBe(0);
+
+  // 결정적 안전 확인 2: 옛 인스턴스가 스스로 지운 자기 호스트든, 새 인스턴스가 시작할 때 지우는
+  // 남은 옛 호스트든, 정리 시점과 무관하게 최종 상태는 항상 호스트 정확히 1개다.
   const hostCount = await page.frameLocator('#frame-w').locator('tremor-helper-root').count();
   expect(hostCount, '자식 프레임 안 도우미 호스트는 정확히 1개여야 한다(옛 인스턴스가 자기 것을 남기지 않음)').toBe(1);
 
-  // 결정적 안전 확인 2: 옛 인스턴스의 리스너가 안 떼어졌다면(probe evidence 4번, 01-17) 번호를
+  // 결정적 안전 확인 3: 옛 인스턴스의 리스너가 안 떼어졌다면(probe evidence 4번, 01-17) 번호를
   // 누를 때 옛 인스턴스도 press/request를 함께 받아 카운터가 2가 된다 — 정확히 1이어야 한다.
   const btn = page.frameLocator('#frame-w').locator('#btn-w');
   await pressHintFor(page, btn);
