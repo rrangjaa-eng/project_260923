@@ -65,19 +65,12 @@ export function createInputPipeline(opts: {
   const pressHandlers: PressHandler[] = [];
   let modalHandler: ModalHandler | null = null;
   let modalTickInterval: ReturnType<typeof setInterval> | null = null;
-  // CR-01: 한글 IME가 켜진 채 도우미 키(F 등)를 누르면 Chrome은 keydown을 keyCode 229(Process)로
-  // 보내면서도 event.code는 물리 키 그대로라 도우미 키 처리기가 이를 정상적으로 소비한다. IME는
-  // 이미 받은 키를 keydown 취소로 되돌리지 못해(Chrome/Windows 알려진 동작) 곧바로
-  // compositionstart가 뜬다 — 이는 사용자가 다시 입력하려는 의도적 신호가 아니라 도우미 키
-  // 자체가 조합으로 잘못 들어간 것이다. 도우미 키 소비 직후(COMPOSITION_IGNORE_WINDOW_MS 안)
-  // 뜨는 compositionstart는 입력 복귀 신호로 보지 않는다.
-  const COMPOSITION_IGNORE_WINDOW_MS = 300;
-  let lastHelperKeyConsumedAt = -Infinity;
-  // beforeinput 취소로는 조합 입력 자체를 막을 수 없어(주석 참고, IME가 텍스트를 직접 넣는다) —
-  // 무시하기로 한 조합이 진행되는 동안(compositionend까지) 편집기 내용을 조합 시작 전 상태로
-  // 되돌려 문서가 바뀐 채로 남지 않게 한다.
-  let ignoredCompositionRoot: HTMLElement | null = null;
-  let ignoredCompositionSnapshot = '';
+  // CR-01(01-REVIEW.md 2회차, 사용자 결정): 63d8eff의 innerHTML 스냅숏 복원(조합 동안 편집 루트를
+  // 통째로 다시 파싱)은 노드 정체성·선택·되돌리기·위젯을 파괴해 원래 결함보다 해로웠다 — 되돌렸다.
+  // 대신 mode.ts의 escapeDocumentEditor()가 나올 때 선택 범위를 지운다("커서 숨기기") — 편집
+  // 루트의 선택이 없으면 IME가 조합을 시작하지 않을 것으로 예상한다(실측 필요). 한글 조합 시작을
+  // 입력 복귀 신호로 보던 것도 없앴다(사용자 결정) — 복귀 신호는 Esc 다시 누름·편집기 누름·다른
+  // 요소로 focusin 세 가지뿐이다.
 
   // 설정이 바뀌면(interval·sameSpot) 새 값으로 필터를 다시 만든다. 그 외엔 상태(마지막 받아들인
   // 시각·자리)를 그대로 유지해야 하므로 매 이벤트마다 새로 만들지 않는다.
@@ -113,7 +106,9 @@ export function createInputPipeline(opts: {
     'focusin',
     () => {
       if (isHelperEnabled() && isEscapedFromDocumentEditor() && !isDocumentEditingRoot(deepActiveElement())) {
-        resumeDocumentEditor();
+        // 다른 요소로 초점이 옮겨 간 경우다 — 저장한 선택 범위는 복원하지 않는다(그 편집기는 더
+        // 이상 초점이 없다).
+        resumeDocumentEditor({ restoreSelection: false });
       }
       updateModeFromFocus();
     },
@@ -168,7 +163,8 @@ export function createInputPipeline(opts: {
         const active = deepActiveElement();
         if (isDocumentEditingRoot(active)) {
           // Task 3(01-18, KEY-01): 문서 전체 편집기는 blur() 대신 "나옴" 표시만 한다 — blur가
-          // 캐럿을 지워 편집기가 이후 키를 받지 못하게 만들기 때문(probe evidence).
+          // 캐럿을 지워 편집기가 이후 키를 받지 못하게 만들기 때문(probe evidence). CR-01: 선택
+          // 범위도 함께 저장·해제한다(mode.ts escapeDocumentEditor).
           escapeDocumentEditor();
         } else if (active instanceof HTMLElement) {
           active.blur();
@@ -188,11 +184,21 @@ export function createInputPipeline(opts: {
           // 도우미가 이 키를 썼다(D-17) — 같은 code의 뒤따르는 keypress·keyup도 삼켜야
           // 사이트 단축키(keydown 대신 keypress·keyup을 쓰는 것 포함)보다 도우미가 앞선다.
           swallowedKeyCodes.add(event.code);
-          lastHelperKeyConsumedAt = event.timeStamp;
           event.preventDefault();
           event.stopImmediatePropagation();
           return;
         }
+      }
+
+      // CR-01(사용자 결정): 문서 전체 편집기에서 이미 나온 상태로 Esc를 다시 누르면 저장한 선택
+      // 범위를 복원하고 입력으로 돌아간다 — 도우미 키 처리기(번호표 닫기 등)가 먼저 Esc를 쓸
+      // 기회를 갖도록 keyHandlers 뒤에 둔다(번호표가 열려 있으면 Esc는 번호표를 닫을 뿐, 입력으로
+      // 돌아가지 않는다).
+      if (event.code === 'Escape' && isEscapedFromDocumentEditor() && isDocumentEditingRoot(deepActiveElement())) {
+        resumeDocumentEditor({ restoreSelection: true });
+        setMode(currentMode());
+        onModeChange?.();
+        return;
       }
 
       // WR-08: "나옴" 상태의 편집 차단은 이제까지 beforeinput 취소뿐이었다 — CKEditor 4·
@@ -260,7 +266,9 @@ export function createInputPipeline(opts: {
       // Task 3(01-18, KEY-01): 문서 전체 편집기를 "나옴" 상태에서 주 버튼으로 다시 누르면 곧바로
       // 입력으로 돌아간다 — 모달·자석 판단보다 먼저 두어 누르기 경로 자체는 바꾸지 않는다.
       if (isEscapedFromDocumentEditor() && event.button === 0 && event.isPrimary) {
-        resumeDocumentEditor();
+        // 편집기를 눌러 돌아온다 — 브라우저가 누른 자리에 캐럿을 두므로 저장한 범위는 복원하지
+        // 않는다.
+        resumeDocumentEditor({ restoreSelection: false });
         setMode(currentMode());
         onModeChange?.();
       }
@@ -359,56 +367,12 @@ export function createInputPipeline(opts: {
     { capture: true, signal },
   );
 
-  // Task 3(01-18, KEY-01): 한글 조합 입력 시작은 "나옴" 상태에서도 입력으로 돌아가는 신호로
-  // 본다 — beforeinput 취소로는 조합 입력을 막을 수 없어(IME가 텍스트를 직접 넣는다), 표시와
-  // 실제 입력이 어긋나지 않게 그 전에 되돌린다.
-  window.addEventListener(
-    'compositionstart',
-    (event) => {
-      if (!event.isTrusted || !isHelperEnabled()) {
-        return;
-      }
-      if (isEscapedFromDocumentEditor()) {
-        if (event.timeStamp - lastHelperKeyConsumedAt < COMPOSITION_IGNORE_WINDOW_MS) {
-          // CR-01: 도우미 키가 조합으로 잘못 들어간 것 — 입력 복귀로 보지 않는다. 'input'
-          // 처리기(아래)가 compositionend까지 조합 결과를 되돌린다.
-          const root = deepActiveElement();
-          if (root instanceof HTMLElement && isDocumentEditingRoot(root)) {
-            ignoredCompositionRoot = root;
-            ignoredCompositionSnapshot = root.innerHTML;
-          }
-          return;
-        }
-        resumeDocumentEditor();
-        setMode(currentMode());
-        onModeChange?.();
-      }
-    },
-    { capture: true, signal },
-  );
-
-  // CR-01: 무시하기로 한 조합이 진행되는 동안 뜨는 'input'(취소 불가, beforeinput 뒤에 항상
-  // 뜬다)마다 편집기 내용을 조합 시작 전으로 되돌린다. compositionend에서 이 방어를 끈다.
-  window.addEventListener(
-    'input',
-    () => {
-      if (ignoredCompositionRoot === null) {
-        return;
-      }
-      if (ignoredCompositionRoot.innerHTML !== ignoredCompositionSnapshot) {
-        ignoredCompositionRoot.innerHTML = ignoredCompositionSnapshot;
-      }
-    },
-    { capture: true, signal },
-  );
-  window.addEventListener(
-    'compositionend',
-    () => {
-      ignoredCompositionRoot = null;
-      ignoredCompositionSnapshot = '';
-    },
-    { capture: true, signal },
-  );
+  // CR-01(01-REVIEW.md 2회차, 사용자 결정): 한글 조합 시작(compositionstart)을 입력 복귀 신호로
+  // 보던 것과, 무시한 조합을 innerHTML 스냅숏으로 되돌리던 것을 모두 없앴다 — 되돌리기는 편집
+  // 루트를 통째로 다시 파싱해 노드·선택·되돌리기 스택을 파괴했다(원래 결함보다 해로움). 대신
+  // escapeDocumentEditor()가 나올 때 선택 범위를 지워("커서 숨기기") 편집 루트에 선택이 없으면
+  // IME가 애초에 조합을 시작하지 않게 한다(실측 필요 — REVIEW.md 판정 1). 복귀 신호는 이제 Esc
+  // 다시 누름·편집기 누름(pointerdown)·다른 요소로 focusin 세 가지뿐이다.
 
   // Task 3(01-18, KEY-01): "나옴" 상태인 동안 문서 전체 편집기의 실제 편집(글자·삭제·줄바꿈·
   // 붙여넣기 등)을 막는다 — 모드 표시가 도우미인데 글자가 조용히 들어가는 일이 없게 한다.
