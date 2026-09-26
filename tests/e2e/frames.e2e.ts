@@ -316,7 +316,10 @@ async function pressesEntries(
   }, key);
 }
 
-test('WR-05: 다른 출처 자식 프레임에서 자석으로 직접 누른 기록도 자식 자신이 아니라 맨 위 페이지 출처에 쌓인다', async ({
+// WR-04(01-REVIEW.md 2회차)로 자식 프레임의 자석·머무르기·스페이스바 직접 누르기는 기록을 전혀
+// 보내지 않는다(framePath를 모르므로) — 이 시험의 원래 전제("자식 기록도 맨 위 출처에 쌓인다")는
+// 더 이상 유효하지 않다. 새 기대로 바꾼다: 기록이 아예 없어야 한다.
+test('WR-04 이후: 다른 출처 자식 프레임에서 자석으로 직접 누른 것은 기록을 남기지 않는다', async ({
   context,
   serviceWorker,
 }) => {
@@ -336,12 +339,13 @@ test('WR-05: 다른 출처 자식 프레임에서 자석으로 직접 누른 기
   await page.waitForTimeout(300);
 
   const topEntries = await pressesEntries(serviceWorker, 'http://practice.test');
-  expect(topEntries.length, '다른 출처(other.test) 자식의 기록도 사이트 = 맨 위 페이지 출처(D-20)에 쌓여야 한다').toBeGreaterThan(
-    0,
-  );
+  expect(topEntries.length, '다른 출처(other.test) 자식의 직접 누르기는 framePath를 몰라 기록을 남기면 안 된다').toBe(0);
 });
 
-test('WR-05: 같은 출처 자식 프레임과 맨 위가 똑같은 틀(글자·자리)을 써도 기록이 서로 섞이지 않는다', async ({
+// WR-04 이후: 같은 이유로 자식 프레임 쪽 직접 누르기는 기록되지 않는다 — 맨 위 자신의 누르기만
+// 기록에 남고, 그 하나가 중복·합산되지 않는지만 확인한다(원래 시험의 "서로 섞이지 않는다" 취지는
+// "자식이 기록 자체가 없다"로 대체된다).
+test('WR-04 이후: 같은 출처 자식 프레임과 맨 위가 똑같은 틀(글자·자리)을 써도, 맨 위 자신의 누르기만 기록에 남는다', async ({
   context,
   servePage,
   serviceWorker,
@@ -388,11 +392,10 @@ test('WR-05: 같은 출처 자식 프레임과 맨 위가 똑같은 틀(글자·
   const entries = await pressesEntries(serviceWorker, 'http://practice.test');
   expect(
     entries.length,
-    '같은 글자·자리 구조를 공유해도(도메인 공통 템플릿) 자식과 맨 위 요소는 서로 다른 기록이어야 한다',
-  ).toBe(2);
-  for (const entry of entries) {
-    expect(entry.count, '서로 다른 요소의 기록이 하나로 합쳐지면 안 된다').toBe(1);
-  }
+    '자식 프레임 직접 누르기는 기록되지 않는다(WR-04) — 맨 위 자신의 누르기 하나만 남아야 한다',
+  ).toBe(1);
+  expect(entries[0]?.count, '맨 위 자신의 기록이 자식 없는 기록과 합쳐지거나 중복되면 안 된다').toBe(1);
+  expect(entries[0]?.fingerprint.framePath, '맨 위 자신의 기록은 framePath가 빈 배열이어야 한다').toEqual([]);
 });
 
 // WR-04(01-REVIEW.md 2회차): WR-07이 쿼리 문자열은 뺐지만, 경로 안 세션 ID(예: 서블릿 URL

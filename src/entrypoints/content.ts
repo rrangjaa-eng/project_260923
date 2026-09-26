@@ -190,9 +190,16 @@ export default defineContentScript({
     // 기록으로 잘못 합쳐질 수 있다. 정확한 경로까지는 아니어도(번호표를 거친 누르기는 이미
     // press/request의 message.framePath로 정확하다) 최소한 "맨 위가 아니다"와 "어느 문서인지"는
     // 구분해 서로 다른 프레임끼리도, 맨 위와도 섞이지 않게 한다.
-    // WR-07(01-REVIEW.md): 세션 토큰·캐시 무효화 쿼리 등이 storage.local에 그대로 쌓이지 않게
-    // 최소한 origin+pathname만 쓴다(질의 문자열 제외).
-    const localPressFramePath = isTopFrame ? [] : [`local:${window.location.origin}${window.location.pathname}`];
+    // WR-04(01-REVIEW.md 2회차): WR-07의 origin+pathname 좁히기로도 경로 안 세션 ID(예:
+    // `/app/page.do;jsessionid=ABC…`, 전자정부 프레임워크·Spring 등에서 흔하다)가 계속 쌓인다.
+    // 이 로컬 근사 framePath는 어차피 D-11 번호 순서에 쓰이지 않는다(hints 경로의 정확한
+    // framePath만 쓰인다) — 쓰이지 않는 값에 경로 정보를 계속 남기지 않도록, 자식 프레임은
+    // null(모른다)로 두고 자석·머무르기·스페이스바로 직접 누른 것은 기록을 보내지 않는다
+    // (누르기 자체는 그대로 한다 — pressOrDrag의 fingerprint가 null이면 sendRecordPress만 생략).
+    const localPressFramePath: string[] | null = isTopFrame ? [] : null;
+    function localFingerprint(item: { fingerprint: Fingerprint }): Fingerprint | null {
+      return localPressFramePath === null ? null : { ...item.fingerprint, framePath: localPressFramePath };
+    }
     let currentEnabled: boolean | undefined;
     let currentSettings: SettingsV1 = defaultSettings();
     // 지금 사이트에서만 끄기(Plan 01-13, D-20): 사이트 = 맨 위 페이지 출처. 전역 enabled와 합쳐
@@ -250,13 +257,15 @@ export default defineContentScript({
     // 위험한 버튼은 끌기 대상이 아니다(T-01-32) — dragTwoPress가 꺼져 있거나 위험한 버튼이면
     // 그냥 누른다. 켜져 있으면 상태 기계 결과(arm/drop/cancel/pass)에 따라 힌트를 보여 주거나
     // synthesizeDrag로 대신 끌어서 놓는다.
-    function pressOrDrag(id: string, el: Element, fingerprint: Fingerprint, danger: boolean): void {
+    function pressOrDrag(id: string, el: Element, fingerprint: Fingerprint | null, danger: boolean): void {
       if (!currentSettings.data.dragTwoPress || danger) {
         const { picker } = synthesizePress(el);
         if (picker === 'blocked') {
           showTransientMessage(PICKER_BLOCKED_MESSAGE, 2000);
         }
-        sendRecordPress(fingerprint);
+        if (fingerprint) {
+          sendRecordPress(fingerprint);
+        }
         return;
       }
       const result = dragTwoPress.press({ id, draggable: isDraggableElement(el) });
@@ -265,7 +274,9 @@ export default defineContentScript({
         if (picker === 'blocked') {
           showTransientMessage(PICKER_BLOCKED_MESSAGE, 2000);
         }
-        sendRecordPress(fingerprint);
+        if (fingerprint) {
+          sendRecordPress(fingerprint);
+        }
         return;
       }
       if (result.action === 'arm') {
@@ -313,7 +324,7 @@ export default defineContentScript({
       if (result.fire) {
         const el = collector.get(currentTargetId);
         if (el) {
-          pressOrDrag(currentTargetId, el, { ...item.fingerprint, framePath: localPressFramePath }, item.danger);
+          pressOrDrag(currentTargetId, el, localFingerprint(item), item.danger);
         }
       }
       requestAnimationFrame(dwellTick);
@@ -697,7 +708,7 @@ export default defineContentScript({
         return false;
       }
       return () => {
-        pressOrDrag(item.id, el, { ...item.fingerprint, framePath: localPressFramePath }, item.danger);
+        pressOrDrag(item.id, el, localFingerprint(item), item.danger);
       };
     });
 
@@ -712,7 +723,7 @@ export default defineContentScript({
       if (!item || !el) {
         return false;
       }
-      pressOrDrag(item.id, el, { ...item.fingerprint, framePath: localPressFramePath }, item.danger);
+      pressOrDrag(item.id, el, localFingerprint(item), item.danger);
       return true;
     });
 
