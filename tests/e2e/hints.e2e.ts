@@ -508,6 +508,87 @@ test('ISSUE-001 회귀 방지: Shift+F는 그대로 번호표를 연다', async 
   expect((await labelTexts(page)).length).toBeGreaterThan(0);
 });
 
+// ISSUE-002·003(/qa 사용자 결정 2026-09-26, SYSTEM.md "번호표 배치"): 화면 가장자리 요소의 번호표도
+// 뷰포트 안에 온전히 보이고, 이웃 번호표가 위험 표시("! 위험")를 가리지 않는다.
+async function dangerTagBoxes(page: Page): Promise<Array<{ x: number; y: number; width: number; height: number }>> {
+  return page.evaluate(() => {
+    const host = document.querySelector('tremor-helper-root');
+    const tags = host?.shadowRoot?.querySelectorAll('.hint-label-danger-tag');
+    if (!tags) {
+      return [];
+    }
+    return Array.from(tags).map((el) => {
+      const rect = el.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    });
+  });
+}
+
+test('ISSUE-002·003: danger.html에서 F를 누르면 모든 번호표가 화면 안에 있고, 서로 겹치지 않으며, "! 위험" 표시도 가리지 않는다', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/danger.html');
+  await waitForHelperReady(page);
+
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(100);
+
+  const viewport = page.viewportSize();
+  if (!viewport) {
+    throw new Error('뷰포트 크기를 알 수 없다');
+  }
+
+  const boxes = await labelBoxes(page);
+  expect(boxes.length).toBeGreaterThan(0);
+  for (const box of boxes) {
+    expect(box.x, '번호표 왼쪽이 화면 밖이면 안 된다').toBeGreaterThanOrEqual(0);
+    expect(box.y, '번호표 위쪽이 화면 밖이면 안 된다').toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width, '번호표 오른쪽이 화면 밖이면 안 된다').toBeLessThanOrEqual(viewport.width);
+    expect(box.y + box.height, '번호표 아래쪽이 화면 밖이면 안 된다').toBeLessThanOrEqual(viewport.height);
+  }
+  for (let i = 0; i < boxes.length; i += 1) {
+    for (let j = i + 1; j < boxes.length; j += 1) {
+      const a = boxes[i];
+      const b = boxes[j];
+      if (!a || !b) {
+        continue;
+      }
+      expect(boxesOverlap(a, b), '번호표끼리 겹치면 안 된다').toBe(false);
+    }
+  }
+
+  const tagBoxes = await dangerTagBoxes(page);
+  for (const tag of tagBoxes) {
+    for (const box of boxes) {
+      expect(boxesOverlap(tag, box), '번호표가 "! 위험" 표시를 가리면 안 된다').toBe(false);
+    }
+  }
+});
+
+test('ISSUE-002: blank-popup.html(화면 왼쪽 위 링크)에서 F를 누르면 그 번호표도 화면 안에 있다', async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/blank-popup.html');
+  await waitForHelperReady(page);
+
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(100);
+
+  const viewport = page.viewportSize();
+  if (!viewport) {
+    throw new Error('뷰포트 크기를 알 수 없다');
+  }
+
+  const boxes = await labelBoxes(page);
+  expect(boxes.length).toBeGreaterThan(0);
+  for (const box of boxes) {
+    expect(box.x, '번호표 왼쪽이 화면 밖이면 안 된다').toBeGreaterThanOrEqual(0);
+    expect(box.y, '번호표 위쪽이 화면 밖이면 안 된다').toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width, '번호표 오른쪽이 화면 밖이면 안 된다').toBeLessThanOrEqual(viewport.width);
+    expect(box.y + box.height, '번호표 아래쪽이 화면 밖이면 안 된다').toBeLessThanOrEqual(viewport.height);
+  }
+});
+
 test('입력칸에 초점이 있으면 F는 글자로 들어간다(번호표 안 뜸)', async ({ context }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/shortcuts.html');
