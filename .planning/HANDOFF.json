@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-09-26T05:02:51.511Z",
+  "phase": "1",
+  "phase_name": "클릭 도우미 기반",
+  "phase_dir": ".planning/phases/01-click-helper-foundation",
+  "plan": 19,
+  "task": 1,
+  "total_tasks": 3,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": "01-17", "name": "편집기형 iframe(srcdoc, about:blank+document.write) 도우미 주입", "status": "done", "commit": "b12febd"},
+    {"id": "01-18", "name": "확인 화면 뒤 자식 프레임 머무르기, IN-04 fail-closed, 문서 전체 편집기 Esc", "status": "done", "commit": "0ac23f6"}
+  ],
+  "remaining_tasks": [
+    {"id": "01-19 T1", "name": "주소 없는 팝업 사이트 판정 (tracer, noopener 먼저 실측)", "status": "not_started"},
+    {"id": "01-19 T2", "name": "팝업 아이콘·메뉴·누름 기록·안쪽 iframe", "status": "not_started"},
+    {"id": "01-19 T3", "name": "최종 게이트: 싼 게이트 → dom-audit 재실행 → CI=true pnpm test 한 번 → 네트워크·postMessage grep", "status": "not_started"},
+    {"id": "phase-close", "name": "gsd-verifier 재검증 → 로드맵 완료 → Post-build(/review → /qa → /cso → /ship)", "status": "not_started"}
+  ],
+  "blockers": [
+    {"description": "tests/e2e/editor-frames.e2e.ts의 '옛 인스턴스는 조용하다' 시험이 큰 순차 묶음 실행에서 가끔 실패(01-18 작업 전 코드에서도 재현, 단독·repeat-each=5에서는 통과). 01-19 최종 게이트는 0 flaky여야 한다.", "type": "technical", "workaround": "최종 게이트 전에 systematic-debugging으로 근본 원인을 찾아 고친다. 재시도 추가·시험 완화·건너뛰기 금지."}
+  ],
+  "async_jobs": [],
+  "human_actions_pending": [
+    {"action": "D-25 결정: 저장된 설정이 깨졌거나 더 새 형식일 때 '1 도우미 끄기'(전역 끄기)가 원본 보호로 거부되는 동작을 유지할지", "context": "01-VERIFICATION.md 경고 5. 이번 보완 범위 밖", "blocking": false},
+    {"action": "사람 확인 항목: 이용자 PC 설치, 기본값 체감, 두 번째 PC 동기화, 금지 3가지 판단 확인", "context": "01-VERIFICATION.md human_verification — Phase 2 이용자 시험 때", "blocking": false}
+  ],
+  "decisions": [
+    {"decision": "확인 카드 테두리는 남색 3px 유지", "rationale": "SAFE-02의 '빨간 테두리'는 위험 버튼 자체의 빨간 점선을 뜻한다(사용자 확인)", "phase": "1"},
+    {"decision": "문서 전체 편집기(designMode·contenteditable body) Esc 문제를 이번 보완에 포함", "rationale": "사용자 결정. 01-18에서 완료", "phase": "1"},
+    {"decision": "주소 없는 최상위 팝업(window.open('') 등)에서도 도우미가 동작해야 한다", "rationale": "사용자 결정(결재 팝업). 01-17에서 막는 가드를 넣지 않았고 01-19가 전체 지원", "phase": "1"},
+    {"decision": "noopener 팝업은 가정하지 않고 실측대로: 불투명 origin이면 미지원, 생성자 http(s) origin이면 일반 팝업과 같게. window.opener 등 구분 장치 금지", "rationale": "'noopener는 미지원'은 오케스트레이터 지시였지 사용자 요구가 아니었다(정정)", "phase": "1"},
+    {"decision": "CLAUDE.md를 ERP_PLANT8_260917 구조·규칙으로 교체(§1 프로젝트 칸 유지, §7 ERP→도우미, Next.js 블록 제외)", "rationale": "사용자 요청. 커밋 d7b8c1b", "phase": "1"},
+    {"decision": "감사·계획·검토 에이전트는 Opus, 코드 실행 에이전트는 Sonnet", "rationale": "CLAUDE.md §8 모델 선택", "phase": "1"}
+  ],
+  "uncommitted_files": [],
+  "next_action": "/gsd-execute-phase 1 --gaps-only 로 01-19 실행(순차 모드, gsd-executor model sonnet). 실행자 프롬프트에 blocker(editor-frames flaky)와 plan-checker 참고(최종 게이트의 editor-frames 개수는 01-18 SUMMARY의 16개 기준)를 넣는다.",
+  "context_notes": "Phase 1은 16개 계획 실행 후 코드 리뷰(치명 8·경고 10 모두 TDD 수정) → 목표 검증 gaps_found(srcdoc/about:blank iframe) → 보완 계획 01-17/01-18/01-19. 01-17·01-18 완료, 01-19만 남음. 브랜치 claude/project-thread-ew8d9u, PR #7(rrangjaa-eng/project_260923). 01-19 뒤 gsd-verifier로 재검증해 passed면 phase.complete, 그다음 Post-build 넷."
+}
