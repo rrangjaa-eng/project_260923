@@ -133,7 +133,7 @@ unsupportedMessage.className = 'unsupported-message';
 unsupportedMessage.textContent = '이 페이지에서는 도울 수 없어요. 다른 탭에서 쓰세요.';
 
 // 형식 변환 실패 경고 카드(D-25, Plan 01-14): notice:migration-failed가 있으면 카드 격자
-// 위에 보여 준다. 저장 시도가 preserved-original로 거절되면 문구를 바꾼다(showWarningCard).
+// 위에 보여 준다. 저장 시도가 preserved-original로 거절되면 문구를 바꾼다(showToggleWarning).
 const warningCard = document.createElement('p');
 warningCard.className = 'warning-card';
 // DOM 감사 경고 1: 실패 안내는 시각으로만 전달돼 스크린리더 이용자에게는 뜨는지 알 방법이
@@ -173,7 +173,7 @@ function sendWithRevert(message: Message, revert: () => void, onFail: (reason?: 
         revert();
         onFail(result?.reason);
       } else {
-        hideToggleWarningCard();
+        hideToggleWarning();
       }
     },
     () => {
@@ -189,35 +189,46 @@ function sendWithRevert(message: Message, revert: () => void, onFail: (reason?: 
 }
 
 // F3(/review 사용자 결정): 경고 카드는 토글 실패 안내와 형식 변환 실패(D-25) 경고가 같은 요소를
-// 나눠 쓴다 — 지금 떠 있는 안내가 어느 쪽인지 기억해 둬야, 토글 성공이 자기 것이 아닌 안내까지
-// 지우지 않는다(최소 변경 — 요소를 나누는 대신 종류만 기억).
-let warningKind: 'toggle' | 'migration' | null = null;
+// 나눠 쓴다. W1(DOM 감사 2회차): "종류"만 기억하는 방식은 D-25 경고가 떠 있는 동안 토글 실패
+// 안내가 뜨면 종류가 toggle로 바뀌고, 그 뒤 토글이 성공하면 아직 유효한 D-25 경고까지 함께
+// 지워졌다(카드 0개) — 두 안내를 각자 상태로 따로 들고, 보여줄 문구는 그때마다 다시 계산한다
+// (토글 안내가 있으면 그걸 먼저, 없으면 migration이 유효할 때만 그걸).
+let toggleWarningText: string | null = null;
+let migrationNoticeActive = false;
 
-function showWarningCard(text: string, kind: 'toggle' | 'migration'): void {
-  warningKind = kind;
+function renderWarningCard(): void {
+  const text = toggleWarningText ?? (migrationNoticeActive ? MIGRATION_FAILED_MESSAGE : null);
+  if (text === null) {
+    if (warningCard.isConnected) {
+      warningCard.remove();
+    }
+    return;
+  }
   warningCard.textContent = text;
   if (!warningCard.isConnected) {
     container.insertBefore(warningCard, cards);
   }
 }
 
-// DOM 감사 경고 3: 실패 안내가 뜬 뒤 같은(또는 다른) 토글이 성공해도 안내가 화면에 그대로
-// 남아 있었다 — 더는 맞지 않는 안내가 계속 보이지 않도록 성공하면 숨긴다(sendWithRevert 성공
-// 경로에서 부른다).
-function hideWarningCard(): void {
-  warningKind = null;
-  if (warningCard.isConnected) {
-    warningCard.remove();
-  }
+function showToggleWarning(text: string): void {
+  toggleWarningText = text;
+  renderWarningCard();
 }
 
-// F3(/review 사용자 결정): 토글 성공은 그 토글이 스스로 띄운 실패 안내만 지운다 — 지금 떠 있는
-// 안내가 형식 변환 실패(D-25) 경고면(다른 원인, 설정 자체가 깨짐) 토글 성공과 무관하게 남아야
-// 한다.
-function hideToggleWarningCard(): void {
-  if (warningKind === 'toggle') {
-    hideWarningCard();
-  }
+// DOM 감사 경고 3·F3: 토글이 성공하면 그 토글이 스스로 띄운 실패 안내만 지운다(sendWithRevert
+// 성공 경로에서 부른다) — 형식 변환 실패(D-25) 경고는 이 함수가 아니라 setMigrationNoticeActive
+// (false)로만 사라진다(다른 원인, 설정 자체가 깨짐).
+function hideToggleWarning(): void {
+  toggleWarningText = null;
+  renderWarningCard();
+}
+
+// R3(DOM 감사 2회차, 이론 경로): notice:migration-failed가 storage.local에서 사라지거나
+// 다시 생기면(설정이 스스로 고쳐짐 WR-08, 또는 다시 실패로 기록) D-25 경고도 그 값을 따라야
+// 한다 — 토글 안내와 무관하게 이 값만 갈아 끼운다.
+function setMigrationNoticeActive(active: boolean): void {
+  migrationNoticeActive = active;
+  renderWarningCard();
 }
 
 // 번호 카드(D-26 "번호 카드", 자리는 고정): 카드마다 키 숫자·문구·저장소 요청을 넣어 두면
@@ -308,7 +319,7 @@ const helperCard = createCard({
     // 실제 상태로 되돌린다. WR-03: 무응답(시간 제한)·거부(reject)도 같은 방식으로 되돌리고,
     // 이유별로 안내한다(preserved-original만 특별 문구, 나머지는 공통 실패 문구).
     sendWithRevert(message, revert, (reason) => {
-      showWarningCard(reason === 'preserved-original' ? PRESERVED_ORIGINAL_MESSAGE : HELPER_TOGGLE_FAILED_MESSAGE, 'toggle');
+      showToggleWarning(reason === 'preserved-original' ? PRESERVED_ORIGINAL_MESSAGE : HELPER_TOGGLE_FAILED_MESSAGE);
     });
   },
 });
@@ -375,7 +386,7 @@ function createSiteCard(origin: string, tabId: number): { element: HTMLButtonEle
       // 제한)도 같은 방식으로 되돌리고, 왜 되돌아갔는지 한 줄로 알린다. DOM 감사 경고 2: 실패한
       // 쪽이 켜기인지 끄기인지에 따라 원인이 다르니 문구도 다르게 한다(next=true면 켜기 시도).
       sendWithRevert(message, revert, () => {
-        showWarningCard(next ? SITE_TOGGLE_ON_FAILED_MESSAGE : SITE_TOGGLE_OFF_FAILED_MESSAGE, 'toggle');
+        showToggleWarning(next ? SITE_TOGGLE_ON_FAILED_MESSAGE : SITE_TOGGLE_OFF_FAILED_MESSAGE);
       });
     },
   });
@@ -497,10 +508,23 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 async function loadMigrationNotice(): Promise<void> {
   const stored = await chrome.storage.local.get(MIGRATION_NOTICE_KEY);
   const parsed = MigrationNoticeV1.safeParse(stored[MIGRATION_NOTICE_KEY]);
-  if (parsed.success) {
-    showWarningCard(MIGRATION_FAILED_MESSAGE, 'migration');
-  }
+  setMigrationNoticeActive(parsed.success);
 }
+
+// R3(DOM 감사 2회차): 팝업이 열려 있는 동안에도 notice:migration-failed가 바뀌면(생기거나
+// 지워짐) 곧바로 반영한다 — loadMigrationNotice는 처음 열 때 한 번만 읽으므로 이 리스너가
+// 없으면 열려 있던 팝업은 값이 지워진 뒤에도 옛 경고를 계속 보여 준다.
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local') {
+    return;
+  }
+  const change = changes[MIGRATION_NOTICE_KEY];
+  if (!change) {
+    return;
+  }
+  const parsed = MigrationNoticeV1.safeParse(change.newValue);
+  setMigrationNoticeActive(parsed.success);
+});
 
 void loadInitial();
 void loadMigrationNotice();
