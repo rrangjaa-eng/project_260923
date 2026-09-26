@@ -1,0 +1,52 @@
+name: CI
+
+# 푸시 전 로컬 훅(lint·typecheck)만으로는 단위·화면 시험을 빼먹을 수 있어서, PR마다 네 검사를 모두 돌린다.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # main에 연달아 머지돼도 커밋마다 결과가 남도록, 취소는 PR에서만 한다.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm 버전은 package.json의 packageManager(pnpm@10.33.0)에서 읽는다.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # typecheck가 wxt prepare로 .wxt/ 타입 파일을 만든다. 린트가 그 타입을 쓰므로 먼저 돌린다.
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test:unit
+
+      # 화면 시험은 확장을 올린 Chromium이 필요하다(tests/e2e/fixtures.ts가 channel 'chromium'을 쓴다).
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+        timeout-minutes: 20
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-test-results
+          path: test-results/
+          retention-days: 7

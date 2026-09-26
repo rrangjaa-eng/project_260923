@@ -1,0 +1,62 @@
+/* SYSTEM.md의 토큰. 컴포넌트는 이 변수만 쓴다. Shadow DOM의 :host에 건다. */
+:host {
+  --bg: #ffffff;
+  --fg: #111827;
+  --muted: #4a5568;
+  --accent: #1b2b4b;
+  --surface: #f3f5f8;
+  --line: #e3e6ec;
+  --success: #1b7f4e;
+  --warning: #8a5a00;
+  --danger: #b42318;
+  --scrim: rgba(15, 23, 38, 0.45);
+  --halo: #ffffff;
+
+  --font: "IBM Plex Sans KR", "Malgun Gothic", sans-serif;
+  --text-sm: 15px;
+  --text-body: 18px;
+  --text-label: 18px;
+  --text-value: 22px;
+  --text-key: 22px;
+  --text-title: 30px;
+  --weight-regular: 400;
+  --weight-bold: 700;
+  --leading: 1.6;
+  --tracking: -0.01em;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+
+  --radius-label: 6px;
+  --radius-ring: 8px;
+  --radius-key: 6px;
+  --radius-button: 10px;
+  --radius-card: 12px;
+  --radius-dialog: 14px;
+
+  --halo-width: 2px;
+  --ring-width: 5px;
+  --ring-offset: 8px;
+  --border-strong: 3px;
+
+  --label-size: 28px;
+  --target-min: 56px;
+  --target-confirm: 64px;
+  --dialog-width: 600px;
+
+  --motion-ring: 80ms ease-out;
+  --motion-appear: 120ms ease-out;
+  --confirm-guard: 1s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    --motion-ring: 0ms linear;
+    --motion-appear: 0ms linear;
+  }
+}

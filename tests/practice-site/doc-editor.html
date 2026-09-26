@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>문서 전체 편집기 Esc 연습</title>
+  </head>
+  <body style="margin: 0">
+    <script>
+      // D-28: practice.test·other.test 모두에서 이 파일 하나로 서빙된다(danger.html·dwell-frame.html과
+      // 같은 방식). ?child= 쿼리로 맨 위/자식 화면을 나눈다. Task 3(01-18, KEY-01): 문서 전체가
+      // 편집 가능한 편집기(designMode 문서, contenteditable 본문)에서 Esc가 도우미 키로 돌아가지
+      // 못하고 편집기까지 멈추는 결함(escapeDocumentEditor/resumeDocumentEditor) 재현·회귀용.
+      var params = new URLSearchParams(location.search);
+      var child = params.get('child');
+
+      function makeCounterButton(id) {
+        var btn = document.createElement('button');
+        btn.id = id;
+        btn.textContent = id;
+        btn.style.cssText = 'width:100px;height:32px;margin:20px;padding:0';
+        var count = document.createElement('span');
+        count.id = id + '-count';
+        count.textContent = '0';
+        var n = 0;
+        btn.addEventListener('click', function () {
+          n += 1;
+          count.textContent = String(n);
+        });
+        document.body.append(btn, count);
+      }
+
+      if (child === 'design') {
+        // #frame-design(src=, 같은 출처): designMode 문서, 본문 <p id="doc-text">가나</p>.
+        var p1 = document.createElement('p');
+        p1.id = 'doc-text';
+        p1.textContent = '가나';
+        document.body.append(p1);
+        document.designMode = 'on';
+      } else if (child === 'ce') {
+        // #frame-cebody(src=, 다른 출처): 본문 자체가 contenteditable, <p id="doc-text">다라</p>.
+        var p2 = document.createElement('p');
+        p2.id = 'doc-text';
+        p2.textContent = '다라';
+        document.body.append(p2);
+        document.body.contentEditable = 'true';
+      } else {
+        // 맨 위 화면: 카운터 버튼(번호표가 뜰 대상) + 두 편집기 iframe.
+        makeCounterButton('btn-top');
+
+        var frameDesign = document.createElement('iframe');
+        frameDesign.id = 'frame-design';
+        frameDesign.title = 'designMode 편집기(src=)';
+        frameDesign.src = '/doc-editor.html?child=design';
+        frameDesign.style.cssText = 'width:360px;height:160px;border:1px solid #999;display:block;margin:20px';
+        document.body.append(frameDesign);
+
+        var frameCebody = document.createElement('iframe');
+        frameCebody.id = 'frame-cebody';
+        frameCebody.title = 'contenteditable 본문(다른 출처)';
+        frameCebody.src = 'http://other.test/doc-editor.html?child=ce';
+        frameCebody.style.cssText = 'width:360px;height:160px;border:1px solid #999;display:block;margin:20px';
+        document.body.append(frameCebody);
+      }
+    </script>
+  </body>
+</html>

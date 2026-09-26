@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>대신 누르기 한계 스파이크</title>
+    <style>
+      body {
+        margin: 0;
+        position: relative;
+      }
+      [data-el] {
+        position: absolute;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 선택 목록(D-13, Plan 01-12 Task 1): 이용자의 실제 키 입력(스페이스바) 처리 안에서
+         마우스 순서 대신 focus()+showPicker()를 부른다. sel-click-count는 그 근거(마우스 순서를
+         더는 보내지 않으므로 0으로 남아야 한다). sel-change-count·sel-value는 이어지는
+         ArrowDown·Enter가 실제로 값을 바꾸는지 기록만 한다(이 샌드박스 헤드리스 크로미움에서는
+         바뀌지 않음을 확인했다 — SUMMARY 기록, 단언하지 않음). -->
+    <select id="sel" data-el style="left: 150px; top: 40px; width: 140px">
+      <option value="apple">사과</option>
+      <option value="banana">바나나</option>
+      <option value="cherry">체리</option>
+    </select>
+    <span id="sel-change-count">0</span>
+    <span id="sel-value">apple</span>
+    <span id="sel-click-count">0</span>
+
+    <!-- 파일 선택(D-13, Plan 01-12 Task 1): 스페이스바로 잡으면 Playwright의 filechooser 이벤트가
+         오는지로 열렸는지 판정한다. file-click-count도 select와 같은 근거(0으로 남아야 한다). -->
+    <input id="file" type="file" data-el style="left: 150px; top: 110px" />
+    <span id="file-click-count">0</span>
+
+    <!-- 대상 A(Plan 01-12 Task 2): isTrusted 아닌 입력은 세지 않는다 — 매크로 감지 대상. -->
+    <button id="trusted-only" data-el style="left: 150px; top: 180px">사람 입력만</button>
+    <span id="trusted-only-count">0</span>
+
+    <!-- 대상 B: window.open으로 새 창을 여는 버튼. -->
+    <button id="opener" data-el style="left: 150px; top: 250px">새 창 열기</button>
+
+    <!-- 대상 C: target=_blank 링크. -->
+    <a id="new-tab-link" data-el href="/popup-target.html" target="_blank" style="left: 150px; top: 320px"
+      >새 탭 열기</a
+    >
+
+    <!-- 대상 F: 눌림 이벤트 순서·isTrusted 기록 위젯. -->
+    <div
+      id="order-target"
+      data-el
+      role="button"
+      tabindex="0"
+      style="left: 150px; top: 390px; cursor: pointer; border: 1px solid #333; padding: 4px"
+    >
+      순서 기록
+    </div>
+
+    <script>
+      var selEl = document.getElementById('sel');
+      var selChangeCountEl = document.getElementById('sel-change-count');
+      var selValueEl = document.getElementById('sel-value');
+      var selChangeCount = 0;
+      selEl.addEventListener('change', function () {
+        selChangeCount += 1;
+        selChangeCountEl.textContent = String(selChangeCount);
+        selValueEl.textContent = selEl.value;
+      });
+
+      var selClickCountEl = document.getElementById('sel-click-count');
+      var selClickCount = 0;
+      selEl.addEventListener('click', function () {
+        selClickCount += 1;
+        selClickCountEl.textContent = String(selClickCount);
+      });
+
+      var fileEl = document.getElementById('file');
+      var fileClickCountEl = document.getElementById('file-click-count');
+      var fileClickCount = 0;
+      fileEl.addEventListener('click', function () {
+        fileClickCount += 1;
+        fileClickCountEl.textContent = String(fileClickCount);
+      });
+
+      var trustedOnlyEl = document.getElementById('trusted-only');
+      var trustedOnlyCountEl = document.getElementById('trusted-only-count');
+      var trustedOnlyCount = 0;
+      trustedOnlyEl.addEventListener('click', function (e) {
+        if (e.isTrusted) {
+          trustedOnlyCount += 1;
+          trustedOnlyCountEl.textContent = String(trustedOnlyCount);
+        }
+      });
+
+      var openerEl = document.getElementById('opener');
+      openerEl.addEventListener('click', function () {
+        window.open('/popup-target.html', '_blank');
+      });
+
+      var orderTargetEl = document.getElementById('order-target');
+      var orderLog = [];
+      window.resetOrderLog = function () {
+        orderLog = [];
+      };
+      window.getOrderLog = function () {
+        return orderLog;
+      };
+      ['pointerdown', 'mousedown', 'focus', 'pointerup', 'mouseup', 'click'].forEach(function (type) {
+        orderTargetEl.addEventListener(type, function (e) {
+          orderLog.push({ type: type, trusted: e.isTrusted });
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,167 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { test as base, expect, chromium, type BrowserContext, type Page, type Worker } from '@playwright/test';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// global-setup.ts가 CI=true면 wxt build(.output/chrome-mv3), 아니면 wxt build --mode
+// development(.output/chrome-mv3-dev)로 짓는다 — 두 출력 폴더 이름이 다르므로 여기서도 같은
+// 분기를 따라야 방금 지은 빌드를 실제로 올린다(Rule 3: 안 그러면 오래된/없는 폴더를 올린다).
+const EXTENSION_PATH = path.resolve(
+  __dirname,
+  process.env.CI === 'true' ? '../../.output/chrome-mv3' : '../../.output/chrome-mv3-dev',
+);
+const PRACTICE_SITE_DIR = path.resolve(__dirname, '../practice-site');
+
+// 이 샌드박스에는 Playwright가 기대하는 정확한 chromium 리비전이 설치돼 있지 않다(PLAYWRIGHT_BROWSERS_PATH
+// 아래 미리 깐 바이너리를 쓴다 — 실행자 안내). PLAYWRIGHT_BROWSERS_PATH가 없는 환경에서는 기본 channel로 되돌아간다.
+const browsersPath = process.env.PLAYWRIGHT_BROWSERS_PATH;
+const executablePath = browsersPath ? path.join(browsersPath, 'chromium') : undefined;
+
+interface ServedPage {
+  html: string;
+  headers?: Record<string, string>;
+}
+type ServedPages = Map<string, ServedPage>;
+
+interface Fixtures {
+  servedPages: ServedPages;
+  context: BrowserContext;
+  serviceWorker: Worker;
+  extensionId: string;
+  // target을 주면 그 페이지의 탭을 대상으로 팝업을 연다(?tabId=, Plan 01-13) — 시험에서는 팝업 탭
+  // 자신이 활성 탭이 되어(대상 탭이 아니라) chrome.tabs.query({active:true})로는 대상을 찾을 수
+  // 없기 때문이다. 생략하면 기존처럼 인자 없이 연다(현재 활성 탭을 그대로 대상으로 삼는 실제 동작).
+  openPopup: (target?: Page) => Promise<Page>;
+  // routePath: 전체 URL(스킴+호스트+경로), 예: 'http://practice.test/frame-same.html'.
+  // headers: 응답에 실을 추가 HTTP 머리글(Plan 01-13 Task 3의 sandbox 페이지용).
+  servePage: (routePath: string, html: string, headers?: Record<string, string>) => void;
+  // practice.test(같은 출처)와 other.test(다른 출처) iframe을 담은 연습 페이지를 등록한다(D-28).
+  serveFramedPracticePage: () => void;
+  // D-14, D-31, Plan 01-12: practice.test·other.test·확장 페이지 밖으로 나가는 요청의 URL 목록.
+  blockedRequests: string[];
+  // 선택 도우미(Plan 01-12) — 이 시험이 연습 사이트 밖으로 나가지 않았음을 확인한다.
+  expectNoExternalRequests: () => void;
+}
+
+export const test = base.extend<Fixtures>({
+  servedPages: async ({}, use) => {
+    await use(new Map());
+  },
+
+  blockedRequests: async ({}, use) => {
+    await use([]);
+  },
+
+  context: async ({ servedPages, blockedRequests }, use) => {
+    const context = await chromium.launchPersistentContext('', {
+      ...(executablePath ? { executablePath } : { channel: 'chromium' }),
+      args: [`--disable-extensions-except=${EXTENSION_PATH}`, `--load-extension=${EXTENSION_PATH}`],
+    });
+
+    // practice.test·other.test는 회사 시스템이 아닌 로컬 고정물이다(D-28) — 실제 네트워크로 나가지 않고
+    // 여기서 등록한 inline HTML이나 tests/practice-site/ 아래 파일로만 응답한다. 그 밖의 모든 요청
+    // (확장 자신의 chrome-extension:// 자원은 예외)은 D-14·D-31에 따라 route.abort()하고 URL을
+    // blockedRequests에 남긴다 — 회사 시스템·인터넷으로 나가는 요청이 하나도 없어야 한다(Plan 01-12).
+    await context.route('**/*', async (route) => {
+      const requestUrl = route.request().url();
+
+      if (/^http:\/\/(practice|other)\.test\//.test(requestUrl)) {
+        const withoutQuery = requestUrl.split('?')[0] ?? requestUrl;
+        const inline = servedPages.get(withoutQuery);
+        if (inline !== undefined) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'text/html; charset=utf-8',
+            ...(inline.headers ? { headers: inline.headers } : {}),
+            body: inline.html,
+          });
+          return;
+        }
+
+        const url = new URL(requestUrl);
+        const filePath = path.join(PRACTICE_SITE_DIR, url.pathname);
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'text/html; charset=utf-8',
+            body: fs.readFileSync(filePath, 'utf8'),
+          });
+          return;
+        }
+
+        await route.fulfill({ status: 404, contentType: 'text/plain', body: 'not found' });
+        return;
+      }
+
+      if (requestUrl.startsWith('chrome-extension://') || requestUrl.startsWith('about:') || requestUrl.startsWith('data:')) {
+        await route.continue();
+        return;
+      }
+
+      blockedRequests.push(requestUrl);
+      await route.abort();
+    });
+
+    await use(context);
+    await context.close();
+  },
+
+  serviceWorker: async ({ context }, use) => {
+    const serviceWorker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
+    // skeleton.e2e.ts의 launchExtension()과 같은 이유: service worker 대상이 알려지는 시점과
+    // chrome.storage 같은 확장 API 바인딩이 실제로 주입되는 시점 사이의 짧은 틈을 기다린다.
+    await expect.poll(() => serviceWorker.evaluate(() => typeof chrome.storage !== 'undefined')).toBe(true);
+    await use(serviceWorker);
+  },
+
+  extensionId: async ({ serviceWorker }, use) => {
+    await use(new URL(serviceWorker.url()).host);
+  },
+
+  openPopup: async ({ context, extensionId, serviceWorker }, use) => {
+    await use(async (target?: Page) => {
+      const page = await context.newPage();
+      if (target) {
+        const tabs = await serviceWorker.evaluate((url) => chrome.tabs.query({ url }), target.url());
+        const tabId = tabs[0]?.id;
+        await page.goto(`chrome-extension://${extensionId}/popup.html?tabId=${tabId !== undefined ? String(tabId) : ''}`);
+        return page;
+      }
+      await page.goto(`chrome-extension://${extensionId}/popup.html`);
+      return page;
+    });
+  },
+
+  servePage: async ({ servedPages }, use) => {
+    await use((routePath: string, html: string, headers?: Record<string, string>) => {
+      servedPages.set(routePath, headers ? { html, headers } : { html });
+    });
+  },
+
+  serveFramedPracticePage: async ({ servedPages }, use) => {
+    await use(() => {
+      servedPages.set('http://practice.test/', {
+        html:
+          '<!doctype html><html><body><h1>연습 사이트</h1>' +
+          '<iframe src="http://practice.test/frame-same.html" title="같은 출처"></iframe>' +
+          '<iframe src="http://other.test/frame-other.html" title="다른 출처"></iframe>' +
+          '</body></html>',
+      });
+      servedPages.set('http://practice.test/frame-same.html', {
+        html: '<!doctype html><html><body><p>같은 출처 프레임</p></body></html>',
+      });
+      servedPages.set('http://other.test/frame-other.html', {
+        html: '<!doctype html><html><body><p>다른 출처 프레임</p></body></html>',
+      });
+    });
+  },
+
+  expectNoExternalRequests: async ({ blockedRequests }, use) => {
+    await use(() => {
+      expect(blockedRequests).toEqual([]);
+    });
+  },
+});
+
+export { expect } from '@playwright/test';

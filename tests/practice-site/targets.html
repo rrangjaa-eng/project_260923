@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>자석 커서 연습</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 2400px;
+        position: relative;
+      }
+      [data-el] {
+        position: absolute;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 아주 작은 버튼(D-28) — 커서가 대충 가져가도 잡히는지 시험. 카운터는 대신 누르기(Plan 01-05) -->
+    <button id="btn-tiny" data-el style="left: 50px; top: 50px; width: 12px; height: 12px; padding: 0"></button>
+    <span id="btn-tiny-count">0</span>
+
+    <!-- 히스테리시스 시험용 A·B, 60px 간격(왼쪽 끝 기준) -->
+    <button id="btn-a" data-el style="left: 300px; top: 50px; width: 12px; height: 12px; padding: 0"></button>
+    <button id="btn-b" data-el style="left: 360px; top: 50px; width: 12px; height: 12px; padding: 0"></button>
+
+    <!-- 이미지 링크 -->
+    <a
+      id="img-link"
+      href="#link"
+      data-el
+      style="left: 500px; top: 50px; width: 40px; height: 40px; display: inline-block"
+    >
+      <img
+        width="40"
+        height="40"
+        alt="링크 이미지"
+        src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+      />
+    </a>
+
+    <!-- onclick 속성이 걸린 이미지 -->
+    <img
+      id="img-onclick"
+      data-el
+      onclick="return false"
+      width="40"
+      height="40"
+      alt="onclick 이미지"
+      style="left: 600px; top: 50px"
+      src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+    />
+
+    <!-- role=button div -->
+    <div id="role-btn" data-el role="button" tabindex="0" style="left: 700px; top: 50px; width: 40px; height: 40px; background: #ccc">R</div>
+
+    <!-- 숨긴 버튼 둘 — 잡히면 안 된다 -->
+    <button id="btn-hidden-display" data-el style="left: 50px; top: 150px; width: 40px; height: 40px; display: none">H1</button>
+    <button id="btn-hidden-visibility" data-el style="left: 150px; top: 150px; width: 40px; height: 40px; visibility: hidden">H2</button>
+
+    <!-- 지우면 테두리가 없어져야 하는 버튼 -->
+    <button id="btn-removable" data-el style="left: 450px; top: 150px; width: 40px; height: 40px">X</button>
+
+    <!-- 스크롤 시험용 — 페이지 아래쪽(문서 좌표 기준, position: fixed가 아니다) -->
+    <button id="btn-scroll" data-el style="left: 50px; top: 2000px; width: 40px; height: 40px">S</button>
+
+    <!-- 긴 입력 양식(입력칸 20개, D-28) -->
+    <form id="long-form"></form>
+
+    <!-- 늦게 나타나는 입력칸(1초 뒤) -->
+    <div id="late-container" style="position: absolute; left: 300px; top: 150px; width: 150px; height: 30px"></div>
+
+    <!-- 대신 누르기 시험(Plan 01-05, CLICK-02·KEY-02) -->
+    <!-- 체크박스: 스페이스바로 대신 눌러 상태가 바뀌는지 -->
+    <input id="chk-space" type="checkbox" data-el style="left: 850px; top: 50px; width: 20px; height: 20px" />
+    <!-- 링크: 대신 눌러 다음 페이지로 이동하는지 -->
+    <a id="nav-link" href="next.html" data-el style="left: 850px; top: 100px; width: 80px; height: 30px; background: #ddd">다음</a>
+    <!-- 바탕(요소가 없는 곳) 클릭 카운터 — 잡힌 요소가 없을 때 원래 클릭이 그대로 가는지,
+         잡힌 요소 밖 클릭이 바탕까지 새지 않는지 확인한다 -->
+    <span id="bg-click-count">0</span>
+
+    <script>
+      var form = document.getElementById('long-form');
+      for (var i = 0; i < 20; i += 1) {
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'field-' + i;
+        input.setAttribute('data-el', '');
+        input.style.position = 'absolute';
+        input.style.left = '50px';
+        input.style.top = 250 + i * 36 + 'px';
+        input.style.width = '150px';
+        form.appendChild(input);
+      }
+
+      setTimeout(function () {
+        var late = document.createElement('input');
+        late.type = 'text';
+        late.id = 'late';
+        late.style.position = 'absolute';
+        late.style.left = '0';
+        late.style.top = '0';
+        late.style.width = '150px';
+        late.style.height = '30px';
+        document.getElementById('late-container').appendChild(late);
+      }, 1000);
+
+      var btnTinyCountEl = document.getElementById('btn-tiny-count');
+      var btnTinyCount = 0;
+      document.getElementById('btn-tiny').addEventListener('click', function (e) {
+        btnTinyCount += 1;
+        btnTinyCountEl.textContent = String(btnTinyCount);
+        btnTinyCountEl.setAttribute('data-last-trusted', String(e.isTrusted));
+      });
+
+      var bgClickCountEl = document.getElementById('bg-click-count');
+      var bgClickCount = 0;
+      document.body.addEventListener('click', function (e) {
+        if (e.target === document.body || e.target === document.documentElement) {
+          bgClickCount += 1;
+          bgClickCountEl.textContent = String(bgClickCount);
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>머무르기 확인 화면 연습</title>
+  </head>
+  <body style="margin: 0">
+    <script>
+      // D-28: practice.test·other.test 모두에서 이 파일 하나로 서빙된다(danger.html과 같은 방식).
+      // ?child=1이면 다른 출처 자식 프레임 화면(저장 버튼)만 그린다. Task 1(01-18): 맨 위 위험
+      // 확인 화면이 떠 있는 동안에도 자식 프레임 머무르기가 계속 차오르는 결함(childConfirmOpen)의
+      // 재현·회귀 전용 작은 페이지 — danger.html은 후보가 9개보다 많아 번호 페이지가 여러 장으로
+      // 나뉘므로 쓰지 않는다.
+      var params = new URLSearchParams(location.search);
+      var child = params.get('child');
+
+      function makeButton(id, countId, text, x, y, w, h) {
+        var btn = document.createElement('button');
+        btn.id = id;
+        btn.textContent = text;
+        btn.style.cssText =
+          'position:absolute;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;padding:0;margin:0';
+        var count = document.createElement('span');
+        count.id = countId;
+        count.textContent = '0';
+        count.style.cssText = 'position:absolute;left:' + x + 'px;top:' + (y + h + 4) + 'px';
+        var n = 0;
+        btn.addEventListener('click', function () {
+          n += 1;
+          count.textContent = String(n);
+        });
+        document.body.append(btn, count);
+      }
+
+      if (child === '1') {
+        // ?child=1 화면: 글자 "저장"인 #btn-save(140×44, 여백 30px)와 #save-count.
+        makeButton('btn-save', 'save-count', '저장', 30, 30, 140, 44);
+      } else {
+        // 맨 위 화면: 글자 "삭제"인 #btn-delete(120×36, 왼쪽 위 근처)와 #delete-count, 그리고 그
+        // 버튼보다 200px 이상 아래에 #frame-child(다른 출처, 340×170).
+        makeButton('btn-delete', 'delete-count', '삭제', 20, 20, 120, 36);
+
+        var frame = document.createElement('iframe');
+        frame.id = 'frame-child';
+        frame.title = '다른 출처 저장 버튼';
+        frame.src = 'http://other.test/dwell-frame.html?child=1';
+        frame.style.cssText = 'position:absolute;left:250px;top:300px;width:340px;height:170px;border:0';
+        document.body.append(frame);
+      }
+    </script>
+  </body>
+</html>
