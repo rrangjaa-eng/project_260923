@@ -168,3 +168,36 @@ test('#frame-design에서 나온 상태로 F(번호표 열기)를 누른 직후 
     '번호표를 연 F가 조합으로 문서에 들어가면 안 된다',
   ).toBe(before);
 });
+
+// WR-08(01-REVIEW.md): "나옴" 상태의 편집 차단은 beforeinput 취소뿐이다 — CKEditor 4·SmartEditor 2
+// 같은 사내 편집기는 Enter·Backspace·Tab 같은 키를 keydown 처리기에서 직접 DOM을 고쳐 처리한다.
+// 이 경우 keydown.preventDefault()가 브라우저 기본 동작(그 자체가 beforeinput을 일으키는 원인)을
+// 막아 beforeinput이 아예 뜨지 않는다 — 편집기 keydown 처리기를 흉내 낸 fixture로 재현한다.
+test('나옴 상태에서 편집기가 keydown으로 직접 처리하는 Enter는 문서를 바꾸면 안 된다(WR-08)', async ({ context, servePage }) => {
+  servePage(
+    'http://practice.test/wr08-keydown-editor.html',
+    '<!doctype html><body style="margin:0" contenteditable="true" id="doc-text">ab' +
+      '<script>' +
+      "document.addEventListener('keydown',function(e){" +
+      "if(e.code==='Enter'){e.preventDefault();var p=document.createElement('p');p.id='injected-p';document.body.appendChild(p);}" +
+      '},true);' +
+      '</script>' +
+      '</body>',
+  );
+
+  const page = await context.newPage();
+  await page.goto('http://practice.test/wr08-keydown-editor.html');
+
+  const text = page.locator('#doc-text');
+  await text.click();
+  await expect.poll(() => dataMode(page)).toBe('typing');
+
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
+
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(200);
+
+  const injectedCount = await page.locator('#injected-p').count();
+  expect(injectedCount, '나옴 상태에서 편집기의 keydown 직접 처리로 문서가 바뀌면 안 된다').toBe(0);
+});

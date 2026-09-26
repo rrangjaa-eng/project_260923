@@ -31,6 +31,10 @@ export type ModalHandler = (e: ModalEvent) => void;
 const POINTER_MOVE_MIN_INTERVAL_MS = 1000 / 60;
 const MODAL_TICK_INTERVAL_MS = 100;
 
+// WR-08: "나옴" 상태에서 편집기가 keydown으로 직접 처리하는 편집 키 — Ctrl/Meta 조합(서식
+// 단축키 등)은 아래에서 code와 무관하게 따로 본다.
+const EDITING_KEYCODES = new Set(['Enter', 'NumpadEnter', 'Backspace', 'Delete', 'Tab']);
+
 export interface InputPipeline {
   onKey(handler: KeyHandler): void;
   onPress(handler: PressHandler): void;
@@ -185,6 +189,19 @@ export function createInputPipeline(opts: {
           // 사이트 단축키(keydown 대신 keypress·keyup을 쓰는 것 포함)보다 도우미가 앞선다.
           swallowedKeyCodes.add(event.code);
           lastHelperKeyConsumedAt = event.timeStamp;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
+      }
+
+      // WR-08: "나옴" 상태의 편집 차단은 이제까지 beforeinput 취소뿐이었다 — CKEditor 4·
+      // SmartEditor 2 같은 편집기는 Enter·Backspace·Delete·Tab·서식 단축키를 keydown 처리기에서
+      // 직접 DOM을 고쳐 처리한다. 이 경우 편집기의 keydown.preventDefault()가 브라우저 기본
+      // 동작(beforeinput을 일으키는 원인)을 막아 beforeinput이 아예 뜨지 않는다 — 여기서 먼저
+      // 삼켜야 편집기 자신의 keydown 처리기(더 안쪽 target)에 도달하지 못한다.
+      if (isEscapedFromDocumentEditor() && isDocumentEditingRoot(deepActiveElement())) {
+        if (EDITING_KEYCODES.has(event.code) || event.ctrlKey || event.metaKey) {
           event.preventDefault();
           event.stopImmediatePropagation();
           return;
