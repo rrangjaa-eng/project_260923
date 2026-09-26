@@ -36,11 +36,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. 요소 5,000개 연습 페이지에서 커서 이동 후 강조가 50ms 안에 따라오는 것이 자동 시험으로 측정되고, 확장이 만든 클릭을 사이트가 받는지 확인한 스파이크 결과(설계 11장 ①·④)가 로컬 연습 사이트에서 기록된다(회사 시스템 확인은 Phase 2 중간 이용자 시험 때 한다 — 엔지니어링 검토 7번)
   5. 이용자가 확장 아이콘에서 도우미 전체 또는 지금 사이트만 끌 수 있고, 이 설정이 같은 브라우저 계정의 다른 PC에 적용되며, 브라우저 설정·웹스토어 페이지에서는 아이콘에 "도울 수 없음"이 표시된다
 
-**Plans:** 18/19 plans executed
+**Plans:** 19/19 plans executed
 
 Plans:
 
-- [ ] 01-19-PLAN.md
+- [x] 01-19-PLAN.md
 
 - [x] 01-17-PLAN.md
 - [x] 01-18-PLAN.md
@@ -198,7 +198,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 클릭 도우미 기반 | 18/19 | In Progress|  |
+| 1. 클릭 도우미 기반 | 19/19 | In Progress|  |
 | 2. 중간 이용자 시험 (체크포인트) | 0/TBD | Not started | - |
 | 3. 이동·입력·컨디션 | 0/TBD | Not started | - |
 | 4. 틀 자동화 + 활동 기록 | 0/TBD | Not started | - |

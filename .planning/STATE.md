@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-18-PLAN.md
-last_updated: "2026-09-26T05:00:19.657Z"
+stopped_at: Completed 01-19-PLAN.md
+last_updated: "2026-09-26T06:18:41.800Z"
 last_activity: 2026-09-24
 last_activity_desc: Phase 01 execution started
-state_head: 6591cc289a5d3f1e6769712d9777dd89f43d3315
+state_head: 55acdd0a461c0ebf8538d41c7dedf8754320f3db
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 19
-  completed_plans: 18
+  completed_plans: 19
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 ## Current Position
 
 Phase: 1 (클릭 도우미 기반) — READY TO EXECUTE
-Plan: 4 of 16
+Plan: 5 of 16
 Status: Ready to execute
 Last activity: 2026-09-24 — Phase 01 execution started
 
@@ -76,6 +76,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P16 | 이어진 세션 | 3 tasks | 17 files |
 | Phase 01 P17 | 40min | 3 tasks | 6 files |
 | Phase 01 P18 | 45min | 3 tasks | 9 files |
+| Phase 01 P19 | 65 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -139,6 +140,9 @@ Recent decisions affecting current work:
 - [Phase 01]: [Phase 1]: IN-04(SAFE-04) — 사이트 설정 읽기가 계속 실패하면 그 프레임을 fail-closed하고(끈 사이트에서 조용히 도는 것보다 안전), 일시 실패는 재시도로 회복하며 연속 3회부터 인스턴스당 한 번 알린다. 맨 위는 main() 시작부에서 곧바로 자기 출처를 알아 site/query 자체를 보내지 않으므로 이 실패 경로 밖이다
 - [Phase 01]: [Phase 1]: KEY-01 — 문서 전체 편집기(designMode 문서, contenteditable 본문)의 Esc는 blur() 대신 나옴 표시만 바꾼다(blur가 캐럿을 지워 편집기가 이후 키를 받지 못하게 만들기 때문, probe evidence). 되돌아가는 신호는 편집기를 다시 누름·한글 조합 시작(compositionstart)·다른 요소로 focusin 셋
 - [Phase 01]: [Phase 1]: childConfirmOpen — 맨 위 위험 확인 화면이 떠 있는 동안 자식 프레임(다른 출처 포함)도 맨 위 openDangerConfirm의 CR-01 세 가지 정리를 그대로 해 스크림 뒤에서 머무르기·자석이 계속 진행되지 않게 한다
+- [Phase 1]: 새 창 사이트 정체는 Chrome이 준 값(sender.origin, tab.url)으로만 정한다 — siteOriginOfTab이 유일한 판정 지점
+- [Phase 1]: noopener는 실측대로 처리한다(Chrome이 content script를 주입하지 않음) — window.opener 등 구분 장치는 만들지 않는다
+- [Phase 1]: editor-frames.e2e.ts flaky는 제품 결함이 아니라 시험의 경쟁 조건으로 확정 — 결정적 신호(호스트 수·누른 횟수)로 시험을 바꾸고 content.ts에 동기 확인 방어를 추가했다
 
 ### Pending Todos
 
@@ -166,6 +170,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-26T05:00:19.597Z
-Stopped at: Completed 01-18-PLAN.md
+Last session: 2026-09-26T06:18:41.738Z
+Stopped at: Completed 01-19-PLAN.md
 Resume file: None
