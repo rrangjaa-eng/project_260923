@@ -197,4 +197,106 @@ describe('placeLabels', () => {
     expect(placement.x, '후광까지 화면 안에 들어와야 한다(왼쪽)').toBeGreaterThanOrEqual(2);
     expect(placement.y, '후광까지 화면 안에 들어와야 한다(위쪽)').toBeGreaterThanOrEqual(2);
   });
+
+  // F4 후속(DOM 감사 4회차, 사용자 결정 2026-09-26, DECISIONS.md): 다섯 자리(기본·오른쪽 위·
+  // 왼쪽 아래·오른쪽 아래·요소 안쪽)가 모두 장애물과 겹치면(마지막 자리인 "요소 안쪽"까지) 예전엔
+  // 그 겹친 자리를 그대로 썼다 — frames.html 확대 150%에서 실측(f4detail.mjs): 모드 표시가
+  // (16, 487.5) 48×30이고, 중첩 iframe("nest") 버튼 번호표(5)가 (40, 487.3)에 그대로 남아
+  // 모드 표시와 겹쳤다(hints4.txt: "OVERLAP label 5 × mode-indicator"). 이 시험은 그 실측 좌표를
+  // 그대로 옮겨 온다 — 재현 자리를 시험이 통과하기 쉬운 쪽으로 보정하지 않는다.
+  it('F4 후속: 다섯 자리 모두 장애물(모드 표시)에 막히면 요소 주변을 넓혀 가며 안 겹치는 자리를 찾는다', () => {
+    const rect = { x: 40, y: 487.3, w: 16, h: 16 }; // 중첩 iframe 안 "nest" 버튼(실측 근사치)
+    const modeIndicator = { x: 16, y: 487.5, w: 48, h: 30 }; // f4detail.mjs 실측
+
+    const placements = placeLabels([{ itemId: 'nest', rect }], 28, {
+      viewportWidth: 853,
+      viewportHeight: 533,
+      haloWidth: 2,
+      obstacles: [modeIndicator],
+    });
+
+    const placement = placements[0];
+    if (!placement) {
+      throw new Error('번호표 자리가 없다');
+    }
+    const box = { x: placement.x, y: placement.y, w: 28, h: 28 };
+    const overlapsObstacle =
+      box.x < modeIndicator.x + modeIndicator.w &&
+      box.x + box.w > modeIndicator.x &&
+      box.y < modeIndicator.y + modeIndicator.h &&
+      box.y + box.h > modeIndicator.y;
+    expect(overlapsObstacle, '다섯 자리가 모두 막혀도 장애물(모드 표시)과 겹친 채로 남으면 안 된다').toBe(false);
+    expect(box.x, '화면 밖으로 나가면 안 된다(왼쪽, 후광 포함)').toBeGreaterThanOrEqual(2);
+    expect(box.y, '화면 밖으로 나가면 안 된다(위쪽, 후광 포함)').toBeGreaterThanOrEqual(2);
+    expect(box.x + box.w, '화면 밖으로 나가면 안 된다(오른쪽, 후광 포함)').toBeLessThanOrEqual(853 - 2);
+    expect(box.y + box.h, '화면 밖으로 나가면 안 된다(아래쪽, 후광 포함)').toBeLessThanOrEqual(533 - 2);
+  });
+
+  // F4 후속: 위 시험과 같은 다섯 자리 모두 막힘이 위험 번호표에서 일어나도 "! 위험" 표시(번호표와
+  // 합친 상자)가 장애물을 가리면 안 된다 — 사용자 결정 "위험 번호표는 '번호표+표시' 합친 상자로
+  // 찾는다"를 그대로 확인한다.
+  it('F4 후속: 위험 번호표도 다섯 자리 모두 막히면 "! 위험" 표시까지 장애물과 안 겹치는 자리를 찾는다', () => {
+    const rect = { x: 40, y: 487.3, w: 16, h: 16 };
+    const modeIndicator = { x: 16, y: 487.5, w: 48, h: 30 };
+
+    const placements = placeLabels([{ itemId: 'nest', rect, danger: true }], 28, {
+      viewportWidth: 853,
+      viewportHeight: 533,
+      haloWidth: 2,
+      obstacles: [modeIndicator],
+      dangerTagWidth: 40,
+      dangerGap: 8,
+    });
+
+    const placement = placements[0];
+    if (!placement || placement.dangerTagX === undefined || placement.dangerTagY === undefined) {
+      throw new Error('위험 표시 자리가 없다');
+    }
+    const combinedBox = { x: placement.x, y: placement.y, w: 28 + 8 + 40, h: 28 };
+    const overlapsObstacle =
+      combinedBox.x < modeIndicator.x + modeIndicator.w &&
+      combinedBox.x + combinedBox.w > modeIndicator.x &&
+      combinedBox.y < modeIndicator.y + modeIndicator.h &&
+      combinedBox.y + combinedBox.h > modeIndicator.y;
+    expect(overlapsObstacle, '"! 위험" 표시까지 포함한 상자가 장애물과 겹친 채로 남으면 안 된다').toBe(false);
+  });
+
+  // F4 후속: 다섯 자리 모두 장애물에 막혀도, 다른 번호표와는 안 겹치는 자리가 있으면(뷰포트 제한
+  // 없음) 그 자리를 찾는다 — "가능한 경우 번호표끼리 겹침 0"(사용자 결정).
+  it('F4 후속: 다섯 자리 모두 막혀도 자리가 있으면 다른 번호표와는 겹치지 않는다', () => {
+    const rect = { x: 100, y: 100, w: 40, h: 40 };
+    // 기존 "번호표끼리 겹치면..." 시험과 같은 4개(오른쪽 위→왼쪽 아래→오른쪽 아래까지 채움) +
+    // "요소 안쪽"(candidates[4] = rect 자체)까지 막는 장애물을 더해 다섯 자리 모두 막는다.
+    const obstacleOnInside = { x: 100, y: 100, w: 28, h: 28 };
+    const entries = [1, 2, 3, 4, 5].map((n) => ({ itemId: `item-${n.toString()}`, rect }));
+
+    const placements = placeLabels(entries, 28, { obstacles: [obstacleOnInside] });
+    const byId = new Map(placements.map((p) => [p.itemId, p]));
+    const last = byId.get('item-5');
+    if (!last) {
+      throw new Error('번호표 자리가 없다');
+    }
+    const lastBox = { x: last.x, y: last.y, w: 28, h: 28 };
+
+    const overlapsObstacle =
+      lastBox.x < obstacleOnInside.x + obstacleOnInside.w &&
+      lastBox.x + lastBox.w > obstacleOnInside.x &&
+      lastBox.y < obstacleOnInside.y + obstacleOnInside.h &&
+      lastBox.y + lastBox.h > obstacleOnInside.y;
+    expect(overlapsObstacle, '장애물과 겹친 채로 남으면 안 된다').toBe(false);
+
+    for (const other of ['item-1', 'item-2', 'item-3', 'item-4']) {
+      const o = byId.get(other);
+      if (!o) {
+        throw new Error(`${other} 자리가 없다`);
+      }
+      const otherBox = { x: o.x, y: o.y, w: 28, h: 28 };
+      const overlapsOther =
+        lastBox.x < otherBox.x + otherBox.w &&
+        lastBox.x + lastBox.w > otherBox.x &&
+        lastBox.y < otherBox.y + otherBox.h &&
+        lastBox.y + lastBox.h > otherBox.y;
+      expect(overlapsOther, `자리가 있는데도 ${other}와 겹치면 안 된다`).toBe(false);
+    }
+  });
 });
