@@ -21,7 +21,9 @@ import type { UpdateSettingsPatch } from '@/shared/messages';
 // 단일 저장자(D-24): chrome.storage.*.set 호출은 이 파일에만 둔다. 요청은 Promise 줄로 순서대로
 // 처리해 연타·동시 요청에도 마지막 요청이 최종 상태가 되게 한다.
 
-export type SetEnabledResult = { ok: true } | { ok: false; reason: 'preserved-original' | 'item-too-large' };
+// D-25: 켜기는 설정이 깨져 있어도 원본 보호로 거절하지 않는다(꺼짐 표시만 지운다) — 남은 실패
+// 이유는 sync 쓰기 자체가 거부되는 item-too-large뿐이다.
+export type SetEnabledResult = { ok: true } | { ok: false; reason: 'item-too-large' };
 
 export type UpdateSettingsResult =
   | { ok: true }
@@ -205,16 +207,17 @@ export function createStorageWriter(): StorageWriter {
       return enqueue(async () => {
         const read = await readAndValidateSettings();
         if (!read.ok) {
-          // D-25: settings를 못 읽어도(원본 보호 대상) '도우미 끄기'는 항상 된다 — sync는
-          // 건드리지 않고 이 PC의 storage.local에만 꺼짐 표시를 쓴다. 켜기(enabled=true)는
-          // Task 2에서 바뀐다(지금은 원본 보호 거절 그대로).
+          // D-25: settings를 못 읽어도(원본 보호 대상) '도우미 끄기·켜기' 모두 항상 된다 — sync는
+          // 건드리지 않고 이 PC의 storage.local 꺼짐 표시를 쓰거나(끄기) 지운다(켜기). 켜기가
+          // 원본 보호로 거절하지 않는 근거는 objective의 "켜기 동작 결정과 근거" 참고.
           if (!enabled) {
             await chrome.storage.local.set({
               [HELPER_OFF_KEY]: { schemaVersion: CURRENT_SCHEMA_VERSION, data: { at: Date.now() } },
             });
-            return { ok: true };
+          } else {
+            await chrome.storage.local.remove(HELPER_OFF_KEY);
           }
-          return { ok: false, reason: 'preserved-original' };
+          return { ok: true };
         }
 
         const next: SettingsV1 = {
@@ -223,7 +226,13 @@ export function createStorageWriter(): StorageWriter {
         };
         const writeResult = await syncSet({ [SETTINGS_KEY]: next });
         if (!writeResult.ok) {
+          // item-too-large로 실패하면 꺼짐 표시를 건드리지 않는다 — 실제 설정은 안 바뀌었으니
+          // 화면과 실제가 어긋나면 안 된다.
           return { ok: false, reason: 'item-too-large' };
+        }
+        if (enabled) {
+          // 멀쩡한 경로의 켜기도 남아 있을 수 있는 이 PC 꺼짐 표시를 지운다(D-25).
+          await chrome.storage.local.remove(HELPER_OFF_KEY);
         }
         return { ok: true };
       });

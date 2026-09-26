@@ -5,6 +5,8 @@ import tokensCss from '../../../docs/design/tokens.css?inline';
 import { ensureHelperFontsRegistered } from '@/page/overlay/mode-indicator';
 import {
   defaultSettings,
+  HELPER_OFF_KEY,
+  HelperOffV1,
   MIGRATION_FAILED_MESSAGE,
   MIGRATION_NOTICE_KEY,
   MigrationNoticeV1,
@@ -16,11 +18,8 @@ import {
 import { createTremorFilter, type TremorFilter } from '@/core/tremor-filter';
 import type { Message } from '@/shared/messages';
 
-// 형식 변환 실패 경고(D-25, SYSTEM.md "막힘·확인 필요 = --warning 테두리 카드 + 이유"): 저장
-// 응답이 preserved-original이면(원본을 지키려고 쓰지 않았다는 뜻) 문구를 이걸로 바꾼다.
-const PRESERVED_ORIGINAL_MESSAGE = '원래 설정을 지키려고 저장하지 않았어요.';
-// WR-03(01-REVIEW.md): preserved-original 말고 다른 실패(무응답·거부·item-too-large 등)에는
-// 안내가 아예 없었다 — 되돌아간 이유를 한 줄로 알린다(§7).
+// D-25: 도우미 카드 토글 실패는 이제 원인과 무관하게 이 문구 하나다 — preserved-original이
+// 도달할 수 없어졌다(켜기는 표시만 지우고 항상 성공, 끄기는 local 표시로 항상 성공한다).
 const HELPER_TOGGLE_FAILED_MESSAGE = '도우미 상태를 바꾸지 못했어요. 다시 눌러 보세요.';
 const SITE_TOGGLE_OFF_FAILED_MESSAGE = '이 사이트를 끄지 못했어요. 1을 눌러 도우미를 끄세요.';
 // DOM 감사 경고 2: "이 사이트에서 켜기"가 실패해도 지금까지는 끄기 실패용 문구가 그대로 떴다 —
@@ -133,7 +132,7 @@ unsupportedMessage.className = 'unsupported-message';
 unsupportedMessage.textContent = '이 페이지에서는 도울 수 없어요. 다른 탭에서 쓰세요.';
 
 // 형식 변환 실패 경고 카드(D-25, Plan 01-14): notice:migration-failed가 있으면 카드 격자
-// 위에 보여 준다. 저장 시도가 preserved-original로 거절되면 문구를 바꾼다(showToggleWarning).
+// 위에 보여 준다. 도우미 카드 토글이 무응답 등으로 실패하면 문구를 바꾼다(showToggleWarning).
 const warningCard = document.createElement('p');
 warningCard.className = 'warning-card';
 // DOM 감사 경고 1: 실패 안내는 시각으로만 전달돼 스크린리더 이용자에게는 뜨는지 알 방법이
@@ -238,8 +237,8 @@ interface CardConfig {
   keyLabel: string;
   digitCodes: string[];
   wordFor: (enabled: boolean) => string;
-  // revert: 낙관적 렌더(render(next))가 실제로는 저장되지 않았을 때(D-25 preserved-original)
-  // 누르기 전 상태로 되돌린다 — 안 그러면 화면이 실제와 다른 상태를 계속 보여 준다(Rule 1).
+  // revert: 낙관적 렌더(render(next))가 실제로는 저장되지 않았을 때(무응답·거부·item-too-large
+  // 등) 누르기 전 상태로 되돌린다 — 안 그러면 화면이 실제와 다른 상태를 계속 보여 준다(Rule 1).
   onToggle: (next: boolean, render: (enabled: boolean) => void, revert: () => void) => void;
 }
 
@@ -315,11 +314,12 @@ const helperCard = createCard({
   onToggle: (next, render, revert) => {
     render(next); // 즉시 반영 — 연타해도 이전 누름 기준으로 번갈아 계산된다(writer가 순서대로 처리).
     const message: Message = { type: 'storage/request', op: { kind: 'setEnabled', enabled: next } };
-    // WR-05: preserved-original뿐 아니라 ok !== true인 모든 거절(item-too-large 등)에서 화면을
-    // 실제 상태로 되돌린다. WR-03: 무응답(시간 제한)·거부(reject)도 같은 방식으로 되돌리고,
-    // 이유별로 안내한다(preserved-original만 특별 문구, 나머지는 공통 실패 문구).
-    sendWithRevert(message, revert, (reason) => {
-      showToggleWarning(reason === 'preserved-original' ? PRESERVED_ORIGINAL_MESSAGE : HELPER_TOGGLE_FAILED_MESSAGE);
+    // WR-05: ok !== true인 모든 거절(item-too-large 등)에서 화면을 실제 상태로 되돌린다. WR-03:
+    // 무응답(시간 제한)·거부(reject)도 같은 방식으로 되돌린다. D-25: preserved-original은 이제
+    // 도달할 수 없다(켜기는 표시만 지우고 성공, 끄기는 local 표시로 성공) — 이유와 무관하게 공통
+    // 실패 문구 하나만 보인다.
+    sendWithRevert(message, revert, () => {
+      showToggleWarning(HELPER_TOGGLE_FAILED_MESSAGE);
     });
   },
 });
@@ -478,6 +478,18 @@ function renderStatus(enabled: boolean): void {
   status.textContent = enabled ? '지금: 켜짐' : '지금: 꺼짐';
 }
 
+// D-25: 도우미 상태는 sync 'settings'.data.enabled와 이 PC 꺼짐 표시(HELPER_OFF_KEY)를 합친
+// 값이다 — 표시가 있으면 sync가 enabled여도 꺼짐으로 본다(content.ts syncEnabled와 같은 합성
+// 규칙). 두 storage.onChanged 리스너가 각자 상태만 갱신하고 이 함수로 함께 다시 그린다.
+let syncSettingsEnabled = true;
+let helperOffOverride = false;
+
+function renderHelperState(): void {
+  const enabled = syncSettingsEnabled && !helperOffOverride;
+  renderStatus(enabled);
+  helperCard.render(enabled);
+}
+
 // 초기 렌더는 기본 설정(enabled: true, dwellEnabled: false, dragTwoPress: false)을 가정한다 —
 // 저장소를 읽어 오면 실제 값으로 다시 그린다.
 renderStatus(true);
@@ -486,14 +498,18 @@ dwellCard.render(false);
 dragTwoPressCard.render(false);
 
 async function loadInitial(): Promise<void> {
-  const stored = await chrome.storage.sync.get(SETTINGS_KEY);
-  const parsed = SettingsV1.safeParse(stored[SETTINGS_KEY]);
+  const [storedSettings, storedOff] = await Promise.all([
+    chrome.storage.sync.get(SETTINGS_KEY),
+    chrome.storage.local.get(HELPER_OFF_KEY),
+  ]);
+  const parsed = SettingsV1.safeParse(storedSettings[SETTINGS_KEY]);
   if (parsed.success) {
-    renderStatus(parsed.data.data.enabled);
-    helperCard.render(parsed.data.data.enabled);
+    syncSettingsEnabled = parsed.data.data.enabled;
     dwellCard.render(parsed.data.data.dwellEnabled);
     dragTwoPressCard.render(parsed.data.data.dragTwoPress);
   }
+  helperOffOverride = HelperOffV1.safeParse(storedOff[HELPER_OFF_KEY]).success;
+  renderHelperState();
 }
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -506,10 +522,10 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
   const parsed = SettingsV1.safeParse(change.newValue);
   if (parsed.success) {
-    renderStatus(parsed.data.data.enabled);
-    helperCard.render(parsed.data.data.enabled);
+    syncSettingsEnabled = parsed.data.data.enabled;
     dwellCard.render(parsed.data.data.dwellEnabled);
     dragTwoPressCard.render(parsed.data.data.dragTwoPress);
+    renderHelperState();
   }
 });
 
@@ -523,17 +539,23 @@ async function loadMigrationNotice(): Promise<void> {
 
 // R3(DOM 감사 2회차): 팝업이 열려 있는 동안에도 notice:migration-failed가 바뀌면(생기거나
 // 지워짐) 곧바로 반영한다 — loadMigrationNotice는 처음 열 때 한 번만 읽으므로 이 리스너가
-// 없으면 열려 있던 팝업은 값이 지워진 뒤에도 옛 경고를 계속 보여 준다.
+// 없으면 열려 있던 팝업은 값이 지워진 뒤에도 옛 경고를 계속 보여 준다. D-25: 같은 areaName
+// 'local' 변경에 MIGRATION_NOTICE_KEY와 HELPER_OFF_KEY가 함께 올 수 있어 서로 early return으로
+// 막지 않는다.
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== 'local') {
     return;
   }
-  const change = changes[MIGRATION_NOTICE_KEY];
-  if (!change) {
-    return;
+  const migrationChange = changes[MIGRATION_NOTICE_KEY];
+  if (migrationChange) {
+    const parsed = MigrationNoticeV1.safeParse(migrationChange.newValue);
+    setMigrationNoticeActive(parsed.success);
   }
-  const parsed = MigrationNoticeV1.safeParse(change.newValue);
-  setMigrationNoticeActive(parsed.success);
+  const offChange = changes[HELPER_OFF_KEY];
+  if (offChange) {
+    helperOffOverride = HelperOffV1.safeParse(offChange.newValue).success;
+    renderHelperState();
+  }
 });
 
 void loadInitial();
