@@ -107,17 +107,17 @@ function sameRect(a: Rect, b: Rect): boolean {
 }
 
 // document.querySelectorAll은 문서 순서(조상이 자식보다 먼저)로 돌려주므로, 조상을 훑을 때
-// keptRects에 이미 들어 있다 — 조상 쪽으로 거슬러 올라가며 같은 자리를 가진 것이 있으면 합친다.
-function hasKeptAncestorWithSameRect(el: Element, rect: Rect, keptRects: Map<Element, Rect>): boolean {
+// keptRects에 이미 들어 있다 — 조상 쪽으로 거슬러 올라가며 같은 자리를 가진 것을 돌려준다.
+function keptAncestorWithSameRect(el: Element, rect: Rect, keptRects: Map<Element, Rect>): Element | null {
   let node = el.parentElement;
   while (node) {
     const ancestorRect = keptRects.get(node);
     if (ancestorRect && sameRect(ancestorRect, rect)) {
-      return true;
+      return node;
     }
     node = node.parentElement;
   }
-  return false;
+  return null;
 }
 
 function normalizeText(text: string | null | undefined): string {
@@ -486,6 +486,7 @@ export function createCollector(opts: { signal: AbortSignal; getDangerWords: () 
     // F3: 이번 collect()에서 실제로 남긴(합쳐지지 않은) 요소의 rect만 기억한다 — document 순서가
     // 조상을 자식보다 먼저 주므로, 자식을 볼 때 조상이 이미 여기 들어 있다.
     const keptRects = new Map<Element, Rect>();
+    const keptItems = new Map<Element, Item>();
     for (const el of document.querySelectorAll(SELECTOR)) {
       if (isDisabled(el)) {
         continue;
@@ -509,22 +510,31 @@ export function createCollector(opts: { signal: AbortSignal; getDangerWords: () 
       const r: Rect = { x: rect.x, y: rect.y, w: rect.width, h: rect.height };
       // F3(/design-review 3회차, 사용자 결정): 크기·위치가 이미 남긴 조상과 같으면(예: <a> 안
       // cursor:pointer 상속 <img>) 하나로 합친다 — 조상을 남기고 이 자식은 건너뛴다(누르면 같은
-      // 동작이라 번호표 두 개가 무의미하다).
-      if (hasKeptAncestorWithSameRect(el, r, keptRects)) {
+      // 동작이라 번호표 두 개가 무의미하다). B-1(/ship 검증, 사용자 결정으로 F3를 좁힘): 자식이
+      // 이름 있는 조작 요소면 합치지 않는다(cursor 전용 포장 div가 안쪽 위험 버튼을 가리면 안
+      // 된다). 합칠 때는 자식의 위험 판정을 남는 조상 항목에 더한다.
+      const keptAncestor = el.matches(NAMED_SELECTOR) ? null : keptAncestorWithSameRect(el, r, keptRects);
+      if (keptAncestor) {
+        const ancestorItem = keptItems.get(keptAncestor);
+        if (ancestorItem && !ancestorItem.danger && isDanger(computeName(el), getDangerWords())) {
+          ancestorItem.danger = true;
+        }
         continue;
       }
       keptRects.set(el, r);
       const id = idFor(el);
       nextById.set(id, el);
       const name = computeName(el);
-      next.push({
+      const item: Item = {
         id,
         rect: r,
         name,
         kind: kindOf(el),
         fingerprint: computeFingerprint(el, ordinalCache),
         danger: isDanger(name, getDangerWords()),
-      });
+      };
+      keptItems.set(el, item);
+      next.push(item);
     }
     currentItems = next;
     elementById = nextById;
