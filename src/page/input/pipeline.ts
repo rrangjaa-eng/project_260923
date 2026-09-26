@@ -434,6 +434,26 @@ export function createInputPipeline(opts: {
     { capture: true, signal },
   );
 
+  // WR-02: "나옴" 상태의 편집 차단은 keydown·beforeinput뿐이었다 — 오른쪽 클릭 메뉴 붙여넣기·
+  // 잘라내기, 끌어서 놓기(drag & drop)는 키보드를 거치지 않아 그대로 편집기에 닿을 수 있었다.
+  // 초점이 문서 전체 편집기일 때 이 네 이벤트를 window capture에서 막는다. dragover도 막아야
+  // drop 이벤트가 실제로 편집을 일으키기 전에 일관되게 차단된다.
+  for (const type of ['paste', 'cut', 'drop', 'dragover'] as const) {
+    window.addEventListener(
+      type,
+      (event) => {
+        if (!event.isTrusted || !isHelperEnabled()) {
+          return;
+        }
+        if (isEscapedFromDocumentEditor() && isDocumentEditingRoot(deepActiveElement())) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      },
+      { capture: true, signal },
+    );
+  }
+
   // 맨 위 프레임의 커서 위치만 모드 표시 비키기 판정에 넘긴다(iframe 안 커서 반영은 Plan 01-07).
   window.addEventListener(
     'pointermove',
