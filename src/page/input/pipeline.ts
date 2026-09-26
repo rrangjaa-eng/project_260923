@@ -68,6 +68,15 @@ const PASS_CTRL_CODES = new Set([
   'F5',
 ]);
 
+// ISSUE-001(/qa 사용자 결정 2026-09-26): Ctrl·Alt·Meta가 함께 눌린 키(Ctrl+F·Alt+F·Ctrl+Shift+F
+// 등)는 도우미 키(F 번호표 열기, 번호표가 떠 있을 때 숫자 누르기 등)로 보지 않고 preventDefault
+// 없이 그대로 브라우저·페이지로 넘긴다 — 사이트·브라우저 자신의 단축키(찾기, 메뉴 등)를 막지
+// 않는다. AltGraph 조합도 같이 뺀다(대부분 키보드 레이아웃에서 특수 문자를 입력하는 조합이라
+// 도우미 키로 볼 뜻이 아니다). Shift는 포함하지 않는다 — Shift+F는 그대로 번호표를 연다(유지).
+function hasBlockingModifier(event: KeyboardEvent): boolean {
+  return event.ctrlKey || event.altKey || event.metaKey || event.getModifierState('AltGraph');
+}
+
 export interface InputPipeline {
   onKey(handler: KeyHandler): void;
   onPress(handler: PressHandler): void;
@@ -285,14 +294,19 @@ export function createInputPipeline(opts: {
         return;
       }
 
-      for (const handler of keyHandlers) {
-        if (handler({ code: event.code })) {
-          // 도우미가 이 키를 썼다(D-17) — 같은 code의 뒤따르는 keypress·keyup도 삼켜야
-          // 사이트 단축키(keydown 대신 keypress·keyup을 쓰는 것 포함)보다 도우미가 앞선다.
-          swallowedKeyCodes.add(event.code);
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          return;
+      // ISSUE-001: Ctrl·Alt·Meta·AltGraph 조합이면 도우미 키 처리기 자체를 부르지 않는다 — 아래
+      // Esc 다시 누름·Ctrl 허용 목록 판단(나옴 상태)은 이 조합에도 그대로 적용돼야 하므로 여기서
+      // 함수를 벗어나지 않고 이 반복문만 건너뛴다.
+      if (!hasBlockingModifier(event)) {
+        for (const handler of keyHandlers) {
+          if (handler({ code: event.code })) {
+            // 도우미가 이 키를 썼다(D-17) — 같은 code의 뒤따르는 keypress·keyup도 삼켜야
+            // 사이트 단축키(keydown 대신 keypress·keyup을 쓰는 것 포함)보다 도우미가 앞선다.
+            swallowedKeyCodes.add(event.code);
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return;
+          }
         }
       }
 
