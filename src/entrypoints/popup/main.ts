@@ -19,6 +19,12 @@ import type { Message } from '@/shared/messages';
 // 형식 변환 실패 경고(D-25, SYSTEM.md "막힘·확인 필요 = --warning 테두리 카드 + 이유"): 저장
 // 응답이 preserved-original이면(원본을 지키려고 쓰지 않았다는 뜻) 문구를 이걸로 바꾼다.
 const PRESERVED_ORIGINAL_MESSAGE = '원래 설정을 지키려고 저장하지 않았어요.';
+// WR-03(01-REVIEW.md): preserved-original 말고 다른 실패(무응답·거부·item-too-large 등)에는
+// 안내가 아예 없었다 — 되돌아간 이유를 한 줄로 알린다(§7).
+const HELPER_TOGGLE_FAILED_MESSAGE = '도우미 상태를 바꾸지 못했어요. 다시 눌러 보세요.';
+const SITE_TOGGLE_FAILED_MESSAGE = '이 사이트를 끄지 못했어요. 1을 눌러 도우미를 끄세요.';
+// WR-03: SW가 응답 없이 멈추면(무응답) 낙관적 렌더가 무기한 남는다 — 이 시간이 지나면 되돌린다.
+const STORAGE_REQUEST_TIMEOUT_MS = 3000;
 
 const appRoot = document.getElementById('app');
 if (!appRoot) {
@@ -135,6 +141,45 @@ siteStatus.className = 'status';
 const cards = document.createElement('div');
 cards.className = 'cards';
 
+// WR-03(01-REVIEW.md): 카드 onToggle이 이제까지 각자 sendMessage(...).then(...)만 썼다 —
+// 응답이 거부되면(SW 종료로 포트가 닫히는 등) unhandled rejection이 나며 되돌리지 않았고, 두
+// 경로 모두 응답이 계속 오지 않으면 낙관적 렌더가 무기한 남았다. 공통 도우미로 시간 제한·거부
+// 처리를 한 곳에 모은다.
+function sendWithRevert(message: Message, revert: () => void, onFail: (reason?: string) => void): void {
+  let settled = false;
+  const timer = setTimeout(() => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    revert();
+    onFail('timeout');
+  }, STORAGE_REQUEST_TIMEOUT_MS);
+  chrome.runtime.sendMessage(message).then(
+    (response) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      const result = response as { ok?: boolean; reason?: string } | undefined;
+      if (result?.ok !== true) {
+        revert();
+        onFail(result?.reason);
+      }
+    },
+    () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      revert();
+      onFail('rejected');
+    },
+  );
+}
+
 function showWarningCard(text: string): void {
   warningCard.textContent = text;
   if (!warningCard.isConnected) {
@@ -226,16 +271,11 @@ const helperCard = createCard({
   onToggle: (next, render, revert) => {
     render(next); // 즉시 반영 — 연타해도 이전 누름 기준으로 번갈아 계산된다(writer가 순서대로 처리).
     const message: Message = { type: 'storage/request', op: { kind: 'setEnabled', enabled: next } };
-    void chrome.runtime.sendMessage(message).then((response) => {
-      const result = response as { ok?: boolean; reason?: string } | undefined;
-      if (result?.ok !== true) {
-        // WR-05: preserved-original뿐 아니라 ok !== true인 모든 거절(item-too-large 등)에서
-        // 화면을 실제 상태로 되돌린다 — preserved-original일 때만 이유를 추가로 알린다(D-25).
-        revert();
-        if (result?.reason === 'preserved-original') {
-          showWarningCard(PRESERVED_ORIGINAL_MESSAGE);
-        }
-      }
+    // WR-05: preserved-original뿐 아니라 ok !== true인 모든 거절(item-too-large 등)에서 화면을
+    // 실제 상태로 되돌린다. WR-03: 무응답(시간 제한)·거부(reject)도 같은 방식으로 되돌리고,
+    // 이유별로 안내한다(preserved-original만 특별 문구, 나머지는 공통 실패 문구).
+    sendWithRevert(message, revert, (reason) => {
+      showWarningCard(reason === 'preserved-original' ? PRESERVED_ORIGINAL_MESSAGE : HELPER_TOGGLE_FAILED_MESSAGE);
     });
   },
 });
@@ -297,18 +337,12 @@ function createSiteCard(origin: string, tabId: number): { element: HTMLButtonEle
         type: 'storage/request',
         op: { kind: 'setSiteDisabled', origin, disabled: !next, tabId },
       };
-      void chrome.runtime.sendMessage(message).then(
-        (response) => {
-          // WR-05: SW 거절(origin-mismatch·write-failed 등)을 보지 않으면 카드가 실제로는
-          // 켜져 있는데 꺼졌다고 계속 보여 준다 — 즉시 끌 수 있음이 핵심 안전 요구다.
-          if ((response as { ok?: boolean } | undefined)?.ok !== true) {
-            revert();
-          }
-        },
-        () => {
-          revert();
-        },
-      );
+      // WR-05: SW 거절(origin-mismatch·write-failed 등)을 보지 않으면 카드가 실제로는 켜져
+      // 있는데 꺼졌다고 계속 보여 준다 — 즉시 끌 수 있음이 핵심 안전 요구다. WR-03: 무응답(시간
+      // 제한)도 같은 방식으로 되돌리고, 왜 되돌아갔는지 한 줄로 알린다.
+      sendWithRevert(message, revert, () => {
+        showWarningCard(SITE_TOGGLE_FAILED_MESSAGE);
+      });
     },
   });
 }
