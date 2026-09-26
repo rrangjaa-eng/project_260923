@@ -57,6 +57,69 @@ describe('createCollector', () => {
     expect(collector.get(items[0]?.id ?? '')).toBe(a);
   });
 
+  // /ship 검증 B-1: F3가 조건 없이 조상을 남기면 cursor:pointer만 가진 포장 div 안의 진짜 조작
+  // 요소(위험 버튼)가 사라져 위험 표시가 없어진다 — 이름 있는 조작 요소 자식은 합치지 않는다.
+  function cursorWrapperAround(child: HTMLElement): HTMLDivElement {
+    document.body.innerHTML = '';
+    const wrapper = document.createElement('div');
+    wrapper.style.cursor = 'pointer';
+    wrapper.append(child);
+    document.body.append(wrapper);
+    stubRect(wrapper, { x: 10, y: 10, width: 80, height: 30 });
+    stubRect(child, { x: 10, y: 10, width: 80, height: 30 });
+    return wrapper;
+  }
+
+  it('B-1: cursor 전용 포장 div 안의 <input type=button value="삭제">는 합치지 않고 위험으로 남긴다', () => {
+    const input = document.createElement('input');
+    input.type = 'button';
+    input.value = '삭제';
+    cursorWrapperAround(input);
+
+    const controller = new AbortController();
+    const collector = createCollector({ signal: controller.signal, getDangerWords: () => ['삭제'] });
+
+    const kept = collector.items().find((item) => collector.get(item.id) === input);
+    expect(kept, '이름 있는 조작 요소(input)가 남아야 한다').toBeDefined();
+    expect(kept?.danger).toBe(true);
+  });
+
+  it('B-1: cursor 전용 포장 div 안의 아이콘 버튼 <button aria-label="삭제">는 합치지 않고 위험으로 남긴다', () => {
+    const btn = document.createElement('button');
+    btn.setAttribute('aria-label', '삭제');
+    cursorWrapperAround(btn);
+
+    const controller = new AbortController();
+    const collector = createCollector({ signal: controller.signal, getDangerWords: () => ['삭제'] });
+
+    const kept = collector.items().find((item) => collector.get(item.id) === btn);
+    expect(kept, '이름 있는 조작 요소(button)가 남아야 한다').toBeDefined();
+    expect(kept?.danger).toBe(true);
+  });
+
+  it('B-1: 합쳐지는 자식(<img alt="삭제">)이 위험이면 남는 조상 항목도 위험이다', () => {
+    document.body.innerHTML = '';
+    const a = document.createElement('a');
+    a.href = '#';
+    a.setAttribute('aria-label', '이동');
+    a.style.cursor = 'pointer';
+    const img = document.createElement('img');
+    img.alt = '삭제';
+    img.style.cursor = 'pointer';
+    a.append(img);
+    document.body.append(a);
+    stubRect(a, { x: 10, y: 10, width: 40, height: 40 });
+    stubRect(img, { x: 10, y: 10, width: 40, height: 40 });
+
+    const controller = new AbortController();
+    const collector = createCollector({ signal: controller.signal, getDangerWords: () => ['삭제'] });
+
+    const items = collector.items();
+    expect(items.length).toBe(1);
+    expect(collector.get(items[0]?.id ?? '')).toBe(a);
+    expect(items[0]?.danger, '자식의 위험 판정이 조상 항목에 남아야 한다').toBe(true);
+  });
+
   it('조상·자식이라도 크기·위치가 다르면 합치지 않는다(둘 다 남는다)', () => {
     document.body.innerHTML = '';
     const a = document.createElement('a');
