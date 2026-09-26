@@ -705,3 +705,60 @@ test('DOM감사-3: 사이트 카드가 실패 안내를 보인 뒤 다시 눌러
   await popup.close();
   await page.close();
 });
+
+// F6(/design-review 3회차, 사용자 결정): 경고 카드는 항상 상태 줄(siteStatus 포함) 뒤, 카드
+// 격자 앞에 온다 — siteStatus는 renderForTargetTab()의 여러 왕복(getTitle→tabs.get) 끝에 늦게
+// (비동기) 붙는데, 경고 카드(형식 변환 실패, storage.local.get 한 번)가 그보다 먼저 뜰 수 있다.
+// 두 경우 모두 DOM 순서는 같아야 한다.
+test('F6: 경고 카드(형식 변환 실패)가 siteStatus보다 먼저 떠도 DOM 순서는 항상 상태 줄 뒤다', async ({
+  context,
+  serviceWorker,
+  openPopup,
+  servePage,
+}) => {
+  servePage('http://practice.test/', '<!doctype html><html><body><h1>연습 사이트</h1></body></html>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/');
+  await waitForHelperReady(page);
+
+  // 형식 변환 실패(D-25)를 미리 심어 둔다 — loadMigrationNotice()의 storage.local.get 한 번은
+  // renderForTargetTab()의 왕복(getTitle→tabs.get)보다 거의 항상 먼저 끝나 siteStatus보다
+  // 경고 카드가 먼저 붙는 경합을 안정적으로 만든다.
+  await serviceWorker.evaluate(async () => {
+    await chrome.storage.local.set({
+      'notice:migration-failed': { schemaVersion: 1, data: { key: 'settings', reason: 'audit', at: Date.now() } },
+    });
+  });
+
+  const popup = await openPopup(page);
+
+  async function popupChildren(): Promise<Array<{ cls: string; text: string }>> {
+    return popup.evaluate(() => {
+      const root = document.getElementById('app')?.shadowRoot;
+      const popupEl = root?.querySelector('.popup');
+      if (!popupEl) {
+        return [];
+      }
+      return Array.from(popupEl.children).map((el) => ({ cls: el.className, text: el.textContent ?? '' }));
+    });
+  }
+
+  // 경고 카드·siteStatus 둘 다 붙을 때까지 기다린다(어느 쪽이 먼저 붙어도 상관없다).
+  await expect
+    .poll(async () => {
+      const children = await popupChildren();
+      const hasWarning = children.some((c) => c.cls === 'warning-card');
+      const hasSiteStatus = children.some((c) => c.text.startsWith('이 사이트'));
+      return hasWarning && hasSiteStatus;
+    })
+    .toBe(true);
+
+  const children = await popupChildren();
+  const warningIndex = children.findIndex((c) => c.cls === 'warning-card');
+  const siteStatusIndex = children.findIndex((c) => c.text.startsWith('이 사이트'));
+
+  expect(siteStatusIndex, '상태 줄(siteStatus)이 경고 카드보다 먼저 와야 한다').toBeLessThan(warningIndex);
+
+  await popup.close();
+  await page.close();
+});
