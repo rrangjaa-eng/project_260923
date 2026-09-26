@@ -60,22 +60,35 @@ async function numberForLocator(page: Page, locator: Locator): Promise<string> {
     throw new Error('요소를 찾지 못했다(boundingBox 없음)');
   }
   for (let attempt = 0; attempt < 6; attempt += 1) {
+    // ISSUE-002(/qa 2026-09-26 사용자 결정): 화면 가장자리 요소는 이제 기본 자리(왼쪽 위 바깥)가
+    // 화면 밖이면 건너뛰고 SYSTEM.md 순서(오른쪽 위 → 왼쪽 아래 → 오른쪽 아래 → 요소 안쪽)의 다음
+    // 자리를 쓴다 — 기본 자리 하나만 보던 옛 거리 판정 대신 다섯 자리 모두와 비교한다.
     const result = await page.evaluate(
-      ({ x, y }) => {
+      ({ x, y, w, h }) => {
         const labels = document.querySelector('tremor-helper-root')?.shadowRoot?.querySelectorAll('.hint-label');
+        const half = 14;
+        const candidates = [
+          { x: x - half, y: y - half },
+          { x: x + w - half, y: y - half },
+          { x: x - half, y: y + h - half },
+          { x: x + w - half, y: y + h - half },
+          { x, y },
+        ];
         let best = '';
         let bestDistance = Number.POSITIVE_INFINITY;
         for (const label of Array.from(labels ?? [])) {
           const r = label.getBoundingClientRect();
-          const d = Math.hypot(r.x - (x - 14), r.y - (y - 14));
-          if (d < bestDistance) {
-            bestDistance = d;
-            best = label.textContent;
+          for (const candidate of candidates) {
+            const d = Math.hypot(r.x - candidate.x, r.y - candidate.y);
+            if (d < bestDistance) {
+              bestDistance = d;
+              best = label.textContent;
+            }
           }
         }
         return { best, bestDistance };
       },
-      { x: box.x, y: box.y },
+      { x: box.x, y: box.y, w: box.width, h: box.height },
     );
     if (result.bestDistance < 20) {
       return result.best;

@@ -34,7 +34,7 @@ import {
   showModeIndicator,
   showTransientMessage,
 } from '@/page/overlay/mode-indicator';
-import { hideHints, showHints, showNextCard } from '@/page/overlay/hints';
+import { hideHints, measureDangerTag, showHints, showNextCard } from '@/page/overlay/hints';
 import { hideRing, setDwellProgress, showRing } from '@/page/overlay/ring';
 import { showToast } from '@/page/overlay/toast';
 import { parseMessage } from '@/shared/messages';
@@ -762,20 +762,40 @@ export default defineContentScript({
       const placementEntries = chapter
         .map((entry) => {
           const rect = rectByKey.get(entry.itemId);
-          return rect ? { itemId: entry.itemId, rect } : null;
+          return rect ? { itemId: entry.itemId, rect, danger: dangerByKey.get(entry.itemId) === true } : null;
         })
-        .filter((entry): entry is { itemId: string; rect: Item['rect'] } => entry !== null);
+        .filter((entry): entry is { itemId: string; rect: Item['rect']; danger: boolean } => entry !== null);
+      // ISSUE-002·003(/qa 사용자 결정 2026-09-26, SYSTEM.md "번호표 배치"): 화면 밖으로 나가는
+      // 자리·"! 위험" 표시를 가리는 자리도 겹침처럼 건너뛴다 — 위험 항목이 있는 장에서만 그 표시의
+      // 실제 렌더 폭을 재서 넘긴다(측정은 DOM이 있는 hints.ts가 한다, placeLabels는 순수 함수).
+      const anyDanger = placementEntries.some((entry) => entry.danger);
+      const dangerTag = anyDanger ? measureDangerTag() : null;
+      // exactOptionalPropertyTypes: dangerTagWidth·dangerGap 키 자체를 위험 항목이 있을 때만 넣는다
+      // (undefined를 값으로 주지 않는다, PlaceLabelsOptions와 맞춘다).
+      const dangerTagOpts = dangerTag ? { dangerTagWidth: dangerTag.width, dangerGap: dangerTag.gap } : {};
       // 확대 역보정(Plan 01-15, D-26): 번호표 실제 화면 크기(28px × 배율)로 겹침 판정을 해야
       // 확대·축소해도 배치가 화면과 맞는다.
-      const placements = new Map(placeLabels(placementEntries, 28 * getOverlayScale()).map((p) => [p.itemId, p]));
-      const labels = chapter
-        .map((entry) => {
-          const placement = placements.get(entry.itemId);
-          return placement
-            ? { number: entry.number, x: placement.x, y: placement.y, danger: dangerByKey.get(entry.itemId) === true }
-            : null;
-        })
-        .filter((label): label is { number: number; x: number; y: number; danger: boolean } => label !== null);
+      const placements = new Map(
+        placeLabels(placementEntries, 28 * getOverlayScale(), {
+          viewportWidth: window.innerWidth,
+          viewportHeight: window.innerHeight,
+          ...dangerTagOpts,
+        }).map((p) => [p.itemId, p]),
+      );
+      type HintLabel = { number: number; x: number; y: number; danger: boolean; dangerTagX?: number; dangerTagY?: number };
+      const labels: HintLabel[] = [];
+      for (const entry of chapter) {
+        const placement = placements.get(entry.itemId);
+        if (!placement) {
+          continue;
+        }
+        const label: HintLabel = { number: entry.number, x: placement.x, y: placement.y, danger: dangerByKey.get(entry.itemId) === true };
+        if (placement.dangerTagX !== undefined && placement.dangerTagY !== undefined) {
+          label.dangerTagX = placement.dangerTagX;
+          label.dangerTagY = placement.dangerTagY;
+        }
+        labels.push(label);
+      }
 
       hideHints();
       showHints(labels);

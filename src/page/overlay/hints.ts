@@ -123,7 +123,9 @@ function ensureHintsElement(): HTMLDivElement {
   return hintsElement;
 }
 
-export function showHints(labels: Array<{ number: number; x: number; y: number; danger?: boolean }>): void {
+export function showHints(
+  labels: Array<{ number: number; x: number; y: number; danger?: boolean; dangerTagX?: number; dangerTagY?: number }>,
+): void {
   const container = ensureHintsElement();
   container.textContent = '';
   const scale = getOverlayScale();
@@ -141,15 +143,37 @@ export function showHints(labels: Array<{ number: number; x: number; y: number; 
 
     if (label.danger) {
       // 위험 번호표 옆 "! 위험" 글자(D-18, D-26) — 사이트 배경과 상관없이 보이도록 흰 후광(ring.ts와
-      // 같은 text-shadow 네 방향 흉내).
+      // 같은 text-shadow 네 방향 흉내). ISSUE-003(/qa 사용자 결정): 자리는 hint-order.ts의
+      // placeLabels가 다른 번호표를 피해 이미 정해 준다(dangerTagX·dangerTagY) — 없으면(직접
+      // showHints를 부르는 기존 호출부 호환) 예전처럼 이 번호표 오른쪽에 그린다.
       const tag = document.createElement('div');
       tag.className = LABEL_DANGER_TAG_CLASS;
       tag.textContent = '! 위험';
-      const tagX = label.x + labelSizePx + gapPx;
-      tag.style.transform = `translate(${tagX.toString()}px, ${label.y.toString()}px)`;
+      const tagX = label.dangerTagX ?? label.x + labelSizePx + gapPx;
+      const tagY = label.dangerTagY ?? label.y;
+      tag.style.transform = `translate(${tagX.toString()}px, ${tagY.toString()}px)`;
       container.append(tag);
     }
   }
+}
+
+// ISSUE-002·003(/qa 사용자 결정): placeLabels(순수 함수)는 폰트·DOM을 모른다 — "! 위험" 표시의
+// 실제 렌더 폭·간격을 이 함수가 재서(같은 클래스의 숨긴 사본으로 측정) content.ts에 값으로
+// 건네준다. 위험 항목이 없는 장(chapter)에서는 부를 필요가 없다(호출부가 판단).
+export function measureDangerTag(): { width: number; gap: number } {
+  const root = ensureOverlayRoot();
+  ensureStyle(root);
+  const scale = getOverlayScale();
+  const probe = document.createElement('div');
+  probe.className = LABEL_DANGER_TAG_CLASS;
+  probe.textContent = '! 위험';
+  probe.style.visibility = 'hidden';
+  probe.style.transform = 'translate(-9999px, -9999px)';
+  root.append(probe);
+  const width = probe.getBoundingClientRect().width;
+  const gap = readPx(probe, '--space-2', 8) * scale;
+  probe.remove();
+  return { width, gap };
 }
 
 export function hideHints(): void {

@@ -122,6 +122,9 @@ export function orderHints(opts: {
 // 번호표 자리 배치(SYSTEM.md "크기 — 번호표 배치"): 기본은 요소 왼쪽 위 모서리 바깥
 // (−14px, −14px, labelSize=28 기준). 앞 번호부터 차례로 자리를 정해, 이미 놓인 번호표와 겹치면
 // 오른쪽 위 → 왼쪽 아래 → 오른쪽 아래 → 요소 안쪽 왼쪽 위 순으로 옮긴다.
+// ISSUE-002·003(/qa 2026-09-26 사용자 결정): 화면(뷰포트) 밖으로 나가는 자리와 위험한 요소의
+// "! 위험" 표시를 가리는 자리도 겹침과 같은 기준으로 건너뛴다 — viewportWidth·viewportHeight·
+// dangerTagWidth를 안 주면(opts 생략) 예전과 똑같이 동작한다(기존 호출부·시험 호환).
 
 type Point = { x: number; y: number };
 
@@ -138,29 +141,114 @@ function candidatePositions(rect: Rect, size: number): [Point, Point, Point, Poi
   ];
 }
 
-function boxesOverlap(a: { x: number; y: number }, b: { x: number; y: number }, size: number): boolean {
-  return a.x < b.x + size && a.x + size > b.x && a.y < b.y + size && a.y + size > b.y;
+function rectsOverlap(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }): boolean {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+// ISSUE-002: 후보 자리가 뷰포트를 벗어나는지 — viewportWidth·viewportHeight가 유한할 때만
+// 판단한다(Infinity면 늘 안 벗어난 것으로 본다, opts 생략 시 기존 동작 유지).
+function withinViewport(p: Point, size: number, viewportWidth: number, viewportHeight: number): boolean {
+  if (Number.isFinite(viewportWidth) && (p.x < 0 || p.x + size > viewportWidth)) {
+    return false;
+  }
+  if (Number.isFinite(viewportHeight) && (p.y < 0 || p.y + size > viewportHeight)) {
+    return false;
+  }
+  return true;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  if (max < min) {
+    return min;
+  }
+  return Math.min(Math.max(value, min), max);
+}
+
+export interface PlaceLabelsOptions {
+  viewportWidth?: number;
+  viewportHeight?: number;
+  // ISSUE-003: 위험 항목의 "! 위험" 표시 상자 크기 — 0(기본)이면 다른 번호표가 이 표시를
+  // 피할 obstacle로 안 쓴다(기존 동작 유지). 실제 렌더 폭은 DOM 쪽(hints.ts measureDangerTag)에서
+  // 재 이 함수에 넘긴다 — 이 파일은 순수 함수라 폰트를 직접 재지 않는다.
+  dangerTagWidth?: number;
+  dangerGap?: number;
+}
+
+export interface LabelPlacement {
+  itemId: string;
+  x: number;
+  y: number;
+  // entry.danger일 때만 값이 있다 — 렌더 쪽(hints.ts)이 "! 위험" 표시를 이 자리에 그린다.
+  dangerTagX?: number;
+  dangerTagY?: number;
 }
 
 export function placeLabels(
-  entries: Array<{ itemId: string; rect: Rect }>,
+  entries: Array<{ itemId: string; rect: Rect; danger?: boolean }>,
   labelSize = 28,
-): Array<{ itemId: string; x: number; y: number }> {
-  const placed: Array<{ x: number; y: number }> = [];
-  const result: Array<{ itemId: string; x: number; y: number }> = [];
+  opts: PlaceLabelsOptions = {},
+): LabelPlacement[] {
+  const {
+    viewportWidth = Number.POSITIVE_INFINITY,
+    viewportHeight = Number.POSITIVE_INFINITY,
+    dangerTagWidth = 0,
+    dangerGap = 8,
+  } = opts;
 
-  for (const entry of entries) {
+  // ISSUE-002·003(사용자 결정): 위험 항목을 먼저 자리 잡아야 그 "! 위험" 표시가 다른 번호표의
+  // obstacle 목록에 먼저 들어간다 — 번호·순서 자체(entries가 돌려주는 항목 순서)는 바뀌지 않는다,
+  // 자리를 고르는 처리 순서만 바꾼다. 안정 정렬로 같은 위험 여부 안에서는 원래 순서를 지킨다.
+  const order = entries
+    .map((entry, index) => ({ entry, index }))
+    .sort((a, b) => {
+      const da = a.entry.danger ? 0 : 1;
+      const db = b.entry.danger ? 0 : 1;
+      return da !== db ? da - db : a.index - b.index;
+    });
+
+  const placed: Array<{ x: number; y: number; w: number; h: number }> = [];
+  const resultByItemId = new Map<string, { x: number; y: number; dangerTagX?: number; dangerTagY?: number }>();
+
+  for (const { entry } of order) {
     const candidates = candidatePositions(entry.rect, labelSize);
     let chosen: Point = candidates[4];
     for (const candidate of candidates) {
-      if (!placed.some((p) => boxesOverlap(p, candidate, labelSize))) {
+      const box = { x: candidate.x, y: candidate.y, w: labelSize, h: labelSize };
+      const blocked = placed.some((p) => rectsOverlap(p, box));
+      if (!blocked && withinViewport(candidate, labelSize, viewportWidth, viewportHeight)) {
         chosen = candidate;
         break;
       }
     }
-    placed.push(chosen);
-    result.push({ itemId: entry.itemId, x: chosen.x, y: chosen.y });
+
+    // ISSUE-002(사용자 결정): 다섯 자리 모두 화면 밖이거나 막혀 있으면, 겹침보다 잘림을 더
+    // 나쁘게 보고 화면 안으로 밀어 넣는다(잘림 0 우선, 마지막 안전망).
+    const x = Number.isFinite(viewportWidth) ? clamp(chosen.x, 0, Math.max(0, viewportWidth - labelSize)) : chosen.x;
+    const y = Number.isFinite(viewportHeight) ? clamp(chosen.y, 0, Math.max(0, viewportHeight - labelSize)) : chosen.y;
+
+    const entryResult: { x: number; y: number; dangerTagX?: number; dangerTagY?: number } = { x, y };
+    placed.push({ x, y, w: labelSize, h: labelSize });
+
+    if (entry.danger) {
+      const tagX = x + labelSize + dangerGap;
+      const tagY = y;
+      entryResult.dangerTagX = tagX;
+      entryResult.dangerTagY = tagY;
+      if (dangerTagWidth > 0) {
+        placed.push({ x: tagX, y: tagY, w: dangerTagWidth, h: labelSize });
+      }
+    }
+
+    resultByItemId.set(entry.itemId, entryResult);
   }
 
-  return result;
+  return entries.map((entry) => {
+    const pos = resultByItemId.get(entry.itemId);
+    const placement: LabelPlacement = { itemId: entry.itemId, x: pos?.x ?? 0, y: pos?.y ?? 0 };
+    if (pos?.dangerTagX !== undefined && pos.dangerTagY !== undefined) {
+      placement.dangerTagX = pos.dangerTagX;
+      placement.dangerTagY = pos.dangerTagY;
+    }
+    return placement;
+  });
 }
