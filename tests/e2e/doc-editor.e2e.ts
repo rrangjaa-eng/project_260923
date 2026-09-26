@@ -92,12 +92,18 @@ test('#frame-design에서 Esc로 나온 뒤 F를 누르면 번호표가 뜨고(�
   const afterF = await elementText(page, '#frame-design', '#doc-text');
   expect(afterF, 'F는 편집기 글자로 들어가면 안 된다(번호표가 열려야 한다)').toBe(before);
 
-  // hints/state:true 방송이 자식 프레임(초점이 있는 #frame-design)에 닿을 시간을 준다 — 그래야
-  // 자식의 childHintsVisible이 true가 되어 Esc를 삼켜 hints/key로 보낸다(editor-frames.e2e.ts의
-  // pressFUntilLabels·frames.e2e.ts 관례와 같은 이유의 짧은 대기).
-  await page.waitForTimeout(200);
-  await page.keyboard.press('Escape');
-  await expect.poll(() => hintLabelCount(page)).toBe(0);
+  // hints/state:true 방송이 자식 프레임(초점이 있는 #frame-design)에 닿아야 자식의
+  // childHintsVisible이 true가 되어 Esc를 삼켜 hints/key로 보낸다 — 고정 sleep 대신, 안 닫히면
+  // 다시 눌러 보는 조건 재시도(editor-frames.e2e.ts findHintNumberFor와 같은 규칙).
+  await expect
+    .poll(
+      async () => {
+        await page.keyboard.press('Escape');
+        return hintLabelCount(page);
+      },
+      { timeout: 3000 },
+    )
+    .toBe(0);
 });
 
 // behavior 5(가능할 때만): CDP 조합 입력(가)이 이 샌드박스에서 trusted compositionstart를 만드는지

@@ -627,6 +627,17 @@ export default defineContentScript({
       // 전역·사이트별 상태가 합쳐진 뒤에만 값이 채워진다(syncEnabled → applyEnabled).
       isEnabled: () => currentEnabled ?? true,
       signal: pipelineController.signal,
+      // Task 3(01-18, KEY-01): 문서 전체 편집기의 Esc 나옴·되돌아옴은 focus를 옮기지 않아
+      // focusin·focusout이 뜨지 않는다 — 파이프라인이 모드를 바꿀 때마다 직접 알려 준다.
+      // sendModeReport·refreshModeDisplay는 이미 !currentEnabled면 아무것도 하지 않으므로
+      // (D-22, cleanedUp이면 currentEnabled가 먼저 false가 된다) 정리된 인스턴스에서도 조용하다.
+      onModeChange: () => {
+        if (isTopFrame) {
+          refreshModeDisplay();
+        } else {
+          sendModeReport();
+        }
+      },
     });
 
     // 끌기 시작 상태에서 Esc(D-08, D-15 keymap.cancel): 도우미가 끌기를 취소한다. 끌기 시작이

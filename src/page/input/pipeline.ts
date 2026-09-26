@@ -1,6 +1,13 @@
 import type { SettingsV1 } from '@/core/settings-schema';
 import { createTremorFilter, type TremorFilter } from '@/core/tremor-filter';
-import { currentMode, deepActiveElement } from '@/page/input/mode';
+import {
+  currentMode,
+  deepActiveElement,
+  escapeDocumentEditor,
+  isDocumentEditingRoot,
+  isEscapedFromDocumentEditor,
+  resumeDocumentEditor,
+} from '@/page/input/mode';
 import { setMode, updateIndicatorProximity } from '@/page/overlay/mode-indicator';
 
 // 입력 파이프라인(D-06, D-09): window capture로 키·포인터 입력을 가장 먼저 받아 떨림을 거르고
@@ -36,8 +43,12 @@ export function createInputPipeline(opts: {
   // 상태를 합친 값을 준다(생략하면 전역 enabled만 본다, 기존 호출부·시험 호환).
   isEnabled?: () => boolean;
   signal: AbortSignal;
+  // Task 3(01-18, KEY-01): 문서 전체 편집기의 Esc 나옴·되돌아옴은 focus를 옮기지 않아 focusin·
+  // focusout이 뜨지 않는다 — 모드가 바뀔 때마다 호출자(content.ts)에 알려 모드 표시를 갱신하게
+  // 한다(생략 가능, 기존 호출부·시험 호환).
+  onModeChange?: () => void;
 }): InputPipeline {
-  const { getSettings, signal, isEnabled: isEnabledOpt } = opts;
+  const { getSettings, signal, isEnabled: isEnabledOpt, onModeChange } = opts;
 
   let filter: TremorFilter | null = null;
   let filterIntervalMs = -1;
@@ -78,7 +89,19 @@ export function createInputPipeline(opts: {
     setMode(currentMode());
   }
 
-  window.addEventListener('focusin', updateModeFromFocus, { capture: true, signal });
+  // Task 3(01-18, KEY-01): 초점이 다른 요소로 옮겨 가면(focusin) "나옴" 상태를 되돌린다 — 새
+  // 대상이 여전히 같은 문서 전체 편집기가 아닐 때만(예: 편집기 안 다른 프레임으로 옮겨간 경우
+  // 등은 그 프레임 자신의 escapedFromDocumentEditor로 따로 다룬다).
+  window.addEventListener(
+    'focusin',
+    () => {
+      if (isHelperEnabled() && isEscapedFromDocumentEditor() && !isDocumentEditingRoot(deepActiveElement())) {
+        resumeDocumentEditor();
+      }
+      updateModeFromFocus();
+    },
+    { capture: true, signal },
+  );
   window.addEventListener('focusout', updateModeFromFocus, { capture: true, signal });
 
   // WR-01: 확인 화면의 스페이스바 "누르고 있기"는 keyup으로만 풀린다(D-19). alt-tab·다른 창
@@ -126,10 +149,15 @@ export function createInputPipeline(opts: {
       if (event.code === 'Escape' && currentMode() === 'typing') {
         // 입력칸을 빠져나온다(D-16) — 사이트의 Esc 처리(자동완성 닫기 등)는 막지 않는다.
         const active = deepActiveElement();
-        if (active instanceof HTMLElement) {
+        if (isDocumentEditingRoot(active)) {
+          // Task 3(01-18, KEY-01): 문서 전체 편집기는 blur() 대신 "나옴" 표시만 한다 — blur가
+          // 캐럿을 지워 편집기가 이후 키를 받지 못하게 만들기 때문(probe evidence).
+          escapeDocumentEditor();
+        } else if (active instanceof HTMLElement) {
           active.blur();
         }
         setMode('helper');
+        onModeChange?.();
         return;
       }
 
@@ -197,6 +225,13 @@ export function createInputPipeline(opts: {
     (event) => {
       if (!event.isTrusted || !isHelperEnabled()) {
         return;
+      }
+      // Task 3(01-18, KEY-01): 문서 전체 편집기를 "나옴" 상태에서 주 버튼으로 다시 누르면 곧바로
+      // 입력으로 돌아간다 — 모달·자석 판단보다 먼저 두어 누르기 경로 자체는 바꾸지 않는다.
+      if (isEscapedFromDocumentEditor() && event.button === 0 && event.isPrimary) {
+        resumeDocumentEditor();
+        setMode(currentMode());
+        onModeChange?.();
       }
       if (modalHandler) {
         // CR-01: 확인 화면이 떠 있으면 포인터는 자석·떨림 필터를 거치지 않고 그대로 통과한다 —
@@ -288,6 +323,39 @@ export function createInputPipeline(opts: {
       if (activeFilter().shouldSuppressDblclick()) {
         event.preventDefault();
         event.stopImmediatePropagation();
+      }
+    },
+    { capture: true, signal },
+  );
+
+  // Task 3(01-18, KEY-01): 한글 조합 입력 시작은 "나옴" 상태에서도 입력으로 돌아가는 신호로
+  // 본다 — beforeinput 취소로는 조합 입력을 막을 수 없어(IME가 텍스트를 직접 넣는다), 표시와
+  // 실제 입력이 어긋나지 않게 그 전에 되돌린다.
+  window.addEventListener(
+    'compositionstart',
+    (event) => {
+      if (!event.isTrusted || !isHelperEnabled()) {
+        return;
+      }
+      if (isEscapedFromDocumentEditor()) {
+        resumeDocumentEditor();
+        setMode(currentMode());
+        onModeChange?.();
+      }
+    },
+    { capture: true, signal },
+  );
+
+  // Task 3(01-18, KEY-01): "나옴" 상태인 동안 문서 전체 편집기의 실제 편집(글자·삭제·줄바꿈·
+  // 붙여넣기 등)을 막는다 — 모드 표시가 도우미인데 글자가 조용히 들어가는 일이 없게 한다.
+  window.addEventListener(
+    'beforeinput',
+    (event) => {
+      if (!event.isTrusted || !isHelperEnabled()) {
+        return;
+      }
+      if (isEscapedFromDocumentEditor()) {
+        event.preventDefault();
       }
     },
     { capture: true, signal },
