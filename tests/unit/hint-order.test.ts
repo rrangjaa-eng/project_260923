@@ -112,4 +112,49 @@ describe('placeLabels', () => {
       { itemId: 'item-5', x: 100, y: 100 },
     ]);
   });
+
+  // F1·F2(/design-review 3회차, 사용자 결정): 위험 번호표는 "번호표 + '! 위험' 표시"를 한
+  // 상자로 보고 겹침·화면 안 여부를 함께 판정한다. 표시는 항상 번호표 오른쪽(뒤집지 않음).
+  it('F1: 화면 오른쪽 끝 위험 버튼도 "! 위험" 표시까지 화면 안에 들어온다', () => {
+    const viewportWidth = 1280;
+    const rect = { x: viewportWidth - 60, y: 0, w: 60, h: 30 };
+
+    const placements = placeLabels([{ itemId: 'a', rect, danger: true }], 28, {
+      viewportWidth,
+      viewportHeight: 720,
+      dangerTagWidth: 60,
+      dangerGap: 8,
+    });
+
+    const placement = placements[0];
+    if (!placement || placement.dangerTagX === undefined) {
+      throw new Error('위험 표시 자리가 없다');
+    }
+    expect(placement.dangerTagX + 60).toBeLessThanOrEqual(viewportWidth);
+  });
+
+  it('F2: 위험 버튼 두 개가 가까이 있으면 오른쪽(먼저 번호 1)의 "! 위험" 표시가 왼쪽(번호 2) 번호표를 가리지 않는다', () => {
+    const entries = [
+      { itemId: 'one', rect: { x: 150, y: 100, w: 60, h: 30 }, danger: true },
+      { itemId: 'two', rect: { x: 100, y: 100, w: 30, h: 30 }, danger: true },
+    ];
+
+    const placements = placeLabels(entries, 28, { dangerTagWidth: 60, dangerGap: 8 });
+    const byId = new Map(placements.map((p) => [p.itemId, p]));
+    const one = byId.get('one');
+    const two = byId.get('two');
+    if (!one || !two || two.dangerTagX === undefined || two.dangerTagY === undefined) {
+      throw new Error('위험 표시 자리가 없다');
+    }
+
+    // "2번 표시"(item two의 "! 위험" 표시)가 "1번 번호표"(item one의 번호표)를 가리면 안 된다.
+    const tagTwoBox = { x: two.dangerTagX, y: two.dangerTagY, w: 60, h: 28 };
+    const labelOneBox = { x: one.x, y: one.y, w: 28, h: 28 };
+    const overlap =
+      tagTwoBox.x < labelOneBox.x + labelOneBox.w &&
+      tagTwoBox.x + tagTwoBox.w > labelOneBox.x &&
+      tagTwoBox.y < labelOneBox.y + labelOneBox.h &&
+      tagTwoBox.y + tagTwoBox.h > labelOneBox.y;
+    expect(overlap).toBe(false);
+  });
 });
