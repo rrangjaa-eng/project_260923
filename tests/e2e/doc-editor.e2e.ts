@@ -305,10 +305,21 @@ test('01-17 #frame-editor(document.write + designMode)에서도 초점 옮기기
 // 초점을 받는 요소를 숨기는 접근성 반패턴이 된다 — 대신 현재 상태를 말하는 접근 가능한 이름
 // (모드 표시와 같은 용어 "도우미")을 주고, 보이는 포커스 링은 outline: none으로 막는다(상태는
 // 이미 모드 표시가 보여 준다).
+// mode.ts의 escapeDocumentEditor()는 편집 루트가 속한 프레임 자신의 document(그 프레임의
+// content script 인스턴스)에서 실행된다 — 초점 대상 focus sink도 그 프레임 자신의
+// tremor-helper-root 안에 있다(맨 위 페이지의 tremor-helper-root와는 다른 인스턴스). 그래서
+// contentFrame()으로 그 프레임 자신의 document를 evaluate해야 한다(dom-audit 감사 스크립트
+// sinkState와 같은 방식).
 async function focusSinkInfo(
   page: Page,
+  frameSelector: string,
 ): Promise<{ role: string | null; ariaLabel: string | null; ariaHidden: string | null; outlineStyle: string; tag: string } | null> {
-  return page.evaluate(() => {
+  const handle = await page.locator(frameSelector).elementHandle();
+  const frame = await handle.contentFrame();
+  if (!frame) {
+    throw new Error(`프레임을 찾지 못했다: ${frameSelector}`);
+  }
+  return frame.evaluate(() => {
     const root = document.querySelector('tremor-helper-root')?.shadowRoot;
     const active = root?.activeElement as HTMLElement | null | undefined;
     if (!active) {
@@ -338,7 +349,7 @@ test('#frame-design에서 Esc로 나오면 focus sink가 aria-hidden 없이 접�
   await page.keyboard.press('Escape');
   await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
 
-  const sink = await focusSinkInfo(page);
+  const sink = await focusSinkInfo(page, '#frame-design');
   expect(sink, '초점이 오버레이의 focus sink로 옮겨져 있어야 한다').not.toBeNull();
   expect(sink?.ariaHidden, '초점을 받는 요소를 aria-hidden으로 숨기면 안 된다(접근성 반패턴)').toBeNull();
   expect(sink?.role).toBe('application');

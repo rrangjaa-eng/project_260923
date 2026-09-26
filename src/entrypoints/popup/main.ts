@@ -22,7 +22,10 @@ const PRESERVED_ORIGINAL_MESSAGE = '원래 설정을 지키려고 저장하지 �
 // WR-03(01-REVIEW.md): preserved-original 말고 다른 실패(무응답·거부·item-too-large 등)에는
 // 안내가 아예 없었다 — 되돌아간 이유를 한 줄로 알린다(§7).
 const HELPER_TOGGLE_FAILED_MESSAGE = '도우미 상태를 바꾸지 못했어요. 다시 눌러 보세요.';
-const SITE_TOGGLE_FAILED_MESSAGE = '이 사이트를 끄지 못했어요. 1을 눌러 도우미를 끄세요.';
+const SITE_TOGGLE_OFF_FAILED_MESSAGE = '이 사이트를 끄지 못했어요. 1을 눌러 도우미를 끄세요.';
+// DOM 감사 경고 2: "이 사이트에서 켜기"가 실패해도 지금까지는 끄기 실패용 문구가 그대로 떴다 —
+// 켜기 실패는 원인이 다르니(끌 필요가 없다) 다음 행동도 다른 문구를 둔다(§7).
+const SITE_TOGGLE_ON_FAILED_MESSAGE = '이 사이트를 켜지 못했어요. 다시 눌러 보세요.';
 // WR-03: SW가 응답 없이 멈추면(무응답) 낙관적 렌더가 무기한 남는다 — 이 시간이 지나면 되돌린다.
 const STORAGE_REQUEST_TIMEOUT_MS = 3000;
 
@@ -133,6 +136,9 @@ unsupportedMessage.textContent = '이 페이지에서는 도울 수 없어요. �
 // 위에 보여 준다. 저장 시도가 preserved-original로 거절되면 문구를 바꾼다(showWarningCard).
 const warningCard = document.createElement('p');
 warningCard.className = 'warning-card';
+// DOM 감사 경고 1: 실패 안내는 시각으로만 전달돼 스크린리더 이용자에게는 뜨는지 알 방법이
+// 없었다 — 오류 알림이니 role="alert"(암묵적 aria-live=assertive)를 준다.
+warningCard.setAttribute('role', 'alert');
 
 // 지금 사이트에서만 끄기 상태 한 줄(Plan 01-13 Task 3, --muted — .status와 같은 스타일 재사용).
 const siteStatus = document.createElement('p');
@@ -166,6 +172,8 @@ function sendWithRevert(message: Message, revert: () => void, onFail: (reason?: 
       if (result?.ok !== true) {
         revert();
         onFail(result?.reason);
+      } else {
+        hideWarningCard();
       }
     },
     () => {
@@ -184,6 +192,15 @@ function showWarningCard(text: string): void {
   warningCard.textContent = text;
   if (!warningCard.isConnected) {
     container.insertBefore(warningCard, cards);
+  }
+}
+
+// DOM 감사 경고 3: 실패 안내가 뜬 뒤 같은(또는 다른) 토글이 성공해도 안내가 화면에 그대로
+// 남아 있었다 — 더는 맞지 않는 안내가 계속 보이지 않도록 성공하면 숨긴다(sendWithRevert 성공
+// 경로에서 부른다).
+function hideWarningCard(): void {
+  if (warningCard.isConnected) {
+    warningCard.remove();
   }
 }
 
@@ -339,9 +356,10 @@ function createSiteCard(origin: string, tabId: number): { element: HTMLButtonEle
       };
       // WR-05: SW 거절(origin-mismatch·write-failed 등)을 보지 않으면 카드가 실제로는 켜져
       // 있는데 꺼졌다고 계속 보여 준다 — 즉시 끌 수 있음이 핵심 안전 요구다. WR-03: 무응답(시간
-      // 제한)도 같은 방식으로 되돌리고, 왜 되돌아갔는지 한 줄로 알린다.
+      // 제한)도 같은 방식으로 되돌리고, 왜 되돌아갔는지 한 줄로 알린다. DOM 감사 경고 2: 실패한
+      // 쪽이 켜기인지 끄기인지에 따라 원인이 다르니 문구도 다르게 한다(next=true면 켜기 시도).
       sendWithRevert(message, revert, () => {
-        showWarningCard(SITE_TOGGLE_FAILED_MESSAGE);
+        showWarningCard(next ? SITE_TOGGLE_ON_FAILED_MESSAGE : SITE_TOGGLE_OFF_FAILED_MESSAGE);
       });
     },
   });

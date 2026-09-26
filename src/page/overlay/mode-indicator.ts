@@ -7,6 +7,12 @@ import { parseMessage } from '@/shared/messages';
 
 const HOST_TAG = 'tremor-helper-root';
 const MODE_INDICATOR_CLASS = 'mode-indicator';
+// DOM 감사 경고 4: focus sink에 outline: none을 걸어 둔다(보이는 포커스 링이 필요 없다 — 상태는
+// 모드 표시가 이미 보여 준다; 토큰 밖 색이 드러날 여지도 없앤다).
+const FOCUS_SINK_CLASS = 'focus-sink';
+// 모드 표시의 도우미 모드 문구("도우미")와 같은 용어 — focus sink의 접근 가능한 이름에 새 용어를
+// 만들지 않고 그대로 쓴다.
+const HELPER_MODE_LABEL = '도우미';
 
 // 모드 표시 비키기(SYSTEM.md "모드 표시", D-26): 커서가 이 거리 안으로 오면 반대편으로 옮기고,
 // 커서가 떠나도 그 자리에 머문다. 다음에 커서가 다가오면 다시 반대편으로 옮긴다.
@@ -174,6 +180,9 @@ ${tokensCss}
 .${MODE_INDICATOR_CLASS}__hint {
   font-weight: var(--weight-regular);
 }
+.${FOCUS_SINK_CLASS} {
+  outline: none;
+}
 `;
   shadowRoot.append(style);
 
@@ -194,6 +203,12 @@ export function getFocusSink(): HTMLElement {
   if (!focusSinkElement) {
     focusSinkElement = document.createElement('div');
     focusSinkElement.tabIndex = -1;
+    focusSinkElement.className = FOCUS_SINK_CLASS;
+    // DOM 감사 경고 4: 초점을 받는 요소를 aria-hidden으로 숨기면 접근성 반패턴이다 — 대신 지금
+    // 상태를 말하는 접근 가능한 이름을 준다(모드 표시와 같은 용어). role="application"은 이 요소가
+    // 자기만의 키 처리(도우미 키)를 갖는다는 뜻을 전달한다.
+    focusSinkElement.setAttribute('role', 'application');
+    focusSinkElement.setAttribute('aria-label', HELPER_MODE_LABEL);
     root.append(focusSinkElement);
   }
   return focusSinkElement;
