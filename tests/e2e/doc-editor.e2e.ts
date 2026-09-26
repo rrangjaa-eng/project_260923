@@ -366,13 +366,28 @@ test('나옴 상태에서 Ctrl+B(서식) 편집은 막히고, Ctrl+C(복사)·Ct
 // 네이티브 컨텍스트 메뉴는 자동화 대상이 아니다) 이 시험 대상에서 뺐다 — REVIEW-FIX.md에 사람
 // 확인 항목으로 남긴다. 키보드 경로(Ctrl+V·Shift+Insert)는 WR-01의 Ctrl 차단·EDITING_KEYCODES가
 // 이미 막는다(키다운 자체가 삼켜져 붙여넣기 명령이 시작되지 않는다).
-test('나옴 상태에서 끌어서 놓기(drop)로 문서에 글자가 들어가면 안 된다(WR-02)', async ({ context, servePage }) => {
+//
+// 실측(뮤테이션 확인): 실제 마우스 드래그(page.dragAndDrop/locator.dragTo)로는 이 시험을 결정적
+// 으로 만들 수 없었다 — 같은 프레임 안에서 끄는 시작점을 누르면 그 pointerdown이 "편집기 누름"
+// (mode.ts 편집기 재진입 규칙)으로 해석돼 놓기 전에 이미 입력 모드로 돌아간다. 다른 프레임에서
+// 끌어오면 끄는 동안 선택(Selection)이 없어(CR-01 "커서 숨기기") 브라우저 기본 삽입이 애초에
+// 안 일어나 우리 방어와 무관하게 항상 통과해 버린다. 그래서 CDP `Input.dispatchDragEvent`로
+// dragenter·dragover·drop을 직접 보내(포인터다운을 거치지 않는다) 편집기가 자기 drop 처리기로
+// 직접 DOM을 고치는 사내 편집기 흉내 fixture로 재현한다(WR-08과 같은 관례) — 우리 코드가 이
+// 이벤트를 window capture에서 멈추면 편집기의 drop 처리기 자체가 불려도 안 된다.
+test('나옴 상태에서 편집기가 drop으로 직접 처리하는 붙여넣기는 문서를 바꾸면 안 된다(WR-02)', async ({
+  context,
+  servePage,
+}) => {
   servePage(
     'http://practice.test/wr02-drop-editor.html',
     '<!doctype html><body style="margin:0" contenteditable="true" id="doc-text">ab' +
-      '<span id="source" draggable="true" contenteditable="false" style="display:inline-block;padding:4px;background:#eee">SRC</span>' +
       '<script>' +
-      "document.getElementById('source').addEventListener('dragstart',function(e){e.dataTransfer.setData('text/plain','ZZZ');});" +
+      "document.addEventListener('dragover',function(e){e.preventDefault();},true);" +
+      "document.addEventListener('drop',function(e){" +
+      'e.preventDefault();' +
+      "var p=document.createElement('p');p.id='injected-p';document.body.appendChild(p);" +
+      '},true);' +
       '</script>' +
       '</body>',
   );
@@ -387,9 +402,18 @@ test('나옴 상태에서 끌어서 놓기(drop)로 문서에 글자가 들어�
   await page.keyboard.press('Escape');
   await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
 
-  const before = await text.evaluate((el) => el.textContent);
-  await page.dragAndDrop('#source', '#doc-text');
+  const box = await text.boundingBox();
+  if (!box) {
+    throw new Error('WR-02 시험 fixture의 좌표를 읽지 못했다');
+  }
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  const dragData = { items: [{ mimeType: 'text/plain', data: 'ZZZ' }], dragOperationsMask: 1 };
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Input.dispatchDragEvent', { type: 'dragEnter', x, y, data: dragData });
+  await cdp.send('Input.dispatchDragEvent', { type: 'dragOver', x, y, data: dragData });
+  await cdp.send('Input.dispatchDragEvent', { type: 'drop', x, y, data: dragData });
   await flushEvents(page);
 
-  expect(await text.evaluate((el) => el.textContent), '나옴 상태에서 끌어서 놓기로 문서가 바뀌면 안 된다').toBe(before);
+  expect(await page.locator('#injected-p').count(), '나옴 상태에서 편집기의 drop 직접 처리로 문서가 바뀌면 안 된다').toBe(0);
 });
