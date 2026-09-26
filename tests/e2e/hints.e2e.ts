@@ -614,6 +614,57 @@ test('F4: 번호표가 도우미 자신의 모드 표시와 겹치지 않는다'
   }
 });
 
+// F4 후속(DOM 감사 4회차, 사용자 결정 2026-09-26, DECISIONS.md): f4detail.mjs 실측 — frames.html을
+// 확대 150%로 보면 중첩 iframe("nest") 버튼 번호표(5)의 다섯 자리가 모두 모드 표시에 막혀, 예전엔
+// 그 겹친 자리를 그대로 썼다(hints4.txt "OVERLAP label 5 × mode-indicator"). 같은 확대·페이지로
+// 다시 실제 화면에서 확인한다(기존 zoom 시험 도구, tests/e2e/zoom.e2e.ts와 같은 setZoom 방식).
+test('F4 후속: frames.html을 확대 150%로 봐도 번호표가 도우미 자신의 모드 표시와 겹치지 않는다', async ({
+  context,
+  serviceWorker,
+}) => {
+  const page = await context.newPage();
+  // f4detail.mjs 실측 창 크기(1280×800)와 맞춘다 — 확대 150%에서 innerWidth·innerHeight가
+  // 실측(853×533)과 같아야 같은 레이아웃(중첩 iframe "nest" 버튼 위치)이 재현된다.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('http://practice.test/frames.html');
+  await waitForHelperReady(page);
+
+  const tabs = await serviceWorker.evaluate((url) => chrome.tabs.query({ url }), page.url());
+  const tabId = tabs[0]?.id;
+  if (tabId === undefined) {
+    throw new Error('탭을 찾지 못했다');
+  }
+  await serviceWorker.evaluate(({ id, factor }) => chrome.tabs.setZoom(id, factor), { id: tabId, factor: 1.5 });
+  await page.waitForTimeout(600);
+
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(150);
+
+  const indicatorBox = await page.evaluate(() => {
+    const host = document.querySelector('tremor-helper-root');
+    const el = host?.shadowRoot?.querySelector('.mode-indicator');
+    const r = el?.getBoundingClientRect();
+    return r ? { x: r.x, y: r.y, width: r.width, height: r.height } : null;
+  });
+  if (!indicatorBox) {
+    throw new Error('모드 표시를 찾지 못했다');
+  }
+
+  const boxes = await labelBoxes(page);
+  expect(boxes.length).toBeGreaterThan(0);
+  for (const box of boxes) {
+    const overlap =
+      box.x < indicatorBox.x + indicatorBox.width &&
+      box.x + box.width > indicatorBox.x &&
+      box.y < indicatorBox.y + indicatorBox.height &&
+      box.y + box.height > indicatorBox.y;
+    expect(overlap, '확대 150%에서도 번호표가 모드 표시와 겹치면 안 된다').toBe(false);
+  }
+
+  await page.keyboard.press('Escape');
+  await serviceWorker.evaluate(({ id }) => chrome.tabs.setZoom(id, 1), { id: tabId });
+});
+
 test('ISSUE-002: blank-popup.html(화면 왼쪽 위 링크)에서 F를 누르면 그 번호표도 화면 안에 있다', async ({ context }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/blank-popup.html');
