@@ -157,6 +157,18 @@ export default defineContentScript({
     // documentElement가 childList 변화로 바뀌는 모든 경우(대부분 document.open)를 새 도우미
     // 하나로 대응한다.
     let startDocumentElement: Element | null = document.documentElement;
+
+    // 부하 시 재현(systematic-debugging, 01-19 Task 3): document.documentElement는 항상 즉시
+    // 최신값을 반영하는 동기 값이다 — MutationObserver의 정리 신호(cleanedUp)는 비동기(마이크로
+    // 태스크)라 storage IPC 왕복(실제 프로세스 간 메시지)과 순서가 뒤바뀔 수 있다(CPU 부하로 재현:
+    // 옛 인스턴스의 설정 읽기가 자신의 documentRewriteWatcher 콜백보다 먼저 끝나 cleanedUp이 아직
+    // false인 채로 enable을 보냄). 이 동기 확인을 비동기 이어짐의 관문(applyEnabled)에도 두면
+    // 알림 지연과 무관하게 항상 정확하다 — 문서가 이미 바뀌었으면(document.open() 자체는 항상
+    // 동기 동작) 그 자리에서 곧바로 cleanupOldHelper()를 부른다(idempotent).
+    function documentWasRewritten(): boolean {
+      return startDocumentElement !== null && document.documentElement !== startDocumentElement;
+    }
+
     const documentRewriteWatcher = new MutationObserver(() => {
       const nowElement = document.documentElement;
       if (startDocumentElement === null) {
@@ -581,6 +593,13 @@ export default defineContentScript({
 
     function applyEnabled(enabled: boolean): void {
       if (cleanedUp) {
+        return;
+      }
+      if (documentWasRewritten()) {
+        // 문서 다시 쓰기 감시(위 documentWasRewritten 주석): 이 인스턴스가 옛 인스턴스인데
+        // MutationObserver 콜백(비동기)이 아직 안 왔다 — 여기서 곧바로 정리해 옛 인스턴스가
+        // enable을 보내지 않게 한다.
+        cleanupOldHelper();
         return;
       }
       if (currentEnabled === enabled) {
