@@ -584,7 +584,9 @@ test('F4: 번호표가 도우미 자신의 모드 표시와 겹치지 않는다'
     throw new Error('모드 표시를 찾지 못했다');
   }
 
-  // 번호표의 기본 자리(요소 왼쪽 위 바깥 −14px,−14px)가 모드 표시를 정확히 덮도록 버튼을 넣는다.
+  // 모드 표시 오른쪽 바로 옆(5px 간격)에 버튼을 둔다 — 번호표의 기본 자리(요소 왼쪽 위 바깥
+  // −14px,−14px)는 모드 표시 오른쪽 끝과 겹치지만, 다음 대안 자리(오른쪽 위)는 모드 표시 폭
+  // 밖이라 장애물을 안다면 그 자리로 피할 수 있어야 한다.
   await page.evaluate(
     ({ x, y }) => {
       const b = document.createElement('button');
@@ -593,7 +595,7 @@ test('F4: 번호표가 도우미 자신의 모드 표시와 겹치지 않는다'
       b.style.cssText = `position:absolute;left:${x.toString()}px;top:${y.toString()}px;width:20px;height:20px`;
       document.body.appendChild(b);
     },
-    { x: indicatorBox.x + 14, y: indicatorBox.y + 14 },
+    { x: indicatorBox.x + indicatorBox.width + 5, y: indicatorBox.y + 5 },
   );
   await page.waitForTimeout(100);
 
