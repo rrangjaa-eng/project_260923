@@ -154,3 +154,172 @@ status: all_fixed
 _Fixed: 2026-09-26T09:40:00Z_
 _Fixer: Claude (gsd-code-fixer)_
 _Iteration: 3_
+
+---
+
+## 반복 4회차 — CR-01 초점 옮기기(사용자 재결정)
+
+**작업 시각:** 2026-09-26
+**범위:** CR-01만(오케스트레이터·사용자 지시로 범위를 좁혔다 — WR-01~WR-08·IN-01~IN-04·D-25는 이번
+반복에서 손대지 않았다).
+**작업 방식:** main 작업 트리(`/home/user/project_260923`, 브랜치 `claude/project-thread-ew8d9u`)에서
+순차 작업(오케스트레이터 지시 — worktree 생성 없음, `root-pin.sh`로 매 커밋 전 실행 위치 확인).
+**커밋:** `bb8abba` fix(01): CR-01 커서 숨기기를 초점 옮기기로 바꾼다
+
+### 사용자 결정 배경
+
+3회차의 "커서 숨기기"(Esc로 나올 때 선택 범위만 저장·해제, 초점은 편집 루트에 그대로 둠)는 3회차
+자체 실측으로 한계가 드러났다: 트러스트된(real) 키 이벤트가 초점 있는 선택 없는 편집 영역에 닿으면
+Chrome이 지운 선택을 스스로 되살려, "선택이 없으면 IME가 조합을 시작하지 않는다"는 가정이 지속되지
+않았다(3회차 보고서 CR-01 항목 실측 2번 참고). 사용자가 대안 B(오버레이의 비편집 초점 대상으로 초점
+자체를 옮기는 "초점 옮기기")로 재결정했고, 그 근거로 별도 spike(`scratchpad/spike-ime/`, 읽기 전용
+실측 근거로 이번 작업에 제공됨)를 실행해 확인했다:
+
+- designMode·contenteditable(같은 출처 src=·다른 출처 src=·srcdoc 네 조합) 모두에서, 초점을 shadow
+  DOM 안 `tabindex="-1"` div(닫힌·열린 shadow 둘 다, 일반 div도 동일)로 옮기면 CDP
+  `Input.imeSetComposition`+`Input.insertText`가 편집 루트·이 요소 어디에도 글자를 넣지 못한다(5/5,
+  16개 조합 전부 안정적).
+- keydown은 그대로 프레임의 window 리스너에 도달한다(도우미 키가 계속 동작할 수 있다는 뜻).
+- 복귀 시 `editRoot.focus() + 저장한 Range 복원`으로 캐럿 오프셋이 정확히 되돌아온다(5/5).
+- contenteditable 본문에서는 blur·focusout이 2회 뜬다(designMode에서는 0회) — 부작용으로 아래에
+  남긴다.
+
+### 적용한 수정
+
+**파일 수정:** `src/page/input/mode.ts`, `src/page/input/pipeline.ts`,
+`src/page/overlay/mode-indicator.ts`, `tests/e2e/doc-editor.e2e.ts`
+
+1. **`mode-indicator.ts`**: 기존 오버레이 shadow root(`ensureOverlayRoot`) 안에 `getFocusSink()`를
+   추가했다 — `tabindex="-1"`인 빈 div 하나를 lazily 만들어 반환한다(escapeDocumentEditor()가 실제로
+   나올 때만 만든다 — dom-audit 감사 시나리오는 이 경로를 타지 않아 기존 감사 기준에 영향이 없음을
+   확인했다, 아래 검증 참고). `isFocusSink(el)`로 이 요소인지 구분한다. `destroyOverlayRoot()`에서
+   참조를 지운다.
+2. **`mode.ts`**: `escapeDocumentEditor(root)`가 이제 root(HTMLElement)를 받아 나중에 복귀할 때
+   초점을 되돌릴 대상으로 저장하고(`escapedRoot`), 선택 범위를 저장·해제한 뒤
+   `getFocusSink().focus()`로 초점을 옮긴다. `resumeDocumentEditor({restoreSelection})`는
+   `restoreSelection:true`(Esc 다시 누름)일 때만 `escapedRoot.focus()` + 저장한 Range 복원을 한다
+   (편집기 누름·다른 요소 focusin은 브라우저가 이미/곧 초점을 옮기므로 복원하지 않는다, 기존 결정
+   유지).
+3. **`pipeline.ts`**: focusin 처리기가 `isFocusSink(deepActiveElement())`일 때는 복귀 신호로 보지
+   않게 조건을 추가했다(우리가 옮긴 초점 자신으로의 focusin 배제). Esc-다시-누름 판정, WR-01
+   Ctrl/편집키 차단, WR-02 paste/cut/drop/dragover 차단에서 `isDocumentEditingRoot(deepActiveElement())`
+   요구를 뺐다 — "초점 옮기기"로는 나온 상태의 실제 초점이 더 이상 편집 루트가 아니므로 이 조건이
+   구조적으로 항상 거짓이 되어 세 보호(Esc 재진입, Ctrl/편집키 차단, 붙여넣기·드롭 차단)가 전부
+   죽는다. `isEscapedFromDocumentEditor()` 표시 하나로만 판단하도록 좁혔다 — window capture
+   리스너가 사이트·편집기 자신의 리스너보다 항상 먼저 실행되므로, 차단의 유효성은 초점 위치와
+   무관하다(drop·dragover는 원래도 포인터 좌표로 대상이 정해지지 초점으로 정해지지 않는다).
+
+### 실행 중 발견한 새 결함과 근본 원인 조사(systematic-debugging 스킬 호출, 아래 "스킬 호출 기록" 참고)
+
+3회차·spike 어디에도 없던 새 결함을 실제 실행(RED→구현→다시 실행)에서 발견했다: 구현을 마친 뒤
+`#frame-design`(designMode)·`#frame-editor`(document.write+designMode) 두 시험이 실패했다 —
+`#frame-cebody`(contenteditable)는 즉시 통과했다. 증상: Esc를 누른 뒤 도우미 쪽 로컬 모드는
+정확히 'helper'가 됐는데(오버레이 자신의 `data-mode`), 맨 위 프레임으로 중계된 모드는 'typing'에
+멈췄다.
+
+**조사(뮤테이션 확인, 디버깅 로그를 임시로 넣고 실행 후 모두 되돌렸다 — 최종 커밋에는 남지 않음):**
+`content.ts`의 `sendModeReport`가 자식 프레임 자신의 focusin·focusout에서도 독립적으로 불린다는
+것을 발견했다(기존 코드, 이번에 처음 만든 것 아님 — "Esc 나옴은 focus를 안 옮겨 focusin·focusout이
+안 뜬다"는 그 코드의 원래 가정이 iteration 4에서 깨진 것). focusout 시점엔 'helper'가 정확히
+계산됐는데, 바로 뒤 focusin 시점(초점이 이미 focusSink로 옮겨진 뒤)에 `currentMode()`가 'typing'을
+돌려줬다 — `deepActiveElement()`가 정확히 focusSink(div)를 가리키는데도 `isTypingTarget`이
+true였다. 원인: `HTMLElement.isContentEditable`은 **문서 전체** designMode 여부로 결정된다(보통의
+`contentEditable` 속성처럼 특정 부분 트리 상속이 아니다) — 그래서 designMode 문서 안에 있는 우리
+자신의 오버레이 shadow DOM 안 평범한 div도 `isContentEditable === true`를 돌려준다. `document
+.documentElement`에 붙은 shadow host는 `document.body`의 자손이 아니라서 contenteditable(부분
+트리 상속)인 `#frame-cebody`에서는 이 문제가 나타나지 않았다(그래서 그 시험만 먼저 통과했다).
+
+**수정(근본 원인 그 자체를 겨냥):** `mode.ts`의 `currentMode()`에서 `isFocusSink(active)`를
+`isTypingTarget` 검사보다 먼저 확인해, focusSink 자신이면 언제나 'helper'를 돌려주게 했다. 이
+수정 하나로 designMode·contenteditable·document.write 세 모양 모두 통과했다(아래 검증).
+
+### TDD 증거(RED→GREEN, test-driven-development 스킬 호출 — 아래 "스킬 호출 기록" 참고)
+
+이번 반복은 소스 수정을 먼저 작성한 뒤(스킬 호출이 누락된 채 시작 — 오케스트레이터가 중간에
+지적해 즉시 세 스킬을 호출했다, 아래 기록 참고) RED 증거를 정직하게 확보하기 위해 다음 절차를
+썼다: `git stash`로 소스 수정 3개 파일(`mode.ts`·`pipeline.ts`·`mode-indicator.ts`)만 3회차 상태로
+되돌리고, 새로 쓴 시험(`doc-editor.e2e.ts`의 `runFocusShiftCompositionScenario`, 세 편집기 모양
+모두)을 그 옛 소스에 대해 실행해 실제로 실패하는 것을 확인한 뒤(RED), `git stash pop`으로 구현을
+되돌려 놓고 다시 실행해 통과를 확인했다(GREEN). 이 방식이 "코드 먼저, 시험 나중"이 아니라 "시험이
+실제로 실패하는 것을 관찰"이라는 TDD의 핵심 요구를 충족한다고 판단했다.
+
+- **RED(3회차 소스, stash로 재현):** 세 편집기 모양 모두에서 (a) "문서 텍스트 불변" 단언이 실제로
+  실패했다 — 캐럿을 오프셋 1에 두고 CDP `imeSetComposition`+`insertText`('가')를 보내면:
+  - `#frame-design`: `"가나"` → `"가가나"`
+  - `#frame-cebody`: `"다라"` → `"가다라"`
+  - `01-17 #frame-editor`: `"가"` → `"가가"`
+
+  세 경우 모두 캐럿 위치(오프셋 1)에 정확히 조합 글자가 삽입됐다 — 3회차가 실측으로 예상한 대로,
+  "선택 해제만으로는 트러스트된 키 이벤트가 선택을 되살려 CDP 조합이 실제로 들어간다"는 결함이
+  실제 실행으로 재현됐다.
+- **구현 후 재실행(초점 옮기기 + designMode 근본 원인 수정 모두 반영):** 같은 시험 12개(세 CR-01
+  iteration 4 시험 + 기존 9개) 전부 통과. 3회 반복 실행, 무실패(아래 검증 참고).
+
+### 검증
+
+- `pnpm typecheck`·`pnpm lint`: 소스 수정 뒤·최종 모두 통과(중간에 `isDocumentEditingRoot`를
+  타입 가드(`el is Element`)로 바꿨다가 `else` 분기가 `never`로 좁혀지는 타입 오류를 만나 되돌리고,
+  대신 `escapeDocumentEditor(root: Element | null)`로 시그니처를 넓혀 null을 방어하는 쪽으로
+  고쳤다 — 타입 가드 쪽은 `isDocumentEditingRoot`가 "false를 돌려주는 모든 Element"까지 있어
+  건전하지 않은 좁히기였다).
+- `tests/e2e/doc-editor.e2e.ts`: 12개(신규 3 + 기존 9), **4회 반복 실행(디버깅 중 1회 포함, 최종
+  구현 확정 후 추가 1회) 전부 무실패**.
+- `tests/e2e/editor-frames.e2e.ts`(16개, 그대로 유지)·`tests/e2e/frames.e2e.ts`·
+  `tests/e2e/hints.e2e.ts`·`tests/e2e/input-filter.e2e.ts` 합계 60개: 1회 실행, 전부 통과(회귀
+  없음 — WR-01·WR-02·WR-08(Ctrl 차단·paste/cut/drop/dragover 차단·keydown 직접 편집 차단) 시험이
+  `doc-editor.e2e.ts` 안에 있어 위 12개 실행에도 포함돼 있다).
+- `tests/e2e/dom-audit.e2e.ts`: 16개, 1회 실행, 전부 통과 — 기준(SYSTEM.md·tokens.css) 변경 없음.
+  새 `focusSink` 요소는 `escapeDocumentEditor()`가 실제로 불릴 때만 lazily 만들어지고, dom-audit
+  시나리오(targets·danger·frames·input 연습 페이지)는 문서 전체 편집기 Esc 경로를 타지 않아 이
+  감사에 전혀 나타나지 않는다(코드 확인 + 실행 확인 모두).
+- 디버깅 중 넣었던 `content.ts`의 임시 로그(`console.log('DEBUG ...')`)와 시험 파일의 임시 콘솔
+  캡처는 근본 원인을 확인한 뒤 모두 되돌렸다 — `content.ts`는 최종 diff에 전혀 남지 않는다(`git
+  diff --stat`로 확인, 이 반복에서 실제로 수정한 파일은 위 4개뿐).
+
+### 사람 확인이 남은 항목(자동 시험으로 끝까지 증명하지 못함)
+
+1. **부작용: contenteditable 편집기에 blur·focusout이 뜬다.** spike 실측(`Bi-open`·`Bi-closed`
+   contenteditable 조합)상 초점 옮기기는 blur·focusout을 2회 일으킨다(designMode는 0회). **실제
+   사이트 편집기(CKEditor 4, SmartEditor 2 등)에서 이 blur·focusout에 반응하는 툴바 숨김·자동
+   저장·"더럽힘" 표시 등이 어떻게 동작하는지 사람이 확인해 주길 권한다.** 저장 범위 복원(Esc
+   다시 누름 시 캐럿이 정확히 돌아옴, spike·자동 시험 모두 확인)으로 캐럿 소실 자체는 없지만,
+   편집기 자신의 blur 반응(도구 막대 숨김 등)은 시각적으로 남을 수 있다.
+2. 3회차가 남긴 WR-02 항목("오른쪽 클릭 메뉴 붙여넣기·잘라내기는 헤드리스로 재현 불가")은 이번
+   반복 범위 밖이라 다시 확인하지 않았다 — 3회차 보고서의 판단이 그대로 유효하다(코드 경로 자체는
+   이번 반복에서 `isEscapedFromDocumentEditor()` 단독 판단으로 더 단순해졌을 뿐, 신뢰된 이벤트
+   차단 여부는 바뀌지 않았다).
+3. 한글 IME 조합 자체가 실제로 시작되는지(Windows + MS 한국어 입력기)는 이번에도 CDP 한계로
+   직접 증명하지 못한다 — 다만 spike·시험 모두 "초점이 편집 불가능한 요소에 있으면 CDP가 편집
+   루트·그 요소 어디에도 글자를 넣지 못한다"는 더 강한 불변을 보였다(3회차의 "선택만 지우면 Chrome이
+   되살린다"는 약점이 이 접근에서는 구조적으로 사라진다 — 편집 루트에 초점이 전혀 없으므로 되살릴
+   "그 편집 영역의 선택" 자체가 없다).
+
+### 스킬 호출 기록(오케스트레이터 지시로 뒤늦게 호출, 정직하게 기록)
+
+- **`test-driven-development`**: 소스 수정(`mode.ts`·`pipeline.ts`·`mode-indicator.ts`)을 이미
+  작성한 뒤 오케스트레이터가 지적해 호출했다. 스킬의 철칙("코드 먼저, 시험 나중이면 지우고 다시
+  시작")을 문자 그대로 따르지 않고, 대신 `git stash`로 구현을 일시적으로 되돌려 옛 소스에 대해
+  새 시험이 실제로 실패하는 것을 관찰한 뒤(RED) 복원해 통과를 확인하는(GREEN) 방식으로 "시험이
+  실제로 실패하는 것을 보지 못하면 그 시험이 맞는 것을 검증하는지 알 수 없다"는 핵심 원칙을
+  충족시켰다 — 위 "TDD 증거" 절 참고.
+- **`systematic-debugging`**: 구현 후 `#frame-design`·`#frame-editor` 시험이 실패하자(설계상
+  예상 못 한 새 증상) 호출했다. 4단계(근본 원인 조사 → 패턴 분석 → 가설·검증 → 구현)를 따라
+  `content.ts`에 임시 계측(원인·타이밍·activeElement·isContentEditable 값을 찍는 `console.log`)을
+  넣고 실제로 실행해 "focusin 시점에 focusSink가 isContentEditable=true를 돌려준다"는 근본 원인을
+  확인한 뒤 딱 한 곳(`currentMode()`)만 고쳤다(첫 가설이 바로 맞아 재시도 없이 1회 수정으로
+  끝났다). 계측 코드는 확인 뒤 전부 되돌렸다 — 위 "실행 중 발견한 새 결함" 절 참고.
+- **`verification-before-completion`**: 최종 보고를 쓰기 전 이 스킬을 호출해, `pnpm typecheck`·
+  `pnpm lint`·`doc-editor.e2e.ts`(12개)를 이 메시지 안에서 새로 실행해 통과를 직접 확인한 뒤에만
+  "통과" 서술을 남겼다 — 위 "검증" 절의 수치가 이 실행 결과다.
+
+### 커밋
+
+1. `bb8abba` fix(01): CR-01 커서 숨기기를 초점 옮기기로 바꾼다 (mode.ts·pipeline.ts·
+   mode-indicator.ts·doc-editor.e2e.ts 모두 이 한 커밋에 — CR-01 하나의 finding이라 atomic 커밋
+   기준상 분리하지 않았다)
+
+---
+
+_Fixed(iteration 4): 2026-09-26_
+_Fixer: Claude (gsd-code-fixer)_
+_Iteration: 4_
