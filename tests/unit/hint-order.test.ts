@@ -176,4 +176,25 @@ describe('placeLabels', () => {
       box.x < obstacle.x + obstacle.w && box.x + box.w > obstacle.x && box.y < obstacle.y + obstacle.h && box.y + box.h > obstacle.y;
     expect(overlap, '기본 자리(장애물과 겹침)에 그대로 있으면 안 된다').toBe(false);
   });
+
+  // F5(/design-review 3회차, 사용자 결정): 화면 안 판정·밀어 넣기는 번호표 후광(halo, SYSTEM.md
+  // "사이트 위에 떠 있는 표시는 항상 흰 후광 2px")까지 화면 안에 들어오도록 안쪽 여백을 둔다.
+  it('F5: 화면 구석 요소도 번호표 후광까지 화면 안에 들어오도록 안쪽 여백을 둔다', () => {
+    // 다섯 후보 자리 모두 화면 밖이 되도록 뷰포트 구석(0,0)에 크기 0인 요소를 둔다 — 밀어 넣기
+    // 대안(candidates[4] = 요소 자리 자체, (0,0))이 halo 없이는 그대로 (0,0)이 된다.
+    const rect = { x: 0, y: 0, w: 0, h: 0 };
+
+    const placements = placeLabels([{ itemId: 'a', rect }], 28, {
+      viewportWidth: 200,
+      viewportHeight: 200,
+      haloWidth: 2,
+    });
+
+    const placement = placements[0];
+    if (!placement) {
+      throw new Error('번호표 자리가 없다');
+    }
+    expect(placement.x, '후광까지 화면 안에 들어와야 한다(왼쪽)').toBeGreaterThanOrEqual(2);
+    expect(placement.y, '후광까지 화면 안에 들어와야 한다(위쪽)').toBeGreaterThanOrEqual(2);
+  });
 });
