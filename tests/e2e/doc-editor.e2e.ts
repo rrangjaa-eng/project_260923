@@ -359,3 +359,37 @@ test('나옴 상태에서 Ctrl+B(서식) 편집은 막히고, Ctrl+C(복사)·Ct
     'Ctrl+=는 사이트에 전달돼야 한다',
   ).toContain('Equal');
 });
+
+// WR-02(01-REVIEW.md): 나옴 상태의 편집 차단은 keydown·beforeinput뿐이었다 — 끌어서 놓기(drop)
+// 처럼 키보드를 거치지 않는 경로는 편집기가 직접 문서를 고칠 수 있었다. 오른쪽 클릭 메뉴
+// 붙여넣기·잘라내기는 헤드리스 Playwright로 신뢰된(trusted) 이벤트를 재현할 수 없어(브라우저
+// 네이티브 컨텍스트 메뉴는 자동화 대상이 아니다) 이 시험 대상에서 뺐다 — REVIEW-FIX.md에 사람
+// 확인 항목으로 남긴다. 키보드 경로(Ctrl+V·Shift+Insert)는 WR-01의 Ctrl 차단·EDITING_KEYCODES가
+// 이미 막는다(키다운 자체가 삼켜져 붙여넣기 명령이 시작되지 않는다).
+test('나옴 상태에서 끌어서 놓기(drop)로 문서에 글자가 들어가면 안 된다(WR-02)', async ({ context, servePage }) => {
+  servePage(
+    'http://practice.test/wr02-drop-editor.html',
+    '<!doctype html><body style="margin:0" contenteditable="true" id="doc-text">ab' +
+      '<span id="source" draggable="true" contenteditable="false" style="display:inline-block;padding:4px;background:#eee">SRC</span>' +
+      '<script>' +
+      "document.getElementById('source').addEventListener('dragstart',function(e){e.dataTransfer.setData('text/plain','ZZZ');});" +
+      '</script>' +
+      '</body>',
+  );
+
+  const page = await context.newPage();
+  await page.goto('http://practice.test/wr02-drop-editor.html');
+
+  const text = page.locator('#doc-text');
+  await text.click();
+  await expect.poll(() => dataMode(page)).toBe('typing');
+
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
+
+  const before = await text.evaluate((el) => el.textContent);
+  await page.dragAndDrop('#source', '#doc-text');
+  await flushEvents(page);
+
+  expect(await text.evaluate((el) => el.textContent), '나옴 상태에서 끌어서 놓기로 문서가 바뀌면 안 된다').toBe(before);
+});
