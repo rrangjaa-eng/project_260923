@@ -1,431 +1,227 @@
 ---
 phase: 01-click-helper-foundation
-reviewed: 2026-09-24T11:31:46Z
-depth: standard
-files_reviewed: 81
+reviewed: 2026-09-26T06:30:34Z
+depth: deep
+files_reviewed: 29
 files_reviewed_list:
-  - .github/workflows/ci.yml
-  - .gitignore
-  - eslint.config.js
-  - package.json
-  - playwright.config.ts
-  - src/core/confirm-guard.ts
-  - src/core/danger.ts
-  - src/core/drag-two-press.ts
-  - src/core/dwell-timer.ts
-  - src/core/fingerprint.ts
-  - src/core/frame-path.ts
-  - src/core/frame-tree.ts
-  - src/core/grid-index.ts
-  - src/core/hint-order.ts
-  - src/core/magnet.ts
-  - src/core/settings-schema.ts
-  - src/core/tremor-filter.ts
   - src/core/unsupported-url.ts
   - src/entrypoints/background.ts
   - src/entrypoints/content.ts
-  - src/entrypoints/popup/index.html
   - src/entrypoints/popup/main.ts
-  - src/page/click/drag.ts
-  - src/page/click/press.ts
   - src/page/collector/collector.ts
   - src/page/input/mode.ts
   - src/page/input/pipeline.ts
-  - src/page/overlay/confirm-dialog.ts
-  - src/page/overlay/hints.ts
-  - src/page/overlay/mode-indicator.ts
-  - src/page/overlay/ring.ts
-  - src/page/overlay/toast.ts
   - src/shared/messages.ts
   - src/types/chrome.d.ts
   - src/worker/relay.ts
   - src/worker/storage-writer.ts
+  - wxt.config.ts
+  - tests/e2e/blank-popup.e2e.ts
   - tests/e2e/confirm.e2e.ts
-  - tests/e2e/danger.e2e.ts
+  - tests/e2e/doc-editor.e2e.ts
   - tests/e2e/dom-audit.e2e.ts
-  - tests/e2e/drag.e2e.ts
   - tests/e2e/dwell.e2e.ts
-  - tests/e2e/fixtures.ts
+  - tests/e2e/editor-frames.e2e.ts
+  - tests/e2e/fonts.e2e.ts
   - tests/e2e/frames.e2e.ts
-  - tests/e2e/global-setup.ts
   - tests/e2e/helper-toggle.e2e.ts
   - tests/e2e/hints.e2e.ts
-  - tests/e2e/input-filter.e2e.ts
   - tests/e2e/lifecycle.e2e.ts
-  - tests/e2e/magnet.e2e.ts
-  - tests/e2e/overlay-perf.e2e.ts
-  - tests/e2e/press.e2e.ts
   - tests/e2e/site-toggle.e2e.ts
-  - tests/e2e/skeleton.e2e.ts
-  - tests/e2e/spike.e2e.ts
-  - tests/e2e/zoom.e2e.ts
-  - tests/practice-site/big.html
-  - tests/practice-site/danger.html
-  - tests/practice-site/drag.html
-  - tests/practice-site/frames.html
-  - tests/practice-site/input.html
-  - tests/practice-site/next.html
-  - tests/practice-site/popup-target.html
-  - tests/practice-site/shortcuts.html
-  - tests/practice-site/spike.html
-  - tests/practice-site/targets.html
-  - tests/unit/confirm-guard.test.ts
-  - tests/unit/danger.test.ts
-  - tests/unit/drag-two-press.test.ts
-  - tests/unit/dwell-timer.test.ts
-  - tests/unit/frame-path.test.ts
-  - tests/unit/frame-tree.test.ts
-  - tests/unit/grid-index.test.ts
-  - tests/unit/hint-order.test.ts
-  - tests/unit/magnet.test.ts
-  - tests/unit/press.test.ts
-  - tests/unit/settings-schema.test.ts
-  - tests/unit/tremor-filter.test.ts
+  - tests/practice-site/blank-popup.html
+  - tests/practice-site/doc-editor.html
+  - tests/practice-site/dwell-frame.html
+  - tests/practice-site/editor-frames.html
   - tests/unit/unsupported-url.test.ts
-  - tsconfig.json
-  - vitest.config.ts
-  - wxt.config.ts
 findings:
-  critical: 8
-  warning: 10
-  info: 6
-  total: 24
+  critical: 1
+  warning: 8
+  info: 4
+  total: 13
 status: issues_found
 ---
 
-# Phase 01: Code Review Report
+# Phase 1: 코드 리뷰 보고서
 
-**Reviewed:** 2026-09-24T11:31:46Z
-**Depth:** standard
-**Files Reviewed:** 81 (the design spec was read for context only and was not reviewed)
-**Status:** issues_found
+**리뷰 시각:** 2026-09-26T06:30:34Z
+**깊이:** deep
+**리뷰한 파일:** 29
+**상태:** issues_found
 
-## Summary
+## 요약
 
-I read every file under `src/` in full and checked each one against the confirm-guard, danger, and site-toggle requirements in the design spec (§5 "확인 화면 보호", §8 "위험한 버튼" / "도우미 끄기" / "isTrusted"). I also read the configs and targeted parts of the tests.
+범위는 `git diff ae3cdf8..HEAD`이다. 지난 리뷰의 CR/WR 수정분과 보완 계획 01-17(srcdoc·document.write 편집기 프레임), 01-18(자식 프레임 확인 화면 방어, IN-04 fail-closed, 문서 전체 편집기 Esc), 01-19(주소 없는 새 창, editor-frames flaky 수정)를 읽었다. background → relay → content → pipeline/mode로 호출 사슬을 따라갔고, 사이트 정체(`topDocOrigins`·`siteOriginOfTab`·`inheritedSiteOrigin`)가 메시지 경계를 넘을 때 어떤 값을 믿는지 대조했다.
 
-**What holds up:**
-- The message layer is sound. Content scripts never accept `window.postMessage`. The background checks `sender.id`. Every message passes a zod check. The relay uses `sender.frameId`, not the frameId the frame reports about itself.
-- The keyboard side of the confirm guard is sound. Only `isTrusted` keys reach the guard, and a page cannot confirm the dialog with synthetic events.
-- There is no network egress (D-31). The only non-extension-page URLs are the SVG namespace string and the extension's own `chrome-extension://` fonts.
+사이트 정체 위조 방지 설계는 대체로 맞다. `topDocOrigins`는 Chrome이 채운 `sender.origin`으로만 채우고, `recordPress`·`setSiteDisabled`는 요청 본문 origin을 그 값과 대조한다. 요청 본문 문자열만으로 다른 사이트를 끄거나 기록을 쌓는 경로는 찾지 못했다. 문제는 세 곳이다.
 
-**Where the defects are:**
-- **The confirm modal controls only the keyboard.** Pointer and dwell input still press page elements behind the scrim. Turning the helper off while the dialog is open leaves an invisible modal armed, and the next Enter presses the danger button.
-- **Turning the helper off for a site does not turn off the input pipeline.**
-- **The magnet sends a direct click on a danger button to a normal neighbour.** A unit test asserts this behaviour.
-- **Danger detection misses the most common legacy-intranet button patterns:** `<input type=button value=삭제>` and `<a><img alt=삭제></a>`.
-- **The overlay breaks after an off/on cycle.** Hint labels and the confirm dialog lose their styles.
-- **A stale "press later" callback can cause a phantom click.** It is left behind by a right-click, middle-click, or cancelled touch.
-- **Child-frame hints silently disappear** after the service worker restarts from idle.
+- **(1)** 01-18의 문서 전체 편집기 "나옴" 상태가 한글 IME에서 깨진다. 이 제품의 실제 이용자 환경이다.
+- **(2)** 55acdd0의 `documentWasRewritten()` 방어는 근거가 서로 맞지 않는 추측성 코드다. 그 경로에 실제로 들어가면 새 도우미를 넣지 못한다.
+- **(3)** `topDocOrigins`의 수명 관리가 설계가 아니라 이벤트 도착 순서에 기대고 있다.
 
-## Narrative Findings (AI reviewer)
+### 오케스트레이터 요청 항목 판정
+
+**1. editor-frames flaky 수정(55acdd0) — 시험 쪽 변경은 "완화"가 아니다. content.ts 쪽 변경은 근본 수정이 아니라 추측성 코드다.**
+
+- **(a) 옛 인스턴스의 frame/state(true)는 제품에서 무해하다.** `frameStates`(background.ts:29-30, 355-365)를 읽는 곳은 시험(`globalThis.frameStates`)뿐이다. relay.ts는 frame/state를 받지도 않는다. 옛 인스턴스가 보낼 수 있는 true는 부모 인라인 스크립트의 `d.open()`보다 **먼저** 도착한 설정 읽기뿐이다. HTML 파서가 `<iframe>`과 `<script>` 사이에서 양보하면 그 사이에 IPC 태스크가 끼어들 수 있다. `d.open()` 뒤에는 MutationObserver 콜백(마이크로태스크)이 다음 IPC 태스크보다 반드시 먼저 돈다. 그래서 cleanedUp이 늦게 서는 일은 없다. `cleanupOldHelper()`는 frame/state(false)를 보내지 않으므로 순서가 뒤집혀 false가 남는 일도 없다. 남는 부작용은 하나다. 다시 넣기가 실패하면 `frameStates`에 옛 true가 그대로 남는다. 제품에는 영향이 없고 시험 오라클만 낡는다(IN-02).
+- **(b) 남은 두 단언이 실제 위협은 막는다.** 옛 `onMessage` 리스너가 남는 경우와 새 인스턴스가 두 번 들어가는 경우는 누르기 횟수 1 단언이 잡는다. 두 경우 모두 press/request 한 번에 리스너 두 개가 동기로 반응해 카운터가 2가 되기 때문이다. 다만 "호스트 1개" 단언은 거의 항상 참이다. 새 인스턴스가 시작할 때 `tremor-helper-root`를 모두 지우므로(content.ts:145-147), 옛 인스턴스가 정리되지 않은 회귀는 이 단언으로 잡히지 않는다. 지운 단언이 맡던 "다시 쓰기 **이후** 옛 인스턴스가 조용하다"는 관찰은 결정적으로 되살릴 수 있다. WR-02를 보라.
+- **(c)** `documentWasRewritten`을 겨냥한 실패 시험이 없다. 필요한가 이전에, 이 코드는 **남기면 안 된다**(WR-01). 남은 `waitForTimeout(1500)`은 실패를 일으키는 flaky의 씨앗은 아니다. 다만 이제 그 대기에 기대는 단언이 없어 흔적만 남은 대기이고, 부하 시 늦은 오동작을 놓치는 거짓 통과의 씨앗이다(WR-02).
+
+**2. noopener 새 창의 아이콘·메뉴는 코드 경로상 "도울 수 없음"을 보인다. 시험이 이를 확인하지 않아 경고로 둔다(WR-04).**
+경로는 이렇다. `updateActionForTab`은 `about:` 주소에서 주소 규칙을 건너뛴다(background.ts:76). 이어 `respondsToSitePing`이 보낸 `chrome.tabs.sendMessage`가 수신자 없음으로 거부되어 false가 되고, `markUnsupported`로 간다. 메뉴는 아이콘 제목 `도울 수 없음`을 보고 안내를 띄운다(popup/main.ts:334-337). 제목이 아직 설정되기 전에 메뉴를 열면 `resolveSiteOrigin`의 ping이 실패해 사이트 카드를 만들지 않는다(popup/main.ts:344-347). 이때는 "도울 수 없음" 안내도 없이 카드 1·3·4만 보인다. 거짓으로 "돕는 중"을 보이지는 않지만 상태가 애매하다.
+
+**3. 사이트 정체 위조 방지 — 메시지 본문을 믿는 곳은 없다. 탭 이동 때 낡은 값이 다시 들어올 수 있는 경쟁이 있다(WR-03).**
+`topDocOrigins.set`(background.ts:223-225)은 `sender.origin`만 쓴다. `inheritedSiteOrigin`은 불투명·비 http(s)·스토어 출처를 거절한다. `setSiteDisabled`(:251-253)와 `recordPress`(:268-270)는 본문 origin을 `siteOriginOfTab` 결과와 대조한다. 그러나 `loading` 때 지운 뒤(:104-109), 아직 살아 있는 **옛 문서**의 frameId 0 메시지가 도착하면 옛 출처가 다시 기록된다. 문서 식별자가 없어 이를 막지 못한다. 닫힌 탭은 `onRemoved`로 지운다(:115-117).
+
+**4. `window.opener` 등 noopener 구분 장치 — 없다(준수).** `src/`에서 `opener`는 content.ts:133 주석 한 곳뿐이다.
 
 ## Critical Issues
 
-### CR-01: Confirm modal does not block pointer or dwell input; clicking the scrim or the "취소" button can press a page element behind it
+### CR-01: 문서 전체 편집기 "나옴" 상태에서 한글 IME가 켜져 있으면 F가 'ㄹ'로 들어가고 입력 모드로 돌아간다. 번호표는 뜨지만 숫자는 문서에 입력된다
 
-**File:** `src/page/input/pipeline.ts:168-223`, `src/entrypoints/content.ts:199-243`, `src/entrypoints/content.ts:502-527`
-**Issue:** `setModal()` only changes the keydown, keypress and keyup handlers. The `pointerdown` and `click` handlers never check `modalHandler`. While the danger confirm is open in the top frame, a trusted click anywhere still goes through the steps below. The page's collected items are not hidden by the scrim, because the grid and collector know nothing about the overlay.
-1. The click runs `onPress`.
-2. `onPress` calls `evaluateMagnet({x, y})` against the page items still in the grid.
-3. If a page element lies within 48 px but not under the pointer, `pointInRect` is false. The helper then swallows the whole gesture with `preventDefault` + `stopImmediatePropagation` at window capture, and calls `synthesizePress()` on that page element.
+**파일:** `src/page/input/pipeline.ts:128-178, 331-346`, `src/page/input/mode.ts:51-69`
+**문제:** 01-18은 문서 전체 편집기(designMode·contenteditable 본문)에서 Esc를 누르면 `blur()` 대신 `escapedFromDocumentEditor` 표시만 켠다. 그래서 **초점은 계속 편집 가능한 본문에 남는다.** 이 상태에서 한글 입력기가 켜진 채 F를 누르면 다음 순서로 진행된다.
+1. keydown(code `KeyF`, key `Process`, keyCode 229)이 들어온다. 도우미 키 처리기가 번호표를 열고 `preventDefault()`한다.
+2. 그러나 IME가 이미 받은 키는 keydown 취소로 되돌릴 수 없다. Chrome/Windows의 알려진 동작이다.
+3. `compositionstart`가 뜬다. 339-345행이 `resumeDocumentEditor()`를 불러 입력 모드로 되돌리고, 'ㄹ'이 문서에 조합된다.
+4. 이어 숫자를 누르면 `currentMode() === 'typing'`이라 164-167행에서 도우미 키 처리기를 건너뛴다. 자식 프레임 쪽도 같은 파이프라인이라 hints/key를 보내지 않는다. 번호표는 떠 있는데 숫자가 편집 중인 문서에 들어간다.
 
-This has two effects:
-- A tremor click during the confirm, which is exactly the case §5 protects against, presses a hidden page button.
-- A real click on the dialog's "취소" button often never reaches `cancelButton`'s listener. The window-capture `click` handler stops propagation first and presses the neighbouring page element instead.
-
-The dwell loop (`syncDwellLoop`/`dwellTick`) also keeps running during the modal. A non-danger target under the scrim is clicked after `dwellMs`. The ring also stays visible.
-
-**Fix:** Treat pointer input as modal too, and pause the magnet and dwell while the confirm is open:
+한국어 문서를 쓰는 이용자는 한글 입력기를 켜 둔 채인 경우가 보통이다. KEY-01의 기본 흐름(Esc → F → 번호)이 주 이용자 환경에서 문서 내용을 오염시킨다. doc-editor.e2e.ts는 `page.keyboard`(IME 없음)와 CDP `imeSetComposition`(F 없이 조합만)만 쓴다. 그래서 이 조합은 시험되지 않는다. 확인 화면이 떠 있는 동안에는 `modalHandler`가 먼저 가로채므로 위험 버튼 확인 흐름은 해당하지 않는다.
+**재현(실측 필요):** Windows Chrome에서 한글 입력기를 켠다. `doc-editor.html` `#frame-design` 본문을 클릭하고, Esc → F → 숫자를 누른다. 본문 글자와 `data-mode`를 확인한다.
+**수정:** "나옴" 상태에서는 편집 가능한 초점을 실제로 놓아야 IME가 조합을 시작하지 않는다. 캐럿을 지우지 않고 초점만 옮기는 방법을 쓴다. 예: 나올 때 선택 범위를 저장하고 `window.getSelection().removeAllRanges()`를 부른다. 그러면 문서 초점이 편집 불가 상태가 된다. 다시 누르면 저장한 범위를 복원한다. 또는 나옴 상태에서 도우미 키로 쓴 keydown의 `isComposing`/`keyCode === 229`를 보고 이어지는 `compositionstart`를 입력 복귀 신호로 쓰지 않는다. 이 경우 `compositionend` 전까지 `beforeinput`(insertCompositionText 포함)과 조합 결과를 취소한다. 어느 쪽이든 실제 한글 IME로 RED 시험(수동 UAT 항목 가능)을 먼저 만든다.
 ```ts
-// pipeline.ts pointerdown handler, before the filter
-if (modalHandler) {
-  pressSwallowed = false;          // let the event reach the shadow-DOM dialog
-  pendingPressExecute = null;
-  return;                          // do not run pressHandlers while modal
+// pipeline.ts compositionstart: 도우미 키 직후의 조합은 입력 복귀 신호가 아니다
+let lastHelperKeyAt = -Infinity;
+// keyHandlers가 true를 돌려준 곳에서: lastHelperKeyAt = event.timeStamp;
+if (isEscapedFromDocumentEditor()) {
+  if (event.timeStamp - lastHelperKeyAt < 50) { /* 조합을 막고 나옴 유지 */ return; }
+  resumeDocumentEditor(); ...
 }
 ```
-```ts
-// content.ts
-function openDangerConfirm(...) { ...; currentTargetId = null; hideRing(); stopDwellLoopIfRunning(); ... }
-function evaluateMagnet(cursor) { if (!currentEnabled || activeConfirmKeyHandler) { return; } ... }
-```
-Add an e2e test that clicks `[data-part="confirm-button-cancel"]` with `page.mouse.click` while a page button sits within 48 px of that point. Assert that the dialog closes and the page counter stays 0.
-
-### CR-02: Turning the helper off while the confirm is open leaves an invisible, armed modal; the next Enter presses the danger button
-
-**File:** `src/entrypoints/content.ts:447-474`, `src/entrypoints/content.ts:651-680`, `src/page/input/pipeline.ts:64-66`
-**Issue:**
-- `applyEnabled(false)` calls `hideModeIndicator()`, which destroys the overlay host. The dialog disappears from view.
-- Nothing calls `finish('cancel')`. `inputPipeline.setModal` stays set, `activeConfirmKeyHandler` stays set, the 100 ms tick interval keeps running, and child frames get no `confirm/state {open:false}`.
-- For "이 사이트에서 끄기", `settings.data.enabled` stays `true`, so the pipeline's `isHelperEnabled()` stays true (see CR-03).
-
-The result, on a site the user has just switched off:
-1. Every trusted key is still swallowed, in the top frame and in all child frames.
-2. The guard is already past its 1 s protection window.
-3. The next Enter the user types, for example in a text field, is treated as `confirm`, and `pressHintEntry` presses the danger button. No dialog is visible at that point.
-
-With the global toggle the modal goes dormant and then re-arms invisibly when the helper is switched back on.
-
-**Fix:** Cancel any open confirm whenever the helper turns off:
-```ts
-function applyEnabled(enabled: boolean): void {
-  ...
-  if (!enabled) {
-    if (activeConfirmKeyHandler) {
-      inputPipeline.setModal(null);
-      activeConfirmKeyHandler = null;
-      closeConfirm();
-      void chrome.runtime.sendMessage({ type: 'confirm/state', open: false });
-    }
-    ...
-  }
-}
-```
-Do the same in `cleanupOldHelper()`.
-
-### CR-03: "이 사이트에서 끄기" does not disable the input pipeline (tremor filter, Esc-blur, press and dblclick swallowing keep running)
-
-**File:** `src/page/input/pipeline.ts:64-66`, `src/entrypoints/content.ts:125`, `src/entrypoints/content.ts:477-484`
-**Issue:** `createInputPipeline` decides whether it is active with `getSettings().data.enabled`, which is the global flag only. `siteDisabled` lives only in `content.ts` and is folded into `currentEnabled`, which the pipeline never sees. On a site-disabled site the pipeline still does all of the following:
-- rejects every auto-repeat keydown with `preventDefault`/`stopImmediatePropagation`, so holding Backspace or the arrow keys does nothing;
-- swallows the same key pressed again within 300 ms, including double letters typed in text fields;
-- swallows re-clicks at the same spot within 300 ms, and suppresses `dblclick`;
-- blurs the focused input on Escape.
-
-The spec (§8 "도우미 끄기") requires that when the helper gets in the way, the user can switch it off *and keep working*. The site-toggle e2e tests only check that the mode indicator disappears.
-**Fix:** Pass the combined state into the pipeline:
-```ts
-const inputPipeline = createInputPipeline({
-  getSettings: () => currentSettings,
-  isEnabled: () => currentEnabled === true,   // global && !siteDisabled
-  signal: pipelineController.signal,
-});
-// pipeline.ts
-function isHelperEnabled(): boolean { return opts.isEnabled(); }
-```
-Add an e2e test: switch the site off, then assert that a key held with `repeat` and a quick double key both reach the page.
-
-### CR-04: A precise click on a danger button is redirected to a normal neighbour button
-
-**File:** `src/core/magnet.ts:63-75`, `src/entrypoints/content.ts:510-526`, `tests/unit/magnet.test.ts:97-103`
-**Issue:** `pickTarget` returns any normal candidate within `captureMarginPx` (48 px) before it considers a danger candidate at distance 0. Then `onPress`:
-1. sees that the pointer is not inside the captured normal item's rect;
-2. swallows the user's trusted click on the danger button;
-3. calls `synthesizePress()` on the neighbour.
-
-In `danger.html`, "저장" (150–210) and "삭제" (250–310) are 40 px apart. Clicking anywhere in x 250–258 of "삭제" presses "저장". With typical toolbar gaps of 4–8 px, almost the whole danger button redirects. In an approval UI with "결재 | 결재 취소" side by side, clicking "결재 취소" submits "결재". The spec says the magnet must not *pull toward* danger buttons, and that a danger button *is* captured when the cursor is exactly on it (§8). This code instead makes the cursor-on-danger case press something else. The unit test at `magnet.test.ts:97-103` asserts this behaviour.
-**Fix:** A pointer inside a danger rect must never produce another target:
-```ts
-const dangerAtZero = withDistance.filter(({ candidate, distance }) => candidate.danger === true && distance === 0);
-if (dangerAtZero.length > 0) {
-  return pickBest(dangerAtZero, currentId, 0);   // check before normalInRange
-}
-```
-In `onPress`, also pass the click through (`return false`) whenever `(x, y)` lies inside *any* collected item's rect other than the captured one. Invert the unit test.
-
-### CR-05: Danger detection misses `<input type="button" value="삭제">`, `<a><img alt="삭제"></a>` and `aria-labelledby` names; hints press them without confirm and dwell clicks them
-
-**File:** `src/page/collector/collector.ts:104-138`, `src/page/collector/collector.ts:459`
-**Issue:** `computeName()` is the only input to `isDanger()`. The gaps:
-- It reads `value` only for `type === 'submit'`. For `<input type="button" value="삭제">` or `type="reset"`, `textContent` is empty, so the name is `''` and `danger` is false.
-- It reads `alt` and `title` only from the element itself. `<a href="javascript:del()"><img src="btn_del.gif" alt="삭제"></a>` gets the name `''`.
-- It ignores `aria-labelledby`. `ariaOf()` handles it for fingerprints, but `computeName()` does not.
-
-These are the dominant button patterns in the legacy PHP intranet and 결재 systems this product targets. For every such button:
-- the hint number presses it immediately, with no confirm;
-- dwell click fires on it (the `dwellTimer` danger exemption never applies);
-- the magnet attracts it from 48 px away.
-**Fix:**
-```ts
-if (el instanceof HTMLInputElement && ['submit', 'button', 'reset'].includes(el.type)) {
-  const value = normalizeText(el.value); if (value) return value;
-}
-const labelledBy = ariaOf(el); if (labelledBy) return labelledBy;          // before textContent
-// fall back to descendant img alt / title
-const imgAlt = normalizeText(el.querySelector('img[alt]')?.getAttribute('alt')); if (imgAlt) return imgAlt;
-```
-Add practice-site buttons for these patterns, plus danger e2e cases.
-
-### CR-06: Hint labels and the confirm dialog lose their styles after any helper off→on cycle; hint numbers render at the wrong positions
-
-**File:** `src/page/overlay/hints.ts:12,22-25,109`, `src/page/overlay/confirm-dialog.ts:31,38-41,138`, `src/page/overlay/mode-indicator.ts:184-199`
-**Issue:**
-- `hints.ts` and `confirm-dialog.ts` each keep a module-level `styleInjected = true` flag after they inject their `<style>` into the shadow root.
-- `destroyOverlayRoot()` runs on every global or site disable, and removes the host and its shadow root. It does not reset those flags.
-- `ring.ts` and `toast.ts` re-inject correctly (they check `isConnected`), but hints and confirm do not.
-
-After the user has opened hints once and then toggled the helper off and on, the new shadow root has no `.hints` or `.hint-label` rules. The labels become normal-flow block `div`s with `transform: translate(x, y)` applied *relative to their stacked flow position*. Label *k* is therefore drawn about *k* line-heights below the element it belongs to. The user presses the number shown next to element A and presses element B. The confirm dialog likewise renders as unstyled text at the top-left, with no scrim. No test re-opens hints after a toggle.
-**Fix:** Tie the flag to the root instead of the module:
-```ts
-const styledRoots = new WeakSet<ShadowRoot>();
-function ensureStyle(root: ShadowRoot): void {
-  if (styledRoots.has(root)) return;
-  ...; root.append(style); styledRoots.add(root);
-}
-```
-Apply this to both files, and add an e2e test that toggles the helper off and on and then checks label positions.
-
-### CR-07: A stale `pendingPressExecute` causes a phantom press of an old element on a later unrelated click
-
-**File:** `src/page/input/pipeline.ts:168-193`, `src/page/input/pipeline.ts:210-223`
-**Issue:**
-- `pendingPressExecute` is set on an intercepted `pointerdown` and cleared only when a trusted `click` arrives.
-- The `pointerdown` handler does not check `event.button`/`isPrimary`, and never resets `pendingPressExecute` at the start of a gesture.
-- Some intercepted gestures never produce a `click`: a right-click or middle-click (those produce `auxclick`), a touch or pen gesture that ends in `pointercancel`, or a release outside the window. Each of these leaves the closure behind.
-
-The next trusted left click anywhere then runs `execute()`. That includes a pass-through click on empty space, where `onPress` returns false, and a click the tremor filter rejected. The old element is pressed without the user aiming at it. Right-clicking near a link to open the context menu and then clicking elsewhere reproduces it. The intercept also swallows right and middle `mousedown`/`mouseup`, which breaks sites' own context-menu logic.
-**Fix:**
-```ts
-(event) => {
-  if (!event.isTrusted || !isHelperEnabled()) return;
-  pendingPressExecute = null;                      // new gesture: forget old one
-  if (event.button !== 0 || !event.isPrimary) { pressSwallowed = false; return; }
-  ...
-}
-```
-Also clear `pendingPressExecute` on `pointercancel`.
-
-### CR-08: After the service worker restarts from idle, child-frame hint items disappear until those frames' DOM changes
-
-**File:** `src/worker/relay.ts:285-304,340-347`, `src/page/collector/collector.ts:400-412`, `src/entrypoints/content.ts:261-263,275-280`
-**Issue:**
-- The relay keeps `reportsByTab` only in memory. An MV3 service worker stops after about 30 s without events, and the idle `alive` port does not keep it alive, as `lifecycle.e2e.ts:266` itself assumes.
-- Each frame's `reportFrame()` skips sending if the report JSON has not changed, so frames with static content never report again.
-- `frame/refresh` calls `collector.refresh()`, which goes through the same skip, so it does not force a report either.
-
-Once the worker restarts, the first frame that reports again replaces the top frame's whole `latestReportEntries` list. That frame is usually the top frame itself, and a plain page scroll is enough to trigger it. The top frame then holds a list containing only that frame. Every static child frame's items then vanish from hints, and the D-03 cross-frame feature breaks after ordinary idle use. `disconnectAlivePorts` in the e2e tests does not clear relay state, so the tests cannot catch this.
-**Fix:** On `frame/refresh`, and after the `alive` port reconnects, reset the skip so the frame reports again:
-```ts
-refresh(force = false): void { if (force) lastReportedJson = ''; collect(); }
-// content.ts: frame/refresh → collector.refresh(true); connectAlivePort onDisconnect (valid) → collector.refresh(true)
-```
-Alternatively, persist `reportsByTab` in `chrome.storage.session`.
 
 ## Warnings
 
-### WR-01: Space-hold confirm fires if the keyup is lost (window blur or focus moving into a frame without a content script)
+### WR-01: `documentWasRewritten()` 방어(55acdd0)는 근거가 모순된 추측성 코드다. 그 경로에 들어가면 frame/reinject 없이 정리되어 그 프레임의 도우미가 사라진다
 
-**File:** `src/core/confirm-guard.ts:175-206`, `src/page/input/pipeline.ts:269-280`
-**Issue:** The hold is cleared only by a `keyup` of `keymap.press` delivered to the guard. If focus leaves between keydown and keyup, `holdStartedAt` stays set and `tick()` confirms 1 s after the keydown, even for a brief tremor tap. Focus can leave through alt-tab or a click in another window. It can also move into an `about:blank` or `srcdoc` iframe, where the content script does not run because `matchAboutBlank` is off, so keys are neither swallowed nor forwarded. A page can move focus itself with a timer.
-**Fix:** Reset the hold on `blur`, `visibilitychange` and `focusout` from the top window. Also treat a `tick` that arrives while `document.hasFocus()` is false as a release:
+**파일:** `src/entrypoints/content.ts:161-170, 598-604, 1212-1216`
+**문제:**
+1. **근거가 서로 다르다.** 커밋 메시지는 원인을 "옛 인스턴스의 설정 읽기가 `document.open()` **이전에** 끝남"이라고 적었다. 이 경우 `documentWasRewritten()`은 false라 이 방어와 무관하다. 코드 주석(164-165행)은 "설정 읽기가 MutationObserver 콜백보다 먼저 끝남"이라고 적었다. 이는 이벤트 루프상 일어날 수 없다. MO 콜백은 변이를 일으킨 스크립트가 끝난 직후의 마이크로태스크 체크포인트에서 돌고, storage IPC 응답은 그 뒤의 별도 태스크다.
+2. **효과를 보인 근거가 없다.** 같은 커밋에서 시험 단언을 바꿨으므로 "수정 후 25회 무실패"는 이 코드의 효과가 아니다. 뮤테이션 확인도 `removeListener`에 대해서만 했다. 이 방어를 겨냥한 RED 시험도 없다(CLAUDE.md §5 TDD·"추측 수정 금지" 위반).
+3. **들어가면 해롭다.** 이 경로는 `cleanupOldHelper()`만 부르고 frame/reinject를 보내지 않는다. `cleanupOldHelper()`는 1213행에서 `documentRewriteWatcher.disconnect()`를 부른다. MutationObserver의 `disconnect()`는 쌓여 있던 레코드를 버리므로 대기 중이던 MO 콜백(180-185행, reinject를 보내는 유일한 곳)이 영영 불리지 않는다. 결과적으로 다시 쓴 편집기 프레임에는 도우미가 하나도 없다. 조용히 도울 수 없게 되고, 아이콘이나 메뉴에는 드러나지 않는다.
+
+**수정:** 되돌리는 것이 맞다. 남겨야 할 근거가 생기면 두 경로가 같은 처리기를 쓰게 하고, 그 경로를 결정적으로 재현하는 시험을 먼저 만든다.
 ```ts
-window.addEventListener('blur', () => modalHandler?.({ type: 'keyup', code: settings.keymap.press, repeat: false, t: performance.now() }), { signal });
+function handleDocumentRewrite(): void {
+  if (cleanedUp) return;
+  cleanupOldHelper();
+  if (isExtensionContextValid()) {
+    void chrome.runtime.sendMessage({ type: 'frame/reinject' }).catch(() => {});
+  }
+}
+// MO 콜백과 applyEnabled 양쪽에서 handleDocumentRewrite()를 부른다
 ```
 
-### WR-02: The hint danger flag is a snapshot; a number press never re-checks the live element
+### WR-02: editor-frames "옛 인스턴스는 조용하다" 시험 — 호스트 수 단언은 거의 항상 참이고, 1500ms 고정 대기는 흔적만 남았다. "다시 쓰기 이후 조용함"을 결정적으로 보는 단언이 사라졌다
 
-**File:** `src/entrypoints/content.ts:611-631`, `src/entrypoints/content.ts:266-273`, `src/entrypoints/content.ts:733-749`
-**Issue:** `composed?.danger` comes from `composedItemsCache`, which is built once in `openHints()`. If the element's text changes to a danger word while hints are open, `pressHintEntry` presses it with no confirm. This happens when a SPA re-renders "편집" into "삭제", or when a list shifts. `pressOrDrag` receives the live `item.danger` but uses it only to skip drag handling. The child-frame `press/request` handler also presses without checking danger.
-**Fix:** In `pressHintEntry` (frame 0) and in the `press/request` handler, re-read `item.danger` from `collector.items()`. If it is now true and the confirm was not already shown, open the confirm (top frame) or refuse and report back (child frame) instead of pressing.
+**파일:** `tests/e2e/editor-frames.e2e.ts:414-427`
+**문제:** 새 인스턴스는 시작할 때 문서의 모든 `tremor-helper-root`를 지운다(content.ts:145-147). 그래서 `hostCount === 1`은 옛 인스턴스의 정리 여부와 무관하게 참이다. 새 인스턴스가 생긴 **뒤에** 옛 인스턴스가 호스트를 새로 만드는 경우만 잡는다. `waitForTimeout(1500)` 뒤의 두 단언은 이 대기에 기대지 않는다. 대기의 본래 목적(옛 인스턴스가 늦게 오동작할 틈을 주고 관찰)은 관찰 수단과 함께 사라졌다. 부하 시 1500ms 뒤에 오는 옛 인스턴스의 활동은 어떤 단언도 보지 못한다.
+**수정:** 지운 누적 개수 대신, 경쟁이 없는 관찰 창을 쓴다. `waitForFrameHelperAlive`가 통과한 시점에는 새 인스턴스가 이미 true를 보냈다. 그 시점부터 그 frameId의 frame/state가 **0건**인지 본다. 기록기는 `setupFrameStateRecorder`를 그대로 쓴다. 이렇게 하면 원래 의도("다시 쓰기 뒤 옛 인스턴스가 켜지지 않는다")를 경쟁 없이 되살린다. 1500ms는 그 관찰 창 길이로만 남기거나 `expect.poll`로 바꾼다.
+```ts
+await setupFrameStateRecorder(serviceWorker);
+// ... page.goto, waitForFrameHelperAlive ...
+const childFrameId = /* frameStates에서 frameId !== 0인 키 */;
+const baseline = await frameStateRecordCount(serviceWorker, childFrameId);
+await page.waitForTimeout(1500);
+expect(await frameStateRecordCount(serviceWorker, childFrameId) - baseline).toBe(0);
+```
 
-### WR-03: Hint labels are not moved or closed on scroll or layout change
+### WR-03: `topDocOrigins`는 탭 이동 중 옛 문서가 보낸 메시지로 낡은 출처가 다시 기록될 수 있다. 문서 식별 없이 "마지막 frameId 0 메시지"가 이긴다
 
-**File:** `src/entrypoints/content.ts:385-401`, `src/entrypoints/content.ts:561-591`
-**Issue:** `openChapter` places the labels from rects captured at `openHints()` time. `collector.onChange` (scroll, resize, mutation) rebuilds the grid but never touches visible hints. After a wheel scroll the label "3" sits next to a different element than the one number 3 presses.
-**Fix:** In `collector.onChange`, when `hintsActive` is true, either `closeHints()` or rebuild `composedItemsCache` and call `openChapter(hintChapterIndex)`.
+**파일:** `src/entrypoints/background.ts:36, 104-109, 223-225`
+**문제:** `tabs.onUpdated`의 `status: 'loading'`은 이동이 **시작될 때** 온다. 새 문서가 커밋되기 전까지 옛 문서는 살아 있고, collector의 rAF 보고, frame/state, hints/state 같은 frameId 0 메시지를 계속 보낼 수 있다. 이 메시지가 `loading` 처리 뒤에 도착하면 `topDocOrigins`에 옛 출처가 다시 들어간다.
 
-### WR-04: Press history never matches links, images or divs, and freezes once 200 entries exist
+탭이 `about:blank`로 커밋되면 `siteOriginOfTab`은 그 옛 출처를 새 문서의 사이트로 답한다. 예를 들어 https://a.com 탭을 다른 창(b.com, opener)이 `about:blank`로 이동시키면, 새 문서는 b.com 출처를 물려받는다. 그 새 문서의 맨 위 첫 메시지가 덮어쓰기 전까지, 자식 프레임의 site/query는 a.com을 받는다. 그래서 a.com의 사이트 끄기 상태를 읽고, `recordPress`는 a.com 키에 기록된다. 불투명 출처 about:blank(주소창 입력 등, content script 없음)로 가면 덮어쓸 메시지가 없어 낡은 값이 탭이 닫힐 때까지 남는다. 지금은 메뉴가 사이트 카드를 안 만들어 소비되지 않을 뿐이다.
 
-**File:** `src/core/fingerprint.ts:226-228`, `src/page/collector/collector.ts:176-185,230-239`, `src/worker/storage-writer.ts:518-527`
-**Issue:**
-- `isSameElement` needs 2 matching fields. For an `<a>` link, an image or a pointer `div` with no id, name or aria, the only field set is `domPath` (`buttonText` is only for buttons). The score is 1 at most, so each press appends a new `{count: 1}` entry, and the history never accumulates for links.
-- The 200-entry cap sorts by count and keeps the first 200. A new entry (count 1) is always last among ties, so once the list is full every new element is dropped immediately.
+01-19 금지사항("그 창 문서 **자신의** 출처로만")을 설계가 아니라 이벤트 도착 순서가 지키고 있다. 같은 문서 안 이동(해시·pushState)도 `loading`을 일으키면 값이 지워진다. 그러면 다음 frameId 0 메시지 전까지 메뉴 사이트 끄기가 `origin-mismatch`로 조용히 거절된다(WR-05와 겹친다).
+**수정:** 옛 https 문서의 메시지는 about: 탭 해석에 쓰지 않는다. Chrome이 채운 `sender.tab.url`(메시지 처리 시점의 커밋된 탭 주소)이 `about:`일 때만 기록한다. 그러면 이동 시작 뒤에도 탭 주소가 아직 옛 https인 동안의 메시지는 무시된다. document.write 새 창은 탭 주소가 about:blank로 남으므로(probe) 그대로 동작한다. 가능하면 `sender.documentId`를 함께 저장해 about: → about: 이동도 구분한다.
+```ts
+if (sender.frameId === 0 && sender.tab?.id !== undefined && sender.origin && sender.tab.url?.startsWith('about:')) {
+  topDocOrigins.set(sender.tab.id, sender.origin);
+}
+```
 
-Together these make "자주 누른 요소" ordering (D-11) ineffective for links, and permanently frozen after about 200 presses.
-**Fix:** Include link text or `href` path in the fingerprint for anchors, or accept a `domPath` + text match as a match. Evict by least-recently-used (store `lastAt`), or never evict the entry that was just inserted.
+### WR-04: noopener 새 창의 아이콘·메뉴가 "도울 수 없음"인지 시험하지 않는다. 있는 시험도 고정 1초 뒤 "없음"만 단언해 부하 시 거짓 통과한다
 
-### WR-05: Press history for child frames is keyed and path-tagged inconsistently
+**파일:** `tests/e2e/blank-popup.e2e.ts:309-327`
+**문제:** 요청 항목 2의 코드 경로는 맞다(위 판정). 그러나 SAFE-05("도울 수 없음 표시가 실제와 같음")의 noopener 쪽 근거가 되는 시험은 `tremor-helper-root` 부재만 본다. 아이콘 제목·배지와 메뉴 안내는 보지 않는다. 또 `waitForTimeout(1000)` 뒤의 부재 단언이라, 부하로 주입이 1초보다 늦어지면 실제 동작과 무관하게 통과한다. 양성 대조(같은 시간 안에 일반 새 창에는 도우미가 들어옴)도 없다. 이 시험 하나가 "Chrome은 noopener에 주입하지 않는다"는 실측의 유일한 근거다.
+**수정:** 두 noopener 탭 각각에 대해 `expect.poll(() => tabTitle(sw, id)).toBe('도울 수 없음')`과 배지 `없음`을 단언한다. `popup.html?tabId=`로 메뉴를 열어 안내 문구가 보이고 사이트 카드가 없는지도 확인한다. 부재 단언 앞에는 같은 여는 쪽에서 `openDomPopup`으로 도우미가 뜨는 것을 먼저 확인해 양성 대조로 삼는다.
 
-**File:** `src/entrypoints/content.ts:98-103,172,181`, `src/entrypoints/content.ts:595-607`
-**Issue:**
-- A magnet, space or dwell press inside a child frame records `item.fingerprint` with `framePath: []`, under the *child's* origin.
-- A hint press records it with the composed `framePath`.
-- `openHints()` reads presses only for the top frame's origin.
+### WR-05: 메뉴의 "이 사이트에서 끄기" 카드가 SW 거절(`origin-mismatch`·`write-failed` 등)을 무시해 실제로는 켜져 있는데 꺼짐으로 보인다
 
-As a result, cross-origin child presses never affect ordering. Same-origin child magnet presses are stored with `framePath: []`, and can match and boost an unrelated *top-frame* element that shares `domPath` and text, which is common with shared templates.
-**Fix:** Always record child presses with the composed `framePath` and the top-page origin (the site = top origin, D-20). Update the writer's origin check to accept `sender.tab.url`'s origin for this key.
+**파일:** `src/entrypoints/popup/main.ts:287-301`
+**문제:** `createSiteCard`의 `onToggle`은 `render(next)` 뒤 응답을 보지 않는다. 01-19로 about: 탭은 `topDocOrigins`에 기대게 됐다. 그래서 SW 재시작 직후, WR-03의 이동 경쟁, 같은 문서 안 이동 뒤에는 `siteOriginOfTab`이 undefined가 되어 `origin-mismatch`로 거절되는 경우가 늘었다. `storage.onChanged`도 오지 않으니 카드는 "이 사이트에서 켜기"(=꺼짐)로 남는다. "즉시 끌 수 있음"이 핵심 안전 요구인데, 이용자는 껐다고 믿지만 도우미는 계속 돈다. `helperCard`도 `preserved-original` 외의 `{ ok: false }`(item-too-large, 경계 catch)는 되돌리지 않는다.
+**수정:**
+```ts
+onToggle: (next, render, revert) => {
+  render(next);
+  void chrome.runtime.sendMessage(message).then((response) => {
+    if ((response as { ok?: boolean } | undefined)?.ok !== true) {
+      revert();
+    }
+  }, () => { revert(); });
+},
+```
+`helperCard`도 `ok !== true`면 `revert()`하도록 맞춘다.
 
-### WR-06: The popup has no tremor filtering; a double tap or held key toggles the helper back and forth
+### WR-06: 쓰기 새 창(document.write)과 맨 위 다시 쓰기 탭의 아이콘은 ping 한 번에 기대 다시 넣기와 경쟁한다. 이를 시험하지 않는다
 
-**File:** `src/entrypoints/popup/main.ts:183-188`
-**Issue:** The popup's `keydown` listener toggles on every event matching `digitCodes`. It checks neither `event.repeat` nor a minimum interval. For the target user, a tremor double-press or a slightly held "1" turns the helper off and immediately back on (or on/off). The same applies to "2" (site toggle). The popup is the only place where these are controlled.
-**Fix:** Ignore `event.repeat`, and reuse `createTremorFilter` with the stored `tremorIntervalMs` for both keydown and click.
+**파일:** `src/entrypoints/background.ts:55-89`, `tests/e2e/blank-popup.e2e.ts:332-358`
+**문제:** `document.open()`으로 문서를 다시 쓰면 옛 인스턴스는 `onMessage` 리스너를 떼고, 새 인스턴스는 frame/reinject → `executeScript` 왕복 뒤에야 site/ping에 답한다. 그 사이에 `onUpdated`(complete)나 `onActivated`로 `updateActionForTab`이 돌면 수신자 없음으로 곧바로 실패한다. 그러면 탭이 "도울 수 없음"으로 표시되고, 다음 활성화나 이동 전까지 그대로 남는다. ping에는 재시도가 없고, 겹친 두 호출은 순서 보장 없이 마지막에 끝난 쪽이 이긴다. 제목과 배지가 서로 다른 호출 값으로 섞일 수도 있다. 아이콘 제목 시험은 DOM 새 창(`openDomPopup`)만 보고, 쓰기 새 창(`openWritePopup`)과 editor-frames의 맨 위 다시 쓰기는 보지 않는다.
+**수정:** ping 실패 시 짧은 간격(예: 250ms × 3)으로 다시 확인한다. 탭별 세대 번호로 늦게 끝난 옛 호출의 결과를 버린다. 새 인스턴스가 시작할 때 맨 위에서 SW에 "준비됨"을 알려 `updateActionForTab`을 다시 부르게 하는 방법도 있다. `openWritePopup` 탭에 대해 `expect.poll(tabTitle).toBe('손 떨림 도우미')`를 추가한다.
 
-### WR-07: Storage writer can deadlock the site queue and never answer after a storage rejection
+### WR-07: 자식 프레임의 자석·머무르기·스페이스바 기록은 `local:<전체 URL>` framePath로 저장되어 번호 순서에 영영 쓰이지 않는다. URL 전체(질의 문자열 포함)가 저장소에 남는다
 
-**File:** `src/worker/storage-writer.ts:353-365,420-433`, `src/entrypoints/background.ts:174-199`
-**Issue:**
-- If `chrome.storage.sync.set` rejects, `runSiteWriteQueue` throws out of `await enqueue(...)`. `state.writing` then stays `true` forever and its waiters are never resolved, so every later `setSiteDisabled` for that origin hangs until the service worker restarts. The rejection is also unhandled, because it is started with `void`.
-- `setEnabled` and `updateSettings` call `.then(sendResponse)` with no rejection path, so the popup never gets an answer.
+**파일:** `src/entrypoints/content.ts:197-204, 325, 716, 731`
+**문제:** `hint-order.ts:62`는 `isSameElement(p.fingerprint, item.fingerprint)`로 기록을 찾는다. 이 함수는 framePath가 완전히 같아야 점수를 준다(`fingerprint.ts:13`). 번호표 항목의 framePath는 composeTree가 만든 경로이고, `local:${location.href}`와는 절대 같지 않다. 그래서 자식 프레임 안에서 자석·머무르기·스페이스바로 누른 기록은 D-11(자주 누른 순서)에 전혀 반영되지 않는다. 그런 기록은 200개 상한만 채운다. 또 `location.href`에 세션 토큰이나 캐시 무효화 질의가 붙으면 매번 새 항목이 된다. 사내 업무 시스템 주소의 질의 문자열(문서 번호·토큰 등)이 `chrome.storage.local`에 그대로 쌓이는 것도 문제다.
+**수정:** 최소한 `location.origin + location.pathname`만 쓴다. 근본적으로는 맨 위가 composeTree로 아는 정확한 경로를 자식에 방송한다(frames/reports 수신 뒤 hints/state처럼 `frame/path` 방송). 그러면 자식이 직접 누른 경우에도 번호표 경로와 같은 framePath로 기록된다. 그 전까지 `local:` 기록은 보내지 않는 편이 낫다(쓰이지 않는 데이터).
 
-Rejection is realistic because `syncSet` checks only the 8 KB per-item limit. It does not check the total sync quota (about 100 KB) or `MAX_ITEMS` (512). One `site:<origin>` key is written per site ever toggled.
-**Fix:** Wrap the loop body in `try/finally { state.writing = false }`, catch the error and resolve waiters with `{ ok: false, reason: 'write-failed' }`, and add `.catch(() => sendResponse({ ok: false }))` to each handler.
+### WR-08: "나옴" 상태에서 편집기가 keydown으로 직접 처리하는 편집(Enter·Backspace·Tab·Ctrl+B 등)은 막히지 않는다
 
-### WR-08: A missing `settings` key is treated as corruption (the helper can no longer be turned off), and the failure notice is never cleared
-
-**File:** `src/worker/storage-writer.ts:369-385`, `src/core/settings-schema.ts:20-22`, `src/entrypoints/content.ts:791-798`
-**Issue:**
-- `migrate(undefined)` returns `no-version`, so if `settings` is missing from sync, `readAndValidateSettings` writes a "migration failed" notice. The key can go missing through a sync data reset, or when `onInstalled` did not complete.
-- `setEnabled`/`updateSettings` then return `preserved-original` forever. Nothing re-creates the defaults outside `onInstalled`, so the global "도우미 끄기" permanently stops working.
-- `notice:migration-failed` is never removed anywhere in `src/`. After a single failure, every page load shows the toast and the popup shows the warning card indefinitely, even after valid settings are written.
-**Fix:** In `readAndValidateSettings`, treat `raw === undefined` as "write defaults". Remove `MIGRATION_NOTICE_KEY` after any successful validated write, or store the failing `raw` hash and clear the notice when the value changes.
-
-### WR-09: Extension fonts are web-accessible to every origin without `use_dynamic_url`, so sites can detect the assistive extension
-
-**File:** `wxt.config.ts:13`
-**Issue:** `web_accessible_resources: [{ resources: ['fonts/*.woff2'], matches: ['<all_urls>'] }]` lets any page fetch `chrome-extension://<fixed-id>/fonts/ibm-plex-sans-kr-latin-400-normal.woff2`. It can use that to learn that the visitor runs a tremor-assistance extension, which discloses a health condition. This works even when the helper is off and no overlay host exists.
-**Fix:** Add `use_dynamic_url: true` to the entry, so the URL is per-session and cannot be enumerated. Also consider narrowing `matches`.
-
-### WR-10: Several e2e checks cannot fail for the bug they name, or depend on fixed sleeps around async work
-
-**File:** `tests/e2e/confirm.e2e.ts:260-271`, `tests/e2e/confirm.e2e.ts:104-110`, `tests/unit/magnet.test.ts:97-103`
-**Issue:**
-- The case "1초 전에 떼면 확인되지 않는다" presses Space for 200 ms and asserts `count === '0'` about 300 ms after the keydown. A broken keyup reset would only confirm at 1000 ms. The test then waits 1100 ms and presses Escape without checking the counter again, so it passes even when the release is ignored.
-- `openDangerConfirm` sleeps 50 ms after `KeyF` before reading labels, but `openHints()` awaits two storage reads. If labels are not rendered yet, `numberForElement` returns `''`, so the test fails or is flaky rather than waiting deterministically.
-- `magnet.test.ts:97-103` asserts the CR-04 defect as intended behaviour.
-**Fix:** After releasing Space, wait 1200 ms and then assert the counter is still `0` and the dialog is still visible. Replace the fixed sleeps with `expect.poll` on the label count. Invert the magnet test.
+**파일:** `src/page/input/pipeline.ts:128-178, 349-362`
+**문제:** 나옴 상태의 편집 차단은 `beforeinput`의 `preventDefault()`뿐이다(355-358행). CKEditor 4·SmartEditor 2 같은 사내 편집기는 Enter(문단 나누기), Backspace·Delete(블록 병합), Tab, 서식 단축키를 **keydown 처리기에서 직접 DOM을 고쳐** 처리한다. 이 경우 `beforeinput`이 아예 뜨지 않는다. 파이프라인 keydown은 도우미 키가 아니면 통과시킨다(169-178행). 그래서 모드 표시가 "도우미"인 채로 문서가 바뀐다. 01-18 SUMMARY가 약속한 "모드 표시가 도우미인데 글자가 조용히 들어가는 일이 없게"와 어긋난다. doc-editor.e2e.ts는 designMode 기본 편집(`beforeinput`이 뜨는 경로)만 시험한다.
+**수정:** 나옴 상태이고 `isDocumentEditingRoot(deepActiveElement())`이면, 도우미 키 처리기가 쓰지 않은 keydown도 편집 키(Enter·Backspace·Delete·Tab, Ctrl/Meta 조합)이면 `preventDefault()`와 `stopImmediatePropagation()`으로 삼킨다. 편집기 keydown 처리기를 흉내 낸 fixture(keydown에서 Enter를 가로채 `<p>`를 넣음)로 RED 시험을 먼저 만든다.
 
 ## Info
 
-### IN-01: The `tabs` permission is redundant with the `<all_urls>` host permission
+### IN-01: `setSiteDisabled`는 본문 `tabId`를 믿고, 보낸 쪽이 메뉴(확장 페이지)인지 확인하지 않는다
 
-**File:** `wxt.config.ts:9`
-**Issue:** `<all_urls>` already exposes `tab.url` and `tab.title`. `tabs` only adds the install warning "Read your browsing history".
-**Fix:** Drop `'tabs'` and verify that `chrome.tabs.get(...).url` still works under the host permission.
+**파일:** `src/entrypoints/background.ts:241-259`
+**문제:** origin은 대상 탭의 실제 출처와 대조하므로 사이트 정체는 위조되지 않는다. 다만 아무 content script(다른 탭)도 `tabId`를 바꿔 다른 탭 사이트를 끄고 켤 수 있다. 페이지는 runtime 메시지를 보낼 수 없어 지금 위협은 렌더러 침해 수준뿐이다.
+**수정:** `if (sender.tab !== undefined) { sendResponse({ ok: false, reason: 'origin-mismatch' }); return true; }`처럼 확장 페이지에서 온 요청만 받는다.
 
-### IN-02: Test-only hooks ship in the production service worker
+### IN-02: `frameStates`는 탭이 닫히거나 이동해도 지우지 않고, 옛 인스턴스 정리도 false를 보고하지 않는다. 시험 오라클이 낡을 수 있다
 
-**File:** `src/entrypoints/background.ts:29-30,104-109`
-**Issue:** `globalThis.frameStates` and `globalThis.disconnectAlivePorts` are present in production builds. `frameStates` is never pruned when tabs close.
-**Fix:** Guard both with `import.meta.env.MODE !== 'production'` (or an e2e flag), and delete the tab's entry in `tabs.onRemoved`.
+**파일:** `src/entrypoints/background.ts:29-30, 355-365`, `src/entrypoints/content.ts:1173-1249`
+**문제:** 다시 넣기가 실패하면 그 frameId에는 옛 true가 남는다. 사라진 프레임의 항목도 남는다. `blank-popup.e2e.ts:437-445`나 `site-toggle.e2e.ts`의 "every enabled" 폴링이 낡은 true로 통과할 수 있다. 제품 기능에는 영향이 없다.
+**수정:** `tabs.onRemoved`/`loading`에서 `delete frameStates[tabId]`를 한다. 시험은 frameId 집합과 함께 판정한다.
 
-### IN-03: `synthesizePress` dispatches `pointerenter` with `bubbles: true`
+### IN-03: `inheritedSiteOrigin`은 출처만 받아 경로 접두어가 있는 스토어 규칙(`chrome.google.com/webstore`, `microsoftedge.microsoft.com/addons`)을 적용할 수 없다
 
-**File:** `src/page/click/press.ts:333`
-**Issue:** `pointerenter` does not bubble in real input. Dispatching it with `bubbles: true` fires every ancestor's `pointerenter` listener, which can trigger hover menus on containers.
-**Fix:** Pass `{ bubbles: false }` for `pointerenter`.
+**파일:** `src/core/unsupported-url.ts:62-68`
+**문제:** `isUnsupportedUrl(documentOrigin)`의 pathname은 항상 `/`라서 두 규칙은 절대 걸리지 않는다. Chrome이 그 스토어에서 연 about: 창에 주입하지 않으면 실제 피해는 없다. 다만 단위 시험이 "스토어 출처는 null"을 이 두 호스트로 확인하지 않는다.
+**수정:** 두 호스트는 about: 상속 판정에서 호스트 단위로 거절하거나, 한계를 주석과 단위 시험으로 남긴다.
 
-### IN-04: Unhandled promise rejections from fire-and-forget messaging
+### IN-04: 시험 전용 훅이 프로덕션 SW 전역에 노출된다
 
-**File:** `src/worker/relay.ts:342,346,356,366,372,377,387,393`, `src/entrypoints/background.ts:71`, `src/entrypoints/content.ts:838`
-**Issue:** `void chrome.tabs.sendMessage(...)` rejects when the target frame is gone, and `chrome.tabs.get` in `onActivated` rejects for a closed tab. If `site/query` rejects in `content.ts`, `siteDisabled` is never loaded, so the helper runs on a site the user switched off.
-**Fix:** Add `.catch(() => {})` to the relay and background calls. In `content.ts`, retry `site/query` once, or read the site key using `location.origin` of the top frame (`window.top === window`).
+**파일:** `src/entrypoints/background.ts:30, 142-164`
+**문제:** `frameStates`·`disconnectAlivePorts`·`resetRelayForE2E`·`failSiteQueryForE2E`는 프로덕션 빌드에도 들어간다. 페이지는 닿지 못하지만 SW 개발자 도구에서 `failSiteQueryForE2E(1e9)` 한 줄로 모든 자식 프레임을 끌 수 있고, 제품 코드에 시험 분기가 섞여 있다.
+**수정:** `import.meta.env.MODE !== 'production'` 같은 빌드 조건으로 감싸거나, e2e 전용 빌드 플래그로만 등록한다. 기존 관례라 이번 범위 밖이면 백로그로 남긴다.
 
-### IN-05: The overlay performance e2e uses wall-clock p95 < 50 ms on shared CI runners
+### 참고(새 결함 아님)
 
-**File:** `tests/e2e/overlay-perf.e2e.ts:155,168`
-**Issue:** Absolute timing thresholds on `ubuntu-latest` shared runners are a flake source unrelated to code changes.
-**Fix:** Keep the absolute check as a local or nightly job, or compare against a baseline measured in the same run.
-
-### IN-06: `file://` pages are marked "도울 수 없음" although the content script runs there when file access is allowed
-
-**File:** `src/core/unsupported-url.ts:261-263`, `src/entrypoints/content.ts:108`
-**Issue:** `<all_urls>` covers `file://`. When the user allows file access, the helper is active, but the badge and popup say it cannot help and hide the site toggle.
-**Fix:** Either exclude `file://*` in the content script's `exclude_matches`, or treat `file:` as supported when `chrome.extension.isAllowedFileSchemeAccess()` is true.
+D-25 결정(7d6b593: 설정이 깨져도 "도우미 끄기"는 항상 된다)은 아직 구현되지 않았다. 지금은 `storage-writer.ts:363-366`이 `preserved-original`로 거절하고 메뉴가 되돌린다. "즉시 끌 수 있음" 안전 요구의 알려진 공백이다. 사용자 결정대로 머지 직후 `/gsd-quick`으로 처리할 항목이며, ship 판단 때 함께 본다.
 
 ---
 
-_Reviewed: 2026-09-24T11:31:46Z_
-_Reviewer: Claude (gsd-code-reviewer)_
-_Depth: standard_
+_리뷰 시각: 2026-09-26T06:30:34Z_
+_리뷰어: Claude (gsd-code-reviewer)_
+_깊이: deep_
