@@ -4,10 +4,10 @@ current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
 stopped_at: Completed 01-19-PLAN.md
-last_updated: "2026-09-26T14:50:24.003Z"
+last_updated: "2026-09-26T15:50:21.376Z"
 last_activity: 2026-09-24
 last_activity_desc: Phase 01 execution started
-state_head: fc301002cf3aa212ca814aab11ec09e122a685c2
+state_head: 0108f68e0dafe7d35e8848d4d028e3cc51ed3d3a
 progress:
   total_phases: 6
   completed_phases: 0
@@ -152,6 +152,7 @@ Recent decisions affecting current work:
 - [Phase 1]: 후속(비차단): 다른 출처 iframe에서 정방향 Tab이 초점을 조용히 리셋하면 맨 위 document.activeElement가 IFRAME→BODY로 이벤트 없이 바뀌어 content.ts refreshModeDisplay의 delegatedToChild 판정이 어긋나 맨 위 모드 표시만 잠깐 실제와 다르다. 편집 차단(escaped·beforeinput)은 프레임 자체 상태라 정상. Phase 2에서 처리
 - [Phase 1]: /qa 결정: ISSUE-001 Ctrl·Alt·Meta가 함께 눌린 키는 도우미 키(F·숫자 등)로 보지 않고 브라우저에 넘긴다(Shift+F는 유지). ISSUE-002·003 번호표를 화면 안으로 밀어 넣고 위험 표시와 겹치지 않게. ISSUE-004 Tab 0.3초 반복 거절은 D-07 설계대로 유지(값은 Phase 2 TEST-02). ISSUE-005(테스트 전용 경로 콘솔 오류)는 후속(사용자 결정 2026-09-26)
 - [Phase 1]: /design-review 결정: F1·F2 위험 번호표는 '번호표+! 위험 표시'를 한 상자로 보고 같은 자리 규칙(겹침·화면 밖이면 다음 자리, 끝에는 화면 안으로 밀기) 적용, 표시는 항상 번호표 오른쪽. F4 번호표는 도우미 모드 표시·'다음' 카드를 장애물로 피한다(SYSTEM.md·DECISIONS.md 규칙 추가). F3 크기·위치가 같은 조상·자식 항목은 하나로 합친다. F5 화면 가장자리 판정에 후광 2px 여백. F6 팝업 경고 카드 자리 고정(사용자 결정 2026-09-26)
+- [Phase 1]: 번호표 마지막 자리(다섯 자리 모두 막힘): 요소 주변을 가까운 곳부터 넓혀 가며 모드 표시·'다음' 카드·다른 번호표·'! 위험' 표시와 겹치지 않는 화면 안(후광 여백 포함) 자리를 찾는다. 그래도 없으면 도우미 표시·위험 표시는 절대 가리지 않고 번호표끼리만 겹침 허용. 도울 수 없는 페이지 팝업의 안내·경고 카드 순서도 F6 기준점으로 고정(사용자 결정 2026-09-26, DOM 감사 4회차)
 
 ### Pending Todos
 
