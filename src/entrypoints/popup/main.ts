@@ -228,10 +228,13 @@ const helperCard = createCard({
     const message: Message = { type: 'storage/request', op: { kind: 'setEnabled', enabled: next } };
     void chrome.runtime.sendMessage(message).then((response) => {
       const result = response as { ok?: boolean; reason?: string } | undefined;
-      if (result?.reason === 'preserved-original') {
-        // 저장되지 않았다(D-25) — 화면을 실제 상태로 되돌리고 이유를 알린다.
+      if (result?.ok !== true) {
+        // WR-05: preserved-original뿐 아니라 ok !== true인 모든 거절(item-too-large 등)에서
+        // 화면을 실제 상태로 되돌린다 — preserved-original일 때만 이유를 추가로 알린다(D-25).
         revert();
-        showWarningCard(PRESERVED_ORIGINAL_MESSAGE);
+        if (result?.reason === 'preserved-original') {
+          showWarningCard(PRESERVED_ORIGINAL_MESSAGE);
+        }
       }
     });
   },
@@ -288,13 +291,24 @@ function createSiteCard(origin: string, tabId: number): { element: HTMLButtonEle
     keyLabel: '2',
     digitCodes: ['Digit2', 'Numpad2'],
     wordFor: (enabled) => (enabled ? '이 사이트에서 끄기' : '이 사이트에서 켜기'),
-    onToggle: (next, render) => {
+    onToggle: (next, render, revert) => {
       render(next);
       const message: Message = {
         type: 'storage/request',
         op: { kind: 'setSiteDisabled', origin, disabled: !next, tabId },
       };
-      void chrome.runtime.sendMessage(message);
+      void chrome.runtime.sendMessage(message).then(
+        (response) => {
+          // WR-05: SW 거절(origin-mismatch·write-failed 등)을 보지 않으면 카드가 실제로는
+          // 켜져 있는데 꺼졌다고 계속 보여 준다 — 즉시 끌 수 있음이 핵심 안전 요구다.
+          if ((response as { ok?: boolean } | undefined)?.ok !== true) {
+            revert();
+          }
+        },
+        () => {
+          revert();
+        },
+      );
     },
   });
 }

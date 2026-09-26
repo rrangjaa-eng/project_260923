@@ -562,3 +562,34 @@ test('IN-04: 문서 다시 쓰기로 새로 생긴 자식 프레임에서도 옛
 
   await page.close();
 });
+
+// WR-05(01-REVIEW.md): createSiteCard의 onToggle은 render(next) 뒤 SW 응답을 보지 않는다 —
+// SW가 setSiteDisabled를 거절해도(예: 저장된 site 항목이 검사에 실패해 invalid-site) 카드 문구는
+// 낙관적으로 바뀐 채 남아 실제로는 켜져 있는데 꺼졌다고 보여 준다. 응답의 ok가 true가 아니면
+// 되돌린다.
+test('SW가 setSiteDisabled를 거절하면(저장된 site 항목이 깨짐) 카드 문구가 실제 상태로 되돌아간다(WR-05)', async ({
+  context,
+  serviceWorker,
+  openPopup,
+  servePage,
+}) => {
+  servePage('http://practice.test/', '<!doctype html><html><body><h1>연습 사이트</h1></body></html>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/');
+  await waitForHelperReady(page);
+
+  // storage-writer.ts writeSiteDisabledOnce의 invalid-site 경로를 실제로 밟게 한다(검사 실패 —
+  // 아무것도 쓰지 않고 거절).
+  await serviceWorker.evaluate(async () => {
+    await chrome.storage.sync.set({ 'site:http://practice.test': { not: 'valid' } });
+  });
+
+  const popup = await openPopup(page);
+  await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
+
+  await expect(popup.getByRole('button', { name: /이 사이트에서 끄기/ })).toBeVisible();
+  await expect.poll(() => hasHelperRoot(page)).toBe(true);
+
+  await popup.close();
+  await page.close();
+});
