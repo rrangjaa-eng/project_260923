@@ -790,11 +790,14 @@ export default defineContentScript({
       );
 
       // 확대 역보정(Plan 01-15, D-26): 번호표 실제 화면 크기(28px × 배율)로 겹침 판정을 해야
-      // 확대·축소해도 배치가 화면과 맞는다.
+      // 확대·축소해도 배치가 화면과 맞는다. F5(/design-review 3회차, 사용자 결정): 후광(halo,
+      // tokens.css --halo-width: 2px)도 SYSTEM.md 63행 "크기 고정"과 같은 배율 보정으로 넘긴다 —
+      // 화면 안 판정·밀어 넣기가 후광까지 화면 안에 들어오게 안쪽 여백을 둔다.
       const placements = new Map(
         placeLabels(placementEntries, 28 * getOverlayScale(), {
           viewportWidth: window.innerWidth,
           viewportHeight: window.innerHeight,
+          haloWidth: 2 * getOverlayScale(),
           ...dangerTagOpts,
           ...(obstacles.length > 0 ? { obstacles } : {}),
         }).map((p) => [p.itemId, p]),

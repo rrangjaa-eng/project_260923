@@ -148,12 +148,14 @@ function rectsOverlap(a: { x: number; y: number; w: number; h: number }, b: { x:
 // ISSUE-002: 후보 자리가 뷰포트를 벗어나는지 — viewportWidth·viewportHeight가 유한할 때만
 // 판단한다(Infinity면 늘 안 벗어난 것으로 본다, opts 생략 시 기존 동작 유지). F1(/design-review
 // 3회차, 사용자 결정): 폭·높이를 따로 받아 위험 항목의 "번호표 + 표시" 합친 상자도 그대로 잴 수
-// 있다(정사각형이면 w===h===size로 기존 호출과 같다).
-function withinViewport(p: Point, w: number, h: number, viewportWidth: number, viewportHeight: number): boolean {
-  if (Number.isFinite(viewportWidth) && (p.x < 0 || p.x + w > viewportWidth)) {
+// 있다(정사각형이면 w===h===size로 기존 호출과 같다). F5(같은 3회차, 사용자 결정): margin(후광
+// 폭)만큼 안쪽으로 줄인 자리만 "화면 안"으로 본다 — 후광까지 화면 안에 들어와야 진짜로 안
+// 잘린 것이다(margin 0이면 기존 동작 그대로).
+function withinViewport(p: Point, w: number, h: number, viewportWidth: number, viewportHeight: number, margin: number): boolean {
+  if (Number.isFinite(viewportWidth) && (p.x < margin || p.x + w > viewportWidth - margin)) {
     return false;
   }
-  if (Number.isFinite(viewportHeight) && (p.y < 0 || p.y + h > viewportHeight)) {
+  if (Number.isFinite(viewportHeight) && (p.y < margin || p.y + h > viewportHeight - margin)) {
     return false;
   }
   return true;
@@ -178,6 +180,10 @@ export interface PlaceLabelsOptions {
   // 사각형(도우미 자신의 모드 표시·"다음" 카드) — 다른 번호표처럼 겹침을 피하지만, 자기 자리는
   // 옮기지 않는다(entries가 아니라 이 목록에 있는 항목만).
   obstacles?: Rect[];
+  // F5(/design-review 3회차, 사용자 결정): 번호표 후광(halo) 폭 — 화면 안 판정·밀어 넣기에서
+  // 이 폭만큼 안쪽 여백을 둔다(SYSTEM.md 63행 "크기 고정"과 같은 배율 보정을 호출부가 해서
+  // 넘긴다). 0(기본)이면 기존 동작 그대로.
+  haloWidth?: number;
 }
 
 export interface LabelPlacement {
@@ -200,6 +206,7 @@ export function placeLabels(
     dangerTagWidth = 0,
     dangerGap = 8,
     obstacles = [],
+    haloWidth = 0,
   } = opts;
 
   // ISSUE-002·003(사용자 결정): 위험 항목을 먼저 자리 잡아야 그 "! 위험" 표시가 다른 번호표의
@@ -231,7 +238,7 @@ export function placeLabels(
     for (const candidate of candidates) {
       const box = { x: candidate.x, y: candidate.y, w: combinedWidth, h: labelSize };
       const blocked = placed.some((p) => rectsOverlap(p, box));
-      if (!blocked && withinViewport(candidate, combinedWidth, labelSize, viewportWidth, viewportHeight)) {
+      if (!blocked && withinViewport(candidate, combinedWidth, labelSize, viewportWidth, viewportHeight, haloWidth)) {
         chosen = candidate;
         break;
       }
@@ -239,9 +246,14 @@ export function placeLabels(
 
     // ISSUE-002·F1(사용자 결정): 다섯 자리 모두 화면 밖이거나 막혀 있으면, 겹침보다 잘림을 더
     // 나쁘게 보고 화면 안으로 밀어 넣는다(잘림 0 우선, 마지막 안전망) — 밀어 넣기도 합친 상자
-    // 폭 기준(x ≤ W − size − gap − tagW)으로 계산해 위험 표시까지 화면 안에 들어오게 한다.
-    const x = Number.isFinite(viewportWidth) ? clamp(chosen.x, 0, Math.max(0, viewportWidth - combinedWidth)) : chosen.x;
-    const y = Number.isFinite(viewportHeight) ? clamp(chosen.y, 0, Math.max(0, viewportHeight - labelSize)) : chosen.y;
+    // 폭 기준(x ≤ W − size − gap − tagW)으로 계산해 위험 표시까지 화면 안에 들어오게 한다. F5:
+    // haloWidth만큼 더 안쪽으로 밀어 후광까지 화면 안에 들어오게 한다.
+    const x = Number.isFinite(viewportWidth)
+      ? clamp(chosen.x, haloWidth, Math.max(haloWidth, viewportWidth - combinedWidth - haloWidth))
+      : chosen.x;
+    const y = Number.isFinite(viewportHeight)
+      ? clamp(chosen.y, haloWidth, Math.max(haloWidth, viewportHeight - labelSize - haloWidth))
+      : chosen.y;
 
     const entryResult: { x: number; y: number; dangerTagX?: number; dangerTagY?: number } = { x, y };
     // 이 항목이 차지하는 자리(번호표 + 있다면 표시까지)를 한 상자로 남긴다 — 다음 항목은 danger
