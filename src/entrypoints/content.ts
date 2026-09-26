@@ -23,7 +23,7 @@ import { buildFrameReport, createCollector, type Item } from '@/page/collector/c
 import { synthesizeDrag } from '@/page/click/drag';
 import { synthesizePress } from '@/page/click/press';
 import { createInputPipeline, type ModalEvent } from '@/page/input/pipeline';
-import { currentMode } from '@/page/input/mode';
+import { currentMode, resumeDocumentEditor } from '@/page/input/mode';
 import { closeConfirm, openConfirm } from '@/page/overlay/confirm-dialog';
 import {
   getOverlayScale,
@@ -603,6 +603,12 @@ export default defineContentScript({
       currentEnabled = enabled;
 
       if (!enabled) {
+        // 사용자 결정(/review): 도우미를 끄면 문서 전체 편집기 "나옴" 상태도 함께 풀어 둔다 —
+        // 안 그러면 꺼진 동안 초점이 focus sink에 갇힌 채 남고, 다시 켰을 때도 실제 초점(편집
+        // 루트일 수 있다 — 꺼진 동안은 파이프라인이 관여하지 않아 편집기를 직접 눌러 입력을
+        // 재개할 수 있다)과 escaped 표시가 어긋난다. restoreSelection:false라 나옴이 아니면
+        // 아무 일도 없다(mode.ts resumeDocumentEditor).
+        resumeDocumentEditor({ restoreSelection: false });
         // 도우미가 꺼지면 테두리·번호표·머무르기 진행·끌기 시작 상태도 지운다(D-27) — 그렇지
         // 않으면 다시 켰을 때 옛 끌기 시작 상태가 남아 다음 누름이 뜬금없이 drop이 된다.
         currentTargetId = null;
