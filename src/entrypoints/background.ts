@@ -212,7 +212,10 @@ export default defineBackground(() => {
 
     // Task 2(01-19, T-01-59): 맨 위(frameId 0)가 보낸 메시지라면 어떤 종류든 그 탭의 물려받은
     // 출처를 기록한다 — 다음 site/query·recordPress·setSiteDisabled 대조가 이 값을 쓴다.
-    if (sender.frameId === 0 && sender.tab?.id !== undefined && sender.origin) {
+    // WR-03: sender.tab.url(Chrome이 메시지 처리 시점에 채운, 커밋된 탭 주소)이 about:일 때만
+    // 기록한다 — 그렇지 않으면 이동이 막 시작돼(status: loading) 지운 뒤에도 아직 살아 있는
+    // 옛 https 문서가 보낸 메시지가 새 about: 문서의 사이트 정체를 덮어쓸 수 있다.
+    if (sender.frameId === 0 && sender.tab?.id !== undefined && sender.origin && sender.tab.url?.startsWith('about:')) {
       topDocOrigins.set(sender.tab.id, sender.origin);
     }
 

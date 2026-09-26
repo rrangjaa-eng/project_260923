@@ -459,3 +459,52 @@ test('새 창에 addSrcdocFrame으로 넣은 자식 iframe도 여는 쪽 사이�
   await popup.close();
   await page.close();
 });
+
+// WR-03(01-REVIEW.md): topDocOrigins는 sender.tab.url이 about:일 때만 기록해야 한다 — 그렇지
+// 않으면 이동이 시작돼(status: loading) 지운 뒤에도 아직 살아 있는 옛 https 문서가 보낸 frameId 0
+// 메시지가 about: 문서의 사이트 정체를 옛 값으로 덮어쓸 수 있다. 이 시험은 실제 https 탭(오프너가
+// window.open으로 연 다른 출처 탭)을 오프너가 곧바로 about:blank로 이동시키는 흐름의 최종 상태가
+// 항상 오프너 자신의 출처(practice.test)를 따르는지 본다 — 정확한 경쟁 창(SW가 'loading'을 처리한
+// 뒤 옛 문서의 지연된 메시지가 도착하는 순서)을 Playwright로 강제할 수는 없었다(회귀 안전망).
+test('오프너가 실제 주소 탭을 about:blank로 이동시키면 그 오프너 자신의 출처를 사이트로 따른다(WR-03)', async ({
+  context,
+  serviceWorker,
+  extensionId,
+}) => {
+  const page = await openOpenerPage(context);
+  const waiter = context.waitForEvent('page');
+  await page.evaluate(() => {
+    (window as unknown as { __wr03Ref?: Window | null }).__wr03Ref = window.open('http://other.test/dwell-frame.html');
+  });
+  const child = await waiter;
+  await child.waitForLoadState();
+
+  await page.evaluate(() => {
+    const w = (window as unknown as { __wr03Ref?: Window | null }).__wr03Ref;
+    if (w) {
+      w.location.href = 'about:blank';
+    }
+  });
+  await child.waitForURL('about:blank');
+  await waitForHelperReady(child);
+
+  const tabId = await tabIdByUrl(serviceWorker, 'about:blank', 'http://practice.test/blank-popup.html');
+  if (tabId === undefined) {
+    throw new Error('탭을 찾지 못했다');
+  }
+
+  const menu = await context.newPage();
+  await menu.goto(`chrome-extension://${extensionId}/popup.html?tabId=${String(tabId)}`);
+  await expect(menu.getByRole('button', { name: /이 사이트에서 끄기/ })).toBeVisible();
+  await menu.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
+
+  await expect.poll(async () => (await readSiteEntry(serviceWorker, 'http://practice.test'))?.data.disabled).toBe(true);
+  expect(
+    (await readSiteEntry(serviceWorker, 'http://other.test'))?.data.disabled,
+    '옛 문서(other.test)의 출처가 실수로 기록·거절되면 안 된다',
+  ).not.toBe(true);
+
+  await menu.close();
+  await child.close();
+  await page.close();
+});
