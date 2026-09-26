@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import type { BrowserContext, Locator, Page } from '@playwright/test';
+import type { BrowserContext, Locator, Page, Worker } from '@playwright/test';
 
 // 01-19 Task 1(ELEM-02, SAFE-04, SAFE-05): 주소 없는 새 창(window.open('')을 여는 쪽이 DOM이나
 // document.write로 채움, 결재 팝업 등)에서도 도우미가 한 번만 돈다. 그 창의 사이트는 여는 쪽
@@ -134,6 +134,65 @@ async function openOpenerPage(context: BrowserContext): Promise<Page> {
   return page;
 }
 
+// Task 2 도우미: about:blank로 남는 새 창 탭은 url 매치 패턴 대신 정확한 문자열로 찾는다.
+async function tabIdByUrl(serviceWorker: Worker, url: string): Promise<number | undefined> {
+  const tabs = await serviceWorker.evaluate(async (u) => {
+    const all = await chrome.tabs.query({});
+    return all.filter((t) => t.url === u);
+  }, url);
+  return tabs[0]?.id;
+}
+
+async function tabTitle(serviceWorker: Worker, tabId: number): Promise<string> {
+  return serviceWorker.evaluate((id) => chrome.action.getTitle({ tabId: id }), tabId);
+}
+
+async function tabBadge(serviceWorker: Worker, tabId: number): Promise<string> {
+  return serviceWorker.evaluate((id) => chrome.action.getBadgeText({ tabId: id }), tabId);
+}
+
+async function readSiteEntry(
+  serviceWorker: Worker,
+  origin: string,
+): Promise<{ schemaVersion: number; data: { disabled: boolean; pins: unknown[] } } | undefined> {
+  const key = `site:${origin}`;
+  const stored = await serviceWorker.evaluate((k) => chrome.storage.sync.get(k), key);
+  return stored[key] as { schemaVersion: number; data: { disabled: boolean; pins: unknown[] } } | undefined;
+}
+
+async function localStorageKeys(serviceWorker: Worker): Promise<string[]> {
+  return serviceWorker.evaluate(async () => Object.keys(await chrome.storage.local.get(null)));
+}
+
+async function readFrameStatesByFrameId(serviceWorker: Worker, tabId: number): Promise<Record<number, boolean>> {
+  return serviceWorker.evaluate((id) => {
+    const store = (globalThis as unknown as { frameStates?: Record<number, Record<number, boolean>> }).frameStates;
+    return store?.[id] ?? {};
+  }, tabId);
+}
+
+// popup window 참조를 여는 쪽 페이지의 전역에 담아 둔다 — Task 2의 addSrcdocFrame(win) 호출은
+// 별도의 page.evaluate에서 그 참조가 필요하다(Window 핸들은 evaluate 경계를 못 건넌다).
+async function openDomPopupKeepingRef(page: Page, context: BrowserContext): Promise<Page> {
+  const waiter = context.waitForEvent('page');
+  await page.evaluate(() => {
+    (window as unknown as { __popupRef?: Window | null }).__popupRef = (
+      window as unknown as { openDomPopup: () => Window | null }
+    ).openDomPopup();
+  });
+  return waiter;
+}
+
+async function addChildFrameToPopup(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const win = (window as unknown as { __popupRef?: Window | null }).__popupRef;
+    const fn = (window as unknown as { addSrcdocFrame?: (w: Window) => void }).addSrcdocFrame;
+    if (win && fn) {
+      fn(win);
+    }
+  });
+}
+
 test('window.open(\'\')으로 열고 DOM으로 채운 새 창에서 도우미가 한 번만 돈다', async ({ context }) => {
   const page = await openOpenerPage(context);
   const popup = await openViaFn(page, context, 'openDomPopup');
@@ -256,5 +315,129 @@ test('noopener로 연 새 창(window.open과 링크 둘 다)에는 Chrome이 con
   expect(await hasHelperRoot(popup2)).toBe(false);
   await popup2.close();
 
+  await page.close();
+});
+
+// 01-19 Task 2(SAFE-04, SAFE-05): 주소 없는 새 창 탭의 아이콘·메뉴·누른 기록·자식 iframe이 여는
+// 쪽 사이트(Chrome이 준 sender.origin)를 쓴다.
+
+test('window.open(\'\') DOM 새 창 탭의 아이콘 제목이 "손 떨림 도우미"이고, chrome://version 탭은 그대로 "도울 수 없음"이다', async ({
+  context,
+  serviceWorker,
+}) => {
+  const page = await openOpenerPage(context);
+  const popup = await openViaFn(page, context, 'openDomPopup');
+  await waitForHelperReady(popup);
+
+  const popupTabId = await tabIdByUrl(serviceWorker, 'about:blank');
+  if (popupTabId === undefined) {
+    throw new Error('새 창 탭을 찾지 못했다');
+  }
+  await expect.poll(() => tabTitle(serviceWorker, popupTabId), { timeout: 5000 }).toBe('손 떨림 도우미');
+  await expect.poll(() => tabBadge(serviceWorker, popupTabId)).toBe('');
+
+  const versionPage = await context.newPage();
+  await versionPage.goto('chrome://version');
+  const versionTabId = await tabIdByUrl(serviceWorker, 'chrome://version/');
+  if (versionTabId === undefined) {
+    throw new Error('chrome://version 탭을 찾지 못했다');
+  }
+  await expect.poll(() => tabTitle(serviceWorker, versionTabId)).toBe('도울 수 없음');
+  await expect.poll(() => tabBadge(serviceWorker, versionTabId)).toBe('없음');
+
+  await versionPage.close();
+  await popup.close();
+  await page.close();
+});
+
+test('새 창 탭을 대상으로 연 메뉴에 "도울 수 없음" 안내가 없고 "이 사이트에서 끄기"가 있다 — 누르면 여는 쪽 사이트가 꺼지고 새 창·여는 쪽 모두 호스트가 사라진다', async ({
+  context,
+  serviceWorker,
+  openPopup,
+}) => {
+  const page = await openOpenerPage(context);
+  await waitForHelperReady(page);
+  const popup = await openViaFn(page, context, 'openDomPopup');
+  await waitForHelperReady(popup);
+
+  const menu = await openPopup(popup);
+  await expect(menu.getByText('이 페이지에서는 도울 수 없어요. 다른 탭에서 쓰세요.')).toHaveCount(0);
+  await expect(menu.getByRole('button', { name: /이 사이트에서 끄기/ })).toBeVisible();
+
+  await menu.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
+
+  await expect.poll(async () => (await readSiteEntry(serviceWorker, 'http://practice.test'))?.data.disabled).toBe(true);
+  await expect.poll(() => hasHelperRoot(popup)).toBe(false);
+  await expect.poll(() => hasHelperRoot(page)).toBe(false);
+
+  await menu.close();
+  await popup.close();
+  await page.close();
+});
+
+test('새 창 안에서 번호로 누른 기록은 여는 쪽 사이트 출처 키에만 쌓이고 presses:null·about: 키는 없다', async ({
+  context,
+  serviceWorker,
+}) => {
+  const page = await openOpenerPage(context);
+  const popup = await openViaFn(page, context, 'openDomPopup');
+  await waitForHelperReady(popup);
+
+  await pressHintFor(popup, popup.locator('#popup-btn'));
+
+  await expect
+    .poll(async () => (await localStorageKeys(serviceWorker)).some((k) => k === 'presses:http://practice.test'))
+    .toBe(true);
+  const keys = await localStorageKeys(serviceWorker);
+  expect(keys.some((k) => k === 'presses:null' || k.startsWith('presses:about:'))).toBe(false);
+
+  await popup.close();
+  await page.close();
+});
+
+test('새 창에 addSrcdocFrame으로 넣은 자식 iframe도 여는 쪽 사이트를 끄면 도우미가 꺼진다(site/query가 여는 쪽 출처로 답)', async ({
+  context,
+  serviceWorker,
+}) => {
+  const page = await openOpenerPage(context);
+  const popup = await openDomPopupKeepingRef(page, context);
+  await waitForHelperReady(popup);
+
+  await addChildFrameToPopup(page);
+
+  const popupTabId = await tabIdByUrl(serviceWorker, 'about:blank');
+  if (popupTabId === undefined) {
+    throw new Error('새 창 탭을 찾지 못했다');
+  }
+
+  await expect
+    .poll(
+      async () => {
+        const states = await readFrameStatesByFrameId(serviceWorker, popupTabId);
+        const nonTop = Object.entries(states).filter(([frameId]) => frameId !== '0');
+        return nonTop.length >= 1 && nonTop.every(([, enabled]) => enabled);
+      },
+      { timeout: 5000 },
+    )
+    .toBe(true);
+
+  await serviceWorker.evaluate(async () => {
+    await chrome.storage.sync.set({
+      'site:http://practice.test': { schemaVersion: 1, data: { disabled: true, pins: [] } },
+    });
+  });
+
+  await expect
+    .poll(
+      async () => {
+        const states = await readFrameStatesByFrameId(serviceWorker, popupTabId);
+        const nonTop = Object.entries(states).filter(([frameId]) => frameId !== '0');
+        return nonTop.length >= 1 && nonTop.every(([, enabled]) => !enabled);
+      },
+      { timeout: 5000 },
+    )
+    .toBe(true);
+
+  await popup.close();
   await page.close();
 });
