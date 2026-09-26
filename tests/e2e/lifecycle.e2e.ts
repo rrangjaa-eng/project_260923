@@ -203,6 +203,59 @@ test('F3: 형식 변환 실패 경고가 뜬 상태에서 사이트 카드 토�
   await page.close();
 });
 
+// W1(DOM 감사 2회차 팝업 경고 겹침): showWarningCard가 warningKind를 덮어써, 형식 변환 실패(D-25)
+// 경고가 뜬 상태에서 토글 실패 안내가 뜨면 kind가 toggle로 바뀌고, 이어서 그 토글(또는 다른
+// 토글)이 성공하면 hideToggleWarningCard가 안내를 통째로 지웠다 — 설정은 여전히 깨져 있는데
+// 카드가 0개가 된다. 실제 경로: 설정 손상 → 1(도우미 끄기) 실패 안내 → 2(사이트 끄기) 성공.
+test('W1: 도우미 끄기가 실패한 뒤 사이트 토글이 성공해도 형식 변환 실패 경고가 다시 보인다', async ({
+  context,
+  serviceWorker,
+  openPopup,
+  servePage,
+}) => {
+  await seedMigrationFailure(serviceWorker);
+  servePage('http://practice.test/', '<!doctype html><html><body><h1>연습 사이트</h1></body></html>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/');
+  await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(true);
+
+  const popup = await openPopup(page);
+  const warningCard = popup.locator('.warning-card');
+  await expect(warningCard).toHaveText(MIGRATION_FAILED_TOAST_TEXT);
+
+  await popup.getByRole('button', { name: '도우미 끄기' }).click();
+  await expect(warningCard).toHaveText(PRESERVED_ORIGINAL_TEXT);
+
+  await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
+  await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(false);
+
+  // 사이트 토글은 성공했지만 settings는 여전히 깨져 있다 — 카드 0개가 아니라 D-25 경고로
+  // 되돌아가야 한다(role="alert" 유지, DOM 감사 경고 1).
+  await expect(warningCard).toHaveText(MIGRATION_FAILED_TOAST_TEXT);
+  await expect(warningCard).toHaveAttribute('role', 'alert');
+
+  await popup.close();
+  await page.close();
+});
+
+// R3(DOM 감사 2회차, 이론 경로): D-25 경고가 떠 있는 동안 notice:migration-failed가 storage에서
+// 사라지면(설정이 스스로 고쳐짐, WR-08) 경고도 함께 사라져야 한다 — 팝업이 열려 있는 동안 바뀐
+// 값을 반영할 storage.onChanged 리스너가 없으면 옛 경고가 계속 남는다.
+test('R3: notice:migration-failed가 지워지면 열려 있던 팝업의 경고 카드도 사라진다', async ({ serviceWorker, openPopup }) => {
+  await seedMigrationFailure(serviceWorker);
+  const popup = await openPopup();
+  const warningCard = popup.locator('.warning-card');
+  await expect(warningCard).toHaveText(MIGRATION_FAILED_TOAST_TEXT);
+
+  await serviceWorker.evaluate(async () => {
+    await chrome.storage.local.remove('notice:migration-failed');
+  });
+
+  await expect(warningCard).toHaveCount(0);
+
+  await popup.close();
+});
+
 test('site 항목이 정확히 8192바이트일 때 "이 사이트에서 켜기"로 8193바이트가 되면 쓰기가 거절되고 저장된 값이 그대로다', async ({
   context,
   serviceWorker,
