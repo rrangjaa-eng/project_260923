@@ -425,7 +425,12 @@ async function renderForTargetTab(): Promise<void> {
   }
   const title = await chrome.action.getTitle({ tabId });
   if (title === '도울 수 없음') {
-    container.insertBefore(unsupportedMessage, cards);
+    // F6 후속(DOM 감사 4회차, 사용자 결정, DECISIONS.md 2026-09-26): 경고 카드(형식 변환 실패)가
+    // 이 함수보다 먼저 떠 있으면(loadMigrationNotice()의 storage.local.get 한 번이 이 함수의
+    // 왕복 getTitle→tabs.get보다 먼저 끝남) cards 앞에 그대로 넣으면 경고 카드보다 뒤에 붙는다 —
+    // siteStatus와 같은 기준점("경고 카드가 이미 있으면 그 앞, 없으면 cards 앞")을 써서 안내가
+    // 항상 경고 카드보다 먼저 오게 한다.
+    container.insertBefore(unsupportedMessage, warningCard.isConnected ? warningCard : cards);
     return;
   }
   unsupportedMessage.remove();
