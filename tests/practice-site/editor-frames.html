@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>편집기 프레임 연습</title>
+  </head>
+  <body style="margin: 0">
+    <h1 style="margin: 20px">편집기 프레임 연습</h1>
+    <script>
+      // D-28: 이 파일 하나가 practice.test·other.test 두 출처 모두에서 서빙된다(호스트는 상관없이
+      // 경로로만 찾는 테스트 fixture, frames.html과 같은 방식). ?child= 쿼리로 맨 위/자식 화면을
+      // 나눈다. 맨 위 화면에는 제목 글자만 두고 누를 수 있는 요소는 두지 않는다(01-17 Task 1).
+      var params = new URLSearchParams(location.search);
+      var child = params.get('child');
+
+      // 카운터 버튼 마크업(자식 문서의 독립 스크립트 안에서 자기 완결적으로 계수한다 — 이 iframe
+      // 문서들은 부모 스크립트의 스코프를 공유하지 않는다). <\/script>는 이 마크업이 부모 문서의
+      // 인라인 <script> 블록 안 문자열로 있는 동안 HTML 파서가 조기에 블록을 닫지 못하게 하는
+      // 표준 이스케이프다 — 실행되는 JS 값은 평범한 스크립트 종료 태그 그대로다.
+      function counterMarkup(id, label) {
+        return (
+          '<button id="btn-' +
+          id +
+          '" style="width:100px;height:32px;margin:20px;padding:0">' +
+          (label || id) +
+          '</button><span id="btn-' +
+          id +
+          '-count">0</span>' +
+          '<script>document.getElementById("btn-' +
+          id +
+          '").addEventListener("click",function(){' +
+          'var c=document.getElementById("btn-' +
+          id +
+          '-count");c.textContent=String(Number(c.textContent)+1);});<\/script>'
+        );
+      }
+
+      function inputMarkup(id) {
+        return '<input id="input-' + id + '" style="display:block;width:160px;margin:20px">';
+      }
+
+      function childDoc(bodyHtml) {
+        return '<!doctype html><meta charset="utf-8"><body style="margin:0">' + bodyHtml + '</body>';
+      }
+
+      function makeFrame(id, title) {
+        var f = document.createElement('iframe');
+        f.id = id;
+        f.title = title;
+        f.style.cssText =
+          'width:300px;height:140px;border:1px solid #999;display:inline-block;vertical-align:top;margin:10px';
+        return f;
+      }
+
+      // ?child=nav: about:blank로 시작했다가 300ms 뒤 이 주소로 이동해 온 #frame-nav 화면.
+      function renderNav() {
+        document.body.innerHTML = counterMarkup('nav');
+      }
+
+      // ?child=host: other.test에서 서빙되는 화면 — 그 안에 다시 srcdoc 손자 프레임을 만든다.
+      function renderHost() {
+        var frame = document.createElement('iframe');
+        frame.id = 'frame-nested';
+        frame.title = '중첩 srcdoc';
+        frame.style.cssText = 'width:280px;height:120px;border:1px solid #999';
+        document.body.append(frame);
+        frame.srcdoc = childDoc(counterMarkup('nested'));
+      }
+
+      function renderTop() {
+        // #frame-srcdoc: srcdoc 속성에 버튼(+카운터)과 입력칸.
+        var frameSrcdoc = makeFrame('frame-srcdoc', 'srcdoc 편집기');
+        frameSrcdoc.srcdoc = childDoc(counterMarkup('srcdoc') + inputMarkup('srcdoc'));
+        document.body.append(frameSrcdoc);
+
+        // #frame-write: src 없는 iframe을 붙인 직후 같은 스크립트에서 open/write/close로 채운다
+        // (CKEditor 4 classic 패턴). 버튼·삭제 버튼(위험 단어)·입력칸.
+        var frameWrite = makeFrame('frame-write', 'document.write 편집기');
+        document.body.append(frameWrite);
+        var writeDoc = frameWrite.contentWindow.document;
+        writeDoc.open();
+        writeDoc.write(childDoc(counterMarkup('write') + counterMarkup('write-delete', '삭제') + inputMarkup('write')));
+        writeDoc.close();
+
+        // #frame-editor: open/write/close 뒤 그 문서의 designMode를 on으로 한다(TinyMCE classic
+        // 편집 영역 패턴).
+        var frameEditor = makeFrame('frame-editor', 'designMode 편집기');
+        document.body.append(frameEditor);
+        var editorDoc = frameEditor.contentWindow.document;
+        editorDoc.open();
+        editorDoc.write(childDoc('<p id="editor-text">가</p>'));
+        editorDoc.close();
+        editorDoc.designMode = 'on';
+
+        // #frame-ce: open/write/close 뒤 body.contentEditable을 true로 한다(CKEditor 4 편집
+        // 본문 패턴).
+        var frameCe = makeFrame('frame-ce', 'contenteditable 편집기');
+        document.body.append(frameCe);
+        var ceDoc = frameCe.contentWindow.document;
+        ceDoc.open();
+        ceDoc.write(childDoc('<p id="ce-text">나</p>'));
+        ceDoc.close();
+        ceDoc.body.contentEditable = 'true';
+
+        // #frame-nav: src 없이 붙이고, 300ms 뒤 src를 같은 파일의 ?child=nav로 바꾼다(about:blank로
+        // 시작해 같은 출처 주소로 이동).
+        var frameNav = makeFrame('frame-nav', 'about:blank 뒤 이동');
+        document.body.append(frameNav);
+        setTimeout(function () {
+          frameNav.src = '/editor-frames.html?child=nav';
+        }, 300);
+
+        // #frame-host: 다른 출처(other.test), ?child=host 화면이 그 안에 srcdoc 손자를 품는다.
+        var frameHost = makeFrame('frame-host', '다른 출처 안 srcdoc');
+        frameHost.src = 'http://other.test/editor-frames.html?child=host';
+        document.body.append(frameHost);
+      }
+
+      if (child === 'nav') {
+        renderNav();
+      } else if (child === 'host') {
+        renderHost();
+      } else {
+        renderTop();
+      }
+    </script>
+  </body>
+</html>
