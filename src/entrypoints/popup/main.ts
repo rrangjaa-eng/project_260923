@@ -442,7 +442,12 @@ async function renderForTargetTab(): Promise<void> {
 
   const siteCard = createSiteCard(origin, tabId);
   cards.insertBefore(siteCard.element, dwellCard.element);
-  container.insertBefore(siteStatus, cards);
+  // F6(/design-review 3회차, 사용자 결정): 경고 카드를 붙이는 기준점을 하나로 고정 — 항상 상태
+  // 줄(siteStatus 포함) 뒤, 카드 격자 앞. renderWarningCard()는 언제나 "cards 앞"에 넣으므로,
+  // siteStatus가 이 경고보다 늦게(비동기) 붙어도 순서가 같으려면 siteStatus 쪽이 "경고 카드가
+  // 이미 있으면 그 앞, 없으면 cards 앞"을 기준점으로 삼아야 한다(경고 카드는 항상 cards
+  // 바로 앞이라 이렇게 하면 siteStatus는 항상 경고 카드보다 앞선다).
+  container.insertBefore(siteStatus, warningCard.isConnected ? warningCard : cards);
 
   async function refreshSiteState(): Promise<void> {
     const stored = await chrome.storage.sync.get(key);
