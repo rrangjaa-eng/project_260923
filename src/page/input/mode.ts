@@ -49,7 +49,8 @@ export function isDocumentEditingRoot(el: Element | null): boolean {
 }
 
 // Esc로 문서 전체 편집기에서 "나옴" 상태(probe evidence: blur()는 캐럿을 지워 편집기가 키를
-// 받지 못하게 만든다 — 그래서 blur 대신 이 표시만 바꾼다). 프레임(모듈 인스턴스)마다 독립이다.
+// 받지 못하게 만든다 — 그래서 blur 대신 이 표시를 두고, escapeDocumentEditor()가 초점을 도우미
+// 오버레이로 옮긴다, "초점 옮기기"). 프레임(모듈 인스턴스)마다 독립이다.
 let escapedFromDocumentEditor = false;
 
 // CR-01(01-REVIEW-FIX.md iteration 4, 사용자 결정): "초점 옮기기" 방식 — iteration 3의 "커서

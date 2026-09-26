@@ -49,8 +49,8 @@ const MODIFIER_ONLY_KEYCODES = new Set([
   'AltRight',
 ]);
 // WR-01: 나옴 상태에서 Ctrl/Meta 조합 중 편집을 일으키지 않는 브라우저·사이트 명령만 허용
-// 목록으로 통과시킨다(복사·찾기·인쇄·저장·확대·새로고침). KeyA(전체 선택)는 선택을 다시
-// 만들어 CR-01의 "커서 숨기기"와 충돌하므로 뺐다.
+// 목록으로 통과시킨다(복사·찾기·인쇄·저장·확대·새로고침). KeyA(전체 선택)는 편집기 안 선택
+// 상태를 다시 만들 수 있어 뺐다(편집으로 이어질 수 있는 조합은 허용하지 않는다는 원칙, CR-01).
 const PASS_CTRL_CODES = new Set([
   'KeyC',
   'Insert',
@@ -80,9 +80,10 @@ export function createInputPipeline(opts: {
   // 상태를 합친 값을 준다(생략하면 전역 enabled만 본다, 기존 호출부·시험 호환).
   isEnabled?: () => boolean;
   signal: AbortSignal;
-  // Task 3(01-18, KEY-01): 문서 전체 편집기의 Esc 나옴·되돌아옴은 focus를 옮기지 않아 focusin·
-  // focusout이 뜨지 않는다 — 모드가 바뀔 때마다 호출자(content.ts)에 알려 모드 표시를 갱신하게
-  // 한다(생략 가능, 기존 호출부·시험 호환).
+  // Task 3(01-18, KEY-01, CR-01 iteration 4): 문서 전체 편집기의 나옴·되돌아옴은 초점을 도우미
+  // 오버레이의 focus sink로 옮긴다("초점 옮기기") — focusin·focusout은 실제로 뜬다. 그래도
+  // pipeline.ts가 직접 setMode()를 부르는 자리(Escape 다시 누름 등)에서 호출자(content.ts)에도
+  // 곧바로 알려 모드 표시를 갱신하게 한다(생략 가능, 기존 호출부·시험 호환).
   onModeChange?: () => void;
 }): InputPipeline {
   const { getSettings, signal, isEnabled: isEnabledOpt, onModeChange } = opts;
@@ -98,15 +99,16 @@ export function createInputPipeline(opts: {
   const pressHandlers: PressHandler[] = [];
   let modalHandler: ModalHandler | null = null;
   let modalTickInterval: ReturnType<typeof setInterval> | null = null;
-  // CR-01(01-REVIEW-FIX.md iteration 3→4, 사용자 결정): 63d8eff의 innerHTML 스냅숏 복원(조합 동안
-  // 편집 루트를 통째로 다시 파싱)은 노드 정체성·선택·되돌리기·위젯을 파괴해 원래 결함보다 해로웠다
-  // — 되돌렸다. iteration 3의 "커서 숨기기"(선택 범위만 지우고 초점은 그대로 둠)는 트러스트된 키
+  // CR-01(iteration 4, 사용자 결정): 63d8eff의 innerHTML 스냅숏 복원(조합 동안 편집 루트를
+  // 통째로 다시 파싱)은 노드 정체성·선택·되돌리기·위젯을 파괴해 원래 결함보다 해로웠다 —
+  // 되돌렸다. iteration 3의 "커서 숨기기"(선택 범위만 지우고 초점은 그대로 둠)는 트러스트된 키
   // 이벤트마다 Chrome이 지운 선택을 되살려 CDP IME 조합을 막지 못했다(실측). 지금은 mode.ts의
   // escapeDocumentEditor()가 나올 때 선택을 저장·해제하고 초점을 도우미 오버레이의 비편집
   // tabindex=-1 요소로 옮긴다("초점 옮기기", spike 실측으로 조합 삽입 없음 확인). 한글 조합 시작을
-  // 입력 복귀 신호로 보던 것도 없앴다(사용자 결정, iteration 3) — 복귀 신호는 Esc 다시 누름·편집기
-  // 누름·다른 요소로 focusin 세 가지뿐이다. 초점이 옮겨간 오버레이 요소 자신으로의 focusin은 우리가
-  // 일으킨 것이라 복귀 신호로 보지 않는다(isFocusSink, 아래 focusin 처리기).
+  // 입력 복귀 신호로 보던 것도 없앴다(사용자 결정, iteration 3) — 복귀 신호는 Esc 다시 누름과,
+  // focus sink를 떠나는 모든 focusin(편집기 누름·다른 요소 포함, F1·F2 재결정으로 하나의 규칙이
+  // 됨) 둘뿐이다. 초점이 옮겨간 오버레이 요소 자신으로의 focusin은 우리가 일으킨 것이라 복귀
+  // 신호로 보지 않는다(isFocusSink, 아래 focusin 처리기).
 
   // 설정이 바뀌면(interval·sameSpot) 새 값으로 필터를 다시 만든다. 그 외엔 상태(마지막 받아들인
   // 시각·자리)를 그대로 유지해야 하므로 매 이벤트마다 새로 만들지 않는다.
@@ -208,10 +210,11 @@ export function createInputPipeline(opts: {
         // 입력칸을 빠져나온다(D-16) — 사이트의 Esc 처리(자동완성 닫기 등)는 막지 않는다.
         const active = deepActiveElement();
         if (isDocumentEditingRoot(active)) {
-          // Task 3(01-18, KEY-01): 문서 전체 편집기는 blur() 대신 "나옴" 표시만 한다 — blur가
-          // 캐럿을 지워 편집기가 이후 키를 받지 못하게 만들기 때문(probe evidence). CR-01: 선택
-          // 범위도 저장·해제하고, 초점을 도우미 오버레이의 비편집 요소로 옮긴다(mode.ts
-          // escapeDocumentEditor, "초점 옮기기").
+          // Task 3(01-18, KEY-01): 문서 전체 편집기는 blur()를 부르지 않는다 — blur가 캐럿을
+          // 지워 편집기가 이후 키를 받지 못하게 만들기 때문(probe evidence). CR-01(iteration 4):
+          // 대신 선택 범위를 저장·해제하고, 초점 자체를 도우미 오버레이의 비편집 요소로
+          // 옮긴다(mode.ts escapeDocumentEditor, "초점 옮기기") — 아래 setMode('helper')로 나옴
+          // 표시를 갱신한다.
           escapeDocumentEditor(active);
         } else if (active instanceof HTMLElement) {
           active.blur();
@@ -428,12 +431,13 @@ export function createInputPipeline(opts: {
     { capture: true, signal },
   );
 
-  // CR-01(01-REVIEW.md 2회차, 사용자 결정): 한글 조합 시작(compositionstart)을 입력 복귀 신호로
-  // 보던 것과, 무시한 조합을 innerHTML 스냅숏으로 되돌리던 것을 모두 없앴다 — 되돌리기는 편집
-  // 루트를 통째로 다시 파싱해 노드·선택·되돌리기 스택을 파괴했다(원래 결함보다 해로움). 대신
-  // escapeDocumentEditor()가 나올 때 선택 범위를 지워("커서 숨기기") 편집 루트에 선택이 없으면
-  // IME가 애초에 조합을 시작하지 않게 한다(실측 필요 — REVIEW.md 판정 1). 복귀 신호는 이제 Esc
-  // 다시 누름·편집기 누름(pointerdown)·다른 요소로 focusin 세 가지뿐이다.
+  // CR-01(iteration 4, 사용자 결정): 한글 조합 시작(compositionstart)을 입력 복귀 신호로 보던
+  // 것과, 무시한 조합을 innerHTML 스냅숏으로 되돌리던 것(되돌리기는 편집 루트를 통째로 다시
+  // 파싱해 노드·선택·되돌리기 스택을 파괴했다)·선택만 지우고 초점은 그대로 두던 "커서 숨기기"
+  // (트러스트된 키 이벤트마다 Chrome이 지운 선택을 되살려 IME 조합을 막지 못했다, 실측)를 모두
+  // 없앴다. 지금은 escapeDocumentEditor()가 나올 때 초점 자체를 도우미 오버레이의 focus sink로
+  // 옮긴다("초점 옮기기"). 복귀 신호는 Esc 다시 누름과, focus sink를 떠나는 모든 focusin(편집기
+  // 누름·사이트의 .focus()·다른 요소로 이동 포함, F1·F2 재결정) 둘뿐이다.
 
   // Task 3(01-18, KEY-01): "나옴" 상태인 동안 문서 전체 편집기의 실제 편집(글자·삭제·줄바꿈·
   // 붙여넣기 등)을 막는다 — 모드 표시가 도우미인데 글자가 조용히 들어가는 일이 없게 한다.
