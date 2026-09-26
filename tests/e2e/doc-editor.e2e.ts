@@ -352,7 +352,9 @@ test('#frame-design에서 Esc로 나오면 focus sink가 aria-hidden 없이 접�
   const sink = await focusSinkInfo(page, '#frame-design');
   expect(sink, '초점이 오버레이의 focus sink로 옮겨져 있어야 한다').not.toBeNull();
   expect(sink?.ariaHidden, '초점을 받는 요소를 aria-hidden으로 숨기면 안 된다(접근성 반패턴)').toBeNull();
-  expect(sink?.role).toBe('application');
+  // /review 사용자 결정: role="application"은 이 요소가 스크린리더 탐색 모드 밖에서 키 입력을
+  // 전부 가로챈다는 뜻까지 전달해 과했다 — 이름 있는 묶음이라는 뜻의 "group"으로 바꾼다.
+  expect(sink?.role).toBe('group');
   expect(sink?.ariaLabel, '모드 표시와 같은 용어를 쓴다').toBe('도우미');
   expect(sink?.outlineStyle, '상태는 모드 표시로 이미 보이니 포커스 링은 보이지 않게 막는다').toBe('none');
 });

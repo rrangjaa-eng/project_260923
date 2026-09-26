@@ -205,9 +205,11 @@ export function getFocusSink(): HTMLElement {
     focusSinkElement.tabIndex = -1;
     focusSinkElement.className = FOCUS_SINK_CLASS;
     // DOM 감사 경고 4: 초점을 받는 요소를 aria-hidden으로 숨기면 접근성 반패턴이다 — 대신 지금
-    // 상태를 말하는 접근 가능한 이름을 준다(모드 표시와 같은 용어). role="application"은 이 요소가
-    // 자기만의 키 처리(도우미 키)를 갖는다는 뜻을 전달한다.
-    focusSinkElement.setAttribute('role', 'application');
+    // 상태를 말하는 접근 가능한 이름을 준다(모드 표시와 같은 용어). role="group"(사용자 결정,
+    // /review): "application"은 이 요소가 자기만의 키 처리를 스크린리더 탐색 모드 밖에서 전부
+    // 가로챈다는 뜻까지 전달해 과했다 — 이 요소는 도우미가 지금 "나옴" 상태임을 나타내는 이름
+    // 있는 묶음일 뿐이다.
+    focusSinkElement.setAttribute('role', 'group');
     focusSinkElement.setAttribute('aria-label', HELPER_MODE_LABEL);
     root.append(focusSinkElement);
   }
