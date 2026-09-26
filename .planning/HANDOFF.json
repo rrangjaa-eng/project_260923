@@ -1,12 +1,12 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-26T17:33:38.297Z",
+  "timestamp": "2026-09-26T18:45:24.424Z",
   "phase": "1",
   "phase_name": "클릭 도우미 기반",
   "phase_dir": ".planning/phases/01-click-helper-foundation",
   "plan": 19,
-  "task": 5,
-  "total_tasks": 5,
+  "task": 6,
+  "total_tasks": 6,
   "status": "paused",
   "completed_tasks": [
     {
@@ -56,18 +56,25 @@
       "name": "/cso — 실행기 build:cso 후 제품 코드 사본 대상 daily·--supply-chain·--code 3회(모두 partial). 차단 0. F1(medium)·F2(low) 다른 출처 iframe 확인 화면 위조·노출은 사용자 결정으로 Phase 2 후속(STATE.md 결정)",
       "status": "done",
       "commit": "4addac5"
+    },
+    {
+      "id": "post-build-5",
+      "name": "/ship — 검증 B-1 차단을 TDD로 수정(27bb45a→63c8d75), 독립 DOM 감사 차단 0, 전체 게이트 @63c8d75 단위 115·e2e 253, CI 초록 → PR #7 머지 커밋 2c6e973(브랜치 유지)",
+      "status": "done",
+      "commit": "2c6e973"
+    },
+    {
+      "id": "post-merge",
+      "name": "D-25 /gsd-quick 260926-pa1 — local 꺼짐 표시(override:helper-off), sync 불변, 켜기는 표시 삭제. RED 4aab265·f518c97 → fix 7e031c0·3cca741. 독립 DOM 감사 차단 0, 전체 게이트 @0bde048 단위 121·e2e 255 통과",
+      "status": "done",
+      "commit": "3cca741"
     }
   ],
   "remaining_tasks": [
     {
-      "id": "post-build-5",
-      "name": "/ship — PR #7 main 머지: 머지 커밋(squash·rebase 금지), 브랜치 삭제 금지(PR #8~#12가 이 브랜치를 base로 쌓여 있음). PR 제목·본문 갱신(커밋 범위 (04)/(05) 오표기 언급)",
-      "status": "not_started"
-    },
-    {
-      "id": "post-merge",
-      "name": "머지 직후 D-25 /gsd-quick (깨진 설정에서도 도우미 끄기 — storage.local 꺼짐 표시, sync 원본 불변)",
-      "status": "not_started"
+      "id": "d25-pr",
+      "name": "D-25 새 draft PR(base main) — 머지 전 /review 필요(CLAUDE.md: /review 통과 없이 ship 금지). 후속: 경고 카드 상태 팝업 높이 639px>600px(기존 문제)",
+      "status": "in_progress"
     }
   ],
   "blockers": [],
@@ -104,9 +111,14 @@
       "decision": "/cso F1·F2는 Phase 2 후속으로 넘기고 머지",
       "rationale": "사용자 결정: Critical 아님, 근본 수정은 확인 화면 위치 설계 변경",
       "phase": "1"
+    },
+    {
+      "decision": "/ship B-1: F3를 좁힘 — 이름 있는 조작 요소 자식은 합치지 않고, 합치는 자식의 위험 판정을 조상에 더함",
+      "rationale": "사용자 결정",
+      "phase": "1"
     }
   ],
   "uncommitted_files": [],
-  "next_action": "/ship — PR #7 제목·본문 갱신, GitHub CI 초록 확인(get_check_runs), 머지 커밋으로 main 머지(squash·rebase 금지), 브랜치 삭제 금지 → 머지 직후 D-25 /gsd-quick",
-  "context_notes": "Phase 1 코드·검증은 끝났고 Post-build 5단계 중 3단계 완료(/review, /qa, /design-review). 후속(비차단) 목록은 STATE.md 결정에 있음: 교차 출처 iframe 정방향 Tab 맨 위 표시, N1 번호표끼리 겹침 규칙 불일치(50/67%), /qa ISSUE-004 유지·005 후속. 브랜치 claude/project-thread-ew8d9u, PR rrangjaa-eng/project_260923#7(draft, main 대상). PR 구독 도구는 이 환경에서 실패했음 — CI는 get_check_runs로 직접 조회. | 전체 게이트 기록: 이 세션 첫 실행은 새 작업 트리에 .wxt/tsconfig.json이 없어 단위 14파일이 시험 0개로 실패(환경 원인: .wxt는 pnpm typecheck의 wxt prepare가 만들고 CI도 typecheck를 먼저 돈다) → typecheck·lint 통과 뒤 두 번째 실행이 유효 결과."
+  "next_action": "D-25 draft PR의 CI 확인 → 머지하려면 /review 먼저(사용자에게 확인). Phase 2 시작은 /gsd-progress.",
+  "context_notes": "Phase 1 코드·검증은 끝났고 Post-build 5단계 중 3단계 완료(/review, /qa, /design-review). 후속(비차단) 목록은 STATE.md 결정에 있음: 교차 출처 iframe 정방향 Tab 맨 위 표시, N1 번호표끼리 겹침 규칙 불일치(50/67%), /qa ISSUE-004 유지·005 후속. 브랜치 claude/project-thread-ew8d9u, PR rrangjaa-eng/project_260923#7(draft, main 대상). PR 구독 도구는 이 환경에서 실패했음 — CI는 get_check_runs로 직접 조회. | 전체 게이트 기록: 이 세션 첫 실행은 새 작업 트리에 .wxt/tsconfig.json이 없어 단위 14파일이 시험 0개로 실패(환경 원인: .wxt는 pnpm typecheck의 wxt prepare가 만들고 CI도 typecheck를 먼저 돈다) → typecheck·lint 통과 뒤 두 번째 실행이 유효 결과. | PR #7 머지됨(2c6e973). 이후 작업은 같은 브랜치 이름을 main에서 다시 시작해 새 PR로(머지된 PR 재사용 금지). PR #8~#12는 이 브랜치를 base로 하므로 브랜치 삭제 금지."
 }

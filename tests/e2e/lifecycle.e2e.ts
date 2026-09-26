@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, type BrowserContext, type Worker } from '@playwright/test';
 import { test, expect } from './fixtures';
-import { SYNC_ITEM_LIMIT, defaultSettings, siteKey, syncItemBytes } from '../../src/core/settings-schema';
+import { HELPER_OFF_KEY, SYNC_ITEM_LIMIT, defaultSettings, siteKey, syncItemBytes } from '../../src/core/settings-schema';
 
 // D-22·D-24·D-25·D-30(STOR-02): 저장 형식이 바뀌다 실패해도 원본을 지키고 알리며, 동기화 항목
 // 8KB 한도를 지킨다. 업데이트·재시작 뒤 옛 도우미가 스스로 물러나고 새 도우미가 한 번만 들어간다.
@@ -120,7 +120,10 @@ async function seedMigrationFailure(serviceWorker: Worker): Promise<void> {
 }
 
 const MIGRATION_FAILED_TOAST_TEXT = '설정을 읽지 못해 기본 설정으로 동작해요. 원래 설정은 그대로 두었어요.';
-const PRESERVED_ORIGINAL_TEXT = '원래 설정을 지키려고 저장하지 않았어요.';
+// D-25: 설정이 깨진 상태에서도 '도우미 끄기'는 더 이상 원본 보호로 거절되지 않는다(local 꺼짐
+// 표시로 대체) — 토글 실패는 이제 무응답 같은 다른 원인으로만 재현한다(helper-toggle.e2e.ts
+// WR-03 방식).
+const HELPER_TOGGLE_FAILED_TEXT = '도우미 상태를 바꾸지 못했어요. 다시 눌러 보세요.';
 
 test('설정 형식 변환이 실패한 상태에서 연습 사이트를 열면 토스트가 뜨고 4초 뒤 사라지며 기본 설정대로 도우미가 켜진다', async ({
   context,
@@ -156,7 +159,7 @@ test('설정 형식 변환이 실패한 상태에서 연습 사이트를 열면 
   await page.close();
 });
 
-test('메뉴에 --warning 경고 카드가 뜨고, 저장이 실패하면 카드 문구가 바뀐다', async ({ serviceWorker, openPopup }) => {
+test('메뉴에 --warning 경고 카드가 뜨고, 설정이 깨진 채 도우미 끄기가 성공해도 경고는 남고 sync 원본은 그대로다', async ({ serviceWorker, openPopup }) => {
   await seedMigrationFailure(serviceWorker);
   const popup = await openPopup();
 
@@ -166,11 +169,118 @@ test('메뉴에 --warning 경고 카드가 뜨고, 저장이 실패하면 카드
 
   await popup.getByRole('button', { name: '도우미 끄기' }).click();
 
-  await expect(warningCard).toHaveText(PRESERVED_ORIGINAL_TEXT);
+  // D-25: 끄기는 이제 local 꺼짐 표시로 성공한다 — 형식 변환 실패 경고(다른 원인)는 그대로 남는다.
+  await expect(warningCard).toHaveText(MIGRATION_FAILED_TOAST_TEXT);
   const settingsAfter = await readSyncKey(serviceWorker, 'settings');
   expect(settingsAfter).toEqual({ schemaVersion: 99, data: { corrupted: true } });
 
   await popup.close();
+});
+
+// frameStates 읽기(helper-toggle.e2e.ts 94–125행과 같은 방식): 탭의 모든 프레임이 보고한
+// 도우미 켜짐/꺼짐 상태를 모은다.
+async function readFrameStates(serviceWorker: Worker, urlPattern: string): Promise<boolean[]> {
+  const tabs = await serviceWorker.evaluate((url) => chrome.tabs.query({ url }), urlPattern);
+  const tabId = tabs[0]?.id;
+  if (tabId === undefined) {
+    return [];
+  }
+  return serviceWorker.evaluate((id) => {
+    const store = (globalThis as unknown as { frameStates?: Record<number, Record<number, boolean>> }).frameStates;
+    const tabFrames = store?.[id] ?? {};
+    return Object.values(tabFrames);
+  }, tabId);
+}
+
+test('D-25: 설정이 깨져도 도우미 끄기가 된다 — 이 PC의 storage.local에만 꺼짐 표시, sync 원본은 그대로', async ({
+  context,
+  serviceWorker,
+  openPopup,
+  serveFramedPracticePage,
+}) => {
+  await seedMigrationFailure(serviceWorker);
+  serveFramedPracticePage();
+  const page = await context.newPage();
+  await page.goto('http://practice.test/');
+
+  await expect
+    .poll(async () => {
+      const states = await readFrameStates(serviceWorker, 'http://practice.test/*');
+      return states.length >= 3 && states.every((v) => v);
+    })
+    .toBe(true);
+
+  const popup = await openPopup(page);
+  await popup.getByRole('button', { name: '도우미 끄기' }).click();
+
+  await expect
+    .poll(async () => {
+      const states = await readFrameStates(serviceWorker, 'http://practice.test/*');
+      return states.length >= 3 && states.every((v) => !v);
+    })
+    .toBe(true);
+  await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(false);
+
+  const flag = await readLocalKey(serviceWorker, HELPER_OFF_KEY);
+  expect(flag).toBeDefined();
+  const settingsAfter = await readSyncKey(serviceWorker, 'settings');
+  expect(settingsAfter).toEqual({ schemaVersion: 99, data: { corrupted: true } });
+
+  await popup.close();
+  // 옛 탭을 먼저 닫아야 tabs.query가 새 탭만 잡는다.
+  await page.close();
+
+  const page2 = await context.newPage();
+  await page2.goto('http://practice.test/');
+  await expect
+    .poll(async () => {
+      const states = await readFrameStates(serviceWorker, 'http://practice.test/*');
+      return states.length >= 3 && states.every((v) => !v);
+    })
+    .toBe(true);
+  await expect(page2.locator('tremor-helper-root')).toHaveCount(0);
+
+  await page2.close();
+});
+
+test('D-25: 깨진 설정에서 끈 뒤 팝업은 지금: 꺼짐을 보이고, 켜기는 꺼짐 표시만 지운다', async ({
+  context,
+  serviceWorker,
+  openPopup,
+  servePage,
+}) => {
+  await seedMigrationFailure(serviceWorker);
+  servePage('http://practice.test/', '<!doctype html><html><body><h1>연습 사이트</h1></body></html>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/');
+  await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(true);
+
+  let popup = await openPopup(page);
+  await popup.getByRole('button', { name: '도우미 끄기' }).click();
+
+  await expect(popup.getByText('지금: 꺼짐', { exact: true })).toBeVisible();
+  await expect(popup.getByRole('button', { name: '도우미 켜기' })).toBeVisible();
+
+  // 팝업을 닫고 다시 열어도 같다.
+  await popup.close();
+  popup = await openPopup(page);
+  await expect(popup.getByText('지금: 꺼짐', { exact: true })).toBeVisible();
+  await expect(popup.getByRole('button', { name: '도우미 켜기' })).toBeVisible();
+
+  // WR-06: 떨림 필터 간격(기본 300ms)보다 넉넉히 띄운 뒤 켠다.
+  await popup.waitForTimeout(350);
+  await popup.getByRole('button', { name: '도우미 켜기' }).click();
+
+  await expect.poll(() => readLocalKey(serviceWorker, HELPER_OFF_KEY)).toBeUndefined();
+  await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(true);
+  await expect(popup.getByText('지금: 켜짐', { exact: true })).toBeVisible();
+  await expect(popup.getByRole('button', { name: '도우미 끄기' })).toBeVisible();
+
+  const settingsAfter = await readSyncKey(serviceWorker, 'settings');
+  expect(settingsAfter).toEqual({ schemaVersion: 99, data: { corrupted: true } });
+
+  await popup.close();
+  await page.close();
 });
 
 // F3(/review 사용자 결정): popup/main.ts의 hideWarningCard()가 토글 성공 때마다 지금 떠 있는
@@ -207,7 +317,7 @@ test('F3: 형식 변환 실패 경고가 뜬 상태에서 사이트 카드 토�
 // 경고가 뜬 상태에서 토글 실패 안내가 뜨면 kind가 toggle로 바뀌고, 이어서 그 토글(또는 다른
 // 토글)이 성공하면 hideToggleWarningCard가 안내를 통째로 지웠다 — 설정은 여전히 깨져 있는데
 // 카드가 0개가 된다. 실제 경로: 설정 손상 → 1(도우미 끄기) 실패 안내 → 2(사이트 끄기) 성공.
-test('W1: 도우미 끄기가 실패한 뒤 사이트 토글이 성공해도 형식 변환 실패 경고가 다시 보인다', async ({
+test('W1: 도우미 카드 토글이 실패한 뒤 사이트 토글이 성공해도 형식 변환 실패 경고가 다시 보인다', async ({
   context,
   serviceWorker,
   openPopup,
@@ -223,8 +333,13 @@ test('W1: 도우미 끄기가 실패한 뒤 사이트 토글이 성공해도 형
   const warningCard = popup.locator('.warning-card');
   await expect(warningCard).toHaveText(MIGRATION_FAILED_TOAST_TEXT);
 
+  // D-25: 설정이 깨져 있어도 끄기 자체는 이제 성공한다 — 도우미 카드 토글 실패는 helper-toggle.e2e.ts
+  // WR-03과 같은 방식(무응답)으로 따로 재현한다.
+  await serviceWorker.evaluate(() => {
+    (globalThis as unknown as { holdStorageResponseForE2E: (n: number) => void }).holdStorageResponseForE2E(1);
+  });
   await popup.getByRole('button', { name: '도우미 끄기' }).click();
-  await expect(warningCard).toHaveText(PRESERVED_ORIGINAL_TEXT);
+  await expect(warningCard).toHaveText(HELPER_TOGGLE_FAILED_TEXT, { timeout: 4000 });
 
   await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
   await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(false);

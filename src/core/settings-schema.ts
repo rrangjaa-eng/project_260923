@@ -193,3 +193,18 @@ export type MigrationNoticeV1 = z.infer<typeof MigrationNoticeV1>;
 // 알림 문구(SYSTEM.md 카피 규칙 "원인. 다음 행동."): content.ts(토스트)·popup/main.ts(경고
 // 카드)가 그대로 같이 쓴다 — 한 곳에 두어 두 화면의 문구가 어긋나지 않게 한다.
 export const MIGRATION_FAILED_MESSAGE = '설정을 읽지 못해 기본 설정으로 동작해요. 원래 설정은 그대로 두었어요.';
+
+// 전역 도우미 꺼짐 표시(D-25, storage.local 전용): 동기화된 settings가 깨졌거나 더 새 형식이라
+// 원본 보호로 쓰기가 막혀도 '도우미 끄기'가 항상 되게 한다. storage-writer.ts만 쓰거나 지우고,
+// content.ts·popup/main.ts는 읽기만 해서 enabled보다 우선 적용한다.
+export const HELPER_OFF_KEY = 'override:helper-off';
+
+const HelperOffDataSchema = z.object({
+  at: z.number(),
+});
+
+export const HelperOffV1 = z.object({
+  schemaVersion: z.literal(1),
+  data: HelperOffDataSchema,
+});
+export type HelperOffV1 = z.infer<typeof HelperOffV1>;
