@@ -271,6 +271,19 @@ export function placeLabels(
       return protectedBoxes.some((p) => rectsOverlap(p, box));
     }
 
+    // B1(DOM 감사 5회차, 사용자 결정): 화면 안 밀어 넣기(아래) 뒤의 최종 자리로 겹침을 판정해야
+    // 한다 — 밀어 넣기 전 자리는 보호 영역과 안 겹쳐도, 밀어 넣은 뒤 자리가 겹칠 수 있다(다섯
+    // 자리 모두 화면 밖일 때만 해당, 막힌 경우는 위 foundWithoutSearch가 이미 걸러낸다).
+    function pushedIntoViewport(candidate: Point): Point {
+      const px = Number.isFinite(viewportWidth)
+        ? clamp(candidate.x, haloWidth, Math.max(haloWidth, viewportWidth - combinedWidth - haloWidth))
+        : candidate.x;
+      const py = Number.isFinite(viewportHeight)
+        ? clamp(candidate.y, haloWidth, Math.max(haloWidth, viewportHeight - labelSize - haloWidth))
+        : candidate.y;
+      return { x: px, y: py };
+    }
+
     // 기존 다섯 자리(기본·오른쪽 위·왼쪽 아래·오른쪽 아래·요소 안쪽) — 다른 번호표·장애물·위험
     // 표시 모두와 안 겹치는 자리를 먼저 본다(기존 동작 그대로). 다섯 자리 모두 막히면(찾지
     // 못하면) 예전처럼 요소 안쪽(candidates[4])을 기본값으로 남긴다 — 순수하게 다른 번호표하고만
@@ -286,10 +299,11 @@ export function placeLabels(
       }
     }
 
-    // 다섯 자리 모두 막힘 + 그 마지막 자리(candidates[4])까지 장애물·"! 위험" 표시를 가리는
-    // 경우만(DOM 감사 4회차, 사용자 결정) 요소 주변을 넓혀 가며 다시 찾는다 — 순수 번호표끼리만
-    // 겹치는 크로우딩(위 회귀 없음 주석)은 이 탐색을 건너뛴다.
-    if (!foundWithoutSearch && overlapsProtected(chosen)) {
+    // 다섯 자리 모두 막힘(그 마지막 자리까지 장애물·"! 위험" 표시를 가림, DOM 감사 4회차) — 또는
+    // 다섯 자리가 모두 화면 밖이라 밀어 넣은 뒤의 최종 자리가 보호 영역을 가리는 경우(DOM 감사
+    // 5회차, B1)만 요소 주변을 넓혀 가며 다시 찾는다. 순수 번호표끼리만 겹치는 크로우딩(위 회귀
+    // 없음 주석)은 이 탐색을 건너뛴다.
+    if (!foundWithoutSearch && overlapsProtected(pushedIntoViewport(chosen))) {
       let expanded: Point | null = null;
       // 2단계: 같은 기준(장애물·이미 놓인 번호표·위험 표시 모두와 안 겹침 + 화면 안)으로, 요소
       // 주변을 가까운 곳부터 넓혀 가며 다시 찾는다 — 결정적이고 비용이 작다(RING_MAX ×
@@ -320,13 +334,9 @@ export function placeLabels(
     // ISSUE-002·F1(사용자 결정): 다섯 자리 모두 화면 밖이거나 막혀 있으면, 겹침보다 잘림을 더
     // 나쁘게 보고 화면 안으로 밀어 넣는다(잘림 0 우선, 마지막 안전망) — 밀어 넣기도 합친 상자
     // 폭 기준(x ≤ W − size − gap − tagW)으로 계산해 위험 표시까지 화면 안에 들어오게 한다. F5:
-    // haloWidth만큼 더 안쪽으로 밀어 후광까지 화면 안에 들어오게 한다.
-    const x = Number.isFinite(viewportWidth)
-      ? clamp(chosen.x, haloWidth, Math.max(haloWidth, viewportWidth - combinedWidth - haloWidth))
-      : chosen.x;
-    const y = Number.isFinite(viewportHeight)
-      ? clamp(chosen.y, haloWidth, Math.max(haloWidth, viewportHeight - labelSize - haloWidth))
-      : chosen.y;
+    // haloWidth만큼 더 안쪽으로 밀어 후광까지 화면 안에 들어오게 한다. chosen이 이미 ringCandidates
+    // 자리(위 2단계)면 fits()가 화면 안까지 확인했으므로 이 밀어 넣기는 그대로 통과한다(no-op).
+    const { x, y } = pushedIntoViewport(chosen);
 
     const entryResult: { x: number; y: number; dangerTagX?: number; dangerTagY?: number } = { x, y };
     // 이 항목이 차지하는 자리(번호표 + 있다면 표시까지)를 한 상자로 남긴다 — 다음 항목은 danger
