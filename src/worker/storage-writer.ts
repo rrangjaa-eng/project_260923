@@ -1,6 +1,7 @@
 import { isSameElement } from '@/core/fingerprint';
 import {
   CURRENT_SCHEMA_VERSION,
+  HELPER_OFF_KEY,
   MIGRATION_NOTICE_KEY,
   PressesV1,
   SETTINGS_KEY,
@@ -204,6 +205,15 @@ export function createStorageWriter(): StorageWriter {
       return enqueue(async () => {
         const read = await readAndValidateSettings();
         if (!read.ok) {
+          // D-25: settings를 못 읽어도(원본 보호 대상) '도우미 끄기'는 항상 된다 — sync는
+          // 건드리지 않고 이 PC의 storage.local에만 꺼짐 표시를 쓴다. 켜기(enabled=true)는
+          // Task 2에서 바뀐다(지금은 원본 보호 거절 그대로).
+          if (!enabled) {
+            await chrome.storage.local.set({
+              [HELPER_OFF_KEY]: { schemaVersion: CURRENT_SCHEMA_VERSION, data: { at: Date.now() } },
+            });
+            return { ok: true };
+          }
           return { ok: false, reason: 'preserved-original' };
         }
 

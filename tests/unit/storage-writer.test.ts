@@ -18,28 +18,30 @@ function createFakeArea(): FakeStorageArea {
   const setCalls: Array<Record<string, unknown>> = [];
   return {
     setCalls,
-    async get(key) {
+    get(key) {
       if (key === null) {
         const result: Record<string, unknown> = {};
         for (const [k, v] of store) {
           result[k] = structuredClone(v);
         }
-        return result;
+        return Promise.resolve(result);
       }
       const value = store.get(key);
-      return value === undefined ? {} : { [key]: structuredClone(value) };
+      return Promise.resolve(value === undefined ? {} : { [key]: structuredClone(value) });
     },
-    async set(items) {
+    set(items) {
       setCalls.push(structuredClone(items));
       for (const [k, v] of Object.entries(items)) {
         store.set(k, structuredClone(v));
       }
+      return Promise.resolve();
     },
-    async remove(keys) {
+    remove(keys) {
       const list = Array.isArray(keys) ? keys : [keys];
       for (const k of list) {
         store.delete(k);
       }
+      return Promise.resolve();
     },
   };
 }

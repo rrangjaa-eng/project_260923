@@ -7,6 +7,8 @@ import { createGridIndex } from '@/core/grid-index';
 import { orderHints, placeLabels, type HintEntry } from '@/core/hint-order';
 import { pickTarget } from '@/core/magnet';
 import {
+  HELPER_OFF_KEY,
+  HelperOffV1,
   MIGRATION_FAILED_MESSAGE,
   MIGRATION_NOTICE_KEY,
   MigrationNoticeV1,
@@ -206,6 +208,9 @@ export default defineContentScript({
     // 지금 사이트에서만 끄기(Plan 01-13, D-20): 사이트 = 맨 위 페이지 출처. 전역 enabled와 합쳐
     // applyEnabled에 넘긴다(syncEnabled) — 둘 중 하나라도 꺼지면 도우미는 꺼진다.
     let siteDisabled = false;
+    // 이 PC 전역 꺼짐 표시(D-25): storage.local의 HELPER_OFF_KEY — 동기화된 settings가 깨져도
+    // '도우미 끄기'가 항상 먹히게 하는 경로. syncEnabled의 합성식에 들어간다.
+    let helperOffOverride = false;
     // Task 2(01-18, IN-04, SAFE-04, D-06, D-20): 사이트 설정 읽기 상태 — 'pending'(시작, D-06
     // 기본값대로 동작)·'known'(읽었다)·'failed'(연속 실패, fail-closed). 재시도는 계속하고,
     // 성공하거나 이 인스턴스가 정리될 때까지 실패 스트릭·타이머·알림 표시 여부를 추적한다.
@@ -641,14 +646,15 @@ export default defineContentScript({
       void chrome.runtime.sendMessage({ type: 'frame/state', enabled });
     }
 
-    // 전역 enabled와 지금 사이트에서만 끄기를 합친다(D-20) — 셋 중 하나라도 꺼지면 도우미는
-    // 꺼진다. Task 2(IN-04, SAFE-04): siteState === 'failed'(사이트 설정을 계속 못 읽음)도 여기
-    // 넣어 fail-closed한다 — 'pending'(아직 첫 응답 전)은 D-06대로 켜진 것으로 본다.
+    // 전역 enabled와 지금 사이트에서만 끄기, 이 PC 전역 꺼짐 표시(D-25)를 합친다(D-20) — 넷 중
+    // 하나라도 꺼지면 도우미는 꺼진다. Task 2(IN-04, SAFE-04): siteState === 'failed'(사이트
+    // 설정을 계속 못 읽음)도 여기 넣어 fail-closed한다 — 'pending'(아직 첫 응답 전)은 D-06대로
+    // 켜진 것으로 본다.
     function syncEnabled(): void {
       if (cleanedUp) {
         return;
       }
-      applyEnabled(currentSettings.data.enabled && !siteDisabled && siteState !== 'failed');
+      applyEnabled(currentSettings.data.enabled && !siteDisabled && siteState !== 'failed' && !helperOffOverride);
     }
 
     // 설정을 읽기 전이라도 리스너를 먼저 걸어야 사이트보다 앞선다(D-06, Pattern 1) — 설정이
@@ -1084,8 +1090,26 @@ export default defineContentScript({
       }
     });
 
+    // 이 PC 전역 꺼짐 표시 첫 읽기(D-25): 모든 프레임이 스스로 적용해야 하므로 isTopFrame으로
+    // 막지 않는다.
+    void chrome.storage.local.get(HELPER_OFF_KEY).then((stored) => {
+      if (cleanedUp) {
+        return;
+      }
+      helperOffOverride = HelperOffV1.safeParse(stored[HELPER_OFF_KEY]).success;
+      syncEnabled();
+    });
+
     // 이름 붙인 리스너(Task 2, D-22): cleanupOldHelper()가 removeListener로 뗀다.
     function handleSettingsStorageChange(changes: Record<string, chrome.storage.StorageChange>, areaName: string): void {
+      if (areaName === 'local') {
+        const offChange = changes[HELPER_OFF_KEY];
+        if (offChange) {
+          helperOffOverride = HelperOffV1.safeParse(offChange.newValue).success;
+          syncEnabled();
+        }
+        return;
+      }
       if (areaName !== 'sync') {
         return;
       }
