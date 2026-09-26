@@ -4,10 +4,10 @@ current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
 stopped_at: Completed 01-19-PLAN.md
-last_updated: "2026-09-26T11:40:32.052Z"
+last_updated: "2026-09-26T13:06:20.600Z"
 last_activity: 2026-09-24
 last_activity_desc: Phase 01 execution started
-state_head: 1667098585a8d0d9e660dc5d1e25827d02c27fdb
+state_head: 523a7f7e627d5144f1820b1c27706900edf948f7
 progress:
   total_phases: 6
   completed_phases: 0
@@ -149,6 +149,7 @@ Recent decisions affecting current work:
 - [Phase 1]: KEY-01/CR-01 재결정: '커서 숨기기'는 실측상 IME 조합 삽입을 못 막음(5/5 삽입). 문서 전체 편집기에서 Esc로 나올 때 초점을 도우미 오버레이(documentElement의 shadow host) 안 tabindex=-1 요소로 옮기고 편집기 Range를 저장, Esc 다시 누름이면 편집 루트 focus+Range 복원. 실측 5/5 차단·캐럿 복원. 부작용: contenteditable 편집기에 blur/focusout — 실제 사이트 편집기 QA 필요(사용자 결정 2026-09-26)
 - [Phase 1]: Phase 1 진행: 재검증 human_needed(자동 101/103, 실패 0). Post-build(/review→/qa→/design-review→/cso→/ship) 통과 시 main에 머지 커밋으로 머지(브랜치 유지, PR #8~#12 보호). 사람 확인 8개(01-UAT.md)는 Phase 2 이용자 시험 때 /gsd-verify-work 1로 처리, 그때 phase 완료 표시. D-25는 머지 직후 /gsd-quick(사용자 결정 2026-09-26)
 - [Phase 1]: /review F1·F2: 나옴 상태 복귀 규칙을 하나로 — 초점이 focus sink를 떠나면(편집기 누름·사이트의 editor.focus()·다른 요소) 무조건 입력 중으로 복귀. pointerdown으로 나옴을 푸는 코드는 없앤다. F3: 토글 성공 시 토글 실패 안내만 숨기고 형식 변환 실패(D-25) 경고는 유지. 함께: 낡은 주석 7곳 정정, 도우미 끌 때 나옴 상태 해제, focus sink role=group, 나옴 상태에서 Tab 통과(사용자 결정 2026-09-26)
+- [Phase 1]: 후속(비차단): 다른 출처 iframe에서 정방향 Tab이 초점을 조용히 리셋하면 맨 위 document.activeElement가 IFRAME→BODY로 이벤트 없이 바뀌어 content.ts refreshModeDisplay의 delegatedToChild 판정이 어긋나 맨 위 모드 표시만 잠깐 실제와 다르다. 편집 차단(escaped·beforeinput)은 프레임 자체 상태라 정상. Phase 2에서 처리
 
 ### Pending Todos
 
