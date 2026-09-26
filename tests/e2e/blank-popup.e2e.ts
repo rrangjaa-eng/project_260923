@@ -328,6 +328,56 @@ test('noopener로 연 새 창(window.open과 링크 둘 다)에는 Chrome이 con
   await page.close();
 });
 
+// WR-04(01-REVIEW.md): 위 시험은 tremor-helper-root 부재만 보고, 고정 1초 뒤 판정이라 부하 시
+// 주입이 늦어지면 실제 동작과 무관하게 통과한다. 아이콘 제목·배지와 메뉴 안내까지 조건 대기로
+// 확인하고, 같은 여는 쪽에서 openDomPopup으로 도우미가 뜨는 것을 먼저 확인해 양성 대조로 삼는다.
+test('noopener 새 창은 아이콘 "도울 수 없음"·배지 "없음"이고 메뉴에 사이트 카드 없이 안내만 뜬다(WR-04)', async ({
+  context,
+  serviceWorker,
+  extensionId,
+}) => {
+  const page = await openOpenerPage(context);
+
+  // 양성 대조: 같은 여는 쪽에서 연 일반 새 창은 짧은 시간 안에 도우미가 뜬다.
+  const control = await openViaFn(page, context, 'openDomPopup');
+  await waitForHelperReady(control);
+  await control.close();
+
+  const popup1 = await openViaFn(page, context, 'openNoopenerPopup');
+  const popup1TabId = await tabIdByUrl(serviceWorker, 'about:blank', 'http://practice.test/blank-popup.html');
+  if (popup1TabId === undefined) {
+    throw new Error('noopener(window.open) 탭을 찾지 못했다');
+  }
+  await expect.poll(() => tabTitle(serviceWorker, popup1TabId)).toBe('도울 수 없음');
+  await expect.poll(() => tabBadge(serviceWorker, popup1TabId)).toBe('없음');
+
+  const menu1 = await context.newPage();
+  await menu1.goto(`chrome-extension://${extensionId}/popup.html?tabId=${String(popup1TabId)}`);
+  await expect(menu1.getByText('이 페이지에서는 도울 수 없어요. 다른 탭에서 쓰세요.')).toBeVisible();
+  await expect(menu1.getByRole('button', { name: /이 사이트에서 끄기|이 사이트에서 켜기/ })).toHaveCount(0);
+  await menu1.close();
+  await popup1.close();
+
+  const waiter2 = context.waitForEvent('page');
+  await page.locator('#noopener-link').click();
+  const popup2 = await waiter2;
+  const popup2TabId = await tabIdByUrl(serviceWorker, 'about:blank', 'http://practice.test/blank-popup.html');
+  if (popup2TabId === undefined) {
+    throw new Error('noopener(링크) 탭을 찾지 못했다');
+  }
+  await expect.poll(() => tabTitle(serviceWorker, popup2TabId)).toBe('도울 수 없음');
+  await expect.poll(() => tabBadge(serviceWorker, popup2TabId)).toBe('없음');
+
+  const menu2 = await context.newPage();
+  await menu2.goto(`chrome-extension://${extensionId}/popup.html?tabId=${String(popup2TabId)}`);
+  await expect(menu2.getByText('이 페이지에서는 도울 수 없어요. 다른 탭에서 쓰세요.')).toBeVisible();
+  await expect(menu2.getByRole('button', { name: /이 사이트에서 끄기|이 사이트에서 켜기/ })).toHaveCount(0);
+  await menu2.close();
+  await popup2.close();
+
+  await page.close();
+});
+
 // 01-19 Task 2(SAFE-04, SAFE-05): 주소 없는 새 창 탭의 아이콘·메뉴·누른 기록·자식 iframe이 여는
 // 쪽 사이트(Chrome이 준 sender.origin)를 쓴다.
 
