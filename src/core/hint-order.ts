@@ -146,12 +146,14 @@ function rectsOverlap(a: { x: number; y: number; w: number; h: number }, b: { x:
 }
 
 // ISSUE-002: 후보 자리가 뷰포트를 벗어나는지 — viewportWidth·viewportHeight가 유한할 때만
-// 판단한다(Infinity면 늘 안 벗어난 것으로 본다, opts 생략 시 기존 동작 유지).
-function withinViewport(p: Point, size: number, viewportWidth: number, viewportHeight: number): boolean {
-  if (Number.isFinite(viewportWidth) && (p.x < 0 || p.x + size > viewportWidth)) {
+// 판단한다(Infinity면 늘 안 벗어난 것으로 본다, opts 생략 시 기존 동작 유지). F1(/design-review
+// 3회차, 사용자 결정): 폭·높이를 따로 받아 위험 항목의 "번호표 + 표시" 합친 상자도 그대로 잴 수
+// 있다(정사각형이면 w===h===size로 기존 호출과 같다).
+function withinViewport(p: Point, w: number, h: number, viewportWidth: number, viewportHeight: number): boolean {
+  if (Number.isFinite(viewportWidth) && (p.x < 0 || p.x + w > viewportWidth)) {
     return false;
   }
-  if (Number.isFinite(viewportHeight) && (p.y < 0 || p.y + size > viewportHeight)) {
+  if (Number.isFinite(viewportHeight) && (p.y < 0 || p.y + h > viewportHeight)) {
     return false;
   }
   return true;
@@ -210,33 +212,38 @@ export function placeLabels(
   const resultByItemId = new Map<string, { x: number; y: number; dangerTagX?: number; dangerTagY?: number }>();
 
   for (const { entry } of order) {
+    // F1·F2(/design-review 3회차, 사용자 결정): 위험 항목은 번호표 + "! 위험" 표시를 한 상자로
+    // 보고 자리를 고른다 — 표시는 항상 번호표 오른쪽(뒤집지 않음)이라 상자 폭은 번호표+간격+표시
+    // 폭이다. 위험이 아니거나 표시 폭을 모르면(opts 생략) 상자 폭은 번호표 하나 그대로다(기존
+    // 동작 유지).
+    const extraWidth = entry.danger && dangerTagWidth > 0 ? dangerGap + dangerTagWidth : 0;
+    const combinedWidth = labelSize + extraWidth;
+
     const candidates = candidatePositions(entry.rect, labelSize);
     let chosen: Point = candidates[4];
     for (const candidate of candidates) {
-      const box = { x: candidate.x, y: candidate.y, w: labelSize, h: labelSize };
+      const box = { x: candidate.x, y: candidate.y, w: combinedWidth, h: labelSize };
       const blocked = placed.some((p) => rectsOverlap(p, box));
-      if (!blocked && withinViewport(candidate, labelSize, viewportWidth, viewportHeight)) {
+      if (!blocked && withinViewport(candidate, combinedWidth, labelSize, viewportWidth, viewportHeight)) {
         chosen = candidate;
         break;
       }
     }
 
-    // ISSUE-002(사용자 결정): 다섯 자리 모두 화면 밖이거나 막혀 있으면, 겹침보다 잘림을 더
-    // 나쁘게 보고 화면 안으로 밀어 넣는다(잘림 0 우선, 마지막 안전망).
-    const x = Number.isFinite(viewportWidth) ? clamp(chosen.x, 0, Math.max(0, viewportWidth - labelSize)) : chosen.x;
+    // ISSUE-002·F1(사용자 결정): 다섯 자리 모두 화면 밖이거나 막혀 있으면, 겹침보다 잘림을 더
+    // 나쁘게 보고 화면 안으로 밀어 넣는다(잘림 0 우선, 마지막 안전망) — 밀어 넣기도 합친 상자
+    // 폭 기준(x ≤ W − size − gap − tagW)으로 계산해 위험 표시까지 화면 안에 들어오게 한다.
+    const x = Number.isFinite(viewportWidth) ? clamp(chosen.x, 0, Math.max(0, viewportWidth - combinedWidth)) : chosen.x;
     const y = Number.isFinite(viewportHeight) ? clamp(chosen.y, 0, Math.max(0, viewportHeight - labelSize)) : chosen.y;
 
     const entryResult: { x: number; y: number; dangerTagX?: number; dangerTagY?: number } = { x, y };
-    placed.push({ x, y, w: labelSize, h: labelSize });
+    // 이 항목이 차지하는 자리(번호표 + 있다면 표시까지)를 한 상자로 남긴다 — 다음 항목은 danger
+    // 여부와 무관하게 이 상자 전체를 피한다.
+    placed.push({ x, y, w: combinedWidth, h: labelSize });
 
     if (entry.danger) {
-      const tagX = x + labelSize + dangerGap;
-      const tagY = y;
-      entryResult.dangerTagX = tagX;
-      entryResult.dangerTagY = tagY;
-      if (dangerTagWidth > 0) {
-        placed.push({ x: tagX, y: tagY, w: dangerTagWidth, h: labelSize });
-      }
+      entryResult.dangerTagX = x + labelSize + dangerGap;
+      entryResult.dangerTagY = y;
     }
 
     resultByItemId.set(entry.itemId, entryResult);
