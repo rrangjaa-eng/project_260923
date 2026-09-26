@@ -173,7 +173,7 @@ function sendWithRevert(message: Message, revert: () => void, onFail: (reason?: 
         revert();
         onFail(result?.reason);
       } else {
-        hideWarningCard();
+        hideToggleWarningCard();
       }
     },
     () => {
@@ -188,7 +188,13 @@ function sendWithRevert(message: Message, revert: () => void, onFail: (reason?: 
   );
 }
 
-function showWarningCard(text: string): void {
+// F3(/review 사용자 결정): 경고 카드는 토글 실패 안내와 형식 변환 실패(D-25) 경고가 같은 요소를
+// 나눠 쓴다 — 지금 떠 있는 안내가 어느 쪽인지 기억해 둬야, 토글 성공이 자기 것이 아닌 안내까지
+// 지우지 않는다(최소 변경 — 요소를 나누는 대신 종류만 기억).
+let warningKind: 'toggle' | 'migration' | null = null;
+
+function showWarningCard(text: string, kind: 'toggle' | 'migration'): void {
+  warningKind = kind;
   warningCard.textContent = text;
   if (!warningCard.isConnected) {
     container.insertBefore(warningCard, cards);
@@ -199,8 +205,18 @@ function showWarningCard(text: string): void {
 // 남아 있었다 — 더는 맞지 않는 안내가 계속 보이지 않도록 성공하면 숨긴다(sendWithRevert 성공
 // 경로에서 부른다).
 function hideWarningCard(): void {
+  warningKind = null;
   if (warningCard.isConnected) {
     warningCard.remove();
+  }
+}
+
+// F3(/review 사용자 결정): 토글 성공은 그 토글이 스스로 띄운 실패 안내만 지운다 — 지금 떠 있는
+// 안내가 형식 변환 실패(D-25) 경고면(다른 원인, 설정 자체가 깨짐) 토글 성공과 무관하게 남아야
+// 한다.
+function hideToggleWarningCard(): void {
+  if (warningKind === 'toggle') {
+    hideWarningCard();
   }
 }
 
@@ -292,7 +308,7 @@ const helperCard = createCard({
     // 실제 상태로 되돌린다. WR-03: 무응답(시간 제한)·거부(reject)도 같은 방식으로 되돌리고,
     // 이유별로 안내한다(preserved-original만 특별 문구, 나머지는 공통 실패 문구).
     sendWithRevert(message, revert, (reason) => {
-      showWarningCard(reason === 'preserved-original' ? PRESERVED_ORIGINAL_MESSAGE : HELPER_TOGGLE_FAILED_MESSAGE);
+      showWarningCard(reason === 'preserved-original' ? PRESERVED_ORIGINAL_MESSAGE : HELPER_TOGGLE_FAILED_MESSAGE, 'toggle');
     });
   },
 });
@@ -359,7 +375,7 @@ function createSiteCard(origin: string, tabId: number): { element: HTMLButtonEle
       // 제한)도 같은 방식으로 되돌리고, 왜 되돌아갔는지 한 줄로 알린다. DOM 감사 경고 2: 실패한
       // 쪽이 켜기인지 끄기인지에 따라 원인이 다르니 문구도 다르게 한다(next=true면 켜기 시도).
       sendWithRevert(message, revert, () => {
-        showWarningCard(next ? SITE_TOGGLE_ON_FAILED_MESSAGE : SITE_TOGGLE_OFF_FAILED_MESSAGE);
+        showWarningCard(next ? SITE_TOGGLE_ON_FAILED_MESSAGE : SITE_TOGGLE_OFF_FAILED_MESSAGE, 'toggle');
       });
     },
   });
@@ -482,7 +498,7 @@ async function loadMigrationNotice(): Promise<void> {
   const stored = await chrome.storage.local.get(MIGRATION_NOTICE_KEY);
   const parsed = MigrationNoticeV1.safeParse(stored[MIGRATION_NOTICE_KEY]);
   if (parsed.success) {
-    showWarningCard(MIGRATION_FAILED_MESSAGE);
+    showWarningCard(MIGRATION_FAILED_MESSAGE, 'migration');
   }
 }
 

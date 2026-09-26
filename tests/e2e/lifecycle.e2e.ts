@@ -173,6 +173,36 @@ test('메뉴에 --warning 경고 카드가 뜨고, 저장이 실패하면 카드
   await popup.close();
 });
 
+// F3(/review 사용자 결정): popup/main.ts의 hideWarningCard()가 토글 성공 때마다 지금 떠 있는
+// 안내를 종류와 무관하게 지웠다 — 형식 변환 실패(D-25) 경고가 뜬 상태에서 사이트 카드 토글이
+// 성공하면(원인이 서로 다른데) 그 경고까지 함께 지워졌다. 토글 성공은 자기(토글) 종류 안내만
+// 지운다.
+test('F3: 형식 변환 실패 경고가 뜬 상태에서 사이트 카드 토글이 성공해도 경고는 그대로 남는다', async ({
+  context,
+  serviceWorker,
+  openPopup,
+  servePage,
+}) => {
+  await seedMigrationFailure(serviceWorker);
+  servePage('http://practice.test/', '<!doctype html><html><body><h1>연습 사이트</h1></body></html>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/');
+  await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(true);
+
+  const popup = await openPopup(page);
+  const warningCard = popup.locator('.warning-card');
+  await expect(warningCard).toHaveText(MIGRATION_FAILED_TOAST_TEXT);
+
+  await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
+  await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(false);
+
+  // 사이트 카드 토글은 성공했지만, 형식 변환 실패 경고는(다른 원인) 그대로 남아야 한다.
+  await expect(warningCard).toHaveText(MIGRATION_FAILED_TOAST_TEXT);
+
+  await popup.close();
+  await page.close();
+});
+
 test('site 항목이 정확히 8192바이트일 때 "이 사이트에서 켜기"로 8193바이트가 되면 쓰기가 거절되고 저장된 값이 그대로다', async ({
   context,
   serviceWorker,
