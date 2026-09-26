@@ -409,3 +409,156 @@ test('WR-07: storage.sync.set이 거부돼도(예: 할당량 초과) 사이트�
   await popup.close();
   await page.close();
 });
+
+// Task 2(01-18, IN-04, SAFE-04): site/query가 실패해도 "이 사이트에서 끄기"는 fail-open되지
+// 않는다 — 맨 위는 site/query 없이 자기 출처로 안다(항상 적용), 자식 프레임은 재시도하고 실패가
+// 이어지는 동안 fail-closed하며 알린다.
+
+async function failSiteQueryForE2E(serviceWorker: Worker, count: number): Promise<void> {
+  await serviceWorker.evaluate((c) => {
+    (globalThis as unknown as { failSiteQueryForE2E: (n: number) => void }).failSiteQueryForE2E(c);
+  }, count);
+}
+
+// readFrameStates(위)는 Object.values만 돌려줘 frameId 0(맨 위)과 자식을 구분하지 못한다 —
+// frameId로 찾아야 하는 시험을 위한 도우미.
+async function readFrameStatesByFrameId(serviceWorker: Worker, urlPattern: string): Promise<Record<number, boolean>> {
+  const tabs = await serviceWorker.evaluate((pattern) => chrome.tabs.query({ url: pattern }), urlPattern);
+  const tabId = tabs[0]?.id;
+  if (tabId === undefined) {
+    return {};
+  }
+  return serviceWorker.evaluate((id) => {
+    const store = (globalThis as unknown as { frameStates?: Record<number, Record<number, boolean>> }).frameStates;
+    return store?.[id] ?? {};
+  }, tabId);
+}
+
+test('맨 위 프레임의 "이 사이트에서 끄기"는 site/query가 실패해도 적용된다(IN-04, 맨 위는 자기 출처로 안다)', async ({
+  context,
+  serviceWorker,
+}) => {
+  await failSiteQueryForE2E(serviceWorker, 1000);
+  await serviceWorker.evaluate(async () => {
+    await chrome.storage.sync.set({
+      'site:http://practice.test': { schemaVersion: 1, data: { disabled: true, pins: [] } },
+    });
+  });
+
+  const page = await context.newPage();
+  await page.goto('http://practice.test/frames.html');
+
+  await expect.poll(() => hasHelperRoot(page), { timeout: 5000 }).toBe(false);
+  await expect
+    .poll(async () => (await readFrameStatesByFrameId(serviceWorker, 'http://practice.test/*'))[0], { timeout: 5000 })
+    .toBe(false);
+
+  await page.close();
+});
+
+test('IN-04: site/query가 계속 실패하면 자식 프레임은 fail-closed하고 알리며, 회복되면 설정을 따른다', async ({
+  context,
+  serviceWorker,
+}) => {
+  await failSiteQueryForE2E(serviceWorker, 1000);
+
+  const page = await context.newPage();
+  await page.goto('http://practice.test/frames.html');
+
+  // 맨 위(frameId 0)는 site/query와 무관하게 즉시 안다 — 아직 사이트 항목이 없으니(켜짐) true.
+  await expect.poll(() => hasHelperRoot(page), { timeout: 5000 }).toBe(true);
+
+  // frameId 0이 아닌 모든 자식 프레임은 site/query가 계속 실패해 fail-closed(false)한다.
+  await expect
+    .poll(
+      async () => {
+        const states = await readFrameStatesByFrameId(serviceWorker, 'http://practice.test/*');
+        const nonTop = Object.entries(states).filter(([frameId]) => frameId !== '0');
+        return nonTop.length >= 4 && nonTop.every(([, enabled]) => !enabled);
+      },
+      { timeout: 5000 },
+    )
+    .toBe(true);
+
+  // #frame-cross(other.test)의 shadow root 안 .toast에 "사이트 설정을 다시 읽는 동안"이 뜬다.
+  await expect
+    .poll(
+      () =>
+        page
+          .frameLocator('#frame-cross')
+          .locator(':root')
+          .evaluate(() => document.querySelector('tremor-helper-root')?.shadowRoot?.querySelector('.toast')?.textContent ?? null),
+      { timeout: 5000 },
+    )
+    .toContain('사이트 설정을 다시 읽는 동안');
+
+  // 그 프레임 도우미가 꺼져 있으니 100ms 간격 두 번 클릭이 필터 없이 그대로 둘 다 간다(+2).
+  const crossBtn = page.frameLocator('#frame-cross').locator('#btn-cross');
+  await crossBtn.click();
+  await page.waitForTimeout(100);
+  await crossBtn.click();
+  await expect(page.frameLocator('#frame-cross').locator('#cross-count')).toHaveText('2');
+
+  // 회복: site/query가 다시 성공하면(사이트 항목 없음 = 켜짐) 모든 프레임이 설정을 따른다.
+  await failSiteQueryForE2E(serviceWorker, 0);
+  await expect
+    .poll(
+      async () => {
+        const states = await readFrameStatesByFrameId(serviceWorker, 'http://practice.test/*');
+        const values = Object.values(states);
+        return values.length >= 5 && values.every((enabled) => enabled);
+      },
+      { timeout: 10000 },
+    )
+    .toBe(true);
+
+  // 회복 뒤에는 다시 필터가 돈다 — 100ms 두 번 클릭은 한 번으로 줄어(+1만 더해 총 3).
+  await page.waitForTimeout(400);
+  await crossBtn.click();
+  await page.waitForTimeout(100);
+  await crossBtn.click();
+  await expect(page.frameLocator('#frame-cross').locator('#cross-count')).toHaveText('3');
+
+  await page.close();
+});
+
+test('IN-04: 문서 다시 쓰기로 새로 생긴 자식 프레임에서도 옛 인스턴스의 site/query 재시도 이어짐은 조용하다', async ({
+  context,
+  serviceWorker,
+  servePage,
+}) => {
+  await failSiteQueryForE2E(serviceWorker, 1000);
+
+  // 01-17 editor-frames.e2e.ts "document.write로 채운 프레임이 막 생겨도 옛 인스턴스는
+  // 조용하다"와 같은 fixture 패턴 — 인라인 스크립트가 iframe 하나를 붙이자마자 open/write/close로
+  // 버튼을 쓴다(CKEditor 4 classic이 편집 영역을 만드는 방식).
+  servePage(
+    'http://practice.test/site-write-child.html',
+    '<!doctype html><body style="margin:0">' +
+      '<iframe id="frame-w" title="document.write 자식" style="width:300px;height:140px;border:1px solid #999"></iframe>' +
+      '<script>' +
+      'var f=document.getElementById("frame-w");' +
+      "var d=f.contentWindow.document;d.open();d.write('" +
+      '<!doctype html><meta charset="utf-8"><body style="margin:0">' +
+      '<button id="btn-w">w</button>' +
+      "');d.close();" +
+      '</script>' +
+      '</body>',
+  );
+
+  const page = await context.newPage();
+  await page.goto('http://practice.test/site-write-child.html');
+  await page.waitForTimeout(3500);
+
+  const hostCount = await page.frameLocator('#frame-w').locator('tremor-helper-root').count();
+  expect(hostCount, '옛 인스턴스가 정리 뒤에도 늦게 도착한 실패로 새 호스트를 만들면 안 된다').toBe(1);
+
+  // document.write로 다시 쓴 프레임은 최초 src 없는 about:blank 그대로 남아 page.frames()의
+  // url()로 찾을 수 없다 — #frame-w 요소로 스코프한 frameLocator 안에서 evaluate한다.
+  const toastCount = await page.frameLocator('#frame-w').locator(':root').evaluate(
+    () => document.querySelector('tremor-helper-root')?.shadowRoot?.querySelectorAll('.toast').length ?? 0,
+  );
+  expect(toastCount, '옛 인스턴스가 늦게 도착한 실패로 토스트를 더 만들면 안 된다').toBe(1);
+
+  await page.close();
+});
