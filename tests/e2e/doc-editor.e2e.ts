@@ -359,6 +359,144 @@ test('#frame-design에서 Esc로 나오면 focus sink가 aria-hidden 없이 접�
   expect(sink?.outlineStyle, '상태는 모드 표시로 이미 보이니 포커스 링은 보이지 않게 막는다').toBe('none');
 });
 
+// F1·F2(/review 사용자 결정): 복귀 규칙은 하나뿐이다 — 초점이 focus sink를 떠나면(편집 루트로
+// 돌아온 focusin 포함) 무조건 입력 중으로 복귀한다. 예전에는 pointerdown에서 곧바로 복귀시켜서,
+// 자석·떨림 필터가 그 누름을 대신 처리하거나 거절해 초점이 실제로는 안 옮겨져도 나옴 표시가
+// 먼저 풀렸다(표시=입력 중, 실제 초점=focus sink인 채 갇힘). 이제는 실제 focusin이 있을 때만
+// 복귀한다.
+test('F1: 나옴 상태에서 떨림 필터가 같은 자리 재누름을 거절해도 나옴 표시가 먼저 풀리지 않고, Esc가 계속 동작한다', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/doc-editor.html');
+
+  const text = page.frameLocator('#frame-design').locator('#doc-text');
+  const box = await text.boundingBox();
+  if (!box) {
+    throw new Error('편집기 좌표를 찾지 못했다');
+  }
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+
+  await page.mouse.click(x, y);
+  await expect.poll(() => dataMode(page)).toBe('typing');
+
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
+
+  // 같은 자리를 떨림 간격(기본 300ms, D-07) 안에 다시 눌러 이번 누름을 필터가 거절하게 한다
+  // (input-filter.e2e.ts와 같은 기존 시험 도구 재사용) — 거절된 누름은 초점을 옮기지 못한다.
+  await page.mouse.click(x, y);
+  expect(await dataMode(page), '거절된 누름이 나옴 표시를 먼저 풀면 안 된다(초점은 그대로 focus sink)').toBe(
+    'helper',
+  );
+
+  // D-07(떨림 필터): 같은 키(Escape)도 tremorIntervalMs(기본 300ms) 안의 재입력을 걸러낸다 —
+  // 첫 Escape와 겹치지 않도록 다른 시험들과 같은 관례로 그 간격만큼 기다린다.
+  await page.waitForTimeout(350);
+  // 나옴 표시가 미리 풀리지 않았어야 Esc를 다시 눌러 입력으로 돌아갈 수 있다 — 미리 풀렸다면
+  // (버그) escaped가 이미 false라 이 Esc는 아무 일도 하지 않는다.
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('typing');
+});
+
+test('F2: 나옴 상태에서 사이트 스크립트가 편집 루트에 직접 .focus()하면 입력 중으로 복귀한다', async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/doc-editor.html');
+
+  const text = page.frameLocator('#frame-design').locator('#doc-text');
+  await text.click();
+  await expect.poll(() => dataMode(page)).toBe('typing');
+
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
+
+  // 편집기 누름·Esc 다시 누름이 아니라, 사이트 스크립트가 직접 편집 루트에 초점을 준다(예:
+  // editor.focus()) — 이것도 복귀 신호로 봐야 한다(예전에는 이 경우를 focusin 처리기가 일부러
+  // 뺐다).
+  await page.frameLocator('#frame-design').locator('#doc-text').evaluate((el) => {
+    el.ownerDocument.body.focus();
+  });
+
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('typing');
+});
+
+// 사용자 결정(/review): 나옴 상태에서 Tab을 삼키면 focus sink를 벗어날 길이 없다 — pipeline.ts의
+// EDITING_KEYCODES에서 Tab을 뺐다(Shift+Tab 포함, 둘 다 물리 키 code는 'Tab'이다). focus sink는
+// 도우미 호스트가 documentElement 맨 끝에 붙어(D-26) 문서 순서상 항상 맨 뒤다 — Tab(앞으로)은 갈
+// 다음 대상이 없어 브라우저가 초점을 비운다(실측, Chromium이 이 경우 focusin 자체를 안 쏜다.
+// "삼키지 않았다"는 sink에 갇히지 않았음으로 본다). Shift+Tab(뒤로)은 sink 바로 앞(문서 순서)의
+// 실제 탭 대상으로 넘어가며 실제 focusin이 뜬다 — 그 요소에 맞는 모드가 되는지까지 확인한다.
+test('나옴 상태에서 Tab·Shift+Tab을 삼키지 않고 초점이 focus sink를 벗어난다(Tab 통과)', async ({ context, servePage }) => {
+  servePage(
+    'http://practice.test/tab-pass-editor.html',
+    '<!doctype html><body style="margin:0" contenteditable="true" id="doc-text">ab<input id="next-input" /></body>',
+  );
+
+  const page = await context.newPage();
+  await page.goto('http://practice.test/tab-pass-editor.html');
+
+  const text = page.locator('#doc-text');
+  await text.click();
+  await expect.poll(() => dataMode(page)).toBe('typing');
+
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
+
+  await page.keyboard.press('Tab');
+  await expect
+    .poll(
+      () => page.evaluate(() => document.querySelector('tremor-helper-root')?.shadowRoot?.activeElement !== null),
+      'Tab이 삼켜지면 초점이 focus sink에 그대로 남는다',
+    )
+    .toBe(false);
+
+  // D-07(떨림 필터): Tab·Shift+Tab은 물리 키 code가 같은 'Tab'이라 재입력 간격을 걸러낸다 — 다른
+  // 시험들과 같은 관례로 그 간격만큼 기다린다.
+  await page.waitForTimeout(350);
+
+  await page.keyboard.press('Shift+Tab');
+  await expect
+    .poll(() => page.evaluate(() => document.activeElement?.id ?? null), 'Shift+Tab이 삼켜지면 초점이 옮겨가지 않는다')
+    .toBe('next-input');
+  await expect.poll(() => dataMode(page)).toBe('typing');
+});
+
+// 사용자 결정(/review): 도우미를 끄면 나옴 상태도 함께 풀린다 — 안 그러면 꺼진 동안 편집기를
+// 직접 눌러 입력을 재개해도(파이프라인이 관여하지 않아 가능하다) escaped 표시가 남아, 다시 켰을
+// 때 beforeinput이 계속 막혀 실제로 입력 중인 편집기에 글자가 들어가지 않는다.
+test('나옴 상태에서 도우미를 끄면 나옴 표시가 풀려, 꺼진 동안 재개한 입력을 다시 켠 뒤에도 그대로 받는다', async ({
+  context,
+  openPopup,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/doc-editor.html');
+
+  const text = page.frameLocator('#frame-design').locator('#doc-text');
+  await text.click();
+  await expect.poll(() => dataMode(page)).toBe('typing');
+
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
+
+  const popup = await openPopup(page);
+  await popup.getByRole('button', { name: '도우미 끄기' }).click();
+  await popup.close();
+
+  // 꺼진 동안은 파이프라인이 관여하지 않아 편집기를 직접 눌러 입력을 재개할 수 있다 — 이 시점의
+  // 실제 초점은 편집 루트다.
+  await text.click();
+
+  const popup2 = await openPopup(page);
+  await popup2.getByRole('button', { name: '도우미 켜기' }).click();
+  await popup2.close();
+
+  // 다시 켠 뒤에도 이미 편집 루트에 있는 실제 초점 그대로 글자가 들어가야 한다 — 나옴 표시가
+  // 꺼짐 동안 풀리지 않으면 escaped 표시가 남아, beforeinput이 계속 막혀 글자가 들어가지 않는다.
+  await page.keyboard.type('z');
+  await expect.poll(() => elementText(page, '#frame-design', '#doc-text')).toContain('z');
+});
+
 // CR-01(01-REVIEW.md): 한글 IME가 켜진 채 도우미 키(F)를 누르면 Chrome은 keydown을 keyCode
 // 229(Process)로 보낸다 — event.code는 물리 키(KeyF) 그대로라 도우미 키 처리기는 F로 인식해
 // 번호표를 연다. 뒤따르는 조합 시도가 입력 복귀 신호가 되면 안 된다(번호표가 열린 채로 남아야
