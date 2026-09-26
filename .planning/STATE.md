@@ -4,10 +4,10 @@ current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
 stopped_at: Completed 01-19-PLAN.md
-last_updated: "2026-09-26T10:16:08.729Z"
+last_updated: "2026-09-26T11:31:13.710Z"
 last_activity: 2026-09-24
 last_activity_desc: Phase 01 execution started
-state_head: "0b670a25efc118d20bd7076757b36e86834cdda4"
+state_head: e2d416c9404bec6cd53c785ba40de99b53f87dbf
 progress:
   total_phases: 6
   completed_phases: 0
@@ -147,6 +147,7 @@ Recent decisions affecting current work:
 - [Phase 1]: KEY-01/CR-01: 문서 전체 편집기 나옴 상태에서 선택 범위를 저장 후 removeAllRanges()로 지우고 초점은 그대로 둔다(DOM·되돌리기 스택 불변). '한글 조합 시작 시 입력 복귀' 신호는 없앤다 — 복귀는 Esc 다시 누름·편집기 누름·다른 요소 focusin. Windows 한국어 IME 사람 확인 1회 필요(사용자 결정 2026-09-26)
 - [Phase 1]: WR-08: 나옴 상태 Ctrl/Meta는 편집을 일으키는 조합만 막는다 — 찾기(F,G,F3)·복사(C,Insert)·인쇄(P)·저장(S)·확대축소(=,-,0)·새로고침(F5)은 통과, L/E/J/R은 문서 보호를 위해 막는다. 삼킨 키는 keyup도 함께 삼킨다(사용자 결정 2026-09-26)
 - [Phase 1]: KEY-01/CR-01 재결정: '커서 숨기기'는 실측상 IME 조합 삽입을 못 막음(5/5 삽입). 문서 전체 편집기에서 Esc로 나올 때 초점을 도우미 오버레이(documentElement의 shadow host) 안 tabindex=-1 요소로 옮기고 편집기 Range를 저장, Esc 다시 누름이면 편집 루트 focus+Range 복원. 실측 5/5 차단·캐럿 복원. 부작용: contenteditable 편집기에 blur/focusout — 실제 사이트 편집기 QA 필요(사용자 결정 2026-09-26)
+- [Phase 1]: Phase 1 진행: 재검증 human_needed(자동 101/103, 실패 0). Post-build(/review→/qa→/design-review→/cso→/ship) 통과 시 main에 머지 커밋으로 머지(브랜치 유지, PR #8~#12 보호). 사람 확인 8개(01-UAT.md)는 Phase 2 이용자 시험 때 /gsd-verify-work 1로 처리, 그때 phase 완료 표시. D-25는 머지 직후 /gsd-quick(사용자 결정 2026-09-26)
 
 ### Pending Todos
 
