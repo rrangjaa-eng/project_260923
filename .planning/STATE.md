@@ -4,10 +4,10 @@ current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
 stopped_at: Completed 01-19-PLAN.md
-last_updated: "2026-09-26T06:21:03.634Z"
+last_updated: "2026-09-26T08:32:16.056Z"
 last_activity: 2026-09-24
 last_activity_desc: Phase 01 execution started
-state_head: 22aa9033541b028703ba69054ff448b51eefbac0
+state_head: ae87fad4cfccb39a8d1fbee042eafa2ad1459510
 progress:
   total_phases: 6
   completed_phases: 0
@@ -144,6 +144,8 @@ Recent decisions affecting current work:
 - [Phase 1]: noopener는 실측대로 처리한다(Chrome이 content script를 주입하지 않음) — window.opener 등 구분 장치는 만들지 않는다
 - [Phase 1]: editor-frames.e2e.ts flaky는 제품 결함이 아니라 시험의 경쟁 조건으로 확정 — 결정적 신호(호스트 수·누른 횟수)로 시험을 바꾸고 content.ts에 동기 확인 방어를 추가했다
 - [Phase 1]: D-25: 설정이 깨졌거나 더 새 형식이어도 '도우미 끄기'는 항상 된다 — 그 PC의 storage.local에만 꺼짐 표시를 쓰고 sync 원본은 건드리지 않는다. 다시 켜면 표시만 지운다. Phase 1 머지 직후 /gsd-quick으로 처리(사용자 결정 2026-09-26)
+- [Phase 1]: KEY-01/CR-01: 문서 전체 편집기 나옴 상태에서 선택 범위를 저장 후 removeAllRanges()로 지우고 초점은 그대로 둔다(DOM·되돌리기 스택 불변). '한글 조합 시작 시 입력 복귀' 신호는 없앤다 — 복귀는 Esc 다시 누름·편집기 누름·다른 요소 focusin. Windows 한국어 IME 사람 확인 1회 필요(사용자 결정 2026-09-26)
+- [Phase 1]: WR-08: 나옴 상태 Ctrl/Meta는 편집을 일으키는 조합만 막는다 — 찾기(F,G,F3)·복사(C,Insert)·인쇄(P)·저장(S)·확대축소(=,-,0)·새로고침(F5)은 통과, L/E/J/R은 문서 보호를 위해 막는다. 삼킨 키는 keyup도 함께 삼킨다(사용자 결정 2026-09-26)
 
 ### Pending Todos
 
