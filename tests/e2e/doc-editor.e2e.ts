@@ -301,3 +301,57 @@ test('나옴 상태에서 편집기가 keydown으로 직접 처리하는 Enter�
   const injectedCount = await page.locator('#injected-p').count();
   expect(injectedCount, '나옴 상태에서 편집기의 keydown 직접 처리로 문서가 바뀌면 안 된다').toBe(0);
 });
+
+// WR-01(01-REVIEW.md): WR-08 수정이 나옴 상태에서 Ctrl/Meta 조합을 전부 삼켜 찾기·복사·인쇄·
+// 저장·확대까지 막았다 — 편집 가능성이 있는 조합(서식 단축키 등)만 막고, 편집을 일으키지 않는
+// 브라우저·사이트 명령(찾기·확대 등)은 허용 목록으로 통과시킨다.
+test('나옴 상태에서 Ctrl+B(서식) 편집은 막히고, Ctrl+F(찾기)·Ctrl+=(확대)는 사이트에 그대로 전달된다(WR-01)', async ({
+  context,
+  servePage,
+}) => {
+  servePage(
+    'http://practice.test/wr01-ctrl-editor.html',
+    '<!doctype html><body style="margin:0" contenteditable="true" id="doc-text">ab' +
+      '<script>' +
+      "window.__wr01Codes=[];" +
+      "document.addEventListener('keydown',function(e){" +
+      "window.__wr01Codes.push(e.code);" +
+      "if(e.ctrlKey&&e.code==='KeyB'){e.preventDefault();var b=document.createElement('b');b.id='injected-b';document.body.appendChild(b);}" +
+      '},true);' +
+      '</script>' +
+      '</body>',
+  );
+
+  const page = await context.newPage();
+  await page.goto('http://practice.test/wr01-ctrl-editor.html');
+
+  const text = page.locator('#doc-text');
+  await text.click();
+  await expect.poll(() => dataMode(page)).toBe('typing');
+
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
+
+  // Ctrl+B(서식, 편집 위험) — 편집기 keydown 처리기에 닿으면 안 된다.
+  await page.keyboard.press('Control+B');
+  expect(await page.locator('#injected-b').count(), '나옴 상태에서 Ctrl+B가 편집기에 닿으면 안 된다').toBe(0);
+
+  // D-07(떨림 필터): 다음 조합 전에 tremorIntervalMs(기본 300ms)만큼 기다린다(다른 시험과 같은
+  // 관례).
+  await page.waitForTimeout(350);
+
+  // Ctrl+F(찾기, 편집 아님) — 사이트 keydown 리스너에 그대로 도달해야 한다.
+  await page.keyboard.press('Control+F');
+  expect(await page.evaluate(() => (window as unknown as { __wr01Codes: string[] }).__wr01Codes), 'Ctrl+F는 사이트에 전달돼야 한다').toContain(
+    'KeyF',
+  );
+
+  await page.waitForTimeout(350);
+
+  // Ctrl+=(확대, 편집 아님) — 사이트 keydown 리스너에 그대로 도달해야 한다.
+  await page.keyboard.press('Control+Equal');
+  expect(
+    await page.evaluate(() => (window as unknown as { __wr01Codes: string[] }).__wr01Codes),
+    'Ctrl+=는 사이트에 전달돼야 한다',
+  ).toContain('Equal');
+});
