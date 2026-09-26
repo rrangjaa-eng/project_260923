@@ -215,3 +215,33 @@ test('메뉴 카드 높이가 56px 이상이고 카드 안에 키 칩 "1"이 있
   const box = await card.boundingBox();
   expect(box?.height).toBeGreaterThanOrEqual(56);
 });
+
+// WR-03(01-REVIEW.md): 도우미 카드는 `.then` 하나뿐이라 SW가 응답 없이 멈추면(무응답·거부)
+// 낙관적으로 바뀐 문구가 실제 상태와 다른 채 영원히 남는다 — 안내도 없다. e2e 전용 훅
+// (holdStorageResponseForE2E, background.ts)으로 SW가 sendResponse를 부르지 않는 상황을
+// 재현해, 클라이언트 쪽 시간 제한(3초)이 실제로 되돌리고 안내하는지 본다.
+const HELPER_TOGGLE_FAILED_TEXT = '도우미 상태를 바꾸지 못했어요. 다시 눌러 보세요.';
+
+test('WR-03: 도우미 카드가 응답 없이 3초 넘게 기다리면 실제 상태로 되돌아가고 안내 문구가 뜬다', async ({
+  serviceWorker,
+  openPopup,
+}) => {
+  await serviceWorker.evaluate(() => {
+    (globalThis as unknown as { holdStorageResponseForE2E: (n: number) => void }).holdStorageResponseForE2E(1);
+  });
+
+  const popup = await openPopup();
+  await popup.getByRole('button', { name: '도우미 끄기' }).click();
+
+  // 낙관적 렌더 — 응답이 오기 전에는 즉시 "도우미 켜기"로 바뀐다.
+  await expect(popup.getByRole('button', { name: '도우미 켜기' })).toBeVisible();
+
+  // 클라이언트 타임아웃(3초)이 지나면 실제 상태("도우미 끄기")로 되돌아가고 안내가 뜬다.
+  await expect(popup.getByRole('button', { name: '도우미 끄기' })).toBeVisible({ timeout: 4000 });
+  await expect(popup.locator('.warning-card')).toHaveText(HELPER_TOGGLE_FAILED_TEXT);
+
+  // 실제로 저장소는 바뀌지 않았어야 한다(응답이 없었으니 반영도 없다).
+  expect(await readEnabled(serviceWorker)).toBe(true);
+
+  await popup.close();
+});

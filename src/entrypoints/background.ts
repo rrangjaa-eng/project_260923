@@ -177,6 +177,16 @@ export default defineBackground(() => {
     siteQueryFailuresLeftForE2E = Math.max(0, Math.trunc(count));
   };
 
+  // e2e 전용 시험 훅(제품 기능 아님, 위 훅들과 같은 이유, WR-03): storage/request 응답을 남은
+  // 횟수만큼 보류한다(sendResponse를 아예 부르지 않는다) — 팝업 쪽 클라이언트 타임아웃(popup/
+  // main.ts sendWithRevert)을 실제 SW 무응답과 구분 없이 재현한다.
+  let holdStorageResponseLeftForE2E = 0;
+  (globalThis as typeof globalThis & { holdStorageResponseForE2E: (count: number) => void }).holdStorageResponseForE2E = (
+    count,
+  ) => {
+    holdStorageResponseLeftForE2E = Math.max(0, Math.trunc(count));
+  };
+
   // 업데이트 직후 새 도우미 넣기(D-22, RESEARCH.md Pattern 6): 이미 열려 있는 탭들에 지금
   // content script를 다시 넣는다 — 옛 도우미는 (열려 있었다면) 스스로 정리하고, 새 도우미가
   // 한 번만 들어간다. 도울 수 없는 주소는 건너뛴다(T-01-43).
@@ -248,6 +258,13 @@ export default defineBackground(() => {
     }
 
     if (message.type === 'storage/request') {
+      // WR-03 e2e 전용 훅: 남은 보류 횟수가 있으면 sendResponse를 부르지 않고 그대로 둔다(응답
+      // 없음을 재현). 채널은 열어 둔다(return true) — 팝업의 클라이언트 타임아웃이 실제로 뜨는지
+      // 시험한다.
+      if (holdStorageResponseLeftForE2E > 0) {
+        holdStorageResponseLeftForE2E -= 1;
+        return true;
+      }
       // WR-07: writer.*()가 예기치 않게 거부되면(원래 storage-writer.ts 안에서 다 잡아야 하지만,
       // 메시지 경계에서도 한 번 더 막아 둔다) .then(sendResponse)만으로는 sendResponse가 영영
       // 불리지 않아 요청 쪽(팝업 등)이 응답 없이 멈춘다 — .catch로 반드시 한 번은 답한다.
