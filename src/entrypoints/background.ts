@@ -52,31 +52,58 @@ export default defineBackground(() => {
   // 맨 위 프레임에 site/ping을 보내 1초 안에 { ok: true }가 오는지 확인한다(RESEARCH.md
   // "Open Questions (RESOLVED)" 6번) — 주소 규칙을 통과해도 content script가 실제로 들어가
   // 있지 않으면(예: CSP: sandbox 최상위 문서) 도울 수 없음으로 본다.
+  // WR-06: document.write 새 창·맨 위 다시 쓰기는 옛 인스턴스 정리 → frame/reinject →
+  // executeScript 왕복을 거쳐야 새 인스턴스가 답한다 — 한 번만 물으면 그 왕복과 경쟁해 수신자
+  // 없음으로 실패할 수 있다. 짧은 간격으로 다시 확인한다.
+  const SITE_PING_RETRY_DELAYS_MS = [250, 250];
   async function respondsToSitePing(tabId: number): Promise<boolean> {
-    try {
-      const response = await Promise.race([
-        chrome.tabs.sendMessage(tabId, { type: 'site/ping' }, { frameId: 0 }),
-        new Promise<undefined>((resolve) => {
-          setTimeout(() => {
-            resolve(undefined);
-          }, 1000);
-        }),
-      ]);
-      return (response as { ok?: boolean } | undefined)?.ok === true;
-    } catch {
-      return false;
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        const response = await Promise.race([
+          chrome.tabs.sendMessage(tabId, { type: 'site/ping' }, { frameId: 0 }),
+          new Promise<undefined>((resolve) => {
+            setTimeout(() => {
+              resolve(undefined);
+            }, 1000);
+          }),
+        ]);
+        if ((response as { ok?: boolean } | undefined)?.ok === true) {
+          return true;
+        }
+      } catch {
+        // 수신자 없음 등 — 아래에서 재시도하거나 포기한다.
+      }
+      const delay = SITE_PING_RETRY_DELAYS_MS[attempt];
+      if (delay === undefined) {
+        return false;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
+  // WR-06: 겹친 updateActionForTab 호출(onUpdated·onActivated가 거의 동시에 도는 등) 중 늦게
+  // 끝난 옛 호출이 나중에 끝난 새 호출의 결과를 덮어쓰지 않게, 탭별 세대 번호로 옛 결과를 버린다.
+  const actionGenerationByTab = new Map<number, number>();
+
   async function updateActionForTab(tabId: number, url: string | undefined): Promise<void> {
+    const generation = (actionGenerationByTab.get(tabId) ?? 0) + 1;
+    actionGenerationByTab.set(tabId, generation);
+    const isCurrent = (): boolean => actionGenerationByTab.get(tabId) === generation;
+
     // Task 2(01-19): about: 탭(주소 없는 새 창)은 주소만으로 판정하지 않는다 — content script는
     // Task 1의 맨 위 가드 때문에 물려받은 http(s) 출처가 있을 때만 시작하므로, ping 응답 여부가
     // 곧 도울 수 있는지다. 그 밖의 주소(브라우저 내부·스토어)는 지금 규칙 그대로다.
     if (!url?.startsWith('about:') && isUnsupportedUrl(url)) {
-      await markUnsupported(tabId);
+      if (isCurrent()) {
+        await markUnsupported(tabId);
+      }
       return;
     }
-    if (!(await respondsToSitePing(tabId))) {
+    const supported = await respondsToSitePing(tabId);
+    if (!isCurrent()) {
+      return;
+    }
+    if (!supported) {
       await markUnsupported(tabId);
       return;
     }
@@ -101,6 +128,7 @@ export default defineBackground(() => {
 
   chrome.tabs.onRemoved.addListener((tabId) => {
     topDocOrigins.delete(tabId);
+    actionGenerationByTab.delete(tabId);
   });
 
   // 시작 때(SW가 막 깨어났을 때): 이미 열려 있는 활성 탭들에도 바로 반영한다.

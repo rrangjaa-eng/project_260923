@@ -380,6 +380,20 @@ test('맨 위 문서를 document.open/write/close로 다시 쓰면 옛 도우미
   const after = await frameStateRecordCount(serviceWorker, 0);
   expect(after - before, '다시 쓴 맨 위 문서의 frameId 0 frame/state(true)는 정확히 1번이어야 한다').toBe(1);
 
+  // WR-06(01-REVIEW.md): 다시 쓰기 직후 onUpdated(complete)가 옛 인스턴스 정리→frame/reinject→
+  // executeScript 왕복과 경쟁해 ping 한 번이 실패하면 아이콘이 "도울 수 없음"으로 굳을 수 있다.
+  await expect
+    .poll(
+      async () =>
+        serviceWorker.evaluate(async () => {
+          const tabs = await chrome.tabs.query({ url: 'http://practice.test/*' });
+          const id = tabs[0]?.id;
+          return id === undefined ? '' : chrome.action.getTitle({ tabId: id });
+        }),
+      { timeout: 5000 },
+    )
+    .toBe('손 떨림 도우미');
+
   const btn = page.locator('#btn-rewrite');
   await pressHintFor(page, btn);
   await page.waitForTimeout(300);

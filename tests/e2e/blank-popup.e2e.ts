@@ -558,3 +558,25 @@ test('오프너가 실제 주소 탭을 about:blank로 이동시키면 그 오�
   await child.close();
   await page.close();
 });
+
+// WR-06(01-REVIEW.md): document.write 새 창은 옛 인스턴스가 정리→frame/reinject→executeScript
+// 왕복을 거쳐야 site/ping에 답한다 — 그 사이 onUpdated(complete)가 곧바로 ping을 한 번만 보내면
+// 수신자 없음으로 실패해 "도울 수 없음"으로 굳어질 수 있다(재시도 없음).
+test('window.open(\'\') 뒤 document.write로 채운 새 창의 아이콘 제목도 결국 "손 떨림 도우미"가 된다(WR-06)', async ({
+  context,
+  serviceWorker,
+}) => {
+  const page = await openOpenerPage(context);
+  const popup = await openViaFn(page, context, 'openWritePopup');
+  await waitForHelperReady(popup);
+
+  const popupTabId = await tabIdByUrl(serviceWorker, 'about:blank', 'http://practice.test/blank-popup.html');
+  if (popupTabId === undefined) {
+    throw new Error('새 창 탭을 찾지 못했다');
+  }
+  await expect.poll(() => tabTitle(serviceWorker, popupTabId), { timeout: 5000 }).toBe('손 떨림 도우미');
+  await expect.poll(() => tabBadge(serviceWorker, popupTabId)).toBe('');
+
+  await popup.close();
+  await page.close();
+});
