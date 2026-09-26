@@ -295,8 +295,9 @@ test('나옴 상태에서 편집기가 keydown으로 직접 처리하는 Enter�
   await page.keyboard.press('Escape');
   await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
 
+  // WR-06(01-REVIEW.md): keydown 처리는 동기라 keyboard.press가 돌아온 시점에 이미 끝나 있다 —
+  // 고정 대기가 필요 없다.
   await page.keyboard.press('Enter');
-  await page.waitForTimeout(200);
 
   const injectedCount = await page.locator('#injected-p').count();
   expect(injectedCount, '나옴 상태에서 편집기의 keydown 직접 처리로 문서가 바뀌면 안 된다').toBe(0);

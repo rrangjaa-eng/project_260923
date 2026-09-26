@@ -387,13 +387,13 @@ test('WR-04 이후: 같은 출처 자식 프레임과 맨 위가 똑같은 틀(�
   await page.mouse.move(topBox.x - 10, topBox.y + topBox.height / 2);
   await page.waitForTimeout(50);
   await page.mouse.click(topBox.x - 10, topBox.y + topBox.height / 2);
-  await page.waitForTimeout(300);
 
+  // WR-06(01-REVIEW.md): 기록 쓰기는 content → SW → storage 왕복이라 고정 대기 뒤 한 번만
+  // 검사하면 부하 때 거짓 실패한다 — 조건이 될 때까지 기다린다(고정 waitForTimeout 대신).
+  await expect
+    .poll(async () => (await pressesEntries(serviceWorker, 'http://practice.test')).length)
+    .toBe(1);
   const entries = await pressesEntries(serviceWorker, 'http://practice.test');
-  expect(
-    entries.length,
-    '자식 프레임 직접 누르기는 기록되지 않는다(WR-04) — 맨 위 자신의 누르기 하나만 남아야 한다',
-  ).toBe(1);
   expect(entries[0]?.count, '맨 위 자신의 기록이 자식 없는 기록과 합쳐지거나 중복되면 안 된다').toBe(1);
   expect(entries[0]?.fingerprint.framePath, '맨 위 자신의 기록은 framePath가 빈 배열이어야 한다').toEqual([]);
 });
