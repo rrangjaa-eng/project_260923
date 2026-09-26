@@ -32,8 +32,10 @@ const POINTER_MOVE_MIN_INTERVAL_MS = 1000 / 60;
 const MODAL_TICK_INTERVAL_MS = 100;
 
 // WR-08: "나옴" 상태에서 편집기가 keydown으로 직접 처리하는 편집 키 — Ctrl/Meta 조합(서식
-// 단축키 등)은 아래에서 code와 무관하게 따로 본다.
-const EDITING_KEYCODES = new Set(['Enter', 'NumpadEnter', 'Backspace', 'Delete', 'Tab']);
+// 단축키 등)은 아래에서 code와 무관하게 따로 본다. Tab은 여기 없다(/review 사용자 결정) — 나옴
+// 상태에서 Tab을 삼키면 focus sink를 벗어날 길이 막힌다, 아래 keydown 처리기가 막지 않고
+// 통과시켜 브라우저 기본 동작(다음 탭 대상으로 이동)이 그대로 일어나게 한다.
+const EDITING_KEYCODES = new Set(['Enter', 'NumpadEnter', 'Backspace', 'Delete']);
 // WR-01: 수정자 키 단독 keydown(Ctrl·Meta·Shift·Alt만 누른 상태)은 삼키지 않는다 — keyup까지
 // 일관되게 삼키는 대상이 아니라 그냥 통과시킨다.
 const MODIFIER_ONLY_KEYCODES = new Set([

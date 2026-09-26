@@ -24,11 +24,13 @@ export type Side = 'left' | 'right';
 let hostElement: HTMLElement | null = null;
 let shadowRoot: ShadowRoot | null = null;
 let indicatorElement: HTMLDivElement | null = null;
-// CR-01(01-REVIEW-FIX.md iteration 4, 사용자 결정): 문서 전체 편집기에서 나올 때 초점을 이 요소로
-// 옮긴다("초점 옮기기" — 선택 범위 해제만으로는 트러스트된 키 이벤트마다 Chrome이 선택을 되살려
-// 한글 IME 조합을 막지 못했다, iteration 3 실측). tabindex=-1이라 Tab으로는 닿지 않고, 시각 요소가
-// 없어 그려지지 않는다(빈 div, all:initial 호스트 안). escapeDocumentEditor()가 실제로 나올 때만
-// lazily 만든다 — dom-audit 감사 시나리오는 이 경로를 타지 않아 기존 감사 기준에 영향이 없다.
+// CR-01(iteration 4, 사용자 결정): 문서 전체 편집기에서 나올 때 초점을 이 요소로 옮긴다("초점
+// 옮기기" — 선택 범위 해제만으로는 트러스트된 키 이벤트마다 Chrome이 선택을 되살려 한글 IME
+// 조합을 막지 못했다, iteration 3 실측). tabindex=-1이라 Tab으로 이 요소 자체에는 닿지 않지만,
+// 나옴 상태에서 Tab keydown은 삼키지 않으므로(/review 사용자 결정) 여기서 Tab을 누르면 초점이
+// 다음 탭 대상으로 그대로 넘어간다. 시각 요소가 없어 그려지지 않는다(빈 div, all:initial 호스트
+// 안). escapeDocumentEditor()가 실제로 나올 때만 lazily 만든다 — dom-audit 감사 시나리오는 이
+// 경로를 타지 않아 기존 감사 기준에 영향이 없다.
 let focusSinkElement: HTMLElement | null = null;
 let mode: Mode = 'helper';
 let side: Side = 'left';
