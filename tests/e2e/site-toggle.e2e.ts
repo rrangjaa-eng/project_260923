@@ -762,3 +762,55 @@ test('F6: 경고 카드(형식 변환 실패)가 siteStatus보다 먼저 떠도 
   await popup.close();
   await page.close();
 });
+
+// F6 후속(DOM 감사 4회차, 사용자 결정 2026-09-26, DECISIONS.md): "도울 수 없음" 안내
+// (unsupportedMessage)도 siteStatus와 같은 F6 기준점을 따라야 한다 — renderForTargetTab()의
+// 왕복(getTitle→tabs.get)이 loadMigrationNotice()의 storage.local.get 한 번보다 거의 항상
+// 늦게 끝나 경고 카드가 안내보다 먼저 붙는 경합이 안정적으로 일어난다. 두 경우 모두 DOM 순서는
+// 항상 안내가 경고 카드보다 먼저여야 한다.
+test('F6 후속: 도울 수 없는 탭에서도 경고 카드가 안내보다 먼저 떠도 DOM 순서는 항상 안내 뒤다', async ({
+  context,
+  serviceWorker,
+  openPopup,
+}) => {
+  const page = await context.newPage();
+  await page.goto('chrome://version');
+
+  // f6unsup.mjs 실측과 같은 순서(안내를 열기 전에 미리 심어 둔다).
+  await serviceWorker.evaluate(async () => {
+    await chrome.storage.local.set({
+      'notice:migration-failed': { schemaVersion: 1, data: { key: 'settings', reason: 'audit', at: Date.now() } },
+    });
+  });
+
+  const popup = await openPopup(page);
+
+  async function popupChildren(): Promise<Array<{ cls: string; text: string }>> {
+    return popup.evaluate(() => {
+      const root = document.getElementById('app')?.shadowRoot;
+      const popupEl = root?.querySelector('.popup');
+      if (!popupEl) {
+        return [];
+      }
+      return Array.from(popupEl.children).map((el) => ({ cls: el.className, text: el.textContent }));
+    });
+  }
+
+  await expect
+    .poll(async () => {
+      const children = await popupChildren();
+      const hasWarning = children.some((c) => c.cls === 'warning-card');
+      const hasUnsupported = children.some((c) => c.cls === 'unsupported-message');
+      return hasWarning && hasUnsupported;
+    })
+    .toBe(true);
+
+  const children = await popupChildren();
+  const warningIndex = children.findIndex((c) => c.cls === 'warning-card');
+  const unsupportedIndex = children.findIndex((c) => c.cls === 'unsupported-message');
+
+  expect(unsupportedIndex, '안내(unsupportedMessage)가 경고 카드보다 먼저 와야 한다').toBeLessThan(warningIndex);
+
+  await popup.close();
+  await page.close();
+});
