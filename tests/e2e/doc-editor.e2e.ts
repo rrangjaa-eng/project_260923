@@ -128,3 +128,43 @@ test('#frame-design에서 Esc로 나온 뒤 CDP 조합 입력을 보내면 입�
   await cdp.send('Input.insertText', { text: '가' });
   await expect.poll(async () => (await elementText(page, '#frame-design', '#doc-text')).length).toBe(before.length + 1);
 });
+
+// CR-01(01-REVIEW.md): 한글 IME가 켜진 채 도우미 키(F)를 누르면 Chrome은 keydown을 keyCode
+// 229(Process)로 보낸다 — event.code는 물리 키(KeyF) 그대로라 도우미 키 처리기는 F로 인식해
+// 번호표를 연다. IME가 이미 받은 키는 keydown 취소로 되돌릴 수 없어(Chrome/Windows 알려진
+// 동작), 곧바로 compositionstart가 뜬다 — 이건 사용자가 다시 입력하려는 의도적 신호가 아니라
+// F 키 자체가 조합으로 잘못 들어간 것이다. 입력 복귀 신호로 보면 안 된다(번호표가 열린 채
+// 문서가 오염되면 안 된다).
+test('#frame-design에서 나온 상태로 F(번호표 열기)를 누른 직후 바로 뜨는 조합 시작은 입력 복귀 신호가 아니다(CR-01)', async ({
+  context,
+}) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/doc-editor.html');
+
+  const text = page.frameLocator('#frame-design').locator('#doc-text');
+  await text.click();
+  await expect.poll(() => dataMode(page)).toBe('typing');
+
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page), { timeout: 2000 }).toBe('helper');
+
+  const before = await elementText(page, '#frame-design', '#doc-text');
+
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Input.dispatchKeyEvent', {
+    type: 'rawKeyDown',
+    windowsVirtualKeyCode: 229,
+    nativeVirtualKeyCode: 229,
+    code: 'KeyF',
+    key: 'Process',
+  });
+  await expect.poll(() => hintLabelCount(page)).toBeGreaterThan(0);
+
+  await cdp.send('Input.imeSetComposition', { text: 'ㄹ', selectionStart: 1, selectionEnd: 1 });
+
+  await expect.poll(() => dataMode(page)).toBe('helper');
+  expect(
+    await elementText(page, '#frame-design', '#doc-text'),
+    '번호표를 연 F가 조합으로 문서에 들어가면 안 된다',
+  ).toBe(before);
+});
