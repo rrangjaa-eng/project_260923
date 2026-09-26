@@ -145,6 +145,27 @@ function rectsOverlap(a: { x: number; y: number; w: number; h: number }, b: { x:
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
+// 다섯 자리 모두 막힘(DOM 감사 4회차, 사용자 결정, DECISIONS.md 2026-09-26): 요소 주변을 가까운
+// 곳부터 넓혀 가며(정해진 반지름·방향만 도는 결정적 탐색 — 같은 입력엔 항상 같은 순서) 자리를
+// 더 찾는다. RING_STEPS·RING_DIRECTIONS는 고정값이라 번호표 수십 개에서도 한 프레임 안에 끝난다
+// (링마다 8자리 × 최대 12링 = 96자리, 각 자리는 이미 놓인 것과만 비교).
+const RING_MAX = 12;
+const RING_DIRECTIONS = 8;
+
+function ringCandidates(rect: Rect, size: number): Point[] {
+  const cx = rect.x + rect.w / 2;
+  const cy = rect.y + rect.h / 2;
+  const points: Point[] = [];
+  for (let ring = 1; ring <= RING_MAX; ring += 1) {
+    const radius = ring * size;
+    for (let step = 0; step < RING_DIRECTIONS; step += 1) {
+      const theta = (step / RING_DIRECTIONS) * 2 * Math.PI;
+      points.push({ x: cx + Math.cos(theta) * radius - size / 2, y: cy + Math.sin(theta) * radius - size / 2 });
+    }
+  }
+  return points;
+}
+
 // ISSUE-002: 후보 자리가 뷰포트를 벗어나는지 — viewportWidth·viewportHeight가 유한할 때만
 // 판단한다(Infinity면 늘 안 벗어난 것으로 본다, opts 생략 시 기존 동작 유지). F1(/design-review
 // 3회차, 사용자 결정): 폭·높이를 따로 받아 위험 항목의 "번호표 + 표시" 합친 상자도 그대로 잴 수
@@ -223,6 +244,10 @@ export function placeLabels(
   // F4: 장애물은 처음부터 놓인 것으로 취급한다 — entries 어느 것도 이 자리를 옮기지 못하고,
   // 다른 번호표만 이 자리를 피한다.
   const placed: Array<{ x: number; y: number; w: number; h: number }> = obstacles.map((o) => ({ x: o.x, y: o.y, w: o.w, h: o.h }));
+  // 다섯 자리 모두 막힘(DOM 감사 4회차, 사용자 결정): 장애물·이미 놓인 위험 번호표("! 위험" 표시
+  // 까지 합친 상자)는 마지막까지 절대 가리면 안 된다 — placed와 달리 이 목록은 "번호표끼리만
+  // 겹침을 허용"하는 마지막 단계에서도 그대로 지킨다.
+  const protectedBoxes: Array<{ x: number; y: number; w: number; h: number }> = obstacles.map((o) => ({ x: o.x, y: o.y, w: o.w, h: o.h }));
   const resultByItemId = new Map<string, { x: number; y: number; dangerTagX?: number; dangerTagY?: number }>();
 
   for (const { entry } of order) {
@@ -234,13 +259,61 @@ export function placeLabels(
     const combinedWidth = labelSize + extraWidth;
 
     const candidates = candidatePositions(entry.rect, labelSize);
-    let chosen: Point = candidates[4];
-    for (const candidate of candidates) {
+
+    function fits(candidate: Point, blockers: Array<{ x: number; y: number; w: number; h: number }>): boolean {
       const box = { x: candidate.x, y: candidate.y, w: combinedWidth, h: labelSize };
-      const blocked = placed.some((p) => rectsOverlap(p, box));
-      if (!blocked && withinViewport(candidate, combinedWidth, labelSize, viewportWidth, viewportHeight, haloWidth)) {
+      const blocked = blockers.some((p) => rectsOverlap(p, box));
+      return !blocked && withinViewport(candidate, combinedWidth, labelSize, viewportWidth, viewportHeight, haloWidth);
+    }
+
+    function overlapsProtected(candidate: Point): boolean {
+      const box = { x: candidate.x, y: candidate.y, w: combinedWidth, h: labelSize };
+      return protectedBoxes.some((p) => rectsOverlap(p, box));
+    }
+
+    // 기존 다섯 자리(기본·오른쪽 위·왼쪽 아래·오른쪽 아래·요소 안쪽) — 다른 번호표·장애물·위험
+    // 표시 모두와 안 겹치는 자리를 먼저 본다(기존 동작 그대로). 다섯 자리 모두 막히면(찾지
+    // 못하면) 예전처럼 요소 안쪽(candidates[4])을 기본값으로 남긴다 — 순수하게 다른 번호표하고만
+    // 겹치는 경우(장애물·위험 표시가 없는 자리)는 SYSTEM.md 64행 원래 규칙 그대로 이 자리를 쓴다
+    // (회귀 없음).
+    let chosen: Point = candidates[4];
+    let foundWithoutSearch = false;
+    for (const candidate of candidates) {
+      if (fits(candidate, placed)) {
         chosen = candidate;
+        foundWithoutSearch = true;
         break;
+      }
+    }
+
+    // 다섯 자리 모두 막힘 + 그 마지막 자리(candidates[4])까지 장애물·"! 위험" 표시를 가리는
+    // 경우만(DOM 감사 4회차, 사용자 결정) 요소 주변을 넓혀 가며 다시 찾는다 — 순수 번호표끼리만
+    // 겹치는 크로우딩(위 회귀 없음 주석)은 이 탐색을 건너뛴다.
+    if (!foundWithoutSearch && overlapsProtected(chosen)) {
+      let expanded: Point | null = null;
+      // 2단계: 같은 기준(장애물·이미 놓인 번호표·위험 표시 모두와 안 겹침 + 화면 안)으로, 요소
+      // 주변을 가까운 곳부터 넓혀 가며 다시 찾는다 — 결정적이고 비용이 작다(RING_MAX ×
+      // RING_DIRECTIONS 고정, 번호표 수십 개에서도 한 프레임 안).
+      for (const candidate of ringCandidates(entry.rect, labelSize)) {
+        if (fits(candidate, placed)) {
+          expanded = candidate;
+          break;
+        }
+      }
+      // 3단계(그래도 없으면): 장애물·"! 위험" 표시(protectedBoxes)만은 절대 가리지 않고, 다른
+      // 번호표와는 겹침을 허용한다 — 같은 다섯 자리 + 링 자리를 protectedBoxes 기준으로 다시 본다.
+      if (!expanded) {
+        for (const candidate of [...candidates, ...ringCandidates(entry.rect, labelSize)]) {
+          if (fits(candidate, protectedBoxes)) {
+            expanded = candidate;
+            break;
+          }
+        }
+      }
+      // 4단계(마지막 안전망): 그래도 없으면 요소 안쪽 자리를 그대로 쓴다(예전 동작) — 아래 화면
+      // 안 밀어 넣기가 잘림만은 막는다.
+      if (expanded) {
+        chosen = expanded;
       }
     }
 
@@ -259,6 +332,10 @@ export function placeLabels(
     // 이 항목이 차지하는 자리(번호표 + 있다면 표시까지)를 한 상자로 남긴다 — 다음 항목은 danger
     // 여부와 무관하게 이 상자 전체를 피한다.
     placed.push({ x, y, w: combinedWidth, h: labelSize });
+    // 위험 번호표는 장애물과 똑같이 끝까지 보호한다(위 3단계) — "번호표+표시" 합친 상자 그대로.
+    if (entry.danger) {
+      protectedBoxes.push({ x, y, w: combinedWidth, h: labelSize });
+    }
 
     if (entry.danger) {
       entryResult.dangerTagX = x + labelSize + dangerGap;
