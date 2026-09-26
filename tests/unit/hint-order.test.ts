@@ -157,4 +157,23 @@ describe('placeLabels', () => {
       tagTwoBox.y + tagTwoBox.h > labelOneBox.y;
     expect(overlap).toBe(false);
   });
+
+  // F4(/design-review 3회차, 사용자 결정, DECISIONS.md 2026-09-26): 번호표는 도우미 자신의 표시
+  // (모드 표시·"다음" 카드)도 다른 번호표처럼 장애물로 피한다 — entries에는 없는 사각형이다.
+  it('F4: entries 밖 장애물(모드 표시 등)과 겹치면 다른 자리로 옮긴다', () => {
+    const rect = { x: 100, y: 100, w: 40, h: 40 };
+    // 기본 자리(-14,-14)를 정확히 막는 장애물.
+    const obstacle = { x: 86, y: 86, w: 28, h: 28 };
+
+    const placements = placeLabels([{ itemId: 'a', rect }], 28, { obstacles: [obstacle] });
+    const placement = placements[0];
+    if (!placement) {
+      throw new Error('번호표 자리가 없다');
+    }
+
+    const box = { x: placement.x, y: placement.y, w: 28, h: 28 };
+    const overlap =
+      box.x < obstacle.x + obstacle.w && box.x + box.w > obstacle.x && box.y < obstacle.y + obstacle.h && box.y + box.h > obstacle.y;
+    expect(overlap, '기본 자리(장애물과 겹침)에 그대로 있으면 안 된다').toBe(false);
+  });
 });
