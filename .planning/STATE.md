@@ -4,10 +4,10 @@ current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
 stopped_at: Completed 01-19-PLAN.md
-last_updated: "2026-09-26T06:18:41.800Z"
+last_updated: "2026-09-26T06:21:03.634Z"
 last_activity: 2026-09-24
 last_activity_desc: Phase 01 execution started
-state_head: 55acdd0a461c0ebf8538d41c7dedf8754320f3db
+state_head: 22aa9033541b028703ba69054ff448b51eefbac0
 progress:
   total_phases: 6
   completed_phases: 0
@@ -143,6 +143,7 @@ Recent decisions affecting current work:
 - [Phase 1]: 새 창 사이트 정체는 Chrome이 준 값(sender.origin, tab.url)으로만 정한다 — siteOriginOfTab이 유일한 판정 지점
 - [Phase 1]: noopener는 실측대로 처리한다(Chrome이 content script를 주입하지 않음) — window.opener 등 구분 장치는 만들지 않는다
 - [Phase 1]: editor-frames.e2e.ts flaky는 제품 결함이 아니라 시험의 경쟁 조건으로 확정 — 결정적 신호(호스트 수·누른 횟수)로 시험을 바꾸고 content.ts에 동기 확인 방어를 추가했다
+- [Phase 1]: D-25: 설정이 깨졌거나 더 새 형식이어도 '도우미 끄기'는 항상 된다 — 그 PC의 storage.local에만 꺼짐 표시를 쓰고 sync 원본은 건드리지 않는다. 다시 켜면 표시만 지운다. Phase 1 머지 직후 /gsd-quick으로 처리(사용자 결정 2026-09-26)
 
 ### Pending Todos
 
