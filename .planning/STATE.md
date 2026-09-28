@@ -4,10 +4,10 @@ current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
 stopped_at: Completed 01-19-PLAN.md
-last_updated: "2026-09-26T17:33:02.762Z"
+last_updated: "2026-09-26T18:11:23.566Z"
 last_activity: 2026-09-24
 last_activity_desc: Phase 01 execution started
-state_head: 4addac52b08057979eca797f817ff4ec22a05933
+state_head: 2c6e973a5f369630f44047e068107dd1b997a953
 progress:
   total_phases: 6
   completed_phases: 0
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-09-23)
 Phase: 1 (클릭 도우미 기반) — READY TO EXECUTE
 Plan: 5 of 16
 Status: Ready to execute
-Last activity: 2026-09-24 — Phase 01 execution started
+Last activity: 2026-09-26 - Completed quick task 260926-pa1: D-25 깨진 설정에서도 도우미 끄기
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -156,6 +156,7 @@ Recent decisions affecting current work:
 - [Phase 1]: Post-build 진행 방식: 남은 단계(/design-review 마무리 감사 5회차, /cso, /ship)는 머지를 막는 항목(Critical·차단)만 고치고, 경고·작은 지적은 Phase 2 후속 목록으로 넘긴다. 단계 하나가 끝날 때마다 /gsd-pause-work로 인계하고 새 세션에서 이어 간다(사용자 결정 2026-09-26)
 - [Phase 1]: 후속(Phase 2, 비차단 N1): 번호표끼리만 막힌 경우 코드는 링 탐색 없이 요소 안쪽(SYSTEM.md 64행)을 쓰지만 새 규칙 줄·DECISIONS.md는 '자리가 정말 없을 때만' 번호표끼리 겹침 허용 — 문서와 코드 불일치. 50%·67% 축소 big.html에서만 발생(100/75/150%는 0). 어느 규칙을 따를지 Phase 2에서 결정
 - [Phase 1]: /cso(Post-build 4) 완료 — 머지 차단 0. gstack cso 실행기(build:cso)로 제품 코드 사본(벤더링 .claude/skills·gsd-core 제외, 스냅샷 1 MiB 한도) 대상 3회 실행: daily 1790442962041-81fe8594fa6d5ce9(partial, 발견 없음), --supply-chain 1790443163664-3647266704dc6681(partial, 발견 없음; 번들 런타임 zod 4.6.5 권고 0, 잠금 274개 권고 0, CI pull_request·contents:read·시크릿 없음), --code 1790443157658-e9a56262a0374698(partial, F1 medium·F2 low). F1(다른 출처 iframe 위험 확인을 맨 위 open shadow root에 그려 악성 맨 위 페이지가 번호표·확인 문구를 바꿔 우회)과 F2(다른 출처 iframe 위험 버튼 글자·위치 노출)는 Phase 2 후속. 후속 권고: 다른 출처 프레임 확인을 그 프레임/확장 UI로 옮기고 confirmed 불신, 프로덕션 closed shadow root, 액션 SHA 고정, install_pkgs.sh gstack 설치 frozen·ignore-scripts, 시험 훅 빌드 플래그 제거(IN-02), settings-schema·git 이력·OSV 재감사. 보고서 /root/.gstack/security/cso/4a29baba43a59ab40b80efb9/<run>/report.md(컨테이너 로컬). — 사용자 결정: F1은 Critical이 아니고 근본 수정은 확인 화면 위치를 바꾸는 설계 변경(SYSTEM.md·DESIGN §4 절차 대상)이라 Phase 2 후속으로 넘기고 머지(차단만 머지 전 수정 기준).
+- [Phase 1]: /ship(Post-build 5) 완료 — PR #7을 머지 커밋 2c6e973으로 main에 머지(squash·rebase 없음, 브랜치 유지). /ship 검증(Steps 4–11, opus + Codex 적대 검토)에서 차단 B-1(F3가 cursor 전용 포장 div 안 이름 있는 조작 요소를 합쳐 위험 표시·확인 화면 소실) 발견 → 사용자 결정으로 F3 좁힘: 이름 있는 조작 요소 자식은 합치지 않고 합치는 자식의 위험 판정을 조상에 더함(RED 27bb45a → fix 63c8d75). 독립 DOM 감사(프로덕션 빌드 실측): dom-audit.e2e 16/16, 연습 사이트 14쪽 겹침·화면 밖·위험 가림 0, 변경 전 빌드 대비 결함 재현·해소 확인, 차단 0. 전체 게이트 @63c8d75 단위 115·e2e 253(0 failed·0 flaky), GitHub CI check 초록. Phase 2 후속: B-2 번호표 4단계 안전망이 보호 영역 재확인 안 함(긴 요소), 합친 항목 확인 화면 이름이 위험 출처(자식)와 다름(c5 "열기"), 같은 크기 쌍이 둘 다 남아 번호표 증가·포장 div 헛번호, danger.html [7]/[8] 후광 2px 닿음(기존), collector 조상 탐색 O(n×깊이), measureDangerTag 후광 폭 누락, 커버리지 C2~C4(4단계 안전망, hideNextCard 마지막 장, Meta·AltGraph 조합), 커밋 범위 (02)~(05) 오표기 12개(PR 본문에 명시). — 사용자 위임 조건(게이트 초록, 차단 0, CI 초록, 충돌 없음) 충족으로 머지. B-1은 사용자 결정(F3 좁히기)으로 머지 전 수정, 나머지는 '차단만 머지 전' 기준으로 Phase 2.
 
 ### Pending Todos
 
@@ -168,6 +169,12 @@ None yet.
 - GSTACK REVIEW REPORT에서 디자인 리뷰·엔지니어링 리뷰가 PENDING — UI가 있는 Phase 1 계획 전에 저장소 워크플로대로 처리
 - 웨일의 `chrome.storage.sync` 동작 미확인 — 파일 내보내기·가져오기를 기본 수단으로
 - 저장소 루트 CLAUDE.md의 제품·스택 설명은 다른 제품(PLANT8 ERP) — 규칙만 적용
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260926-pa1 | D-25 깨진 설정에서도 도우미 끄기(storage.local 꺼짐 표시, sync 원본 불변) — 전체 게이트 단위 121·e2e 255 통과, 독립 DOM 감사 차단 0(후속: 경고 카드 상태 팝업 높이 639px > 600px, 기존 문제) | 2026-09-26 | 3cca741 | [260926-pa1-d-25](./quick/260926-pa1-d-25/) |
 
 ### Roadmap Evolution
 
