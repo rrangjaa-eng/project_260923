@@ -113,6 +113,19 @@ ${tokensCss}
   border-radius: var(--radius-card);
   font-size: var(--text-body);
 }
+.portable-stop {
+  width: 100%;
+  min-height: var(--target-min);
+  margin: 0 0 var(--space-4) 0;
+  background: var(--bg);
+  color: var(--danger);
+  border: var(--border-strong) solid var(--danger);
+  border-radius: var(--radius-button);
+  font: inherit;
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+}
+.portable-stop:focus-visible { outline: var(--border-strong) solid var(--accent); }
 `;
 shadow.append(style);
 
@@ -143,6 +156,22 @@ warningCard.setAttribute('role', 'alert');
 // 지금 사이트에서만 끄기 상태 한 줄(Plan 01-13 Task 3, --muted — .status와 같은 스타일 재사용).
 const siteStatus = document.createElement('p');
 siteStatus.className = 'status';
+
+const portableStatus = document.createElement('p');
+portableStatus.className = 'status';
+portableStatus.textContent = '휴대형 손: 확인 중';
+
+const portableStop = document.createElement('button');
+portableStop.type = 'button';
+portableStop.className = 'portable-stop';
+portableStop.textContent = '긴급 정지 — 눌린 마우스 버튼 놓기';
+portableStop.hidden = true;
+portableStop.addEventListener('click', () => {
+  void chrome.runtime.sendMessage({ type: 'portable/command', command: { action: 'emergency.stop' } }).then((raw) => {
+    const response = raw as { status?: string } | undefined;
+    portableStatus.textContent = response?.status === 'completed' ? '휴대형 손: 긴급 정지했어요' : '휴대형 손: 긴급 정지하지 못했어요';
+  });
+});
 
 const cards = document.createElement('div');
 cards.className = 'cards';
@@ -353,7 +382,7 @@ const dragTwoPressCard = createCard({
 });
 
 cards.append(helperCard.element, dwellCard.element, dragTwoPressCard.element);
-container.append(title, status, cards);
+container.append(title, status, portableStatus, portableStop, cards);
 shadow.append(container);
 
 // 대상 탭 결정(Plan 01-13 Task 2): 쿼리 tabId가 있으면 그 탭, 없으면 현재 활성 탭. 쿼리는 시험
@@ -496,6 +525,15 @@ async function loadInitial(): Promise<void> {
   }
 }
 
+async function loadPortableHandStatus(): Promise<void> {
+  const raw = await chrome.runtime.sendMessage({ type: 'portable/status' }).catch(() => undefined);
+  const connected = (raw as { connected?: boolean } | undefined)?.connected === true;
+  portableStatus.textContent = connected
+    ? '휴대형 손: 연결됨 · canvas 위에서 Alt+Shift+Space'
+    : '휴대형 손: 연결 안 됨 · USB의 시작하기를 실행하세요';
+  portableStop.hidden = !connected;
+}
+
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== 'sync') {
     return;
@@ -537,6 +575,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 });
 
 void loadInitial();
+void loadPortableHandStatus();
 void loadMigrationNotice();
 void renderForTargetTab();
 void ensureHelperFontsRegistered();

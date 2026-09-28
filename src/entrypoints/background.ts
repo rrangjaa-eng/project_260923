@@ -254,13 +254,20 @@ export default defineBackground(() => {
     const message = parsed.data;
 
     if (message.type === 'portable/status') {
-      sendResponse({ connected: portableHand.connected() });
-      return undefined;
+      // USB의 시작하기를 브라우저를 연 뒤 실행할 수 있으므로 상태를 물을 때마다 끊긴 host를
+      // 다시 연결하고 실제 ping 응답까지 확인한다. Port 객체가 잠깐 생긴 것만으로 연결됐다고
+      // 표시하지 않는다.
+      portableHand.connect();
+      void portableHand.send({ action: 'host.ping' }).then((response) => {
+        sendResponse({ connected: response.status === 'completed', reason: response.reason });
+      });
+      return true;
     }
 
     if (message.type === 'portable/command') {
       // 페이지 자체는 runtime 통로에 닿지 못하고, 위 sender.id 검사와 zod 허용 목록을 지난
       // 확장 코드만 여기까지 온다. host가 활성 브라우저·만료·중복을 한 번 더 검사한다.
+      portableHand.connect();
       void portableHand.send(message.command).then(sendResponse);
       return true;
     }
