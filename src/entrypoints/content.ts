@@ -654,6 +654,82 @@ export default defineContentScript({
     // 설정을 읽기 전이라도 리스너를 먼저 걸어야 사이트보다 앞선다(D-06, Pattern 1) — 설정이
     // 오기 전에는 defaultSettings()로 판단한다. signal은 Plan 01-14의 자기 정리용이다.
     const pipelineController = new AbortController();
+
+    // 휴대형 손 첫 사용자 경로(D-PORTABLE): canvas 안에서 마지막으로 실제 포인터가 있던 화면
+    // 좌표를 기억했다가 Alt+Shift+Space로 Windows 실제 클릭을 부탁한다. screenX/screenY는 브라우저
+    // 상단 높이·Windows 배율을 이미 반영한 실제 입력 사건의 좌표라 client 좌표를 추측 변환하지
+    // 않는다. 오래됐거나 canvas가 이동·사라진 좌표는 실행하지 않는다.
+    let portableCanvasPoint: { canvas: HTMLCanvasElement; clientX: number; clientY: number; screenX: number; screenY: number; at: number } | null = null;
+    window.addEventListener(
+      'pointermove',
+      (event) => {
+        if (!event.isTrusted || !(event.target instanceof HTMLCanvasElement)) {
+          return;
+        }
+        portableCanvasPoint = {
+          canvas: event.target,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          screenX: event.screenX,
+          screenY: event.screenY,
+          at: performance.now(),
+        };
+      },
+      { capture: true, signal: pipelineController.signal },
+    );
+    window.addEventListener(
+      'keydown',
+      (event) => {
+        if (
+          !event.isTrusted ||
+          event.repeat ||
+          event.code !== 'Space' ||
+          !event.altKey ||
+          !event.shiftKey ||
+          event.ctrlKey ||
+          event.metaKey ||
+          !currentEnabled
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const point = portableCanvasPoint;
+        const rect = point?.canvas.getBoundingClientRect();
+        if (
+          !point ||
+          !point.canvas.isConnected ||
+          performance.now() - point.at > 1500 ||
+          !rect ||
+          point.clientX < rect.left ||
+          point.clientX > rect.right ||
+          point.clientY < rect.top ||
+          point.clientY > rect.bottom
+        ) {
+          showTransientMessage('canvas 위에 마우스를 놓고 다시 눌러 주세요', 2500);
+          return;
+        }
+        void chrome.runtime
+          .sendMessage({
+            type: 'portable/command',
+            command: { action: 'pointer.click', x: Math.round(point.screenX), y: Math.round(point.screenY) },
+          })
+          .then((raw) => {
+            const response = raw as { status?: string; reason?: string } | undefined;
+            if (response?.status === 'completed') {
+              showTransientMessage('휴대형 손으로 눌렀어요', 2000);
+            } else if (response?.reason === 'host-not-connected' || response?.reason === 'host-disconnected') {
+              showTransientMessage('USB의 시작하기를 먼저 실행해 주세요', 3000);
+            } else {
+              showTransientMessage('실제 클릭을 실행하지 못했어요', 2500);
+            }
+          })
+          .catch(() => {
+            showTransientMessage('휴대형 손과 연결하지 못했어요', 2500);
+          });
+      },
+      { capture: true, signal: pipelineController.signal },
+    );
     // CR-03: 전역 enabled와 이 사이트에서만 끄기(siteDisabled)를 합친 값을 준다 — 파이프라인이
     // 전역 enabled만 보면 사이트별 끄기 뒤에도 떨림 필터·자동 반복 삼킴이 계속 돈다.
     const inputPipeline = createInputPipeline({

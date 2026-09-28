@@ -8,8 +8,8 @@
 - 자주 바뀌는 파일(`.planning/*`, 로그)은 @import 금지 — 필요 시 Read.
 
 ## 1. 프로젝트
-- 이름 / 한 줄 설명: 손 떨림 브라우저 도우미(이름 미정) — 뇌병변 장애로 손 떨림이 있는 이용자 한 사람이 기존 브라우저(크롬·엣지·웨일)에서 빠르게 누르고, 반복 업무 양식을 틀로 처리하게 돕는 MV3 확장
-- 스택(예정, 의존성은 승인 후 도입): WXT(Vite) + TypeScript strict + Preact(Shadow DOM 오버레이) + zod · 테스트 Vitest + Playwright(확장 로드) · 서버 없음(브라우저 저장소만) · AI는 "화면 정리"에서만 Claude Haiku
+- 이름 / 한 줄 설명: 손 떨림 브라우저 도우미(이름 미정) — 뇌병변 장애로 손 떨림이 있는 이용자 한 사람이 여러 PC의 크롬·엣지·웨일에서 일반 웹 자동화와 보조 기능을 쓰고, 다음 단계에서 회사 업무 틀을 처리하게 돕는 MV3 확장 + 선택적 USB C# 실행기
+- 스택(예정, 의존성은 승인 후 도입): WXT(Vite) + TypeScript strict + Preact(Shadow DOM 오버레이) + zod · 테스트 Vitest + Playwright(확장 로드) · 휴대형 실행기 C# 단일 파일(별도 계획) · 서버 없음(USB 기준 원본 + 브라우저 최소 저장) · AI는 "화면 정리"에서만 Claude Haiku
 - 패키지 매니저: pnpm (다른 것 금지)
 - 명령(1단계에서 만든다): dev `pnpm dev` · test `pnpm test`(단위→확장 E2E) · lint `pnpm lint`(+ `pnpm typecheck`) · build `pnpm build`
 - 설계: `docs/superpowers/specs/2026-09-23-tremor-browser-helper-design.md` · 계획: `.planning/` · 디자인: `docs/DESIGN.md`, 기준 `docs/design/SYSTEM.md` — 필요할 때 Read (import 금지)

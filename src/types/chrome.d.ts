@@ -38,10 +38,13 @@ declare namespace chrome.runtime {
   // 실제 무효화(확장 업데이트·제거)인지 SW가 잠깐 쉬었다 끊긴 것뿐인지 구분한다(RESEARCH.md Pattern 6).
   interface Port {
     name: string;
+    onMessage: { addListener(callback: (message: unknown) => void): void };
     onDisconnect: { addListener(callback: () => void): void };
+    postMessage(message: unknown): void;
     disconnect(): void;
   }
   function connect(connectInfo?: { name?: string }): Port;
+  function connectNative(application: string): Port;
   const onConnect: {
     addListener(callback: (port: Port) => void): void;
   };
