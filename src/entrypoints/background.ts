@@ -3,6 +3,7 @@ import { inheritedSiteOrigin, isUnsupportedUrl } from '@/core/unsupported-url';
 import { parseMessage } from '@/shared/messages';
 import { createRelay } from '@/worker/relay';
 import { createStorageWriter } from '@/worker/storage-writer';
+import { createPortableHand } from '@/worker/portable-hand';
 
 // 탭·프레임별 마지막 enabled 보고(D-03) — 시험이 globalThis.frameStates로 읽는다.
 type FrameStates = Record<number, Record<number, boolean>>;
@@ -26,6 +27,10 @@ const MUTED_COLOR = extractMutedColor(tokensCssRaw);
 export default defineBackground(() => {
   const writer = createStorageWriter();
   const relay = createRelay();
+  const portableHand = createPortableHand();
+  // 선택 실행기이므로 연결 실패는 확장 시작을 막지 않는다. Native Messaging host가 없으면
+  // Chrome이 곧 port를 끊고 connected()가 false로 돌아간다.
+  portableHand.connect();
   const frameStates: FrameStates = {};
   (globalThis as typeof globalThis & { frameStates: FrameStates }).frameStates = frameStates;
 
@@ -247,6 +252,18 @@ export default defineBackground(() => {
     }
 
     const message = parsed.data;
+
+    if (message.type === 'portable/status') {
+      sendResponse({ connected: portableHand.connected() });
+      return undefined;
+    }
+
+    if (message.type === 'portable/command') {
+      // 페이지 자체는 runtime 통로에 닿지 못하고, 위 sender.id 검사와 zod 허용 목록을 지난
+      // 확장 코드만 여기까지 온다. host가 활성 브라우저·만료·중복을 한 번 더 검사한다.
+      void portableHand.send(message.command).then(sendResponse);
+      return true;
+    }
 
     // Task 2(01-19, T-01-59): 맨 위(frameId 0)가 보낸 메시지라면 어떤 종류든 그 탭의 물려받은
     // 출처를 기록한다 — 다음 site/query·recordPress·setSiteDisabled 대조가 이 값을 쓴다.

@@ -205,6 +205,25 @@ const ZoomChangedMessage = z.object({
   zoom: z.number().min(0.25).max(5),
 });
 
+// 휴대형 손(D-PORTABLE): content script·popup은 허용 목록에 있는 실제 입력만 SW에 요청한다.
+// 임의 명령 문자열이나 파일/프로그램 실행은 스키마 단계에서 거부한다. 화면 좌표는 C# host가
+// 활성 브라우저·가상 화면 범위를 실행 직전에 다시 확인한다.
+const PortablePointerCommand = z.discriminatedUnion('action', [
+  z.object({ action: z.enum(['pointer.move', 'pointer.click', 'pointer.doubleClick']), x: z.number().int(), y: z.number().int(), button: z.enum(['left', 'right']).optional() }),
+  z.object({ action: z.enum(['pointer.down', 'pointer.up']), button: z.enum(['left', 'right']).optional() }),
+  z.object({ action: z.literal('pointer.scroll'), delta: z.number().int().min(-1200).max(1200) }),
+  z.object({ action: z.enum(['emergency.stop', 'host.ping']) }),
+]);
+
+const PortableCommandMessage = z.object({
+  type: z.literal('portable/command'),
+  command: PortablePointerCommand,
+});
+
+const PortableStatusMessage = z.object({
+  type: z.literal('portable/status'),
+});
+
 export const Message = z.discriminatedUnion('type', [
   StorageRequestMessage,
   FrameStateMessage,
@@ -224,6 +243,8 @@ export const Message = z.discriminatedUnion('type', [
   ZoomQueryMessage,
   ZoomChangedMessage,
   FrameReinjectMessage,
+  PortableCommandMessage,
+  PortableStatusMessage,
 ]);
 export type Message = z.infer<typeof Message>;
 

@@ -41,6 +41,11 @@ node_modules/
 test-results/
 playwright-report/
 
+# Portable Windows hand build output
+portable-hand/**/bin/
+portable-hand/**/obj/
+portable-hand/dist/
+
 # Local env (scripts/dev-db.sh writes .env.local)
 .env
 .env.*
