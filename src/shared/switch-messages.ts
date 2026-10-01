@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { SwitchSettings } from '@/core/switch-settings';
+import { PhraseMutation } from '@/core/switch-phrases';
 const Target = z.object({ tabId: z.number().int(), frameId: z.number().int().nonnegative(), documentGeneration: z.string().max(100), itemId: z.string().max(100) }).strict();
 const Authorization = z.object({ documentGeneration: z.string().max(100), modeGeneration: z.number().int().nonnegative(), pendingActionId: z.string().max(150) });
 export const TextSelection = z.object({ start: z.number().int().nonnegative().max(4000), end: z.number().int().nonnegative().max(4000), direction: z.enum(['forward', 'backward', 'none']) }).strict().refine((selection) => selection.end >= selection.start);
@@ -31,6 +32,7 @@ export const SwitchMessage = z.discriminatedUnion('type', [
   z.object({ type: z.literal('switch/settings'), value: SwitchSettings }),
   z.object({ type: z.literal('switch/draft'), text: z.string().max(4000) }),
   z.object({ type: z.literal('switch/draft/read') }),
-  z.object({ type: z.literal('switch/phrase'), text: z.string().min(1).max(1000) }),
+  z.object({ type: z.literal('switch/phrase'), text: z.string().min(1).max(1000), authorization: Authorization.strict() }).strict(),
+  z.object({ type: z.literal('switch/phrase/update'), mutation: PhraseMutation, authorization: Authorization.strict() }).strict(),
 ]);
 export type SwitchMessage = z.infer<typeof SwitchMessage>;

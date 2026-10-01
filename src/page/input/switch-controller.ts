@@ -4,6 +4,7 @@ import { snapshotTargets, type ScanTarget } from '@/core/switch-order';
 import { createActionGate } from '@/core/switch-actions';
 import { createDraft, editDraft, draftSelection, type TextDraft, type DraftEdit } from '@/core/text-draft';
 import { composeHangul, INITIALS, MEDIALS, FINALS } from '@/core/hangul-compose';
+import { PhraseList, phrasePreviewPages, type PhraseMutation } from '@/core/switch-phrases';
 import { framePathOf } from '@/core/frame-path';
 import { SwitchMessage, TextSelection, type SwitchFrameReport, type SwitchTargetAction } from '@/shared/switch-messages';
 import type { Collector } from '@/page/collector/collector';
@@ -48,6 +49,10 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   let preservedDraft=false;
   let confirmAction:SwitchTargetAction|null=null;
   let confirmOpenedAt=0;
+  let phraseSnapshot:string[]=[];
+  let phraseIndex:number|null=null;
+  let phraseChange:Exclude<PhraseMutation,{kind:'add'}>|null=null;
+  let phrasePreviewIndex=0;
   let scrollTimer:ReturnType<typeof setInterval>|null=null;
   let disposed=false;
   let beginOnFocus=false;
@@ -58,7 +63,8 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   const stopScroll=()=>{if(scrollTimer)clearInterval(scrollTimer);scrollTimer=null;};
   function render(){if(!top||!exclusive())return;
     panel??=createSwitchPanel();
-    panel.render(state,title,draft.text+(initial!==null?` [${INITIALS[initial] ?? ""}${medial!==null?(MEDIALS[medial] ?? ""):""}]`:''),[notice,unknownNotice].filter(Boolean).join(' · '),draftSelection(draft));
+    const preview=phraseChange?phrasePreviewPages(phraseChange.expected[phraseChange.index]??'',phraseChange.kind==='replace'?phraseChange.text:undefined)[phrasePreviewIndex]??'':null;
+    panel.render(state,title,preview??draft.text+(initial!==null?` [${INITIALS[initial] ?? ""}${medial!==null?(MEDIALS[medial] ?? ""):""}]`:''),[notice,unknownNotice].filter(Boolean).join(' · '),preview===null?draftSelection(draft):undefined);
   }
   function dispatch(event:SwitchEvent){
     const previousMode=state.mode;
@@ -71,21 +77,27 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     render();
     for(const action of output.actions)void execute(action);
   }
-  function menu(items:SwitchItem[],heading:string,mode:Menu['mode']='itemScan',push=true){
+  function menu(items:SwitchItem[],heading:string,mode:Menu['mode']='itemScan',push=true,includeUp=true){
     if(push)stack.push(current);
-    current={title:heading,items:[command('up','상위로'),...items,command('pause','쉬기')],mode};title=heading;
+    current={title:heading,items:[...(includeUp?[command('up','상위로')]:[]),...items,command('pause','쉬기')],mode};title=heading;
     dispatch({type:'setItems',now:now(),items:current.items,mode});
   }
-  function root(){stack=[];title='스페이스바 작업판';current={title,items:groups(),mode:'groupScan'};
+  function root(){phraseChange=null;stack=[];title='스페이스바 작업판';current={title,items:groups(),mode:'groupScan'};
     dispatch({type:'setItems',now:now(),items:current.items,mode:'groupScan'});
   }
-  function up(){const previous=stack.pop();if(!previous){root();return;}current=previous;title=previous.title;
+  function up(){phraseChange=null;const previous=stack.pop();if(!previous){root();return;}current=previous;title=previous.title;
     dispatch({type:'setItems',now:now(),items:previous.items,mode:previous.mode});}
   function pause(reason=''){
+    phraseChange=null;
     beginOnFocus=false;
     stopScroll();confirmAction=null;cancelPeers();
     if(state.mode==='confirming'||state.resumeMode==='confirming'){root();}
     notice=reason;dispatch({type:'pause',now:now()});
+  }
+  function phraseConfirmation(push=true){
+    if(!phraseChange)return;
+    const count=phrasePreviewPages(phraseChange.expected[phraseChange.index]??'',phraseChange.kind==='replace'?phraseChange.text:undefined).length;
+    menu([command('phrase-cancel','취소'),...(phrasePreviewIndex>0?[command('phrase-preview-prev','이전 미리보기')]:[]),...(phrasePreviewIndex<count-1?[command('phrase-preview-next','다음 미리보기')]:[]),command('phrase-commit',phraseChange.kind==='replace'?'확인 · 저장 문구 바꾸기':'확인 · 저장 문구 삭제')],phraseChange.kind==='replace'?'저장 문구를 바꿀까요?':'저장 문구를 삭제할까요?','confirming',push,false);
   }
   function invalidate(reason:string){
     preservedDraft ||= selected!==null || draft.text!=='' || initial!==null;
@@ -212,11 +224,33 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(id==='discard:run'){draft=createDraft();initial=null;medial=null;editor();await saveDraft();return;}
     if(id==='edit:delete'&&(initial!==null||medial!==null)){if(medial!==null)medial=null;else initial=null;return;}
     if(id.startsWith('edit:')){const kind=id.slice(5);const edit:DraftEdit=kind==='space'?{type:'insert',text:' '}:{type:kind as 'left'|'right'|'delete'|'undo'};draft=editDraft(draft,edit);await saveDraft();return;}
-    if(id==='phrases'){const data=await chrome.storage.local.get('switchPhrases');const phrases=Array.isArray(data.switchPhrases)?data.switchPhrases.filter((p):p is string=>typeof p==='string'):[];
+    if(id==='phrases'){const data=await chrome.storage.local.get('switchPhrases');const parsed=PhraseList.safeParse(data.switchPhrases??[]);
       if(!active(startedGeneration))return;
-      menu([...phrases.map((text,i)=>command(`phrase:${String(i)}`,text)),command('phrase:save','문구 저장')],'문구','composing');return;}
-    if(id==='phrase:save'){if(draft.text)await request({type:'switch/phrase',text:draft.text.slice(0,1000)});if(active(startedGeneration))notice='문구를 저장했어요';return;}
-    if(id.startsWith('phrase:')){const data=await chrome.storage.local.get('switchPhrases');if(!active(startedGeneration))return;const text=(data.switchPhrases as string[]|undefined)?.[Number(id.split(':')[1])];if(typeof text==='string'){draft=editDraft(draft,{type:'insert',text});editor();await saveDraft();}return;}
+      if(!parsed.success){notice='문구 목록을 읽지 못했어요. 저장된 값을 보존했어요';return;}
+      phraseSnapshot=parsed.data;
+      menu([...phraseSnapshot.map((text,i)=>command(`phrase:${String(i)}`,text)),command('phrase:save','문구 저장'),command('phrase-manage','문구 관리')],'문구','composing');return;}
+    if(id==='phrase:save'){
+      if(!draft.text||draft.text.length>1000){notice='문구는 1~1000자로 저장하세요. 문장은 보존했어요';return;}
+      const result=await request({type:'switch/phrase',text:draft.text,authorization:authorization()}) as {ok?:boolean};
+      if(active(startedGeneration))notice=result.ok===true?'문구를 저장했어요':'저장하지 않았어요. 문구 목록을 다시 여세요';return;
+    }
+    if(id==='phrase-manage'){menu(phraseSnapshot.map((text,i)=>command(`phrase-target:${String(i)}`,text)),'저장 문구 관리','composing');return;}
+    if(id.startsWith('phrase-target:')){phraseIndex=Number(id.split(':')[1]);if(phraseSnapshot[phraseIndex]!==undefined)menu([command('phrase-replace','현재 문장으로 바꾸기'),command('phrase-remove','저장 문구 삭제')],'문구 관리 · 문장 보존','composing');return;}
+    if(id==='phrase-replace'||id==='phrase-remove'){
+      if(phraseIndex===null||phraseSnapshot[phraseIndex]===undefined)return;
+      if(id==='phrase-replace'&&(!draft.text||draft.text.length>1000||initial!==null||medial!==null)){notice='완성된 1~1000자 문장으로 바꾸세요. 작성 문장은 보존했어요';return;}
+      phraseChange=id==='phrase-replace'?{kind:'replace',expected:[...phraseSnapshot],index:phraseIndex,text:draft.text}:{kind:'remove',expected:[...phraseSnapshot],index:phraseIndex};
+      phrasePreviewIndex=0;confirmOpenedAt=now();phraseConfirmation();return;
+    }
+    if(id==='phrase-preview-next'||id==='phrase-preview-prev'){if(phraseChange){phrasePreviewIndex+=id==='phrase-preview-next'?1:-1;phraseConfirmation(false);}return;}
+    if(id==='phrase-cancel'){up();return;}
+    if(id==='phrase-commit'){
+      const mutation=phraseChange;phraseChange=null;if(!mutation)return;
+      const result=await request({type:'switch/phrase/update',mutation,authorization:authorization()}) as {ok?:boolean};
+      if(!active(startedGeneration))return;
+      editor();notice=result.ok===true?'저장 문구를 변경했어요':'저장하지 않았어요. 문구 목록을 다시 여세요';return;
+    }
+    if(id.startsWith('phrase:')){const text=phraseSnapshot[Number(id.split(':')[1])];if(typeof text==='string'){draft=editDraft(draft,{type:'insert',text});editor();await saveDraft();}return;}
     if(id==='restore'){
       if(!selected){notice='입력칸을 먼저 선택하세요';return;}
       const result=await targetRequest('restoreText',selected.target,{expectedValue,selection:capturedSelection});
