@@ -18,7 +18,7 @@
 - 민감 textarea/OTP 단위: RED→capture 거부 GREEN. 미완성 한글 삭제: RED에서 완성된 가 삭제→중성→초성 단계 취소 GREEN.
 - unknown 응답 자동 재시도0, 프레임 교체, worker port 단절 뒤 초안 보존·새 선택 통과. CDP로 real worker target을 종료한 시도는 대체 serviceworker 이벤트를10초 내 관찰하지 못했다. 이것을 실제 worker 정지/재시작 통과로 간주하지 않는다. 기존 lifecycle의 실제 browser 재실행과 연결 프로토콜 검사를 구분한다.
 
-새 안전/DOM 묶음23/23(3.0분), 추가경계15/15(2.7분), 작업ID1/1(12.6초), 자식 탐색1/1(13초) 통과. 이 묶음은 서로 겹치므로 합계로 독립 테스트 수를 만들지 않는다. 최신 cheap gate type/lint exit0, 전체 unit21파일131개 exit0. 전체 로컬 E2E/UI와 최종 HEAD CI는 다음 실행에서 기록한다.
+새 안전/DOM 묶음23/23(3.0분), 추가경계15/15(2.7분), 작업ID1/1(12.6초), 자식 탐색1/1(13초) 통과. 이 묶음은 서로 겹치므로 합계로 독립 테스트 수를 만들지 않는다. 당시 cheap gate 및 unit131은 해당 시점의 실행이다. 최종 종합 자동 결과는 아래 구현 SHA `9741b0c`의 CI62를 기준으로 한다.
 
 ## review · QA · cso · design-review
 
@@ -52,7 +52,7 @@ Codex config는 제공0.159.0-alpha.3 스키마 검증 통과. 자동 압축 임
 
 로컬 full의 designMode 재누름 typing 실패는 helper가200ms만 기다려 기본300ms 보호와 겹칠 수 있는 준비 조건도 있었다. 새누름 복귀는350ms 뒤로 맞추고 빠른 재누름 거절/F1 시험은 그대로 유지했다. 별도로 꺼진 동안 편집기 초점이 바뀌면 다시켜기 때 currentMode 보고가 누락되는 실제 RED를 재현하여 child 재보고/top표시 갱신을 수정했다. 관련4사례×3 E2E12pass(29.1초), 마지막type/lint/unit131pass,production build pass. 전체를 재실행하여 통과했다고 주장하지 않는다.
 
-후속 code/문서/GSD 재개 기록을 같은 PR15에 보존한다. 최종 HEAD의 새 CI 종료와 단계8 전체·독립 검토는 다음 재개에서 확인한다(부모의 이번 턴 안전 체크포인트 지시). 단계5 원 계획의 입력칸 선택범위 기억/복원은 현재 `captureTextTarget` 값만 구현되어 남아 있다. 이것을 PC 검증 미실행과 혼동하지 않는다. 실제PC OSIME/운동 사용성/지원 실사이트도 별도 남는다.
+후속 code/문서/GSD 재개 기록을 같은 PR15에 보존한다. 이후 선택범위 캡처·복원은 `0dfb4ba`에서 구현했고, 최종 제품 자동 검증 결과는 CI62에 기록했다. 단계8 자동 통합 검증과 실제 사용자 PC 시험은 별개다. 실제 PC의 OS IME·운동 사용성·지원 실사이트는 미실행으로 남는다.
 
 
 ## 19:54 KST 선택·지속 맥락과 표시 최종 검증
@@ -61,11 +61,13 @@ Codex config는 제공0.159.0-alpha.3 스키마 검증 통과. 자동 압축 임
 
 전체 `ui-review --full`은 `/workspace/.cloud-onboarding/ui-review-runs/run-FpP8BY/`에 JSON/HTML/로그를 남겼고 **296/296 pass,0 fail/skip/flaky,16.2분,exit0**다. 같은 JSON에서 switch41,기본 UI100,확장 로드 skeleton3 pass를 확인했다. 360/768/1280px에서 제목 top31px·상태 top75.8px·선택56px/글자18px·페이지scroll0를 실측하고 화면을 직접 확인했다. 앞선 영향40/41의 공백 fixture는 실제 커서가 시작 위치였지만 끝 삽입을 기대했다. 커서를 끝으로 명시한 재검사1 pass와 이 full에서 원래 문자열·물리Space 유출·저장 단언이 모두 통과했다. 기대 문자열 완화/skip은 없다.
 
-이 full 뒤의 표시 보완은 별도로 검증했다. 초안 선택과 삽입 위치를 text node/mark/caret으로 표시해 원래 textContent와 글자를 유지한다. 긴 초안은 내부만 스크롤한다. 마우스 방식 전환 선택에는 스페이스바 작업판 종료를 미리 표시한다. 새3건 RED→기존 입력/복원5 포함 **8/8 GREEN(1.9분)**, 긴 초안 상태·경계 추가확인1/1 pass. 상태는 y75.8~99.8,초안115.8~235.8,caret217.6~235.6px,페이지scroll0였다. 실제 화면도 확인했다. 마지막 코드의 기본 `ui-review`는 `run-jwbVzP`에서 **100/100 pass,0 fail/skip/flaky,3.2분,exit0**다. 같은 최종 코드에서 type/lint 및 unit21파일135개 pass. production build로 실제 확장을 로드했다. 전체296은 앞선 코드의 결과이고 새 표시까지 포함한 최종 전체 판정은 최종 HEAD CI로 확인한다.
+이 full 뒤의 표시 보완은 별도로 검증했다. 초안 선택과 삽입 위치를 text node/mark/caret으로 표시해 원래 textContent와 글자를 유지한다. 긴 초안은 내부만 스크롤한다. 마우스 방식 전환 선택에는 스페이스바 작업판 종료를 미리 표시한다. 새3건 RED→기존 입력/복원5 포함 **8/8 GREEN(1.9분)**, 긴 초안 상태·경계 추가확인1/1 pass. 상태는 y75.8~99.8,초안115.8~235.8,caret217.6~235.6px,페이지scroll0였다. 실제 화면도 확인했다. 마지막 코드의 기본 `ui-review`는 `run-jwbVzP`에서 **100/100 pass,0 fail/skip/flaky,3.2분,exit0**다. 같은 최종 코드에서 type/lint 및 unit21파일135개 pass. production build로 실제 확장을 로드했다. 전체296은 앞선 코드의 로컬 실행이고 최종 구현 자동 종합 결과는 아래 CI62 E2E299/299다.
 
 독립 검토 gpt-6.1-sol/high는 선택·포커스·지속 맥락과 후속 표시에서 새 P1/P2를 찾지 않았다. 검토자는 코드를 읽고 기존 로그를 확인했으며 직접 테스트를 실행한 것으로 표시하지 않는다. 승인 설계 §8 연결: 전체 Space 여정/새 한글·중간수정=journey,공백/조합취소/문구/민감칸=recovery/text,반복/보호/keyup/무입력=engine/actions,대상폐기/초안/정지=pending/frame/disable/journey,기존 기능=full,토큰·DOM=dom/defaultUI/feedback. 실제 PC·실사이트는 별도의 [인계](2026-10-01-single-switch-pc-check.md)이며 자동검증을 차단하지 않는다.
 
-[CI60](https://github.com/rrangjaa-eng/project_260923/actions/runs/36846368785)은 이전 `e3287e1`에서 최종success,292/292(15.2분),type/lint/unit131 pass로 종료했다. `0dfb4ba`의 CI61과 최종 표시/문서 HEAD의 CI는 각각 해당 커밋의 원격 결과로 확인하며 이전 HEAD의 통과를 새 코드에 적용하지 않는다. 최신 최종 결과는 [PR15 checks](https://github.com/rrangjaa-eng/project_260923/pull/15/checks)와 최종 보고에서 SHA/run을 지정한다.
+[CI60](https://github.com/rrangjaa-eng/project_260923/actions/runs/36846368785)은 이전 `e3287e1`에서 최종success,292/292(15.2분),type/lint/unit131 pass로 종료했다. 최종 구현 SHA `9741b0c467671a8e345b7663954b3495ba87f6f8`의 [CI62](https://github.com/rrangjaa-eng/project_260923/actions/runs/36852334422)는 **success**로 종료했으며 E2E299/299, unit135/135, type/lint/build가 통과했다. 이것을 최종 구현의 자동 검증 결과로 기록한다. worker 종료 후 재시작을 기다리는 시나리오는 timeout으로 미통과이며 299 통과 수치에 포함되지 않는다. 이후 문서 전용 커밋은 구현 코드를 바꾸지 않는다.
+
+CI62의 성공은 실제 PC나 실사이트 사용성 검증을 뜻하지 않는다. OS의 한글 IME, 실제 오선택·피로·속도, 사이트별 호환은 별도 PC 시험이 미실행이다([인계](2026-10-01-single-switch-pc-check.md)). 자동 압축 설정 파일의 schema 검증과 호스팅 환경에서 자동 압축 기능이 실제 적용·실행됐다는 확인도 구별한다. 후자의 runtime 상태는 관찰하지 못했으며 검증 통과로 주장하지 않는다.
 
 자동 압축은 `.codex/config.toml`의 임계값을 미설정으로 모델 기본값 보존, `model_auto_compact_token_limit_scope="total"`을 유지했다. 제공 CLI0.159.0-alpha.3과 `/workspace/.cloud-onboarding/codex-config.schema.json`을 실제 확인하고 Python jsonschema로 통과했다. implementation 요청 프로필은6.1-sol/medium,독립 review는명시6.1-sol/high이며 자동 라우팅을 주장하지 않는다. 현재 호스팅 세션의 설정 적용값/자동 압축 실행을 조회할 API는 없어서 파일 검증과 구분한다. Git 현황·승인·브랜치/PR·남은 검증을 압축 후 재개 근거로 보존했다.
 

@@ -1,6 +1,6 @@
 # 작업 현황표
 
-갱신: 2026-10-01 19:54 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 로컬 `codex/single-switch-phase1` → 원격 `codex-single-switch-phase1`
+갱신: 2026-10-01 20:20 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 로컬 `codex/single-switch-phase1` → 원격 `codex-single-switch-phase1`
 
 최신 사용자 승인(계획 제시 뒤 `진행해`)에 따라 제품 구현을 계속한다. 별도 문서 체크포인트 `58cc6e8`은 `codex/single-switch-design-checkpoint`에 보존했으며 개발 승인을 설계 대기로 되돌리지 않는다.
 
@@ -8,20 +8,21 @@
 
 | 최신 체크포인트 | 실제 결과 | 남은 작업 |
 |---|---|---|
-| 원격 저장 | 선택·패널 `0dfb4ba` 원격 보존, 표시 보완도 같은 Draft PR15로 저장 | 최종 HEAD CI 결과는 PR checks/최종 보고와 구분해 확인 |
+| 최종 구현 SHA | 제품 구현 최종 SHA `9741b0c467671a8e345b7663954b3495ba87f6f8`; 후속 커밋은 문서만 변경 | 실제 PC·실사이트 검증은 별도 |
+| 최종 CI62 | [run 36852334422](https://github.com/rrangjaa-eng/project_260923/actions/runs/36852334422), SHA `9741b0c`: **success**, E2E299/299, unit135/135, type/lint/build pass | worker 종료 후 재시작 timeout 시나리오와 자동 압축 runtime은 통과로 계산하지 않음 |
 | CI60 (`e3287e1`) | **최종 success, E2E292/292**, type/lint/unit131 pass | 후속 선택·패널 변경까지 포함한 결과는 아님 |
 | 선택범위·초점 복원 | `0dfb4ba`: input/textarea 범위·방향 capture, grapheme cursor/anchor, 선택 교체/삭제/undo. 유효한 대상의 명시적 복원만 focus | 실제 PC·실사이트 검증은 후속 |
-| 적용과 포커스 분리 | 이메일 선택 API 미지원 및 focus 중 종류 변경 RED→단위 GREEN. 적용은 초점 이동 없이, 복원은 값·유형·활성 상태 재검증 | 최종 CI 확인 |
+| 적용과 포커스 분리 | 이메일 선택 API 미지원 및 focus 중 종류 변경 RED→단위 GREEN. 적용은 초점 이동 없이, 복원은 값·유형·활성 상태 재검증 | 실제 PC·실사이트 검증 별도 |
 | 작업판 지속 맥락 | 목록만 스크롤. 360/768/1280px에서 제목 top31px, 상태 top75.8px, 선택56px·글자18px·페이지scroll0. screenshot 직접 확인 | 모든 줌/스크린리더 검증으로 확대하지 않음 |
-| 최신 단위·type/lint | 전체21파일135개 pass, type/lint exit0 | 새 최종 HEAD 원격 CI |
+| 최신 단위·type/lint | 최종 CI62에서 unit135/135, type/lint pass | 실제 PC·실사이트 검증 별도 |
 | 선택·패널 E2E | 6/6 pass. 전체 switch 영향40/41(9.2분), 공백 fixture 실제 커서를 끝으로 명시한 재검사1/1 pass | full296에서 해당 시나리오도 통과 |
 | 전체 로컬 UI/E2E | `0dfb4ba`의 `run-FpP8BY`: **296/296 pass**, 0 fail/skip/flaky,16.2분,exit0. switch41·기본UI100·확장로드smoke3 모두 같은 실행의 부분집합 | 이후 작은 표시 보완까지 이 전체 통과에 포함하지 않음 |
-| 최종 표시 보완 | 선택/삽입 위치를 토큰 기반 mark/caret으로 표시하고 긴 초안 내부만 scroll. 마우스 전환 전 작업판 종료 표시. 3건 RED→입력5 포함8/8 GREEN, 긴 초안 상태·경계 재검사1/1 pass | 최종 전체 CI 확인 |
+| 최종 표시 보완 | 선택/삽입 위치를 토큰 기반 mark/caret으로 표시하고 긴 초안 내부만 scroll. 마우스 전환 전 작업판 종료 표시. 3건 RED→입력5 포함8/8 GREEN, 긴 초안 상태·경계 재검사1/1 pass | 구현 SHA의 최종 CI는 아래 run 참조 |
 | 최종 기본 UI | 새 표시 코드의 `run-jwbVzP`: **100/100 pass**,0 fail/skip/flaky,3.2분,exit0. type/lint pass | 이전전체296과 합산하지 않음 |
 | 독립 review/cso/QA | 신규 선택·포커스·패널 및 후속 표시 코드 읽기 검토: 새 미해결 P1/P2 없음. 기존 안전 검토와 실제 회귀 근거 보존 | 실제 OS·운동 사용성은 별도 |
 | PR 본문 | child에서는 명시 승인 인용도 도구 출력으로 분류돼 재거절. 부모가 주 대화의 직접 승인으로19:46 KST 실제 갱신·본문 확인 성공 | 이후 최종 결과의 본문 갱신은 부모가 처리. child 추가 재시도 없음 |
 | 자동 압축 설정 | 제공 CLI0.159.0-alpha.3 스키마 pass. 임계값 미설정=모델 기본값 보존, scope=`total` | 현재 호스팅 세션 적용·실행 상태는 관찰 불가 |
-| 1차 사용자 검증 | 실사이트·실제PC IME·오선택·피로·속도는 미실행. [재현 인계](verification/2026-10-01-single-switch-pc-check.md) 작성 | 사이트 선정은 자동 구현/검증 차단 사유가 아님 |
+| 1차 사용자 검증 | 실사이트·실제PC IME·오선택·피로·속도는 미실행. [재현 인계](verification/2026-10-01-single-switch-pc-check.md) 작성 | CI 통과와 실제 사용자 합격은 별개 |
 
 로그: `/tmp/switch-editor-parent-red.log`, `/tmp/switch-journey-first.log`, `/tmp/switch-safety-red.log`, `/tmp/switch-pause-red.log`, `/tmp/switch-mode-confirm-red.log`, `/tmp/switch-journey-safety-green.log`, `/tmp/switch-integration-unit.log`, `/tmp/switch-pr-{type,lint}.log`, `/tmp/switch-impact-regression.log`. 초기 조회 기준 unit125·관련E2E22는 이번 여정 전에 통과한 기반이며 전체 기능 완료를 의미하지 않는다.
 
@@ -38,12 +39,12 @@
 | Node 버전 일치 | 조정 필요 | cloud 24.19.0 / CI 22 고정. package engines는 >=22, 게시 클라우드 스크립트에는 Node22 핀 없음 | [PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) | 후속 환경 조정 여부 결정. 이번에 설치·변경 없음 |
 | 제품 구현 / 단계2 | 첫 수직 흐름 통과 | Space 시작→페이지 항목→링크 실행1회 실제 CI E2E pass (6.7초). type/lint pass, 신규 단위6파일10 pass | [PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) | 다음 단계3~7 통합 검증 계속 |
 | 제품 구현 / 단계3~5 | 주요 통합 통과·잔여 계약 검사 필요 | 새 한글·중간 수정·입력 적용 및 안전 실행 경계 실제 검사 통과. 전체unit130 통과 | [PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) | 기존 입력 실행 통합, 프레임/중복/민감칸 검사 확대 |
-| 제품 구현 / 단계6~8 | 첫 웹 활동 통과·최종 검증 미완료 | 읽기/스크롤 정지/뒤로/탭 전체 여정과 확인·복구 통합8 통과. 독립 리뷰·QA·보안·PC 검증 미실행 | [PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) | 승인된 계획 순서로 잔여 계약·최종 검사 |
+| 제품 구현 / 단계6~8 | 첫 웹 활동과 승인된 1차 제품 범위 구현 완료 | 전체 여정 및 확인·복구 통합 검증, CI62 성공. 실제 PC·실사이트 사용성은 미검증 | [PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) | 별도 PC 시험 후 후속 범위 판단 |
 | 작업 현황표 / 유지 지침 | 로컬 저장·커밋 완료 | 이 파일과 AGENTS 유지 지침만 포함한 `docs: add maintained work status table` 커밋. 필수 항목·유지 지침·diff 정적 확인 통과 | [PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) | 상태 변경 때 갱신하고 사용자에게 표시 |
 | 원격 반영 | draft PR15 게시됨 | 기존 원격 `codex` 때문에 첫 push 경로 충돌. 기존 ref 보존 후 `codex-single-switch-phase1`에 게시. 같은 head 중복 PR 없음 확인 | [PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) | 같은 PR에서 잔여 구현·검증 계속. 병합·배포 없음 |
 
 초기 검증 로그: `/tmp/single-switch-smoke.log`, `/tmp/single-switch-type.log`, `/tmp/single-switch-lint.log`, `/tmp/single-switch-unit.log`, `/tmp/single-switch-focused-e2e.log` (현재 클라우드의 로컬 로그). 설계·계획 원문은 Git과 PR15에 포함한다. 최신 검사 결과는 위 표에 한정한다. 전체 로컬 E2E·자동 UI 검토는 위 실패를 포함하며, 실제 PC 사용성은 미실행이다.
 
-최신 구현 로그: `/tmp/switch-task1-green.log` (관련52 pass), `/tmp/switch-mode-report-red.log` (늦은 프레임 모드 보고 RED), `/tmp/switch-click-proxy.log` (실제 Space 링크 실행 pass), `/tmp/switch-checkpoint-type.log`, `/tmp/switch-checkpoint-lint.log`, `/tmp/switch-checkpoint-unit.log` (신규10 pass).새 코드 검증 범위에 한정하며 전체 기능 완료를 의미하지 않는다. HTTP 문서에서 crypto.randomUUID 미지원과 content script의 storage.session 접근 차단을 실제 오류로 확인해 getRandomValues ID 및 백그라운드 읽기 중계로 수정했다.
+최신 구현 로그: `/tmp/switch-task1-green.log` (관련52 pass), `/tmp/switch-mode-report-red.log` (늦은 프레임 모드 보고 RED), `/tmp/switch-click-proxy.log` (실제 Space 링크 실행 pass), `/tmp/switch-checkpoint-type.log`, `/tmp/switch-checkpoint-lint.log`, `/tmp/switch-checkpoint-unit.log` (신규10 pass). 각 로컬 로그는 그 실행의 검증 범위에 한정하며 최종 종합 결과는 위 CI62를 참조한다. HTTP 문서에서 crypto.randomUUID 미지원과 content script의 storage.session 접근 차단을 실제 오류로 확인해 getRandomValues ID 및 백그라운드 읽기 중계로 수정했다.
 
-최신 재개: CI60은 최종 성공이다. 선택·패널의 full296 및 이후 표시의 집중8·기본UI100을 서로 구분했다. 최종 전체 CI는 해당 HEAD의 원격 실행 결과를 확인한다. 승인된 같은 PR15 구현·저장을 계속하며 설계 승인 대기로 복귀하지 않는다. 실제 PC 인계와 전체 GSD phase 완료를 자동 검사 합격과 혼동하지 않는다.
+최신 마감: 구현 SHA `9741b0c467671a8e345b7663954b3495ba87f6f8`의 [CI62](https://github.com/rrangjaa-eng/project_260923/actions/runs/36852334422)는 success이며 E2E299/299, unit135/135, type/lint/build가 통과했다. 제품 구현과 해당 자동 검증은 완료로 기록한다. 실제 PC·IME·운동 사용성·실사이트는 미검증이다. CI run에서 worker 종료 후 재시작을 기다린 timeout 시나리오는 통과하지 않았으며, 자동 압축 설정의 파일/스키마 검증은 호스팅 runtime에서 실제 적용·실행됐다는 증거가 아니다. 둘 다 통과 수치에 포함하지 않는다. 후속 문서 커밋은 제품 구현 SHA를 바꾸지 않는다.
