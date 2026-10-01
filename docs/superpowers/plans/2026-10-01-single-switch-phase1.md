@@ -8,7 +8,7 @@
 
 **Tech Stack:** 기존 WXT·TypeScript strict·zod·Vitest·Playwright, pnpm 10.33.0. 새 의존성·서버·AI 없음.
 
-**Spec:** [승인된 1차 설계](../specs/2026-10-01-single-switch-phase1-design.md). 사용자 승인 전달: 2026-10-01 KST. 이 계획의 검토와 실행 방식 확정이 다음 체크포인트다.
+**Spec:** [승인된 1차 설계](../specs/2026-10-01-single-switch-phase1-design.md). 사용자 승인 전달: 2026-10-01 KST. 이 계획·기존 클라우드 직접 실행 방식은 `진행해`로 승인됐다. [현재 프로젝트 매핑/진행](2026-10-01-single-switch-project-map.md), [현황](../../WORK-STATUS.md), [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15)을 따른다. 아래 체크박스는 전체 계약 기준이며 일부 여정 pass만으로 모든 단계를 완료 처리하지 않는다.
 
 ## Global Constraints
 

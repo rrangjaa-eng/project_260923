@@ -1,0 +1,33 @@
+import { test, expect } from './fixtures';
+import { chooseSwitch, startSwitch } from './switch-helpers';
+
+test('a delayed apply reply after a pause cannot continue into search', async ({ context, serviceWorker, servePage }) => {
+  test.setTimeout(60000);
+  await serviceWorker.evaluate(async () => chrome.storage.local.set({ switchSettings: { schemaVersion: 1, mode: 'switch', intervalMs: 800, protectionMs: 100 }, switchPhrases: ['안녕'] }));
+  servePage('http://practice.test/pending.html', '<form action="/switch-results.html" method="get"><input type="search" name="q" aria-label="검색어"></form>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/pending.html');
+  await startSwitch(page);
+  await chooseSwitch(page, '찾기');
+  await chooseSwitch(page, '검색어');
+  await chooseSwitch(page, '문구');
+  await chooseSwitch(page, '안녕');
+  await serviceWorker.evaluate(() => {
+    const send = chrome.tabs.sendMessage.bind(chrome.tabs);
+    chrome.tabs.sendMessage = async (tabId, message, options) => {
+      const result = await send(tabId, message, options);
+      if (typeof message === 'object' && message !== null && 'type' in message && message.type === 'switch/execute'
+          && 'action' in message && typeof message.action === 'object' && message.action !== null && 'kind' in message.action && message.action.kind === 'applyText') {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      return result;
+    };
+  });
+  await chooseSwitch(page, '검색');
+  await expect(page.getByRole('searchbox')).toHaveValue('안녕');
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await expect(page.locator('tremor-helper-root').locator('.switch-panel')).toHaveAttribute('data-mode', 'paused');
+  await page.waitForTimeout(1500);
+  await expect(page).toHaveURL('http://practice.test/pending.html');
+  await expect(page.locator('tremor-helper-root').locator('.switch-draft')).toHaveText('안녕');
+});
