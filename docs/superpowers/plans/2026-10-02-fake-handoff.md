@@ -21,21 +21,21 @@
 ### Task 1: strict payload와reply gate
 Files: src/core/file-protocol.ts, tests/unit/file-protocol.test.ts.
 Produces: parseFileRequest(input:unknown,now:number,context:FileContext):FileProtocolRequest|null; FileReplyGate(context).arm(payload,now):boolean / take(payload,now):FileProtocolReply|null / changeContext(context):void / expire(now):boolean.
-- [ ] valid명령·token/extra/version/만료/foreigncontext/oldreply/중복/원객체수정 테스트 RED→구현→GREEN.
+- [x] valid명령·token/extra/version/만료/foreigncontext/oldreply/중복/원객체수정 테스트 RED→구현→GREEN.
 
 ### Task 2: single-owner handoff
 Files: src/core/switch-handoff.ts, tests/unit/switch-handoff.test.ts.
 Consumes: createSwitchState/reduceSwitch. Produces: SwitchHandoff(states).key(surface,event):OwnedAction[] / transfer(owner,now) / cancel(now) / pause(now) / stop(now) / complete(action,result,now):boolean / tick(now) / snapshot(surface).
-- [ ] 양쪽전달1회·held전환·취소복귀세대·초안·oldresult·repeat/IME/modified·정지latch RED→최소구현→GREEN.
+- [x] 양쪽전달1회·held전환·취소복귀세대·초안·oldresult·repeat/IME/modified·정지latch RED→최소구현→GREEN.
 
 ### Task 3: 가짜연결연습UI
 Files: src/entrypoints/handoff-practice/{index.html,main.ts}, tests/e2e/handoff-practice.e2e.ts.
 Consumes: Task1/2/기존panel. 본문역할·연습역할동작횟수와초안은로컬메모리만. gate에가짜status response를함수로반환한다.
-- [ ] 실제Space전환/재개/취소/복귀/정지·초점이동·지속시제품표시 E2E RED→구현→GREEN.
+- [x] 실제Space전환/재개/취소/복귀/정지·초점이동·지속시제품표시 E2E RED→구현→GREEN.
 
 ### Task 4: 검증·독립리뷰·Git/PR
-- [ ] type/lint/unit/build·관련기존file-practice및새UI·자동UI검토.
-- [ ] 새전체변경독립리뷰1회,지적은RED→GREEN과관련검사로수정.
-- [ ] PR16/c608d00에쌓는별도draftPR,Git상태/실제결과/후속문구관리·긴양식범위보존. merge/deploy없음.
+- [x] type/lint/unit/build·관련기존file-practice및새UI·자동UI검토.
+- [x] 새전체변경독립리뷰1회,지적은RED→GREEN과관련검사로수정.
+- [ ] PR16/baafce2에쌓는별도draftPR,Git상태/실제결과/후속문구관리·긴양식범위보존. merge/deploy없음.
 
-진행: 모든작업미실행. 같은세션지속기록을이파일/WORK-STATUS에갱신한다. 인터페이스사전대조: Task3는Task1의handoffGeneration과Task2의generation을같은값으로사용;contextmode는현재owner engine modeGeneration;선택token은외부파일경로아님.
+진행: Task1~3 구현·RED/GREEN 완료. Task4 화면 검토·독립리뷰 수정 및 PR 준비 진행. 같은세션지속기록을이파일/WORK-STATUS에갱신한다. 인터페이스사전대조: Task3는Task1의handoffGeneration과Task2의generation을같은값으로사용;contextmode는현재owner engine modeGeneration;선택token은외부파일경로아님.

@@ -70,7 +70,13 @@ function focus(event: FocusEvent) {
 }
 function key(event: KeyboardEvent) {
   if (stopped || event.code !== 'Space' || event.target === document.querySelector('#stop')) return;
-  if (event.target instanceof HTMLInputElement) { const owner = flow.owner; if (owner && flow.snapshot(owner).pressed !== null) pauseInput(); return; }
+  if (event.target instanceof HTMLInputElement) {
+    const owner = flow.owner;
+    if (owner && flow.snapshot(owner).pressed !== null) pauseInput();
+    if (owner && event.type === 'keyup') flow.key(owner, { type: 'keyUp', code: event.code, repeat: event.repeat, trusted: event.isTrusted, isComposing: event.isComposing,
+      modified: event.altKey || event.ctrlKey || event.metaKey || event.shiftKey, now: performance.now() });
+    return;
+  }
   event.preventDefault(); event.stopImmediatePropagation();
   for (const surface of ['page', 'practice'] as const) {
     const actions = flow.key(surface, { type: event.type === 'keydown' ? 'keyDown' : 'keyUp', code: event.code, repeat: event.repeat, trusted: event.isTrusted, isComposing: event.isComposing,

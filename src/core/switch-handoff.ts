@@ -6,6 +6,7 @@ export class SwitchHandoff {
   private active: HandoffSurface | null = 'page';
   private epoch = 0;
   private physicalDown = false;
+  private stopOnRelease = false;
   private awaitingRelease = false;
   private readonly states: Record<HandoffSurface, SwitchState>;
   get owner() { return this.active; }
@@ -26,10 +27,10 @@ export class SwitchHandoff {
       return [];
     }
     if (this.awaitingRelease || event.repeat) return [];
-    if (event.type === 'keyDown') { if (this.physicalDown) return []; this.physicalDown = true; }
+    if (event.type === 'keyDown') { if (this.physicalDown) return []; this.physicalDown = true; this.stopOnRelease = this.states[surface].pendingAction !== null; }
     else {
       if (!this.physicalDown) return []; this.physicalDown = false;
-      if (this.states[surface].pendingAction) { this.stop(event.now); return []; }
+      if (this.stopOnRelease || this.states[surface].pendingAction) { this.stopOnRelease = false; this.stop(event.now); return []; }
     }
     const result = reduceSwitch(this.states[surface], event); this.states[surface] = result.state;
     return result.actions.map((action) => ({ ...action, surface, handoffGeneration: this.epoch }));
@@ -60,6 +61,7 @@ export class SwitchHandoff {
   }
   private invalidate(now: number) {
     this.epoch++;
+    this.stopOnRelease = false;
     this.awaitingRelease = this.awaitingRelease || this.physicalDown; this.physicalDown = false;
     for (const surface of ['page', 'practice'] as const) this.states[surface] = reduceSwitch(this.states[surface], { type: 'pause', now }).state;
   }

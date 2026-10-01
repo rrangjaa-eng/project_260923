@@ -66,3 +66,8 @@ it('a new trusted Space during pending work is consumed only by stop', () => {
   expect(action).toBeDefined(); flow.key('page', key('keyDown', 500)); expect(flow.key('page', key('keyUp', 510))).toEqual([]);
   expect(flow.owner).toBeNull(); expect(flow.complete(required(action), 'done', 520)).toBe(false);
 });
+it('stop intent survives a reply arriving between Space down and up', () => {
+  const flow = setup(); flow.key('page', key('keyDown', 10)); const action = required(flow.key('page', key('keyUp', 20))[0]);
+  flow.key('page', key('keyDown', 500)); expect(flow.complete(action, 'done', 510)).toBe(true);
+  expect(flow.key('page', key('keyUp', 520))).toEqual([]); expect(flow.owner).toBeNull();
+});
