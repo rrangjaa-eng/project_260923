@@ -21,6 +21,7 @@ export function createSwitchRelay(writer: StorageWriter) {
       const old = reports.get(frameId);
       reports.set(frameId, { frameId, documentGeneration: message.documentGeneration, path: message.path, items: message.items }); frames.set(tabId, reports);
       if (old && old.documentGeneration !== message.documentGeneration) void chrome.tabs.sendMessage(tabId, { type: 'switch/pause' }, { frameId: 0 }).catch(() => undefined);
+      void chrome.tabs.sendMessage(tabId, { type: 'switch/refresh' }, { frameId: 0 }).catch(() => undefined);
       return { tabId, frameId };
     }
     if (message.type === 'switch/key') {
@@ -31,6 +32,7 @@ export function createSwitchRelay(writer: StorageWriter) {
       await chrome.tabs.sendMessage(tabId, message, { frameId: 0 }); return {};
     }
     if (frameId !== 0) return { result: 'refused' };
+    if (message.type === 'switch/refresh') return { result: 'refused' };
     if (message.type === 'switch/list') return { tabId, frames: Array.from(frames.get(tabId)?.values() ?? []) };
     if (message.type === 'switch/draft') return writer.writeSwitchData(`switchDraft:${String(tabId)}`, message.text, 'session');
     if (message.type === 'switch/draft/read') {
@@ -46,7 +48,7 @@ export function createSwitchRelay(writer: StorageWriter) {
       const action = message.action;
       const report = frames.get(tabId)?.get(action.target.frameId);
       if (action.target.tabId !== tabId || !report || report.documentGeneration !== action.target.documentGeneration
-          || !report.items.some((item) => item.itemId === action.target.itemId && !item.sensitive)) return { result: 'refused' };
+          || !report.items.some((item) => item.itemId === action.target.itemId && !item.sensitive && item.identity === action.expectedIdentity)) return { result: 'refused' };
       try { return await chrome.tabs.sendMessage(tabId, message, { frameId: action.target.frameId }); }
       catch { return { result: 'unknown' }; }
     }
@@ -56,7 +58,12 @@ export function createSwitchRelay(writer: StorageWriter) {
       if (message.kind === 'tabs') return { tabs: supported.map((tab) => ({ id: tab.id, title: tab.title ?? tab.url })) };
       if (message.kind === 'back') { await chrome.tabs.goBack(tabId); return { result: 'done' }; }
       if (!supported.some((tab) => tab.id === message.tabId) || message.tabId === undefined) return { result: 'refused' };
-      try { await chrome.tabs.sendMessage(message.tabId, { type: 'site/ping' }, { frameId: 0 }); await chrome.tabs.update(message.tabId, { active: true }); return { result: 'done' }; }
+      try {
+        await chrome.tabs.sendMessage(message.tabId, { type: 'site/ping' }, { frameId: 0 });
+        await chrome.tabs.sendMessage(message.tabId, { type: 'switch/pause' }, { frameId: 0 });
+        await chrome.tabs.update(message.tabId, { active: true });
+        return { result: 'done' };
+      }
       catch { return { result: 'refused' }; }
     }
     return undefined;

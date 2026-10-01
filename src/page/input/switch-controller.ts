@@ -9,8 +9,7 @@ import { SwitchMessage, type SwitchFrameReport, type SwitchTargetAction } from '
 import type { Collector } from '@/page/collector/collector';
 import type { InputPipeline } from './pipeline';
 import { createSwitchPanel } from '@/page/overlay/switch-panel';
-import { captureTextTarget, applyDraft, typingElement, sensitiveElement } from './text-target';
-import { synthesizePress } from '@/page/click/press';
+import { executeSwitchAction, reportSwitchItem } from './switch-actions';
 
 const now=()=>performance.now();
 const newSwitchId=()=>Array.from(crypto.getRandomValues(new Uint32Array(4)),(n)=>n.toString(16)).join('-');
@@ -32,6 +31,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   const generation=newSwitchId();
   const gate=createActionGate(generation);
   let settings=defaultSwitchSettings();
+  let settingsLoaded=false;
   let state=createSwitchState();
   state.items=groups();
   let panel:ReturnType<typeof createSwitchPanel>|null=null;
@@ -55,7 +55,13 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     panel.render(state,title,draft.text+(initial!==null?` [${INITIALS[initial] ?? ""}${medial!==null?(MEDIALS[medial] ?? ""):""}]`:''),notice);
   }
   function dispatch(event:SwitchEvent){
-    const output=reduceSwitch(state,event);state=output.state;render();
+    const previousMode=state.mode;
+    const output=reduceSwitch(state,event);state=output.state;
+    if(previousMode==='confirming'&&state.mode==='paused'){
+      confirmAction=null;root();pause();return;
+    }
+    if(output.actions.length>0)notice='';
+    render();
     for(const action of output.actions)void execute(action);
   }
   function menu(items:SwitchItem[],heading:string,mode:Menu['mode']='itemScan',push=true){
@@ -70,16 +76,12 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     dispatch({type:'setItems',now:now(),items:previous.items,mode:previous.mode});}
   function pause(reason=''){
     stopScroll();confirmAction=null;
-    if(state.mode==='confirming'){root();}
+    if(state.mode==='confirming'||state.resumeMode==='confirming'){root();}
     notice=reason;dispatch({type:'pause',now:now()});
   }
   async function publish(){
     if(disposed)return;
-    const items=opts.collector.items().map((item)=>{
-      const el=opts.collector.get(item.id);
-      return {itemId:item.id,label:(item.name||item.fingerprint.buttonText||item.kind).slice(0,300),kind:item.kind,danger:item.danger,
-        editable:typingElement(el),sensitive:!!el&&sensitiveElement(el)};
-    });
+    const items=opts.collector.items().map((item)=>reportSwitchItem(item,opts.collector.get(item.id)));
     const identity=await request({type:'switch/report',documentGeneration:generation,path:framePathOf(window),items}) as {tabId?:number};
     if(top&&identity.tabId!==undefined&&draft.text===''){
       const stored=await request({type:'switch/draft/read'}) as {text?:unknown};
@@ -93,6 +95,22 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     const raw=await request({type:'switch/list'}) as {tabId:number;frames:SwitchFrameReport[]};
     if(!Array.isArray(raw.frames))throw new Error('대상 목록을 읽지 못했어요');
     targets=snapshotTargets(raw.tabId,raw.frames);
+  }
+  async function refreshAvailability(){
+    if(!top||!exclusive()||targets.length===0)return;
+    const startedGeneration=state.modeGeneration;
+    const raw=await request({type:'switch/list'}) as {frames:SwitchFrameReport[]};
+    if(disposed||startedGeneration!==state.modeGeneration||!Array.isArray(raw.frames))return;
+    const items=state.items.map((item)=>{
+      if(!item.id.startsWith('target:'))return item;
+      const snapshot=targets.at(Number(item.id.slice(7)));
+      const frame=raw.frames.find((entry)=>entry.frameId===snapshot?.target.frameId&&entry.documentGeneration===snapshot.target.documentGeneration);
+      const live=frame?.items.find((entry)=>entry.itemId===snapshot?.target.itemId);
+      const disabled=!snapshot||!live||live.identity!==snapshot.identity||live.sensitive;
+      if(disabled===!!item.disabled)return item;
+      return {...item,disabled};
+    });
+    if(items.some((item,index)=>item!==state.items[index])){state={...state,items};current={...current,items};notice='대상이 바뀌었어요. 목록을 새로 읽으세요';render();}
   }
   function pageMenu(page=0,onlyInputs=false){
     const all=targets.filter((t)=>!onlyInputs||t.editable);
@@ -113,7 +131,9 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   }
   async function saveDraft(){await request({type:'switch/draft',text:draft.text});}
   async function targetRequest(kind:SwitchTargetAction['kind'],target:SwitchTarget,extra:Partial<SwitchTargetAction>={}):Promise<PageResult>{
-    try{return resultOf(await request({type:'switch/execute',action:{actionId:newSwitchId(),kind,target,...extra}}));}
+    const expectedIdentity=targets.find((entry)=>entry.target.itemId===target.itemId&&entry.target.frameId===target.frameId)?.identity;
+    if(expectedIdentity===undefined)return {result:'refused'};
+    try{return resultOf(await request({type:'switch/execute',action:{actionId:newSwitchId(),kind,target,expectedIdentity,...extra}}));}
     catch{return {result:'unknown'};}
   }
   async function chooseTarget(index:number){
@@ -125,7 +145,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       if(!preservedDraft)draft=createDraft(capture.value);
       preservedDraft=false;editor();return;
     }
-    const action:SwitchTargetAction={actionId:newSwitchId(),kind:'press',target:target.target};
+    const action:SwitchTargetAction={actionId:newSwitchId(),kind:'press',target:target.target,expectedIdentity:target.identity,confirmed:true};
     if(target.danger||!['a','link'].includes(target.kind)){
       confirmAction=action;confirmOpenedAt=now();
       menu([command('confirm:cancel','취소'),command('confirm:run',target.label)],`${target.label}할까요?`,'confirming');
@@ -199,7 +219,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     const modified=false;
     if(top){
       if(state.mode==='confirming'&&now()-confirmOpenedAt<1000)return true;
-      notice='';dispatch({type:kind,now:now(),code:'Space',trusted:event.isTrusted,repeat:event.repeat,isComposing:event.isComposing,modified});
+      dispatch({type:kind,now:now(),code:'Space',trusted:event.isTrusted,repeat:event.repeat,isComposing:event.isComposing,modified});
     }else void request({type:'switch/key',kind,repeat:event.repeat,isComposing:event.isComposing,modified}).catch(()=>undefined);
     return true;
   }
@@ -209,22 +229,23 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(message.type==='switch/key'&&top&&exclusive()){
       if(state.mode!=='confirming'||now()-confirmOpenedAt>=1000)dispatch({type:message.kind,now:now(),code:'Space',trusted:true,repeat:message.repeat,isComposing:message.isComposing,modified:message.modified});return undefined;
     }
-    if(message.type==='switch/pause'){if(top&&exclusive())pause();return undefined;}
+    if(message.type==='switch/pause'){if(top&&exclusive())pause();sendResponse({result:'done'});return undefined;}
+    if(message.type==='switch/refresh'&&top){void refreshAvailability().catch(()=>undefined);return undefined;}
     if(message.type==='switch/execute'){
       const action=message.action;
       if(!exclusive()||!gate.accept(action.actionId,action.target.documentGeneration)){sendResponse({result:'refused'});return undefined;}
-      const el=opts.collector.get(action.target.itemId);let result:PageResult={result:'refused'};
-      if(el?.isConnected&&opts.collector.items().some((item)=>item.id===action.target.itemId)&&!sensitiveElement(el)){
-        if(action.kind==='capture'){const snapshot=captureTextTarget(opts.collector,action.target.itemId);if(snapshot)result={result:'done',value:snapshot.value};}
-        if(action.kind==='applyText'&&typeof action.expectedValue==='string'&&typeof action.text==='string')result={result:applyDraft(opts.collector,action.target.itemId,action.expectedValue,action.text)};
-        if(action.kind==='press'&&!typingElement(el)&&!el.matches('input[type=file],select,input[type=date],input[type=color],input[type=time]')){synthesizePress(el);result={result:'done'};}
-        if(action.kind==='search'&&el instanceof HTMLInputElement&&el.type==='search'&&el.form?.method.toLowerCase()==='get'&&el.value===action.expectedValue){el.form.requestSubmit();result={result:'done'};}
-      }
-      gate.finish(action.actionId);sendResponse(result);return undefined;
+      let result:PageResult={result:'unknown'};
+      try{result=executeSwitchAction(opts.collector,action);}
+      catch{result={result:'unknown'};}
+      finally{gate.finish(action.actionId);}
+      sendResponse(result);return undefined;
     }
     return undefined;
   };
-  function applySettings(value:unknown){const parsed=SwitchSettings.safeParse(value);settings=parsed.success?parsed.data:defaultSwitchSettings();
+  function applySettings(value:unknown){
+    if(settingsLoaded)pause();
+    settingsLoaded=true;
+    const parsed=SwitchSettings.safeParse(value);settings=parsed.success?parsed.data:defaultSwitchSettings();
     state.intervalMs=settings.intervalMs;state.protectionMs=settings.protectionMs;
     stopScroll();state.pressed=null;state.pendingAction=null;state.modeGeneration++;
     if(exclusive()){opts.onExclusive();render();void publish().catch(()=>undefined);}else{panel?.destroy();panel=null;}

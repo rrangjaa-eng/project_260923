@@ -1,6 +1,6 @@
 import type { SwitchFrameReport } from '@/shared/switch-messages';
 import type { SwitchTarget } from './switch-engine';
-export interface ScanTarget { target: SwitchTarget; label: string; kind: string; danger: boolean; editable: boolean; sensitive: boolean }
+export interface ScanTarget { target: SwitchTarget; label: string; kind: string; danger: boolean; editable: boolean; sensitive: boolean; identity: string }
 export function snapshotTargets(tabId: number, frames: SwitchFrameReport[]): ScanTarget[] {
   return frames.slice().sort((a,b) => {
     for (let i=0; i<Math.max(a.path.length,b.path.length); i++) {

@@ -45,4 +45,19 @@ describe('single switch engine', () => {
     const up = reduceSwitch(down, key('keyUp', 20)).state;
     expect(reduceSwitch(up, key('keyDown', 1000)).state.pressed).toBeNull();
   });
+  it('pausing auto scroll resumes the menu without restarting scrolling', () => {
+    const scrolling = { ...ready(), mode: 'scrolling' as const, resumeMode: 'itemScan' as const };
+    const paused = reduceSwitch(scrolling, { type: 'pause', now: 10 }).state;
+    const down = reduceSwitch(paused, key('keyDown', 500)).state;
+    const resumed = reduceSwitch(down, key('keyUp', 510));
+    expect(resumed.state.mode).toBe('itemScan');
+    expect(resumed.actions).toHaveLength(0);
+  });
+  it('pausing an executing editor command preserves the editor resume mode', () => {
+    const composing = { ...ready(), mode: 'composing' as const };
+    const down = reduceSwitch(composing, key('keyDown', 10)).state;
+    const executing = reduceSwitch(down, key('keyUp', 20)).state;
+    const paused = reduceSwitch(executing, { type: 'pause', now: 30 }).state;
+    expect(paused.resumeMode).toBe('composing');
+  });
 });

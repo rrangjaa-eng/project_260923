@@ -50,7 +50,8 @@ export function reduceSwitch(previous: SwitchState, event: SwitchEvent): { state
   const state = { ...previous };
   const actions: SwitchAction[] = [];
   const pause = () => {
-    if (state.mode !== 'paused') state.resumeMode = state.mode === 'executing' ? 'itemScan' : state.mode;
+    if (state.mode === 'scrolling') state.resumeMode = 'itemScan';
+    else if (state.mode !== 'paused' && state.mode !== 'executing' && state.mode !== 'recovering') state.resumeMode = state.mode;
     state.mode = 'paused'; state.pressed = null; state.pendingAction = null; state.modeGeneration += 1;
   };
   if (event.type === 'pause' || event.type === 'invalidate') pause();
