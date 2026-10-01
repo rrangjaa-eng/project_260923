@@ -42,7 +42,8 @@ jobs:
       # 화면 시험은 확장을 올린 Chromium이 필요하다(tests/e2e/fixtures.ts가 channel 'chromium'을 쓴다).
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
-        timeout-minutes: 20
+        # CI70: 313건이 20.1분에 완료돼 20분 단계 제한과 충돌했다. 전체 job 30분 안에서 여유를 둔다.
+        timeout-minutes: 25
 
       - uses: actions/upload-artifact@v4
         if: failure()

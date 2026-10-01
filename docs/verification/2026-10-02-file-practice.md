@@ -21,7 +21,7 @@
 | `ui-review` 기존40492/run-bTzDDs | 101/101pass,fail/skip/flaky0,3.4분,exit0. P2수정전의 기존화면영향실행이며 새화면6건을 대신하지 않음 |
 | production build | E2E setup에서exit0 |
 | 이전ZIP manifest 비교 | permissions/host_permissions/content_scripts 그대로 |
-| 전체CI | 새draftPR의 최종HEAD에서 확인예정; 미확정 |
+| 전체CI70 | 실패: 313건 단언 통과 뒤 E2E 단계 20분 제한 초과. workflow 성공 아님 |
 
 로그: /tmp/phase2-review-{latch-red,latch-green,focus-red,focus-green,ui-green}.log, /tmp/phase2-scope-label-red.log, /tmp/phase2-final-{type,lint,all-unit}.log. 원본UI101 결과는 /workspace/.cloud-onboarding/ui-review-runs/run-bTzDDs/results.json. 지속근거는 Git의 회귀/설계/이문서와 화면3장이다.
 
@@ -36,3 +36,11 @@ cloud에서 독립 실행상태/문서·모드·세션변경의 negative protoco
 ## 2026-10-02 01:12 KST: 만료 후 쉬기 복귀 경계
 
 전체CI69가 실행되는 동안 expiry 경계를 추가 점검했다. page.clock으로 실제연습화면에서 쉬기뒤61초를 앞당긴 다음 같은파일을고르면 flow.select가거절되나 UI의 executing이남아 Space종료메뉴로 돌아오지 못하는 RED1fail을 확인했다. 실패한선택도 적용0·새시작ready로돌아오도록 최소수정했다. 새시작Space는 재개만 하고 종료까지Space만으로가능한 실제회귀를 포함해 **최종관련UI7/7pass,1.4분,exit0**다. 최종type/lint도exit0. 이실제제품수정때문에 기존CI69를최종통과로사용하지 않고 새HEAD 전체CI를확인한다. 환경/권한변경이나 같은소스의 중복전체실행이아니다.
+
+## 2026-10-02 01:47 KST: CI70 시간 예산 수정
+
+run 36890376084 / job 110464494107 / source c608d00. 타입·린트·단위164건은 통과했다. E2E 단계는 01:15:22.792 KST 시작, 01:15:25 빌드 완료, 01:15:27 313건 시작, 01:35:26.760에 `313 passed (20.1m)`를 보고한 직후 01:35:26.789에 20분 제한 오류로 실패했다. 단언 통과와 workflow 성공을 구분한다.
+
+전역 setup은 동기 빌드를 정확히 한 번 수행하고, 공통 fixture는 사용 완료 뒤 context.close()를 기다린다. 새 파일 연습의 350ms 대기는 기존 300ms 입력 보호 경계를 검증하며, 400ms 대기는 반복누름 검증이다. 로그상 완료 보고 뒤 장시간 정리 지연은 없었다. 이 조사 범위에서 종료 누수의 증거는 발견하지 못했으며, 모든 시험의 잠재 누수가 없다고 보장하지 않는다.
+
+E2E 단계만 20→25분으로 조정했다(실측20.1분 대비 약24% 여유). job 전체30분, 313건 시험·단언·실패 처리·권한은 유지한다. CI70의 사전 준비는 약2분이므로 보통 25분 E2E와 준비를 합쳐도 전체 제한 내다. 제품 변경이 없어 전체313건은 재실행하지 않았고, 새 source의 전체CI 확인은 부모가 맡는다. 후속 fake-handoff 작업은 별도 브랜치613ab78에 먼저 보존했다.
