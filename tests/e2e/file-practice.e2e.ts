@@ -70,3 +70,20 @@ for (const width of [360, 768, 1280]) {
     await expect(panel).toHaveAttribute('data-mode', 'ready');
   });
 }
+
+test('moving focus during held confirmation discards the press and approval', async ({ context, extensionId }) => {
+  const page = await context.newPage(); await page.goto(`chrome-extension://${extensionId}/file-practice.html`);
+  const panel = page.locator('tremor-helper-root').locator('.switch-panel');
+  await page.keyboard.press('Space'); await page.waitForTimeout(350);
+  await choosePractice(page, '연습 파일 선택'); await choosePractice(page, '연습문서.txt');
+  await expect.poll(async () => panel.locator('.switch-choice[aria-current="true"]').textContent(), { timeout: 20000 }).toBe('확인 · 이 파일 선택');
+  await page.keyboard.down('Space');
+  await page.getByRole('textbox', { name: '일반 입력' }).focus(); await page.keyboard.up('Space');
+  await expect(panel).toHaveAttribute('data-mode', 'paused');
+  await page.getByRole('button', { name: '일반 버튼' }).focus(); await page.keyboard.up('Space');
+  await expect(page.locator('output')).toHaveText('선택 없음');
+  await page.keyboard.press('Space'); await expect(panel).toHaveAttribute('data-mode', 'itemScan'); await page.waitForTimeout(350);
+  await expect(panel.locator('.switch-draft')).toHaveCount(0);
+  await choosePractice(page, '연습문서.txt'); await choosePractice(page, '확인 · 이 파일 선택');
+  await expect(page.locator('output')).toHaveText('연습문서.txt');
+});

@@ -2,21 +2,26 @@
 
 갱신: 2026-10-01 23:56 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 전달 로컬 `codex/installed-page-investigation` / 원격 PR 작업 브랜치 `codex-single-switch-phase1`
 
-## 남은 개발 재개 — 2026-10-02 00:48 KST
+## 남은 개발 재개 — 2026-10-02 00:56 KST
 
-작업명: `PR 미생성 | 파일 선택 연습·안전 계약`. 기존 세션 재사용, 새 로컬 브랜치 `codex/phase2-file-practice`; 검증된 PR15/20440e6·ZIP 보존. 부모는 CI67/run36880332412 최종success와 PR15본문 갱신을 직접 확인했다. 최신 “나머지 계속 진행해” 승인으로 PC 검증을 클라우드 개발의 대기조건으로 삼지 않는다.
+작업명: `PR 미생성 | 파일 선택 연습·안전 계약`. 기존 세션 재사용, 로컬 `codex/phase2-file-practice`, 원격 `codex-phase2-file-practice`; PR15/20440e6·설치ZIP은 보존. 부모가 CI67/run36880332412 최종success와 PR15본문 갱신을 직접 확인했다. 최신 남은 개발 진행 승인으로 PC 시험을 클라우드 개발의 대기조건으로 삼지 않는다.
 
 | 이번 진행 | 실제 결과 | 다음 작업 |
 |---|---|---|
-| 기존 계획 대조 | 8단계 핵심/선택/초점/초안/탭/종료 구현 완료. 체크박스와 오래된 계획 수치를 새 미구현으로 해석하지 않음 | 실제 PC TEST/DIST·문구관리전체/최근값/양식전체·실제OS/USB/반복업무는 남음 |
-| 보류 f21a215 회귀 복원 | 현재 기준에서 실제 worker stop1/1 pass,22초 | 회귀·기존2차 설계만 선택 복원; PR13/14 코드 복사 없음 |
-| 파일 선택 조정기 | 고정 가짜 provider·세션/요청/문서/모드/만료·확인1초·정지·응답유실/timeout. 초기RED5fail/7pass→12pass; timeout추가RED1fail/12pass→13pass. 전체단위161/161 pass | 독립 리뷰의 동일 요청 재실행 P2를 RED로 보강·수정해야 함 |
-| 별도 확장 연습 화면 | Space 그룹/선택/확인/복귀/정지/일반키2/2 pass32.5초, viewport360/768/1280 DOM·hold3/3 pass19초 | 내부input포커스 이동 후 orphanup P2 수정. 좁은 화면에서 항상 시제품표시를 보이게 하는 신규assertion RED1fail 확인 |
-| type/lint/build | 최종 type/lint exit0·production build pass. 단위161pass | 기존UI100 `ui-review` 실행중, 결과는 /workspace/.cloud-onboarding/ui-review-runs/run-bTzDDs. 새 draftPR/완료 판단은 후속 수정·검증 뒤 |
+| 기존 계획 대조 | 8단계 핵심/선택/초점/초안/탭/종료 구현 완료. 오래된 미체크박스를 중복 구현하지 않음 | 실제PC TEST/DIST, 문구관리·최근값·양식전체, 실제OS/USB, 반복업무는 남음 |
+| 보류 회귀 | f21a215의 실제 worker stop만 복원, 최신제품 기준1/1 pass22초 | PR13/14 복사·병합 없음 |
+| 파일 선택 안전 | 고정 가짜provider·토큰/요청/세션/문서·모드/만료/확인1초/정지latch/3초응답유실unknown. 최종 전용16/16·전체164/164 pass | 실제 파일/API 전송은 구현하지 않음 |
+| 독립 리뷰 P2 수정 | 동일요청 pause반복 재실행 RED3 fail/13 pass→16pass. 전송latch와 응답대기중 새요청 차단. 내부input초점 변경+orphanup UI RED1fail→GREEN1pass16.3초 | 리뷰2건 수정. 정상 새요청·초안 보존 유지 |
+| 연습UI/DOM | 선택·확인·취소·복귀·쉬기·종료/키복구·3viewport 관련5pass; 수정된 초점회귀별도1pass. 좁은화면 지속표시 RED1fail→3viewport GREEN | 화면3장 갱신. 실제OS 실행으로 표시하지 않음 |
+| 기존 자동 화면 검토 | 기존 실행40492 회수: **101/101 pass**,0fail/skip/flaky,3.4분,exit0 | 수정 전 실행이며 새6건과 구분. 공통엔진/패널/기존popup 불변. 중복100검사 없음 |
+| 최종 type/lint/build | exit0·production build pass. 기존ZIP 대비permissions/host/content_scripts 동일 | 새권한/설치/OS/네트워크/260917접근 없음 |
+| 전체검증/새PR | draftPR 생성·최종HEAD의 전체CI 확인을 진행한다 | PR15 대상으로 별도 stacked PR. merge/release/deploy 없음 |
 
-### 실행 환경 사실 확인 (긴급 보고)
+[최종 수정·검증 기록](verification/2026-10-02-file-practice.md). 완료된 1차를 새로 만들지 않았고 `.planning` human_needed를 임의로 통과시키지 않았다. 현재 기록의 미확정 전체CI는 최종수치 확인 뒤 보완한다.
 
-런타임 사용자 environment_context에 선택 환경ID `ccarenv_b64_Y2NhcmVudl8yOTg2ZTBlYzEzMTg4MTkxYTM4N2QwZGI1YzdiZmY2Zg`가 직접 제공됐고 wait_for_environment가 ready를 반환했다. 00:36:43 KST의 읽기전용 Python 명령은 실제 성공했으며 Linux6.18.44/x86_64, cwd=/workspace/project_260923, PID1=tail, /.dockerenv=False였다. exec_command 스키마/응답에는 독립 환경ID/호스트유형/PC연결 식별자가 없다. OS/경로만으로 호스트를 확정하지 않는다. 부모 조회의 rangja offline/attached false/authorized false는 부모가 확인한 근거이며 이 명령으로 다시 조회한 값은 아니다. PC로 전환/연결·자격증명·설정 변경·260917 접근 없음. 현재 제품코드는 실제파일/OS접근·외부전송·새권한0인 연습 기능이며 리뷰P2가 남아 출시물로 전달하지 않는다.
+환경 긴급 보고는 613bbe9에 보존했다. 선택ID와 ready는 런타임 확인, 명령은 Linux6.18.44/x86_64에서 성공, exec도구 응답에는 독립호스트유형·PC연결식별자가 없다. 확인을 반복하거나 PC로 전환하지 않았다.
+
+다음 승인된 클라우드 항목은 가짜provider 경계의 문서/모드/세션 변경 및 결과불명 테스트벡터와 입력소유권 복귀를 확대하는 것이다. 실제 파일 연결, nativeMessaging 권한·Windows host등록·USB접근·웹스토어게시/배포는 승인 필요 항목으로 분리한다. 반복업무 자동화는 현 파일 흐름의 실제연결 이후 설계 순서를 유지한다.
 
 ## 설치본 신고 대응 — 현재 우선 작업
 

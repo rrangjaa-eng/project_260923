@@ -23,23 +23,25 @@ export class FileSelection {
   private request: FileRequest | null = null;
   private selectedAt = 0;
   private revision = 0;
+  private dispatched = false;
+  private awaitingReply = false;
   private readonly usedRequests = new Set<string>();
   constructor(readonly provider: FileProvider) {}
 
   begin(request: FileRequest, now: number): boolean {
     const key = JSON.stringify([request.sessionId, request.requestId]);
-    if (!['idle', 'done', 'cancelled', 'unknown'].includes(this.state) || this.usedRequests.has(key) || now >= request.expiresAt) return false;
+    if (this.awaitingReply || !['idle', 'done', 'cancelled', 'unknown'].includes(this.state) || this.usedRequests.has(key) || now >= request.expiresAt) return false;
     this.usedRequests.add(key); this.request = { ...request }; this.selected = null;
-    this.revision++; this.state = 'selecting'; return true;
+    this.revision++; this.dispatched = false; this.state = 'selecting'; return true;
   }
   select(token: string, now: number): boolean {
-    if (this.state !== 'selecting') return false;
+    if (this.dispatched || this.state !== 'selecting') return false;
     const file = this.provider.files.find((item) => item.token === token);
     if (!file || !this.request || now >= this.request.expiresAt) return false;
     this.selected = { ...file }; this.selectedAt = now; this.state = 'confirming'; return true;
   }
   async confirm(context: FileRequest, now: number): Promise<'done' | 'refused' | 'unknown'> {
-    if (this.state !== 'confirming' || !this.selected || !this.request) return 'refused';
+    if (this.dispatched || this.state !== 'confirming' || !this.selected || !this.request) return 'refused';
     const current = this.request;
     if (now >= current.expiresAt || current.sessionId !== context.sessionId || current.requestId !== context.requestId
       || current.documentGeneration !== context.documentGeneration || current.modeGeneration !== context.modeGeneration) {
@@ -51,7 +53,7 @@ export class FileSelection {
       this.cancel(); return 'refused';
     }
     const revision = this.revision;
-    this.state = 'executing'; this.selected = null;
+    this.dispatched = true; this.awaitingReply = true; this.state = 'executing'; this.selected = null;
     let result: 'done' | 'refused' | 'unknown';
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
@@ -60,7 +62,7 @@ export class FileSelection {
         new Promise<'unknown'>((resolve) => { timer = setTimeout(() => { resolve('unknown'); }, 3000); }),
       ]);
     } catch { result = 'unknown'; }
-    finally { if (timer !== undefined) clearTimeout(timer); }
+    finally { this.awaitingReply = false; if (timer !== undefined) clearTimeout(timer); }
     if (revision !== this.revision) return 'unknown';
     this.state = result === 'refused' ? 'cancelled' : result; return result;
   }
@@ -71,6 +73,8 @@ export class FileSelection {
   private interrupt(next: 'cancelled' | 'paused' | 'stopped') {
     if (this.state === 'stopped') return;
     this.revision++; this.selected = null;
-    this.state = this.state === 'executing' && next !== 'stopped' ? 'unknown' : next;
+    if (next === 'stopped') this.state = 'stopped';
+    else if (this.dispatched) this.state = this.state === 'done' ? 'done' : 'unknown';
+    else this.state = next;
   }
 }

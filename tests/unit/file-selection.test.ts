@@ -74,3 +74,22 @@ it('reply deadline is unknown; a late result cannot complete or retry it', async
     expect(flow.state).toBe('unknown'); expect(applied).toEqual(['sample-text']);
   } finally { vi.useRealTimers(); }
 });
+
+it.each(['done', 'lost'] as const)('a dispatched %s request cannot replay through repeated pause/resume', async (result) => {
+  const provider = createPracticeFileProvider(result); const flow = new FileSelection(provider); const context = request();
+  flow.begin(context, 0); flow.select('sample-text', 0); await flow.confirm(context, 1500);
+  flow.pause(); flow.pause(); flow.resume();
+  expect(flow.select('sample-text', 2000)).toBe(false);
+  expect(await flow.confirm(context, 3500)).toBe('refused'); expect(provider.applied).toEqual(['sample-text']);
+  expect(flow.begin({ ...context, requestId: 'r2' }, 4000)).toBe(true);
+});
+it('an interrupted pending dispatch blocks a second request and cannot replay', async () => {
+  let release: (() => void) | undefined; const applied: string[] = [];
+  const flow = new FileSelection({ files: createPracticeFileProvider().files, apply: (token) => { applied.push(token); return new Promise<'done'>((resolve) => { release = () => { resolve('done'); }; }); } });
+  const context = request(); flow.begin(context, 0); flow.select('sample-text', 0); const pending = flow.confirm(context, 1500);
+  flow.pause(); flow.pause(); flow.resume();
+  expect(flow.select('sample-text', 2000)).toBe(false);
+  expect(flow.begin({ ...context, requestId: 'r2' }, 2000)).toBe(false);
+  release?.(); expect(await pending).toBe('unknown'); expect(applied).toEqual(['sample-text']);
+  expect(flow.begin({ ...context, requestId: 'r2' }, 3000)).toBe(true);
+});

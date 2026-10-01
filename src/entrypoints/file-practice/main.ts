@@ -34,7 +34,7 @@ function render() {
   if (stopped) return;
   const selected = flow.selected;
   const preview = selected ? `${selected.folder} / ${selected.name}\n요청 페이지: 로컬 연습 화면\n이 사이트는 파일을 즉시 보낼 수 있어요\n실제 파일 전송 없음` : flow.draft;
-  panel.render(engine, heading, preview, notice);
+  panel.render(engine, `${heading} · 실제 파일/OS 입력 없음`, preview, notice);
 }
 function show(items: SwitchItem[], mode: SwitchMode, title: string, status = '스페이스바로 선택') {
   engine = reduceSwitch(engine, { type: 'start', items, mode, now: performance.now() }).state;
@@ -55,7 +55,7 @@ function shutdown() {
   stopped = true; flow.stop(); clearInterval(timer); panel.destroy();
   document.querySelector('tremor-helper-root')?.remove();
   document.removeEventListener('keydown', key, true); document.removeEventListener('keyup', key, true);
-  window.removeEventListener('blur', rest);
+  window.removeEventListener('blur', rest); document.removeEventListener('focusin', focusChanged, true);
   output.setAttribute('data-stopped', 'true');
 }
 async function act(id: string) {
@@ -93,14 +93,23 @@ function send(event: SwitchEvent) {
   for (const action of result.actions) void act(action.itemId ?? '');
   render();
 }
+function editable(target: EventTarget | null) {
+  return target instanceof Element && target.closest('input,textarea,[contenteditable]:not([contenteditable=false])') !== null;
+}
+function focusChanged(event: FocusEvent) {
+  if (!stopped && (engine.pressed !== null || editable(event.target))) rest();
+}
 function key(event: KeyboardEvent) {
   if (stopped || event.code !== 'Space') return;
-  if (event.target instanceof HTMLInputElement || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+  if (editable(event.target) || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+    if (engine.pressed !== null) rest();
+    return;
+  }
   event.preventDefault(); event.stopImmediatePropagation();
   send({ type: event.type === 'keydown' ? 'keyDown' : 'keyUp', code: event.code, repeat: event.repeat, trusted: event.isTrusted, isComposing: event.isComposing, now: performance.now() });
 }
 show(groups, 'groupScan', '연습 · 스페이스바 작업판', notice); engine.mode = 'ready'; render();
 const timer = setInterval(() => { send({ type: 'tick', now: performance.now() }); }, 50);
 document.addEventListener('keydown', key, true); document.addEventListener('keyup', key, true);
-window.addEventListener('blur', rest);
+window.addEventListener('blur', rest); document.addEventListener('focusin', focusChanged, true);
 document.querySelector('#stop')?.addEventListener('click', shutdown);
