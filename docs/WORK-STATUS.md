@@ -1,6 +1,6 @@
 # 작업 현황표
 
-갱신: 2026-10-01 18:55 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 로컬 `codex/single-switch-phase1` → 원격 `codex-single-switch-phase1`
+갱신: 2026-10-01 19:54 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 로컬 `codex/single-switch-phase1` → 원격 `codex-single-switch-phase1`
 
 최신 사용자 승인(계획 제시 뒤 `진행해`)에 따라 제품 구현을 계속한다. 별도 문서 체크포인트 `58cc6e8`은 `codex/single-switch-design-checkpoint`에 보존했으며 개발 승인을 설계 대기로 되돌리지 않는다.
 
@@ -8,18 +8,20 @@
 
 | 최신 체크포인트 | 실제 결과 | 남은 작업 |
 |---|---|---|
-| 원격 안전 수정 | `295a2aa` (제품 `dcbc395`) PR15에 보존; 아래 후속 수정도 같은 head에 저장 | draft 유지, merge/deploy 없음 |
-| 전체 로컬 `ui-review --full` | **288/290 pass, 2 fail**, 14.9분, exit1 | 최종 수정 뒤 전체 합격 미확정; 이유는 아래 |
-| UI 기본 범위 / 새 DOM | 같은 full JSON에서100/100, 새 DOM3/3 pass. 360/768/1280px 선택56px·글자18px·페이지scroll0, screenshot 직접 검토 | 패널 내부 스크롤 때 heading/status가 위로 사라지는 UX 보완 검토 |
-| CI58 (1b7fb0a) | E2E262 pass/3 fail | 초기typing2/drag준비조건1, CI59에서 해당3건 pass |
-| CI59 (295a2aa) | **289/290 pass, 1 fail**, 15.3분; type/lint/unit pass. 최종failure | unknown test recovering 기대/paused 수신. 아래 실제계약 회귀로 조사·수정 |
-| unknown+탐색 경합 | 추가 RED: paused에서 결과불명 안내 소실. 수정 후 탐색없는 recovering/탐색후 paused 각각3회 **6/6 pass**, 클릭1·자동재실행0·재개는선택아님 | 새 HEAD CI 결과 확인 필요 |
-| 문서 편집기 현재초점 표시 | 전역 끄기 중 이동한 초점이 다시켜기 때 반영되지 않는 RED→현재모드 재보고/표시갱신. 관련4사례×3 **12/12 pass** | 초기typing 간헐 원인 전체를 확정한 것은 아님 |
-| 로컬 full의 재누름 실패 | 200ms 대기가 기본300ms 떨림 보호와 겹침. 새누름은350ms 뒤로 맞춤; 빠른거절/F1·본문불변·typing 단언 유지, 위12에 포함 | 완전한 최종 전체 결과는 후속CI |
-| 늦은승인/작업ID/끄기/제출/프레임/한글삭제 | RED→안전묶음23·추가경계15·ID1·자식탐색1 pass (서로겹침) | 전체 합격으로 합산하지 않음 |
-| 최신 type/lint/unit/build | exit0/exit0/21파일131개 exit0; 집중E2E의production build 성공 | 최종head CI 종료는 다음 재개에서 확인 |
-| 독립 review/cso/QA | 앞선4지적과 추가2경계를 수정·재검토. 마지막표시/fixture수정은 주구현자 실제회귀검증 | 최종HEAD 독립·전체 검토를 포괄 완료로 표시하지 않음 |
-| 8단계/사용자 검증 | 첫Space 웹활동 통과, 전체8단계 계약 완료는 아님 | 입력칸 선택범위 capture/복원 계약 미구현(현재값/초안 커서만 처리). 실제PC IME·사용성·지원사이트 시험 미실행 |
+| 원격 저장 | 선택·패널 `0dfb4ba` 원격 보존, 표시 보완도 같은 Draft PR15로 저장 | 최종 HEAD CI 결과는 PR checks/최종 보고와 구분해 확인 |
+| CI60 (`e3287e1`) | **최종 success, E2E292/292**, type/lint/unit131 pass | 후속 선택·패널 변경까지 포함한 결과는 아님 |
+| 선택범위·초점 복원 | `0dfb4ba`: input/textarea 범위·방향 capture, grapheme cursor/anchor, 선택 교체/삭제/undo. 유효한 대상의 명시적 복원만 focus | 실제 PC·실사이트 검증은 후속 |
+| 적용과 포커스 분리 | 이메일 선택 API 미지원 및 focus 중 종류 변경 RED→단위 GREEN. 적용은 초점 이동 없이, 복원은 값·유형·활성 상태 재검증 | 최종 CI 확인 |
+| 작업판 지속 맥락 | 목록만 스크롤. 360/768/1280px에서 제목 top31px, 상태 top75.8px, 선택56px·글자18px·페이지scroll0. screenshot 직접 확인 | 모든 줌/스크린리더 검증으로 확대하지 않음 |
+| 최신 단위·type/lint | 전체21파일135개 pass, type/lint exit0 | 새 최종 HEAD 원격 CI |
+| 선택·패널 E2E | 6/6 pass. 전체 switch 영향40/41(9.2분), 공백 fixture 실제 커서를 끝으로 명시한 재검사1/1 pass | full296에서 해당 시나리오도 통과 |
+| 전체 로컬 UI/E2E | `0dfb4ba`의 `run-FpP8BY`: **296/296 pass**, 0 fail/skip/flaky,16.2분,exit0. switch41·기본UI100·확장로드smoke3 모두 같은 실행의 부분집합 | 이후 작은 표시 보완까지 이 전체 통과에 포함하지 않음 |
+| 최종 표시 보완 | 선택/삽입 위치를 토큰 기반 mark/caret으로 표시하고 긴 초안 내부만 scroll. 마우스 전환 전 작업판 종료 표시. 3건 RED→입력5 포함8/8 GREEN, 긴 초안 상태·경계 재검사1/1 pass | 최종 전체 CI 확인 |
+| 최종 기본 UI | 새 표시 코드의 `run-jwbVzP`: **100/100 pass**,0 fail/skip/flaky,3.2분,exit0. type/lint pass | 이전전체296과 합산하지 않음 |
+| 독립 review/cso/QA | 신규 선택·포커스·패널 및 후속 표시 코드 읽기 검토: 새 미해결 P1/P2 없음. 기존 안전 검토와 실제 회귀 근거 보존 | 실제 OS·운동 사용성은 별도 |
+| PR 본문 | child에서는 명시 승인 인용도 도구 출력으로 분류돼 재거절. 부모가 주 대화의 직접 승인으로19:46 KST 실제 갱신·본문 확인 성공 | 이후 최종 결과의 본문 갱신은 부모가 처리. child 추가 재시도 없음 |
+| 자동 압축 설정 | 제공 CLI0.159.0-alpha.3 스키마 pass. 임계값 미설정=모델 기본값 보존, scope=`total` | 현재 호스팅 세션 적용·실행 상태는 관찰 불가 |
+| 1차 사용자 검증 | 실사이트·실제PC IME·오선택·피로·속도는 미실행. [재현 인계](verification/2026-10-01-single-switch-pc-check.md) 작성 | 사이트 선정은 자동 구현/검증 차단 사유가 아님 |
 
 로그: `/tmp/switch-editor-parent-red.log`, `/tmp/switch-journey-first.log`, `/tmp/switch-safety-red.log`, `/tmp/switch-pause-red.log`, `/tmp/switch-mode-confirm-red.log`, `/tmp/switch-journey-safety-green.log`, `/tmp/switch-integration-unit.log`, `/tmp/switch-pr-{type,lint}.log`, `/tmp/switch-impact-regression.log`. 초기 조회 기준 unit125·관련E2E22는 이번 여정 전에 통과한 기반이며 전체 기능 완료를 의미하지 않는다.
 
@@ -44,4 +46,4 @@
 
 최신 구현 로그: `/tmp/switch-task1-green.log` (관련52 pass), `/tmp/switch-mode-report-red.log` (늦은 프레임 모드 보고 RED), `/tmp/switch-click-proxy.log` (실제 Space 링크 실행 pass), `/tmp/switch-checkpoint-type.log`, `/tmp/switch-checkpoint-lint.log`, `/tmp/switch-checkpoint-unit.log` (신규10 pass).새 코드 검증 범위에 한정하며 전체 기능 완료를 의미하지 않는다. HTTP 문서에서 crypto.randomUUID 미지원과 content script의 storage.session 접근 차단을 실제 오류로 확인해 getRandomValues ID 및 백그라운드 읽기 중계로 수정했다.
 
-최신 재개: CI59는 진행 중이 아니라 최종 실패다. 후속 수정의 현재 HEAD는 새 CI 자동 실행 대상이며 이 체크포인트는 종료 결과를 미리 통과로 기록하지 않는다. 새 CI 종료 확인→필요한 원인 조사/영향검사→단계5 선택범위 계약·단계8 UI/PC 검증으로 이어간다. 승인된 설계/구현/push를 다시 승인 대기로 되돌리지 않는다. 기존290 full은 반복 실행하지 않았다.
+최신 재개: CI60은 최종 성공이다. 선택·패널의 full296 및 이후 표시의 집중8·기본UI100을 서로 구분했다. 최종 전체 CI는 해당 HEAD의 원격 실행 결과를 확인한다. 승인된 같은 PR15 구현·저장을 계속하며 설계 승인 대기로 복귀하지 않는다. 실제 PC 인계와 전체 GSD phase 완료를 자동 검사 합격과 혼동하지 않는다.

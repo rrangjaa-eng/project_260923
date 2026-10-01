@@ -87,7 +87,7 @@
 
 - [ ] 테스트 `compose_new_sentence`에서 초성/중성/없음 포함 종성으로 `안녕하세요` 생성, `edit_middle`, `space_is_command`에서 중간 수정·공백 선택·물리 Space의 직접 삽입0을 검증하고 실패 확인. 쌍자음·겹모음·겹받침도 포함한다.
 - [x] `composeHangul(initial: number, medial: number, final: number): string`과 draft reducer를 구현한다. 완성 음절의 Unicode 조합, 미완성 단계 취소, 보이는 문자 단위 이동/삭제/되돌리기/문구 삽입을 제공한다.
-- [ ] `captureTextTarget(target: SwitchTarget)`은 input/textarea의 값·선택을 snapshot으로 잡고, `applyDraft(snapshot, text): 'done'|'refused'`는 세대·연결·원래 값 검증 후 input 이벤트로 적용한다. 일반 검색 입력만 첫 지원; rich editor 자동 적용은 거절하고 초안 보존.
+- [x] `captureTextTarget(target: SwitchTarget)`은 input/textarea의 값·선택을 snapshot으로 잡고, `applyDraft(snapshot, text): 'done'|'refused'`는 세대·연결·원래 값 검증 후 input 이벤트로 적용한다. 일반 검색 입력만 첫 지원; rich editor 자동 적용은 거절하고 초안 보존.
 - [x] E2E `external_value_change_refuses`, `pause_keeps_partial_syllable`, `sensitive_never_saved`를 실행한다. 세션 초안은 탭별 chrome.storage.session, 저장 문구는 명시적 저장만 local. password/민감칸은 초안 저장·문구 수집 제외. 타이핑 composition Space는 선택0. 완료조건: 저장 문구에 없는 한글 문장 작성·수정·적용이 Space만으로 성공.
 - [ ] `feat: add switch based Korean text editing` 의도로 커밋.
 
@@ -128,3 +128,13 @@
 이 문서는 writing-plans로 작성한 실행 가능한 계획이며 GSD plan-phase의 planner/checker 게이트 통과를 주장하지 않는다. 실행 전 공식 GSD 스킬로 승인된 새 범위를 기존 로드맵에 연결하고 필요 계획/검증 상태를 생성한다. 기존 Phase1(19계획 실행)과 이번 1차 기능을 같은 것으로 처리하지 않는다. GSD 제공자 모델명이 현재 지정 모델과 다르면 운영규칙에 따라 명시하고, 지원 불가면 해당 단계만 보고한다. `.planning/`를 수동 편집하거나 규칙 PR 게시를 선행조건으로 삼지 않는다.
 
 자체 검토: 설계 §1~9를 단계2~8에 연결했고 기존 실패/Node 차이는 단계1에 둔다. 5개 Review Focus에 각 단계의 검사를 배정했다. 제품 코드 구현·새 테스트 실행은 이 계획 작성 중 수행하지 않았다.
+
+
+## 19:32 KST 선택·패널 계약 보완
+
+`0dfb4ba`에서 단계5 값/선택 snapshot과 유효한 대상의 명시적 초점·선택 복원을 구현했다. 초안의 cursor/anchor는 grapheme 단위이고 삽입·삭제·undo가 선택 범위를 유지한다. 이메일처럼 선택 API가 없는 입력은 적용 가능하며 범위만 생략한다. 적용에서 자동 focus를 분리해 자식 프레임의 blur가 검색 후속을 끊지 않게 했다. 패널은 제목·상태를 남기고 목록만 스크롤한다.
+
+실제 선택/패널 E2E6, unit135 pass. 영향40/41에서 공백 fixture의 커서 준비 누락을 확인했으며 원래 값·유출·문구 저장 단언을 유지하고 커서를 끝으로 명시한 재검사1 pass. 새 전체296건과 최종 HEAD CI 종료는 별도 확인한다. 원문의 특정 테스트 이름/커밋 의도·절차 체크박스를 실제 수행 증거 없이 일괄 체크하지 않는다. 승인 설계 §8 자동 수용 조건의 코드/검사 연결과 실제 PC 인계는 검증 보고서에 기록한다.
+
+
+19:54 KST 추가 결과: 위 코드의 전체296/296 pass 뒤 선택·삽입 위치 시각 표시와 전환 전 작업판 종료 안내를 보완했다. 새3 RED→관련8 GREEN,긴 초안1 GREEN,새 기본UI100 GREEN,type/lint/unit135 GREEN. 최종 HEAD 전체CI 종료를 따로 확인한다. 단계8의 실제PC/실사이트 결과는 미실행이며 인계 문서를 작성했다. 원래8단계 자동 수용 조건과 전체 GSD phase/실제 사용자 합격을 구분한다.

@@ -53,3 +53,20 @@ Codex config는 제공0.159.0-alpha.3 스키마 검증 통과. 자동 압축 임
 로컬 full의 designMode 재누름 typing 실패는 helper가200ms만 기다려 기본300ms 보호와 겹칠 수 있는 준비 조건도 있었다. 새누름 복귀는350ms 뒤로 맞추고 빠른 재누름 거절/F1 시험은 그대로 유지했다. 별도로 꺼진 동안 편집기 초점이 바뀌면 다시켜기 때 currentMode 보고가 누락되는 실제 RED를 재현하여 child 재보고/top표시 갱신을 수정했다. 관련4사례×3 E2E12pass(29.1초), 마지막type/lint/unit131pass,production build pass. 전체를 재실행하여 통과했다고 주장하지 않는다.
 
 후속 code/문서/GSD 재개 기록을 같은 PR15에 보존한다. 최종 HEAD의 새 CI 종료와 단계8 전체·독립 검토는 다음 재개에서 확인한다(부모의 이번 턴 안전 체크포인트 지시). 단계5 원 계획의 입력칸 선택범위 기억/복원은 현재 `captureTextTarget` 값만 구현되어 남아 있다. 이것을 PC 검증 미실행과 혼동하지 않는다. 실제PC OSIME/운동 사용성/지원 실사이트도 별도 남는다.
+
+
+## 19:54 KST 선택·지속 맥락과 표시 최종 검증
+
+선택·패널 제품 커밋 `0dfb4ba`는 원격 PR15에 보존했다. `capture` 결과에 값과 UTF-16 선택 범위/방향을 추가하고, 초안은 grapheme cursor/anchor로 선택 교체·삭제·undo를 처리한다. `원래 입력칸으로`는 대상·원래 값·현재 입력 종류·활성/민감 상태를 재검증한 뒤에만 focus/선택을 복원한다. 적용은 focus와 분리해 자식 프레임 blur가 검색 후속을 끊지 않는다. 이메일처럼 선택 API가 없는 칸은 적용 가능하며 범위 복원만 생략한다. 실제 RED에는 선택 누락, 선택 대신 끝에 덧붙임, 이메일 적용 뒤 오거절, focus 처리 중 입력 종류 변경을 포함했다.
+
+전체 `ui-review --full`은 `/workspace/.cloud-onboarding/ui-review-runs/run-FpP8BY/`에 JSON/HTML/로그를 남겼고 **296/296 pass,0 fail/skip/flaky,16.2분,exit0**다. 같은 JSON에서 switch41,기본 UI100,확장 로드 skeleton3 pass를 확인했다. 360/768/1280px에서 제목 top31px·상태 top75.8px·선택56px/글자18px·페이지scroll0를 실측하고 화면을 직접 확인했다. 앞선 영향40/41의 공백 fixture는 실제 커서가 시작 위치였지만 끝 삽입을 기대했다. 커서를 끝으로 명시한 재검사1 pass와 이 full에서 원래 문자열·물리Space 유출·저장 단언이 모두 통과했다. 기대 문자열 완화/skip은 없다.
+
+이 full 뒤의 표시 보완은 별도로 검증했다. 초안 선택과 삽입 위치를 text node/mark/caret으로 표시해 원래 textContent와 글자를 유지한다. 긴 초안은 내부만 스크롤한다. 마우스 방식 전환 선택에는 스페이스바 작업판 종료를 미리 표시한다. 새3건 RED→기존 입력/복원5 포함 **8/8 GREEN(1.9분)**, 긴 초안 상태·경계 추가확인1/1 pass. 상태는 y75.8~99.8,초안115.8~235.8,caret217.6~235.6px,페이지scroll0였다. 실제 화면도 확인했다. 마지막 코드의 기본 `ui-review`는 `run-jwbVzP`에서 **100/100 pass,0 fail/skip/flaky,3.2분,exit0**다. 같은 최종 코드에서 type/lint 및 unit21파일135개 pass. production build로 실제 확장을 로드했다. 전체296은 앞선 코드의 결과이고 새 표시까지 포함한 최종 전체 판정은 최종 HEAD CI로 확인한다.
+
+독립 검토 gpt-6.1-sol/high는 선택·포커스·지속 맥락과 후속 표시에서 새 P1/P2를 찾지 않았다. 검토자는 코드를 읽고 기존 로그를 확인했으며 직접 테스트를 실행한 것으로 표시하지 않는다. 승인 설계 §8 연결: 전체 Space 여정/새 한글·중간수정=journey,공백/조합취소/문구/민감칸=recovery/text,반복/보호/keyup/무입력=engine/actions,대상폐기/초안/정지=pending/frame/disable/journey,기존 기능=full,토큰·DOM=dom/defaultUI/feedback. 실제 PC·실사이트는 별도의 [인계](2026-10-01-single-switch-pc-check.md)이며 자동검증을 차단하지 않는다.
+
+[CI60](https://github.com/rrangjaa-eng/project_260923/actions/runs/36846368785)은 이전 `e3287e1`에서 최종success,292/292(15.2분),type/lint/unit131 pass로 종료했다. `0dfb4ba`의 CI61과 최종 표시/문서 HEAD의 CI는 각각 해당 커밋의 원격 결과로 확인하며 이전 HEAD의 통과를 새 코드에 적용하지 않는다. 최신 최종 결과는 [PR15 checks](https://github.com/rrangjaa-eng/project_260923/pull/15/checks)와 최종 보고에서 SHA/run을 지정한다.
+
+자동 압축은 `.codex/config.toml`의 임계값을 미설정으로 모델 기본값 보존, `model_auto_compact_token_limit_scope="total"`을 유지했다. 제공 CLI0.159.0-alpha.3과 `/workspace/.cloud-onboarding/codex-config.schema.json`을 실제 확인하고 Python jsonschema로 통과했다. implementation 요청 프로필은6.1-sol/medium,독립 review는명시6.1-sol/high이며 자동 라우팅을 주장하지 않는다. 현재 호스팅 세션의 설정 적용값/자동 압축 실행을 조회할 API는 없어서 파일 검증과 구분한다. Git 현황·승인·브랜치/PR·남은 검증을 압축 후 재개 근거로 보존했다.
+
+19:39 KST 연결 중단 알림 후 같은 환경의 exec/Git 원격 조회가 성공했고 기존 full session79474가 exit0으로 정상 종료했음을 확인했다. 새 환경/중복 전체 검사를 만들지 않았다. PR본문은 child 승인 검토가 최신 인용을 도구 출력으로 분류해 재거절했고, 부모가 주 대화의 직접 승인으로19:46 KST 갱신·본문 확인했다. 이후 최종 결과는 부모에게 인계하고 child에서 재시도하지 않는다. merge/deploy/새 권한은 실행하지 않았다.
