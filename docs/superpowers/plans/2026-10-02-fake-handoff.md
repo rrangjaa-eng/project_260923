@@ -36,6 +36,6 @@ Consumes: Task1/2/기존panel. 본문역할·연습역할동작횟수와초안�
 ### Task 4: 검증·독립리뷰·Git/PR
 - [x] type/lint/unit/build·관련기존file-practice및새UI·자동UI검토.
 - [x] 새전체변경독립리뷰1회,지적은RED→GREEN과관련검사로수정.
-- [ ] PR16/baafce2에쌓는별도draftPR,Git상태/실제결과/후속문구관리·긴양식범위보존. merge/deploy없음.
+- [x] PR16/baafce2에쌓는별도draftPR,Git상태/실제결과/후속문구관리·긴양식범위보존. merge/deploy없음.
 
-진행: Task1~3 구현·RED/GREEN 완료. Task4 화면 검토·독립리뷰 수정 및 PR 준비 진행. 같은세션지속기록을이파일/WORK-STATUS에갱신한다. 인터페이스사전대조: Task3는Task1의handoffGeneration과Task2의generation을같은값으로사용;contextmode는현재owner engine modeGeneration;선택token은외부파일경로아님.
+진행: Task1~3 구현·RED/GREEN 완료. Task4 화면 검토·독립리뷰 수정·draft PR17 생성 완료. 전체CI 최종결과 별도 확인. 같은세션지속기록을이파일/WORK-STATUS에갱신한다. 인터페이스사전대조: Task3는Task1의handoffGeneration과Task2의generation을같은값으로사용;contextmode는현재owner engine modeGeneration;선택token은외부파일경로아님.

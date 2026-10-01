@@ -32,3 +32,5 @@ version1/허용8명령/opaque token/strict extra 필드 거절, 실행만료·�
 다음 기존 요구: INPT-01 최근값 카드 전체, INPT-02 문구 수정/관리, INPT-03 입력칸 전체를 큰 양식으로 모으기(제출 없이 복귀), PRIV-01 전체 민감판별은 미완료다. 다음 bounded 작업은 기존 local 문구 목록의 명시적 수정/삭제·취소/확인·저장소 충돌 거절이다. 최근값 자동 수집·전체 양식·자동 제출·외부 전송을 이 작업에 포함하지 않는다.
 
 최종 type/lint exit0. production manifest와 PR15 전달 ZIP의 permissions/host_permissions/content_scripts 비교는 모두 동일이다. 의존성·공통 엔진·공통 패널 소스는 base 대비 변경0. 검증은 실제 Playwright 확장 환경과 DOM 실측으로 수행했으며 native gstack가 이 확장을 조작했다고 표시하지 않는다.
+
+실제 draft PR17: https://github.com/rrangjaa-eng/project_260923/pull/17 . 기준PR16/baafce2, 원격head codex-phase2-fake-handoff. 후속 PR번호 기록 커밋은 문서만 변경한다. 전체CI결과는 후속 상태 브랜치에 기록해 같은 소스의 전체 실행을 반복하지 않는다.
