@@ -41,3 +41,15 @@
 상세 임시 로그: `/tmp/switch-safety-final.log`, `/tmp/switch-final-boundaries.log`, `/tmp/switch-old-action-id-{red,green}.log`, `/tmp/switch-child-navigation-{red,trace}.log`, `/tmp/switch-ci58-focused.log`, `/tmp/switch-checkpoint-final-{type,lint,unit}.log`. 이 문서의 결과·범위·명령이 Git에 남는 기록이고 임시 파일은 보조 증거다.
 
 Codex config는 제공0.159.0-alpha.3 스키마 검증 통과. 자동 압축 임계값을 미설정으로 모델 기본값 보존, 전체 문맥 total scope만 명시했다. 임의 context window/토큰 임계값이나 현재 호스팅 세션의 적용·압축 실행을 주장하지 않는다. AGENTS/현황/계획은 승인·PR·브랜치·검사·남은 계약을 복원 기준으로 보존한다.
+
+## 18:55 KST 전체 실행 종료와 후속 체크포인트
+
+실제 `ui-review --full` 결과는288pass/2fail/0skip/0flaky,14.9분,exit1이다. `run-Wb5Kjn/results.json` 및 HTML/로그는 `/workspace/.cloud-onboarding/ui-review-runs/run-Wb5Kjn/`에 있다. 같은 JSON에서 기존 UI 기본7파일100건100pass, 신규 작업판 DOM3pass를 추출했다. 선택행 높이56px, 폰트18px,360/768/1280px 패널경계와page.scrollY0를 측정하고 screenshot을 직접 읽었다. screenshot은 전체패널이 스크롤되면 제목/상태도 위로 사라짐을 보여 준다. 지속 맥락 표시 UX 보완은 후속이며 모든 디자인 기준 통과로 표시하지 않는다.
+
+[CI59](https://github.com/rrangjaa-eng/project_260923/actions/runs/36842952628)는 HEAD295a2aa에서 **completed/failure**:289pass/1fail(15.3분). type/lint/unit pass. 유일 실패는 switch-pending의 응답유실 시험에서 recovering 대신 paused다. CI58의3실패는 이번 CI에서 통과했으며 초기typing의 모든 간헐 원인을 해결했다고 단정하지 않는다.
+
+원래 lost-reply fixture는 실제 anchor fragment 탐색도 일으켰다. 대상loading 폐기가 unknown과 경쟁하여 paused가 되는 것은 안전하지만, 모드세대가 바뀌었다는 이유로 늦은unknown 결과의 안내까지 무시한 **제품 표시 결함**을 별도 RED로 확인했다. 두 경우를 분리했다: 탐색 없는 fixture는 recovering을 계속 요구하고, 탐색 있는 fixture는 대상폐기된 paused에서 명시적결과불명 안내를 추가로 요구한다. 수정은 실행권한·재개동작을 복원하지 않고 진단만 보존한다. 둘×3 실제E2E6pass(32.8초), 클릭1·자동재실행0·재개입력 선택0. 단순 기대값 완화나 스킵이 아니다.
+
+로컬 full의 designMode 재누름 typing 실패는 helper가200ms만 기다려 기본300ms 보호와 겹칠 수 있는 준비 조건도 있었다. 새누름 복귀는350ms 뒤로 맞추고 빠른 재누름 거절/F1 시험은 그대로 유지했다. 별도로 꺼진 동안 편집기 초점이 바뀌면 다시켜기 때 currentMode 보고가 누락되는 실제 RED를 재현하여 child 재보고/top표시 갱신을 수정했다. 관련4사례×3 E2E12pass(29.1초), 마지막type/lint/unit131pass,production build pass. 전체를 재실행하여 통과했다고 주장하지 않는다.
+
+후속 code/문서/GSD 재개 기록을 같은 PR15에 보존한다. 최종 HEAD의 새 CI 종료와 단계8 전체·독립 검토는 다음 재개에서 확인한다(부모의 이번 턴 안전 체크포인트 지시). 단계5 원 계획의 입력칸 선택범위 기억/복원은 현재 `captureTextTarget` 값만 구현되어 남아 있다. 이것을 PC 검증 미실행과 혼동하지 않는다. 실제PC OSIME/운동 사용성/지원 실사이트도 별도 남는다.

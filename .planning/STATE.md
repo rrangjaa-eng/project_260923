@@ -3,11 +3,11 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: "PR15: Space 한글 전체 여정 및 안전·복구 통합8/8, 영향E2E84/84, unit130/130 통과. 잔여 늦은 응답·프레임/worker·최종검증 필요; 제품 개발 계속."
-last_updated: "2026-10-01T08:32:03.535Z"
+stopped_at: "PR15: safety checkpoint 295a2aa preserved; CI59 completed failure 289/290; local UI full 288/290. New unknown-navigation notice and mode re-enable regressions fixed and focused recheck; continue from WORK-STATUS, do not redo approved design."
+last_updated: "2026-10-01T09:53:38.138Z"
 last_activity: 2026-09-24
 last_activity_desc: Phase 01 execution started
-state_head: 5b4b38ece633cc8ebe4d185d5da8e6e5d76e231f
+state_head: 295a2aa1de9ff404dc767728242651c00826fc86
 progress:
   total_phases: 6
   completed_phases: 0
@@ -184,6 +184,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-01T08:32:03.487Z
-Stopped at: PR15: Space 한글 전체 여정 및 안전·복구 통합8/8, 영향E2E84/84, unit130/130 통과. 잔여 늦은 응답·프레임/worker·최종검증 필요; 제품 개발 계속.
-Resume file: docs/superpowers/plans/2026-10-01-single-switch-project-map.md
+Last session: 2026-10-01T09:53:38.061Z
+Stopped at: PR15: safety checkpoint 295a2aa preserved; CI59 completed failure 289/290; local UI full 288/290. New unknown-navigation notice and mode re-enable regressions fixed and focused recheck; continue from WORK-STATUS, do not redo approved design.
+Resume file: docs/WORK-STATUS.md

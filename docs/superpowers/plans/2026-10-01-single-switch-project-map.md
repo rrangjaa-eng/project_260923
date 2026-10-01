@@ -56,3 +56,7 @@ Phase 2(TEST/DIST)의 PC 이용자 시험과 배포는 미실행이다. 이번�
 후속 안전 검사는 실제 `tests/e2e/switch-pending.e2e.ts`로 활성화했다. 늦은 apply 응답·실행 전달 전 pause·unknown·프레임 교체·연결 단절과 끄기/제출 설정/부모 프레임 가시성/DOM 묶음 23건 통과. 기존 `.pending` 초안은 과거 작성 기록이며 현재 검증의 원본이 아니다. 조합 중 삭제·마지막 승인 응답 지연·서로 다른 pendingAction ID·부분 가림의 추가 RED→관련15+단독1 GREEN, 독립 지적 재검토에서 새 P1/P2 없음. 다음은 전체 UI/E2E와 최종 CI 종료 확인이다. 전체 단계 완료나 PC 통과를 주장하지 않는다.
 
 이 PR에서는 공식 GSD CLI의 진행/로드맵 조회와 상태 결정·세션 기록만 수행한다. GSD planner/checker/execute-phase/verify-work/complete-phase를 새로 수행했다고 주장하지 않는다. 기존 `.planning`은 이 상태 도구를 통해서만 변경하며 오래된 PLAN/SUMMARY/HANDOFF/검증 보고는 삭제·재작성하지 않는다.
+
+## 18:55 KST 재개 경계
+
+CI59 최종failure(289/290)와 로컬full288/290을 기록했다. unknown+fragment탐색의 진단소실 RED→두경우6/6,다시켜기 currentMode RED 및 새누름준비조건/기존F1 관련12/12 수정후통과. 새CI 종료는 아직미확정이며 전체8단계 완료가 아니다. 단계5의 값/선택 snapshot 가운데 선택범위 기억·복원 계약은 미구현이다. 다음은 최종CI/표시수정 영향·독립검토,선택범위 계약과 패널지속맥락 UX/PC검증. 이미 승인된 개발·같은draft PR 저장을 계속하며 설계 승인 대기로 복귀하지 않는다.

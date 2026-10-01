@@ -1,6 +1,6 @@
 # 작업 현황표
 
-갱신: 2026-10-01 18:25 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 로컬 `codex/single-switch-phase1` → 원격 `codex-single-switch-phase1`
+갱신: 2026-10-01 18:55 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 로컬 `codex/single-switch-phase1` → 원격 `codex-single-switch-phase1`
 
 최신 사용자 승인(계획 제시 뒤 `진행해`)에 따라 제품 구현을 계속한다. 별도 문서 체크포인트 `58cc6e8`은 `codex/single-switch-design-checkpoint`에 보존했으며 개발 승인을 설계 대기로 되돌리지 않는다.
 
@@ -8,20 +8,18 @@
 
 | 최신 체크포인트 | 실제 결과 | 남은 작업 |
 |---|---|---|
-| 한글 검색·읽기·뒤로·탭 전체 여정 | 기존 실제 Space 여정 통과 | 현재 안전 변경 후 전체 회귀 예정 |
-| 늦은 응답·실행 전달 전 쉬기 | 각각 RED 재현 → 승인 세대 재검증, 후속 검색/옛 클릭 0회 | 최종 전체 회귀 |
-| 전역/사이트 끄기 | RED에서 250ms 뒤 스크롤 8→26; 수정 후 정지·패널 제거·새 release 재개 통과 | 실제 사용자 조작 검증 |
-| 확인 중 제출 설정 변경 | action/method/formaction/formmethod/formtarget 5건 RED(제출1) → GREEN(제출0) | 모든 서비스 제출 지원 보장은 아님 |
-| 부모 iframe hidden/inert/잘림 | RED에서 확인 상태 잔존 → 부모 관계·문서 세대·현재 clip 검증 후 목록 제외, 제출0 통과 | 실제 서비스 프레임 시험 |
-| worker 연결·프레임 교체·unknown | 연결 단절 훅과 실제 iframe 탐색, unknown 응답 자동 재시도0 통과 | CDP real worker 종료는 대체 worker 이벤트 timeout; 실제 정지/재시작 통과 주장하지 않음 |
-| 기존 숫자키 우회 | F→1 RED 실행1 → 단일 스위치 소유권 검사 후 실행0 | 모드 전환의 기존 예약 확인 추가 검사 |
-| 민감 textarea·OTP | 단위 RED → capture 거부 GREEN | OS IME/실제 사용자 시험 별도 |
-| 새 DOM/안전 묶음 | 23/23, 3.0분, exit0 (`switch-safety-final.log`) | 전체 자동 UI 검토 예정 |
-| typecheck / lint / unit | type/lint exit0, 전체21파일131개 exit0 | 후속 조합 수정 검사 |
-| CI #58 (HEAD 1b7fb0a) | type/lint/unit pass; E2E262 pass/3 fail | 설정 준비 조건 보강. 해당3사례×5 현재 cloud15/15 pass; editor 간헐 원인 미확정, 전체/새CI 관찰 |
-| 독립 코드/보안/접근성 검토 | gpt-6.1-sol/high 지적 P1/P2 수정 후 추가 경계 검토: 새 미해결 P1/P2 없음 | 전체 UI/E2E·실제 PC는 별도 |
-| 최종 지연 승인·작업 ID·조합 삭제·부분 가림 | 추가 RED 재현 → 관련15/15 + ID1/1 GREEN | 전체 회귀/CI 대기 |
-| iframe src 속성 변경 없는 자식 탐색 | RED 확인 → loading 시 기존 대상 폐기 + 문서 교체 invalidate 후1/1 GREEN, 초안 보존·새선택 | 전체 회귀 |
+| 원격 안전 수정 | `295a2aa` (제품 `dcbc395`) PR15에 보존; 아래 후속 수정도 같은 head에 저장 | draft 유지, merge/deploy 없음 |
+| 전체 로컬 `ui-review --full` | **288/290 pass, 2 fail**, 14.9분, exit1 | 최종 수정 뒤 전체 합격 미확정; 이유는 아래 |
+| UI 기본 범위 / 새 DOM | 같은 full JSON에서100/100, 새 DOM3/3 pass. 360/768/1280px 선택56px·글자18px·페이지scroll0, screenshot 직접 검토 | 패널 내부 스크롤 때 heading/status가 위로 사라지는 UX 보완 검토 |
+| CI58 (1b7fb0a) | E2E262 pass/3 fail | 초기typing2/drag준비조건1, CI59에서 해당3건 pass |
+| CI59 (295a2aa) | **289/290 pass, 1 fail**, 15.3분; type/lint/unit pass. 최종failure | unknown test recovering 기대/paused 수신. 아래 실제계약 회귀로 조사·수정 |
+| unknown+탐색 경합 | 추가 RED: paused에서 결과불명 안내 소실. 수정 후 탐색없는 recovering/탐색후 paused 각각3회 **6/6 pass**, 클릭1·자동재실행0·재개는선택아님 | 새 HEAD CI 결과 확인 필요 |
+| 문서 편집기 현재초점 표시 | 전역 끄기 중 이동한 초점이 다시켜기 때 반영되지 않는 RED→현재모드 재보고/표시갱신. 관련4사례×3 **12/12 pass** | 초기typing 간헐 원인 전체를 확정한 것은 아님 |
+| 로컬 full의 재누름 실패 | 200ms 대기가 기본300ms 떨림 보호와 겹침. 새누름은350ms 뒤로 맞춤; 빠른거절/F1·본문불변·typing 단언 유지, 위12에 포함 | 완전한 최종 전체 결과는 후속CI |
+| 늦은승인/작업ID/끄기/제출/프레임/한글삭제 | RED→안전묶음23·추가경계15·ID1·자식탐색1 pass (서로겹침) | 전체 합격으로 합산하지 않음 |
+| 최신 type/lint/unit/build | exit0/exit0/21파일131개 exit0; 집중E2E의production build 성공 | 최종head CI 종료는 다음 재개에서 확인 |
+| 독립 review/cso/QA | 앞선4지적과 추가2경계를 수정·재검토. 마지막표시/fixture수정은 주구현자 실제회귀검증 | 최종HEAD 독립·전체 검토를 포괄 완료로 표시하지 않음 |
+| 8단계/사용자 검증 | 첫Space 웹활동 통과, 전체8단계 계약 완료는 아님 | 입력칸 선택범위 capture/복원 계약 미구현(현재값/초안 커서만 처리). 실제PC IME·사용성·지원사이트 시험 미실행 |
 
 로그: `/tmp/switch-editor-parent-red.log`, `/tmp/switch-journey-first.log`, `/tmp/switch-safety-red.log`, `/tmp/switch-pause-red.log`, `/tmp/switch-mode-confirm-red.log`, `/tmp/switch-journey-safety-green.log`, `/tmp/switch-integration-unit.log`, `/tmp/switch-pr-{type,lint}.log`, `/tmp/switch-impact-regression.log`. 초기 조회 기준 unit125·관련E2E22는 이번 여정 전에 통과한 기반이며 전체 기능 완료를 의미하지 않는다.
 
@@ -42,6 +40,8 @@
 | 작업 현황표 / 유지 지침 | 로컬 저장·커밋 완료 | 이 파일과 AGENTS 유지 지침만 포함한 `docs: add maintained work status table` 커밋. 필수 항목·유지 지침·diff 정적 확인 통과 | [PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) | 상태 변경 때 갱신하고 사용자에게 표시 |
 | 원격 반영 | draft PR15 게시됨 | 기존 원격 `codex` 때문에 첫 push 경로 충돌. 기존 ref 보존 후 `codex-single-switch-phase1`에 게시. 같은 head 중복 PR 없음 확인 | [PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) | 같은 PR에서 잔여 구현·검증 계속. 병합·배포 없음 |
 
-초기 검증 로그: `/tmp/single-switch-smoke.log`, `/tmp/single-switch-type.log`, `/tmp/single-switch-lint.log`, `/tmp/single-switch-unit.log`, `/tmp/single-switch-focused-e2e.log` (현재 클라우드의 로컬 로그). 설계·계획 원문은 Git과 PR15에 포함한다. 최신 검사 결과는 위 표에 한정한다. 전체 로컬 E2E·자동 UI 검토는 다음 검사, 실제 PC 사용성은 미실행이다. CI #58은 위 실패를 포함한다.
+초기 검증 로그: `/tmp/single-switch-smoke.log`, `/tmp/single-switch-type.log`, `/tmp/single-switch-lint.log`, `/tmp/single-switch-unit.log`, `/tmp/single-switch-focused-e2e.log` (현재 클라우드의 로컬 로그). 설계·계획 원문은 Git과 PR15에 포함한다. 최신 검사 결과는 위 표에 한정한다. 전체 로컬 E2E·자동 UI 검토는 위 실패를 포함하며, 실제 PC 사용성은 미실행이다.
 
 최신 구현 로그: `/tmp/switch-task1-green.log` (관련52 pass), `/tmp/switch-mode-report-red.log` (늦은 프레임 모드 보고 RED), `/tmp/switch-click-proxy.log` (실제 Space 링크 실행 pass), `/tmp/switch-checkpoint-type.log`, `/tmp/switch-checkpoint-lint.log`, `/tmp/switch-checkpoint-unit.log` (신규10 pass).새 코드 검증 범위에 한정하며 전체 기능 완료를 의미하지 않는다. HTTP 문서에서 crypto.randomUUID 미지원과 content script의 storage.session 접근 차단을 실제 오류로 확인해 getRandomValues ID 및 백그라운드 읽기 중계로 수정했다.
+
+최신 재개: CI59는 진행 중이 아니라 최종 실패다. 후속 수정의 현재 HEAD는 새 CI 자동 실행 대상이며 이 체크포인트는 종료 결과를 미리 통과로 기록하지 않는다. 새 CI 종료 확인→필요한 원인 조사/영향검사→단계5 선택범위 계약·단계8 UI/PC 검증으로 이어간다. 승인된 설계/구현/push를 다시 승인 대기로 되돌리지 않는다. 기존290 full은 반복 실행하지 않았다.
