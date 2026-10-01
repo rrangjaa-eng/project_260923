@@ -137,8 +137,10 @@ test('a delayed apply reply after a pause cannot continue into search', async ({
   await expect(page.locator('tremor-helper-root').locator('.switch-draft')).toHaveText('안녕');
 });
 
-test('a lost click reply is shown as unknown and is never automatically replayed', async ({ context, serviceWorker, servePage }) => {
-  servePage('http://practice.test/lost-reply.html', '<a href="#read" onclick="document.querySelector(\'output\').textContent=String(Number(document.querySelector(\'output\').textContent)+1)">읽기</a><output>0</output>');
+for (const navigates of [false, true]) {
+test(`a lost click reply ${navigates ? 'after fragment navigation' : 'without navigation'} is shown as unknown and is never automatically replayed`, async ({ context, serviceWorker, servePage }) => {
+  // 탐색 유무를 나눠 응답 유실 뒤의 복구 상태와 결과불명 안내를 각각 검사한다.
+  servePage('http://practice.test/lost-reply.html', `<a href="#read" onclick="${navigates ? '' : 'event.preventDefault();'}document.querySelector('output').textContent=String(Number(document.querySelector('output').textContent)+1)">읽기</a><output>0</output>`);
   await serviceWorker.evaluate(async () => chrome.storage.local.set({ switchSettings: { schemaVersion: 1, mode: 'switch', intervalMs: 800, protectionMs: 100 } }));
   const page = await context.newPage();
   await page.goto('http://practice.test/lost-reply.html');
@@ -155,13 +157,15 @@ test('a lost click reply is shown as unknown and is never automatically replayed
   });
   await chooseSwitch(page, '읽기');
   const panel = page.locator('tremor-helper-root').locator('.switch-panel');
-  await expect(panel).toHaveAttribute('data-mode', 'recovering');
+  await expect(panel).toHaveAttribute('data-mode', navigates ? 'paused' : 'recovering');
+  await expect(panel.locator('.switch-status')).toContainText('결과');
   await page.waitForTimeout(500);
   await expect(page.locator('output')).toHaveText('1');
   await page.keyboard.press('Space');
-  await expect(panel).toHaveAttribute('data-mode', 'itemScan');
+  await expect(panel).toHaveAttribute('data-mode', navigates ? 'groupScan' : 'itemScan');
   await expect(page.locator('output')).toHaveText('1');
 });
+}
 
 test('replacing a child document cancels its old confirmation before any click', async ({ context, serviceWorker, servePage }) => {
   servePage('http://practice.test/frame-switch.html', '<iframe title="본문" src="http://other.test/old-switch.html"></iframe>');

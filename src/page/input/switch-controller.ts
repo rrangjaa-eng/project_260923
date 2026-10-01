@@ -36,6 +36,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   state.items=groups();
   let panel:ReturnType<typeof createSwitchPanel>|null=null;
   let title='스페이스바 작업판',notice='';
+  let unknownNotice='';
   let current:Menu={title,items:groups(),mode:'groupScan'};
   let stack:Menu[]=[];
   let targets:ScanTarget[]=[];
@@ -55,7 +56,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   const stopScroll=()=>{if(scrollTimer)clearInterval(scrollTimer);scrollTimer=null;};
   function render(){if(!top||!exclusive())return;
     panel??=createSwitchPanel();
-    panel.render(state,title,draft.text+(initial!==null?` [${INITIALS[initial] ?? ""}${medial!==null?(MEDIALS[medial] ?? ""):""}]`:''),notice);
+    panel.render(state,title,draft.text+(initial!==null?` [${INITIALS[initial] ?? ""}${medial!==null?(MEDIALS[medial] ?? ""):""}]`:''),[notice,unknownNotice].filter(Boolean).join(' · '));
   }
   function dispatch(event:SwitchEvent){
     const previousMode=state.mode;
@@ -63,8 +64,8 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(previousMode==='confirming'&&state.mode==='paused'){
       confirmAction=null;root();pause();return;
     }
-    if(event.type==='actionResult'&&event.result==='unknown')cancelPeers();
-    if(output.actions.length>0)notice='';
+    if(event.type==='actionResult'&&event.result==='unknown'){unknownNotice='이전 실행 결과를 확인하세요. 자동 재시도하지 않아요';cancelPeers();}
+    if(output.actions.length>0){notice='';unknownNotice='';}
     render();
     for(const action of output.actions)void execute(action);
   }
@@ -151,7 +152,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     const target=targets[index];if(!target||target.sensitive){notice='민감칸은 단일 스위치 입력을 지원하지 않아요';return;}
     if(target.editable){
       const capture=await targetRequest('capture',target.target);
-      if(!active(startedGeneration))return;
+      if(!active(startedGeneration))return capture.result;
       if(capture.result!=='done'||typeof capture.value!=='string'){notice='입력칸을 다시 선택하세요';return capture.result;}
       selected=target;expectedValue=capture.value;
       if(!preservedDraft)draft=createDraft(capture.value);
@@ -164,7 +165,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       return;
     }
     const result=await targetRequest('press',target.target);
-    if(!active(startedGeneration))return;
+    if(!active(startedGeneration))return result.result;
     if(result.result!=='done')notice=result.result==='unknown'?'실행 결과를 확인하세요. 자동 재시도하지 않아요':'대상이 바뀌었어요. 목록을 새로 읽으세요';
     return result.result;
   }
@@ -205,7 +206,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(id==='apply'||id==='search'){
       if(!selected){notice='입력칸을 먼저 선택하세요';return;}
       const result=await targetRequest('applyText',selected.target,{text:draft.text,expectedValue});
-      if(!active(startedGeneration))return;
+      if(!active(startedGeneration))return result.result;
       if(result.result!=='done'){notice='입력칸이 바뀌었어요. 초안을 보존했으니 다시 선택하세요';preservedDraft=true;selected=null;return result.result;}
       expectedValue=draft.text;notice='입력했어요';
       if(id==='search'){await saveDraft();if(!active(startedGeneration))return;const result=await targetRequest('search',selected.target,{expectedValue});if(!active(startedGeneration))return;if(result.result!=='done')notice='이 입력칸의 검색 동작을 지원하지 않아요';return result.result;}return;
@@ -226,7 +227,11 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     try{
       if(action.kind==='scrollStop'){stopScroll();state.mode='itemScan';state.pendingAction=null;state.changedAt=now();render();return;}
       const result=action.kind==='command'?await handleCommand(action.itemId??'',startedGeneration):'refused';
-      if(disposed||state.modeGeneration!==startedGeneration)return;
+      if(disposed)return;
+      if(state.modeGeneration!==startedGeneration){
+        if(result==='unknown'&&state.mode==='paused'){unknownNotice='이전 실행 결과를 확인하세요. 자동 재시도하지 않아요';render();}
+        return;
+      }
       if(!scrollTimer)dispatch({type:'actionResult',now:now(),actionId:action.actionId,result:result??'done'});
       else state.pendingAction=null;
     }catch(error){console.error('Switch action failed',error instanceof Error?error.message:String(error));if(!disposed&&state.modeGeneration===startedGeneration){notice='처리 결과를 확인하세요. 자동 재시도하지 않아요';dispatch({type:'actionResult',now:now(),actionId:action.actionId,result:'unknown'});}}

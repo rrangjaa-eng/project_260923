@@ -12,6 +12,29 @@ async function dataMode(page: Page): Promise<string | null> {
   return page.evaluate(() => document.querySelector('tremor-helper-root')?.getAttribute('data-mode') ?? null);
 }
 
+test('다시 켜면 꺼진 동안 옮겨진 편집기 초점을 새 입력 없이 모드 표시에 반영한다', async ({ context, serviceWorker }) => {
+  const page = await context.newPage();
+  await page.goto('http://practice.test/doc-editor.html');
+  const enabledFrames = async () => serviceWorker.evaluate(() => Object.values((globalThis as unknown as { frameStates: Record<number, Record<number, boolean>> }).frameStates).flatMap((frames) => Object.values(frames)));
+  await expect.poll(enabledFrames).toEqual([true, true, true]);
+  const text = page.frameLocator('#frame-design').locator('#doc-text');
+  await text.click();
+  await expect.poll(() => dataMode(page)).toBe('typing');
+  await page.keyboard.press('Escape');
+  await expect.poll(() => dataMode(page)).toBe('helper');
+  const setEnabled = async (enabled: boolean) => serviceWorker.evaluate(async (enabled) => {
+    const { settings } = await chrome.storage.sync.get('settings') as { settings: { data: Record<string, unknown> } };
+    await chrome.storage.sync.set({ settings: { ...settings, data: { ...settings.data, enabled } } });
+  }, enabled);
+  await setEnabled(false);
+  await expect.poll(enabledFrames).toEqual([false, false, false]);
+  await text.click();
+  await expect.poll(() => text.evaluate((el) => el.ownerDocument.activeElement === el.ownerDocument.body)).toBe(true);
+  await setEnabled(true);
+  await expect.poll(enabledFrames).toEqual([true, true, true]);
+  await expect.poll(() => dataMode(page)).toBe('typing');
+});
+
 test('초점 없는 다른 프레임의 늦은 모드 보고는 현재 편집 모드를 덮지 않는다', async ({ context, serviceWorker }) => {
   const page = await context.newPage();
   await page.goto('http://practice.test/doc-editor.html');
@@ -56,7 +79,9 @@ async function runDocEditorEscScenario(page: Page, frameSelector: string, textSe
 
   const beforeX = await elementText(page, frameSelector, textSelector);
   await page.keyboard.type('x');
-  await page.waitForTimeout(200);
+  // 재누름 복귀 시험은 기본 300ms 떨림 간격 뒤의 새 누름을 검사한다.
+  // 간격 안의 거절·나옴 보존은 아래 F1이 별도로 검사한다.
+  await page.waitForTimeout(350);
   expect(await elementText(page, frameSelector, textSelector), '나온 상태에서는 글자가 편집기에 들어가면 안 된다').toBe(
     beforeX,
   );

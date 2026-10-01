@@ -642,10 +642,13 @@ export default defineContentScript({
         // 맨 위 프레임에서만 모드 표시를 그린다(D-03).
         if (enabled) {
           showModeIndicator();
+          refreshModeDisplay();
         } else {
           hideModeIndicator();
         }
       }
+
+      if (enabled && !isTopFrame) sendModeReport();
 
       void chrome.runtime.sendMessage({ type: 'frame/state', enabled });
     }
