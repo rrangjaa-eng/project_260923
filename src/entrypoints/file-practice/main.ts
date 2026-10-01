@@ -81,6 +81,7 @@ async function act(id: string) {
     return;
   }
   if (flow.select(id, performance.now())) show([cancel, item('confirm', '확인 · 이 파일 선택'), pause, stop], 'confirming', '파일 선택 확인', '취소 먼저 · 1초 보호 뒤 새 스페이스바로 확인');
+  else { flow.cancel(); ready('선택 시간이 지났거나 대상이 바뀌었어요 · 새로 시작하세요'); }
 }
 function send(event: SwitchEvent) {
   const prior = engine.mode;

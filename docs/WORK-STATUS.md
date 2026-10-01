@@ -116,3 +116,7 @@
 [실제 확인한 ZIP 파일 화면](https://github.com/rrangjaa-eng/project_260923/blob/codex-single-switch-phase1/downloads/tremor-browser-helper-3ae6ad2.zip) · [실제 다운로드 ZIP](https://raw.githubusercontent.com/rrangjaa-eng/project_260923/refs/heads/codex-single-switch-phase1/downloads/tremor-browser-helper-3ae6ad2.zip) · [교체 안내](https://github.com/rrangjaa-eng/project_260923/blob/codex-single-switch-phase1/downloads/README.ko.md). 세 파일의 GitHub/raw 응답200·실제 다운로드 바이트 일치 근거는 [기록](verification/package-smoke/download-verification.json)에 보존했다. 새 전달 커밋에는 제품 코드 변경이 없어 제품SHA3ae6ad2와 CI65 검사HEAD91c0ae5는 그대로다. 전달 후 새 HEAD의 자동CI는 CI65 최종success와 별개이며 아직 완료로 계산하지 않는다. 최종 typecheck·lint는 exit0이다. Library 저장은 하지 않았고 merge/release/deploy는 수행하지 않았다.
 
 새 draft PR16을 실제 생성했다: https://github.com/rrangjaa-eng/project_260923/pull/16 . base=codex-single-switch-phase1/20440e6, head=codex-phase2-file-practice, open/draft/미병합. 제품 수정 커밋d9160f1, 후속 PR번호 기록은 문서만 변경한다. 검증된PR15는 그대로다. 최종 전체CI결과는 별도 안전기록브랜치에 보존해 같은제품의 전체검사 반복을 피한다.
+
+## 2026-10-02 01:12 KST: 만료 후 쉬기 복귀 경계
+
+전체CI69가 실행되는 동안 expiry 경계를 추가 점검했다. page.clock으로 실제연습화면에서 쉬기뒤61초를 앞당긴 다음 같은파일을고르면 flow.select가거절되나 UI의 executing이남아 Space종료메뉴로 돌아오지 못하는 RED1fail을 확인했다. 실패한선택도 적용0·새시작ready로돌아오도록 최소수정했다. 새시작Space는 재개만 하고 종료까지Space만으로가능한 실제회귀를 포함해 **최종관련UI7/7pass,1.4분,exit0**다. 최종type/lint도exit0. 이실제제품수정때문에 기존CI69를최종통과로사용하지 않고 새HEAD 전체CI를확인한다. 환경/권한변경이나 같은소스의 중복전체실행이아니다.

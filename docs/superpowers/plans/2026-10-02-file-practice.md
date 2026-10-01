@@ -22,3 +22,7 @@
 판단: 초점회귀의 빈초안은 DOM preview가 없는 것이 정상이라 부재요소의 not.toContainText 대신 count0으로 검사한다. 초안이 있는 기존쉬기검사는 텍스트보존assertion을 유지한다. 300ms 보호를 해제하지 않고 드라이버가 새입력 간격을 기다린다. 실제 OS·파일/PC 검증은 확대하지 않는다.
 
 새 draft PR16을 실제 생성했다: https://github.com/rrangjaa-eng/project_260923/pull/16 . base=codex-single-switch-phase1/20440e6, head=codex-phase2-file-practice, open/draft/미병합. 제품 수정 커밋d9160f1, 후속 PR번호 기록은 문서만 변경한다. 검증된PR15는 그대로다. 최종 전체CI결과는 별도 안전기록브랜치에 보존해 같은제품의 전체검사 반복을 피한다.
+
+## 2026-10-02 01:12 KST: 만료 후 쉬기 복귀 경계
+
+전체CI69가 실행되는 동안 expiry 경계를 추가 점검했다. page.clock으로 실제연습화면에서 쉬기뒤61초를 앞당긴 다음 같은파일을고르면 flow.select가거절되나 UI의 executing이남아 Space종료메뉴로 돌아오지 못하는 RED1fail을 확인했다. 실패한선택도 적용0·새시작ready로돌아오도록 최소수정했다. 새시작Space는 재개만 하고 종료까지Space만으로가능한 실제회귀를 포함해 **최종관련UI7/7pass,1.4분,exit0**다. 최종type/lint도exit0. 이실제제품수정때문에 기존CI69를최종통과로사용하지 않고 새HEAD 전체CI를확인한다. 환경/권한변경이나 같은소스의 중복전체실행이아니다.

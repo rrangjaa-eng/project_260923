@@ -87,3 +87,17 @@ test('moving focus during held confirmation discards the press and approval', as
   await choosePractice(page, '연습문서.txt'); await choosePractice(page, '확인 · 이 파일 선택');
   await expect(page.locator('output')).toHaveText('연습문서.txt');
 });
+
+test('expired file request after rest returns to a fresh start without applying', async ({ context, extensionId }) => {
+  const page = await context.newPage(); await page.clock.install();
+  await page.goto(`chrome-extension://${extensionId}/file-practice.html`);
+  const panel = page.locator('tremor-helper-root').locator('.switch-panel');
+  await page.keyboard.press('Space'); await page.waitForTimeout(350);
+  await choosePractice(page, '연습 파일 선택'); await choosePractice(page, '연습문서.txt'); await choosePractice(page, '쉬기');
+  await page.clock.fastForward(61000);
+  await page.keyboard.press('Space'); await page.waitForTimeout(350); await choosePractice(page, '연습문서.txt');
+  await expect(panel).toHaveAttribute('data-mode', 'ready'); await expect(page.locator('output')).toHaveText('선택 없음');
+  await page.waitForTimeout(350); await page.keyboard.press('Space'); await page.waitForTimeout(350);
+  await choosePractice(page, '조절·쉬기'); await choosePractice(page, '즉시 정지 · 연습 종료');
+  await expect(page.locator('tremor-helper-root')).toHaveCount(0);
+});
