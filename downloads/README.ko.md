@@ -1,3 +1,11 @@
+# 설치 파일 받기
+
+설치 ZIP: **[tremor-browser-helper-3ae6ad2.zip](tremor-browser-helper-3ae6ad2.zip)**. GitHub 파일 화면에서 **Download raw file**로 내려받는다. 브랜치는 `codex-single-switch-phase1`이다.
+
+파일 크기: **1,163,247 bytes**. [SHA256SUMS](SHA256SUMS)와 비교한다. 제품 소스 SHA: `3ae6ad29fd3e77e43cdb68c51d540035e1002b16`. ZIP 9파일의 무결성과 테스트한 production 출력과의 바이트 일치를 확인했다. 새 권한은 추가하지 않았다.
+
+[Space 시작 화면](evidence/01-space-start.png) · [한글 검색 후 읽기 화면](evidence/02-korean-reading.png) · [전체 종료 후 일반 키 복구 화면](evidence/03-stopped-normal-keys.png). 이 화면은 로그인 없는 로컬 HTTPS 연습 페이지에서 실제 ZIP을 설치해 촬영했다.
+
 # 단일 스위치 수정본 교체·시작·종료 안내
 
 **최종 검증 통과:** CI65에서 단위148건·E2E305건 전부 통과했다. 전달 ZIP을 직접 압축 해제해 새 Chromium 프로필에 설치한 추가 smoke도 1/1 통과했다(58.3초). 실제 팝업 Space 시작 → 한글 ‘가’ 조합·검색 → 결과 본문 읽기·자동 스크롤 → 팝업 즉시 정지 → 일반 문자·Space 입력 복구를 확인했다. 시작을 우회하는 저장소 직접 변경은 하지 않았다.

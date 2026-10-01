@@ -1,12 +1,12 @@
 # 작업 현황표
 
-갱신: 2026-10-01 22:51 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 긴급 수정 로컬 `codex/installed-page-investigation`
+갱신: 2026-10-01 23:53 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 전달 로컬 `codex/installed-page-investigation` / 원격 PR 작업 브랜치 `codex-single-switch-phase1`
 
 ## 설치본 신고 대응 — 현재 우선 작업
 
 사용자가 기존 ZIP의 페이지 연결·Space 활동 선택·종료 문제를 신고했다. 기존 자동299 통과로 신고를 닫지 않고 실제 설치와 네이티브 popup부터 재현했다. 2차 설계/worker 후속은 로컬 `codex/phase2-cloud-design`의 `f21a215`에 보존하고 중지했다.
 
-**최종 CI 대기:** CI64의 실패8건과 늦은 draft/read 경계를 수정했다. 최종 제품 `3ae6ad2`에서 지연 상태 단위8건·영향E2E48건 및 마지막 production 실제 설치/팝업/한글 전체여정6건이 통과했다. 새 HEAD CI를 확인하기 전 ZIP을 전달하지 않는다. Library는 알려진 연결 차단 때문에 추가 시도하지 않는다. 새 설계 승인 대기로 돌아가지 않는다.
+**최종 검증·Git 전달:** 제품 `3ae6ad2`, 검사 HEAD `91c0ae5`의 CI65는 최종 success다(단위148/148·E2E305/305,17.0분,Node22.23.3). 사용자가 설치 ZIP의 Git 작업 브랜치 저장을 새로 승인했다. 최종 ZIP을 새 프로필에 실제 설치한 Space 시작·한글 검색·읽기·즉시 정지·일반 키 복구 smoke도1/1 통과했다. 전달 파일은 `downloads/`에 보존하고 PR15 작업 브랜치에 일반 push한다. Library403 재시도·우회, 제품 코드 변경·merge·release·deploy는 하지 않는다.
 
 | 항목 | 최신 실제 결과 | 남은 범위 |
 |---|---|---|
@@ -14,7 +14,7 @@
 | 실제 설치·Space 시작·즉시 정지 | 최신 production 설치/팝업5건 및 한글 전체여정1건 **6/6 pass**,3.6분,exit0. HTTPS 기존/새 탭·held Space·일반 입력·관리 비활성화·손상·지연 켜기 포함 | `/tmp/urgent-release-native-final.log`의 최종 빌드. 두산 공개 사이트는 `ERR_TUNNEL_CONNECTION_FAILED`, 미검증 |
 | 종료 경합 | 손상/읽기 실패/늦은 켜기/로컬 commit 지연 회귀 및 독립 검토 수정 | 저장·페이지 API 전체 불통 때 전역 정지 성공을 보장하지 않음 |
 | 최신 type/lint/unit/build | type/lint exit0, 전체unit148/148, production build pass. 비동기 조건 함수 정리 후 해당8건 재검사8/8 | `/tmp/urgent-release-{unit,type-final,lint-final}.log`. 새 CI Node22 결과 별도 확인 |
-| 자동 화면 검토 | 이전 `6aeb4ce`의100/100 pass; 실패·불안정·스킵0 | 새 `b97bea3` 전체 화면 검토로 재사용하지 않음; 실제 운동 사용성 아님 |
+| 자동 화면 검토 | 최종 CI65 전체305/305에 기존 UI100 및 확장로드smoke 포함 | 실제 운동 사용성 검증은 아님 |
 | 새 권한/의존성 | manifest storage/scripting/tabs·all_urls·content_scripts 동일, package/lock/config 변경 없음 | 새 권한·설치·네이티브 실행기 없음 |
 | 독립 안전 검토 | 종료·초기 응답 revision 경계 검토에서 미해결 P1/P2 없었음 | 이후 전체 CI에서 초안·선택 복원7건 발견. 검토 범위를 전체 제품 통과로 확대하지 않음 |
 | 신규 CI64 | [run 36861983233](https://github.com/rrangjaa-eng/project_260923/actions/runs/36861983233), SHA `3027291`: **failure**, E2E296/304 pass·8 fail,18.3분,exit1 | 초안·선택 복원7건 및 popup 경고1건 수정 필요; 과거 CI62 결과를 재사용하지 않음 |
@@ -22,14 +22,14 @@
 | 수정 후 집중 결과 | 상태단위 RED5 fail·1 pass→6/6 GREEN; 기존 text/selection E2E13/13 GREEN; W1·같은 카드 이동 반복2/2 GREEN | 기존 실패8건의 기대값 모두 유지. `/tmp/urgent-draft-state-{red,green,final}.log`, `/tmp/urgent-draft-target-green.log`, `/tmp/urgent-popup-warning-green.log` |
 | 지연 draft/read 후속 | 실제 RED1 fail·7 pass→최소 응답 가드 후8/8 GREEN. untouched 정상 저장 초안 복구도 유지 | `/tmp/urgent-draft-late-{red,green,final}.log`; 기존 modeGeneration·현재초안의도·disposed 재검사. 독립 검토 미해결P1/P2 없음 |
 | 현재 최종 검증 | production 영향48/48 pass,7.8분,exit0; 마지막 조건 함수의 final 빌드에서 native/전체여정6/6 pass | `/tmp/urgent-final-impact.log`, `/tmp/urgent-release-native-final.log`. 전체 수백 건은 새 CI에서 한 번 확인 |
-| 신규 CI65 | [run36871344925](https://github.com/rrangjaa-eng/project_260923/actions/runs/36871344925), head `91c0ae5`, job110399604371: **in_progress**, type/lint/unit 단계 success, 전체 E2E 실행 중 | 아직 최종 통과로 계산하지 않음. 다음 확인은 이 기존 run 종료·로그 수치부터이며 새 중복 전체검사 없음 |
-| 새 로컬 아티팩트 | ZIP `/tmp/tremor-browser-helper-3ae6ad2.zip`,9파일,1,163,247 bytes, SHA256 `bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb`; integrity·production바이트대조·기존권한대조 pass | 새 ZIP은 Git 원격·Library에 올리지 않았고 CI 종료 전 전달하지 않음 |
-| 새 안내서 초안 | `/tmp/Single-Switch-PC-check-3ae6ad2.md`,4,696 bytes, SHA256 `395257b1c4cfc4b7b78e6be4f73fea92c63964836f72cabf252c3477b9093c62` | **CI 대기 초안**. CI 확정 뒤 대기 문구를 제거·다시 검증해 최종 해시를 기록해야 함 |
+| 신규 CI65 | [run36871344925](https://github.com/rrangjaa-eng/project_260923/actions/runs/36871344925), head `91c0ae5`, job110399604371: **success**, type/lint/build pass,unit148/148·E2E305/305,17.0분 | 2026-10-01 23:06 KST 종료. GitHub 실제 jobs·로그 직접 확인. 후속 전달 커밋은 제품 소스 변경 없음 |
+| 최종 설치물 | [ZIP](../downloads/tremor-browser-helper-3ae6ad2.zip),9파일,1,163,247 bytes, SHA256 `bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb`; integrity·production바이트대조·기존권한대조 pass | 사용자 승인에 따라 ZIP을 Git 추적·PR15 브랜치 push. Library는 저장되지 않음 |
+| 최종 교체 안내 | [한국어 설치·교체·시작·종료 안내](../downloads/README.ko.md), [SHA256SUMS](../downloads/SHA256SUMS) | CI 대기 문구 제거. 구버전 끄기/제거·새버전 하나 로드·기존 탭 새로고침 안내 |
 | Library 교체 | 공식 업로드 도우미 첫 시도·허용된 1회 재시도 모두 전송 전 exit1; 기존 파일 유지 | tools/list network 오류; 연결 확인 HTTP tunnel403. 현재 read의 version_id는 null, 원본 xattr version0 보존. 직접/raw 업로드 우회 없음 |
 
 [재현·수정·검증 전문](verification/2026-10-01-installed-popup-safety.md) · [새 설치·시작·종료 안내](verification/single-switch-install-and-stop.md). 아래 이전 마감은 역사 기록이며 이번 실사용 신고의 해결 근거가 아니다. merge·배포는 수행하지 않는다.
 
-교체 대상은 ZIP `libfile_a430ceb874888191b7376f027cbe8fc8`과 안내서 `libfile_617036eb1a688191a270dcf8266a6326`이다. 재시도 뒤 read에서도 기존 file ID·수정 시각이 그대로였다. 수정 ZIP은 `/tmp/tremor-browser-helper-6aeb4ce.zip`(1,163,219 bytes, SHA256 `a1897b68b1b55e304954c76dec52e867408ca4c4551359b31974f16cead78f06`), 안내서는 `/tmp/Single-Switch-PC-check-6aeb4ce.md`(4,515 bytes, SHA256 `e4afadec3ac13a5455840fa4009020a363001b414db95df2ef4d0a84c3c04123`)에 준비돼 있다. 임시 파일이 장기 배포 저장소라는 뜻은 아니다. 안내서 원문과 제품 소스는 승인된 Git 브랜치에 보존했다. 원격 체크포인트 `3027291`의 Git tree에는 ZIP 파일이 없으며 새 ZIP을 원격에 추가하지 않았다. 업로드 문제로 제품 코드를 더 수정하지 않는다.
+이전 Library 교체 시도는 실패했고 기존 파일은 그대로다. 사용자 새 승인으로 전달 방식은 Git 작업 브랜치의 `downloads/`로 변경됐다. 구 `9741b0c`·중간 `6aeb4ce` ZIP은 전달하지 않는다. 아래 Library 오류 기록은 역사적 차단 증거다.
 
 업로드 도우미의 오류는 `library upload failed: hosted apps tools/list request failed: network`, exit1이며 결과 stdout은 0 bytes였다. 업로드 준비·바이트 전송·최종 저장 이전 단계다. 실패 호스트는 `chatgpt.com`이고, 같은 공식 엔드포인트의 별도 연결 확인에서 `Tunnel connection failed: 403 Forbidden`을 관측했다. 프록시의 연결 거절은 확인됐지만 정책 이름·거절 사유 본문은 제공되지 않았다. 비공식 업로드, 서명 URL 추측, 인증정보·환경 변경은 수행하지 않았다.
 
@@ -39,7 +39,7 @@
 
 제품·인계 체크포인트는 안전 원격 `codex-installed-page-investigation`에 저장하고 필수 검사를 마쳐 PR15 `codex-single-switch-phase1`에 fast-forward 반영한다. 새 HEAD CI 최종 결과까지 확인한다. PR15 본문은 이전 완료 설명이 남아 있어 부모의 갱신 대상이며, 이 턴에서 변경·재시도하지 않았다. 자동 압축은 이미 저장된 모델 기본 임계값·total을 유지했고 현재 런타임의 compact 실행은 관찰하지 못했다. 환경·설정·Library 연결은 더 변경하지 않았다.
 
-현재 클라우드 접근·도구·검사는 정상이다. 로컬 검사 프로세스는 모두 종료했고 현재 실행은 GitHub CI65의 전체 E2E 단계뿐이다. 공식 Library `replace_library_file` 도구가 노출되어 절대 로컬 파일 경로 인자를 지원함은 스키마로 확인했다. 이 환경의 준비 업로드 연결이 chatgpt.com 프록시403으로 차단됐으므로 도구 노출만으로 파일 전달 성공을 주장하지 않으며 더 호출하지 않는다. 최종 전달 방식은 부모가 사용자와 해결한다. 다음 턴은 CI65가 끝났는지 읽고 실제 counts·failure를 기록한다. 제품을 다시 구현하거나 같은 환경 설정·전체검사를 시작하지 않는다.
+최종 ZIP 추가 실행 명령은 `source /workspace/.cloud-onboarding/workflow-env.sh && CI=true pnpm exec playwright test --config docs/verification/package-smoke/playwright.config.ts`였다. 새 깨끗한 프로필·ZIP 직접 압축 해제·실제 native popup·로컬 HTTPS·저장소 직접 변경 없음으로 **1/1 pass,58.3초,exit0**. 화면3장은 `downloads/evidence/`에 저장했다. 전달용 검사 스크립트만 추가했고 제품 소스는 변경하지 않았다. 초기 스크립트의 Buffer+문자열 lint1건은 UTF-8 read로 정리했으며 최종 type/lint 검사 결과를 함께 보존한다. 기존 전체 검사는 중복 실행하지 않았다. PR 본문 최종 갱신은 부모가 처리한다. 실제 두산 접속·Windows IME·운동 사용성은 미검증이며 사용자 추가 테스트를 완료 조건으로 요구하지 않는다.
 
 ## 이전 1차 구현 마감 기록
 

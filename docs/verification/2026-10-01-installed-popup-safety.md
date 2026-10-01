@@ -81,3 +81,11 @@
 독립 read-only 검토에서 이 async 수정에 남은 P1/P2는 찾지 못했다. 실제 설치·팝업·정지·설정 손상·전체 한글 여정·초안 영향48건은 **48/48 pass**,7.8분,exit0였다(`/tmp/urgent-final-impact.log`). await 전후 조건 함수를 정리한 최종 production 빌드의 설치/팝업5건·전체 한글 여정1건도 **6/6 pass**,3.6분,exit0였다(`/tmp/urgent-release-native-final.log`). 최종제품 HEAD CI는 현황표에서 확정한다. Library 연결 재시도·환경·자동 압축 설정 변경은 하지 않았다.
 
 원격 두 브랜치를 `91c0ae562214816093d29fc60203d6b109f71cb8`로 fast-forward했고 PR15 open/draft·같은 head를 실제 조회했다. 새 [CI65/run36871344925](https://github.com/rrangjaa-eng/project_260923/actions/runs/36871344925)는 type/lint/unit 단계를 통과했고 전체 E2E 실행 중이다. 제품 `3ae6ad2`의 최종 빌드를9파일 ZIP으로 생성해 integrity·production바이트 일치·기존 manifest권한 불변을 확인했다. 파일 경로·해시와 CI 대기 안내서 초안은 현황표에 기록했다. CI가 끝나기 전에 ZIP을 전달하지 않으며 Library도 더 시도하지 않는다.
+
+## 최종 CI 성공 및 사용자 승인 Git 패키지 전달 (2026-10-01 23:53 KST)
+
+CI65/run36871344925의 job110399604371은 최종 success다. 로그에서 Node22.23.3,unit148/148,E2E305/305(17.0분),type/lint 및 production build 성공을 직접 확인했다. 검사 HEAD91c0ae5·제품SHA3ae6ad2를 구분한다.
+
+최종 ZIP은 재생성하지 않고 기존1163247bytes·SHA256 `bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb`를 재사용했다. 9파일 integrity·현재 production 출력 바이트일치 pass. 전달 ZIP을 임시 폴더에 풀어 새 Chromium 프로필에 동적 설치한 추가 smoke1/1 pass(58.3초,exit0). 실제 native popup의 Space 시작부터 ‘가’ 조합·검색/결과선택/읽기·자동스크롤/즉시정지/일반문자·Space복구를 확인했다. 시작을 우회하는 storage.set은 없다. 공개 사이트·로그인·결제·게시를 건드리지 않았다. [실행 스크립트](package-smoke/package.spec.ts), [화면 증거](../../downloads/evidence/02-korean-reading.png), [설치 안내](../../downloads/README.ko.md), [SHA256](../../downloads/SHA256SUMS)를 Git에 보존한다.
+
+사용자 새 승인으로 ZIP Git 저장 금지가 해소됐다. 기존 c4f9267 문서 체크포인트를 보존하고 downloads와 결과 문서만 추가하는 일반 커밋으로 PR15 작업 브랜치에 전달한다. Library403 재시도/우회는 하지 않았다. merge/release/deploy/권한 변경·제품 코드 수정도 없다. 다운로드 링크는 push 뒤 실제 응답·바이트를 확인한다. 실제 Windows IME·운동사용감·두산 사이트는 미검증이다.
