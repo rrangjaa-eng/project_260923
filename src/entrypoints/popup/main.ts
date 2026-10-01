@@ -261,14 +261,13 @@ interface CardConfig {
 
 // WR-06: 팝업 카드는 이제까지 떨림 필터를 전혀 거치지 않았다 — 떨림으로 인한 두 번 탭이나 살짝
 // 눌린 채 남은 키가 도우미를 껐다 곧바로 다시 켜는(또는 그 반대) 사고로 이어질 수 있다. 페이지
-// 쪽과 같은 core/tremor-filter.ts를 그대로 쓴다 — "press" 입력의 자리(x,y)는 카드 자신의 화면
-// 위치를 쓴다: 같은 카드를 간격 안에 다시 누르면(키든 클릭이든) 자리가 같아 걸러지고, 다른
-// 카드를 누르면 자리가 달라 걸러지지 않는다.
+// 쪽과 같은 core/tremor-filter.ts를 그대로 쓴다. 카드의 고정 단축키로 클릭·숫자 키를 함께
+// 식별한다. 안내·자동 순환으로 화면 위치가 변해도 같은 카드 반복은 거르고 다른 카드는 허용한다.
 //
 // 기본값(defaultSettings().data)으로 한 번만 만들고 이후 다시 만들지 않는다 — Phase 1에는 이
 // 값을 바꾸는 화면이 없어 저장된 값은 사실상 늘 기본값과 같고, 저장소를 읽어 "실제 값"으로
 // 다시 만드는 방식은 시도해 봤으나(그 응답이 두 탭 사이에 막 도착하면 필터가 기억하던 "방금
-// 누른 자리·시각"이 통째로 사라져 떨림 거르기가 새로 시작돼 버리는 경합이 재현됨) 만들지 않는
+// 누른 카드·시각"이 통째로 사라져 떨림 거르기가 새로 시작돼 버리는 경합이 재현됨) 만들지 않는
 // 쪽이 더 단순하고 이 경합 자체가 없다.
 const tremorFilter: TremorFilter = createTremorFilter({
   intervalMs: defaultSettings().data.tremorIntervalMs,
@@ -296,8 +295,7 @@ function createCard(config: CardConfig): { element: HTMLButtonElement; render: (
   }
 
   function toggle(t: number): void {
-    const rect = card.getBoundingClientRect();
-    if (!tremorFilter.accept({ kind: 'press', x: rect.x, y: rect.y, t })) {
+    if (!tremorFilter.accept({ kind: 'key', code: config.digitCodes[0] ?? config.keyLabel, repeat: false, t })) {
       return;
     }
     const previous = current;

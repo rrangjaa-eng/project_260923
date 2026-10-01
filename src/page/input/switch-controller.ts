@@ -88,7 +88,8 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     notice=reason;dispatch({type:'pause',now:now()});
   }
   function invalidate(reason:string){
-    selected=null;capturedSelection=undefined;targets=[];confirmAction=null;preservedDraft=true;
+    preservedDraft ||= selected!==null || draft.text!=='' || initial!==null;
+    selected=null;capturedSelection=undefined;targets=[];confirmAction=null;
     root();pause(reason);
   }
   async function publish(){

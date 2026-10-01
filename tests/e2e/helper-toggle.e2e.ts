@@ -1,5 +1,16 @@
 import { test, expect } from './fixtures';
 
+test('WR-06: 화면 위치가 움직인 같은 카드를 빠르게 다시 눌러도 한 번만 토글된다', async ({ serviceWorker, openPopup }) => {
+  const popup = await openPopup();
+  const helper = popup.locator('[data-helper-toggle="true"]');
+  await expect(helper).toHaveText('1도우미 끄기');
+  await helper.click();
+  await helper.evaluate((card) => { (card as HTMLElement).style.transform = 'translateY(80px)'; });
+  await helper.click();
+  await expect.poll(() => serviceWorker.evaluate(async () => (await chrome.storage.local.get('helperSafetyOff')).helperSafetyOff)).toBe(true);
+  await expect(popup.getByText('지금: 꺼짐')).toBeVisible();
+});
+
 // D-20(SAFE-04)·D-23(STOR-01): 팝업 "도우미 끄기(전체)" → 단일 저장자 → storage.sync → 모든 프레임 →
 // 맨 위 프레임 모드 표시, 한 경로(tracer). 연습 사이트는 servePage가 등록하는 로컬 고정물이다(D-28).
 

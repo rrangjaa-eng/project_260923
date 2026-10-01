@@ -214,7 +214,7 @@ test('W1: 도우미 켜기가 실패한 뒤 사이트 토글이 성공해도 형
   serviceWorker,
   openPopup,
   servePage,
-}) => {
+}, testInfo) => {
   await seedMigrationFailure(serviceWorker);
   servePage('http://practice.test/', '<!doctype html><html><body><h1>연습 사이트</h1></body></html>');
   const page = await context.newPage();
@@ -222,6 +222,16 @@ test('W1: 도우미 켜기가 실패한 뒤 사이트 토글이 성공해도 형
   await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(true);
 
   const popup = await openPopup(page);
+  await popup.evaluate(() => {
+    const events: unknown[] = [];
+    (globalThis as unknown as { popupToggleEvents: unknown[] }).popupToggleEvents = events;
+    document.addEventListener('click', (event) => {
+      const button = event.composedPath().find((node) => node instanceof HTMLButtonElement);
+      if (!(button instanceof HTMLButtonElement)) return;
+      const rect = button.getBoundingClientRect();
+      events.push({ label: button.textContent, x: rect.x, y: rect.y, time: event.timeStamp });
+    }, true);
+  });
   const warningCard = popup.locator('.warning-card');
   await expect(warningCard).toHaveText(MIGRATION_FAILED_TOAST_TEXT);
 
@@ -233,6 +243,12 @@ test('W1: 도우미 켜기가 실패한 뒤 사이트 토글이 성공해도 형
 
   await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
   await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(false);
+  const eventPath = testInfo.outputPath('popup-toggle-events.json');
+  fs.writeFileSync(eventPath, JSON.stringify(await popup.evaluate(() => (globalThis as unknown as { popupToggleEvents: unknown[] }).popupToggleEvents)));
+  const sitePath = testInfo.outputPath('popup-site-storage.json');
+  fs.writeFileSync(sitePath, JSON.stringify(await serviceWorker.evaluate((key) => chrome.storage.sync.get(key), siteKey('http://practice.test'))));
+  await testInfo.attach('popup-toggle-events', { path: eventPath, contentType: 'application/json' });
+  await testInfo.attach('popup-site-storage', { path: sitePath, contentType: 'application/json' });
 
   // 사이트 토글은 성공했지만 settings는 여전히 깨져 있다 — 카드 0개가 아니라 D-25 경고로
   // 되돌아가야 한다(role="alert" 유지, DOM 감사 경고 1).
