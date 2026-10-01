@@ -31,3 +31,5 @@ writer의 마지막 승인 응답이 늦게 오면 쉬기/끄기 뒤에도 저�
 INPT-01 사이트/칸별 최근값 자동수집은 구현하지 않았다. INPT-03 양식 전체를 큰 입력칸으로 모으기, select/checkbox, 양식 validation/복귀 전체도 미구현이다. PRIV-01 전체 민감판별은 원래 열린 요구로 유지한다. 민감칸 수집·자동 제출·외부전송·새 권한·의존성·OS 연결·ZIP교체·merge/deploy 없다. Windows IME·운동 사용성은 별도 미검증이다.
 
 미리보기 helper는 RED2fail→GREEN2pass. 공통CSS/패널과 기존pointer UI 경로는 불변이며 쪽 이동 후에는 새UI6+기존문서/프레임38과 unit246/type/lint를 검증했다. 기본UI101의 실행 시점을 최신 쪽 이동 source 전체에 확대하지 않는다. manifest는 이전 전달ZIP과 permissions/host_permissions/content_scripts 모두 동일하다.
+
+실제 draft PR18: https://github.com/rrangjaa-eng/project_260923/pull/18 . base=PR17/035ce70, head=codex-switch-phrase-management. 제품 source e360466; 이 PR번호 기록은 문서만 변경한다. 전체CI 최종결과는 아직 미확정이며 통과로 계산하지 않는다. 다음 재개는 이 브랜치에서 전체CI 확인이며 완료된 구현·검사를 재승인 대기로 돌리지 않는다.

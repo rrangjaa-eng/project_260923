@@ -4,7 +4,7 @@
 
 로컬 `codex/switch-phrase-management`, 기준PR17/035ce70. 기존 INPT-02 저장/삽입 흐름에 현재작성문장으로 명시교체·삭제/취소/1초확인, writer 큐의 목록 충돌·현재 승인 검사, worker 취소세대 검사를 추가했다. 독립 리뷰 P2(옛 done 승인 뒤 쉬기에도 저장)를 RED→GREEN으로 수정했다. 페이지 제출·민감칸 수집·외부전송은 없다.
 
-현재 최종type/lint exit0, unit246/246. 기본UI101/101pass3.2분은 미리보기 페이지 추가 전 실행이며 공통스타일은 불변. 짧은 미리보기에서도 새문장이 가려지는 실제 화면 결함을 발견해 24grapheme 쪽과 Space 이전/다음 선택으로 보완했다. 최종 새6+기존doc-editor/editor-frames38 **44/44pass3.8분,exit0**. 긴한글/이모지/줄바꿈 Space미리보기까지 확인. [문구 관리 검증](verification/2026-10-02-phrase-management.md). 후속 PR은 아직 생성 전이다.
+현재 최종type/lint exit0, unit246/246. 기본UI101/101pass3.2분은 미리보기 페이지 추가 전 실행이며 공통스타일은 불변. 짧은 미리보기에서도 새문장이 가려지는 실제 화면 결함을 발견해 24grapheme 쪽과 Space 이전/다음 선택으로 보완했다. 최종 새6+기존doc-editor/editor-frames38 **44/44pass3.8분,exit0**. 긴한글/이모지/줄바꿈 Space미리보기까지 확인. [문구 관리 검증](verification/2026-10-02-phrase-management.md). [draft PR18](https://github.com/rrangjaa-eng/project_260923/pull/18)을 실제 생성했다. base=codex-phase2-fake-handoff/035ce70, head=codex-switch-phrase-management; open/draft/미병합. 제품검증source e360466, PR번호 기록은 문서만 변경하며 최종HEAD의 전체CI는 아직 미확정이다.
 
 PR17 최종CI73는 **success**, E2E321/321·unit223/223. 결과는 이 후속 브랜치에 기록해 통과한 PR17을 반복 실행하지 않는다. 남은 INPT-01 최근값, INPT-03 양식전체, PRIV-01 민감판별전체·실제PC 검증은 열린 상태다.
 
