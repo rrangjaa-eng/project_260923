@@ -1,6 +1,6 @@
 # 작업 현황표
 
-갱신: 2026-10-01 22:45 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 긴급 수정 로컬 `codex/installed-page-investigation`
+갱신: 2026-10-01 22:51 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 긴급 수정 로컬 `codex/installed-page-investigation`
 
 ## 설치본 신고 대응 — 현재 우선 작업
 
@@ -10,7 +10,7 @@
 
 | 항목 | 최신 실제 결과 | 남은 범위 |
 |---|---|---|
-| 수정 제품 SHA | `3ae6ad29fd3e77e43cdb68c51d540035e1002b16`; 첫 로딩 초안·고정 카드 식별자·늦은 복원 가드 | 새 검증 문서와 함께 안전 원격/PR15에 fast-forward 반영 후 실제 원격SHA·CI 확인 |
+| 수정 제품 SHA | `3ae6ad29fd3e77e43cdb68c51d540035e1002b16`; 첫 로딩 초안·고정 카드 식별자·늦은 복원 가드 | 원격 양쪽 `91c0ae562214816093d29fc60203d6b109f71cb8` 확인. PR15 open/draft, head91c0ae5 확인. merge 없음 |
 | 실제 설치·Space 시작·즉시 정지 | 최신 production 설치/팝업5건 및 한글 전체여정1건 **6/6 pass**,3.6분,exit0. HTTPS 기존/새 탭·held Space·일반 입력·관리 비활성화·손상·지연 켜기 포함 | `/tmp/urgent-release-native-final.log`의 최종 빌드. 두산 공개 사이트는 `ERR_TUNNEL_CONNECTION_FAILED`, 미검증 |
 | 종료 경합 | 손상/읽기 실패/늦은 켜기/로컬 commit 지연 회귀 및 독립 검토 수정 | 저장·페이지 API 전체 불통 때 전역 정지 성공을 보장하지 않음 |
 | 최신 type/lint/unit/build | type/lint exit0, 전체unit148/148, production build pass. 비동기 조건 함수 정리 후 해당8건 재검사8/8 | `/tmp/urgent-release-{unit,type-final,lint-final}.log`. 새 CI Node22 결과 별도 확인 |
@@ -22,6 +22,9 @@
 | 수정 후 집중 결과 | 상태단위 RED5 fail·1 pass→6/6 GREEN; 기존 text/selection E2E13/13 GREEN; W1·같은 카드 이동 반복2/2 GREEN | 기존 실패8건의 기대값 모두 유지. `/tmp/urgent-draft-state-{red,green,final}.log`, `/tmp/urgent-draft-target-green.log`, `/tmp/urgent-popup-warning-green.log` |
 | 지연 draft/read 후속 | 실제 RED1 fail·7 pass→최소 응답 가드 후8/8 GREEN. untouched 정상 저장 초안 복구도 유지 | `/tmp/urgent-draft-late-{red,green,final}.log`; 기존 modeGeneration·현재초안의도·disposed 재검사. 독립 검토 미해결P1/P2 없음 |
 | 현재 최종 검증 | production 영향48/48 pass,7.8분,exit0; 마지막 조건 함수의 final 빌드에서 native/전체여정6/6 pass | `/tmp/urgent-final-impact.log`, `/tmp/urgent-release-native-final.log`. 전체 수백 건은 새 CI에서 한 번 확인 |
+| 신규 CI65 | [run36871344925](https://github.com/rrangjaa-eng/project_260923/actions/runs/36871344925), head `91c0ae5`, job110399604371: **in_progress**, type/lint/unit 단계 success, 전체 E2E 실행 중 | 아직 최종 통과로 계산하지 않음. 다음 확인은 이 기존 run 종료·로그 수치부터이며 새 중복 전체검사 없음 |
+| 새 로컬 아티팩트 | ZIP `/tmp/tremor-browser-helper-3ae6ad2.zip`,9파일,1,163,247 bytes, SHA256 `bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb`; integrity·production바이트대조·기존권한대조 pass | 새 ZIP은 Git 원격·Library에 올리지 않았고 CI 종료 전 전달하지 않음 |
+| 새 안내서 초안 | `/tmp/Single-Switch-PC-check-3ae6ad2.md`,4,696 bytes, SHA256 `395257b1c4cfc4b7b78e6be4f73fea92c63964836f72cabf252c3477b9093c62` | **CI 대기 초안**. CI 확정 뒤 대기 문구를 제거·다시 검증해 최종 해시를 기록해야 함 |
 | Library 교체 | 공식 업로드 도우미 첫 시도·허용된 1회 재시도 모두 전송 전 exit1; 기존 파일 유지 | tools/list network 오류; 연결 확인 HTTP tunnel403. 현재 read의 version_id는 null, 원본 xattr version0 보존. 직접/raw 업로드 우회 없음 |
 
 [재현·수정·검증 전문](verification/2026-10-01-installed-popup-safety.md) · [새 설치·시작·종료 안내](verification/single-switch-install-and-stop.md). 아래 이전 마감은 역사 기록이며 이번 실사용 신고의 해결 근거가 아니다. merge·배포는 수행하지 않는다.
@@ -35,6 +38,8 @@
 팝업 W1의 실제 클릭 기록은 도우미 켜기 `(28,537.390625,t589.7)` 뒤 사이트 끄기 `(28,529.59375,t623.4)`였다. 서로 다른 카드가 7.8px/33.7ms에 놓여 기존300ms/16px 좌표 필터가 사이트 클릭을 거절했고 저장은 `{}`였다. 화면 위치 대신 고정 단축키를 카드 공통 식별자로 사용해 같은 카드 반복은 거르고 다른 카드는 허용했다. 위치가 움직인 같은 카드를 빠르게 다시 누르는 신규 검사도 RED(다시 켜짐)→GREEN(꺼짐 유지)이며 W1의 원래 경고·role 단언은 그대로다. 증거: `/tmp/urgent-popup-toggle-events-red.json`, `/tmp/urgent-popup-site-storage-red.json`, `/tmp/urgent-popup-moving-red.log`.
 
 제품·인계 체크포인트는 안전 원격 `codex-installed-page-investigation`에 저장하고 필수 검사를 마쳐 PR15 `codex-single-switch-phase1`에 fast-forward 반영한다. 새 HEAD CI 최종 결과까지 확인한다. PR15 본문은 이전 완료 설명이 남아 있어 부모의 갱신 대상이며, 이 턴에서 변경·재시도하지 않았다. 자동 압축은 이미 저장된 모델 기본 임계값·total을 유지했고 현재 런타임의 compact 실행은 관찰하지 못했다. 환경·설정·Library 연결은 더 변경하지 않았다.
+
+현재 클라우드 접근·도구·검사는 정상이다. 로컬 검사 프로세스는 모두 종료했고 현재 실행은 GitHub CI65의 전체 E2E 단계뿐이다. 공식 Library `replace_library_file` 도구가 노출되어 절대 로컬 파일 경로 인자를 지원함은 스키마로 확인했다. 이 환경의 준비 업로드 연결이 chatgpt.com 프록시403으로 차단됐으므로 도구 노출만으로 파일 전달 성공을 주장하지 않으며 더 호출하지 않는다. 최종 전달 방식은 부모가 사용자와 해결한다. 다음 턴은 CI65가 끝났는지 읽고 실제 counts·failure를 기록한다. 제품을 다시 구현하거나 같은 환경 설정·전체검사를 시작하지 않는다.
 
 ## 이전 1차 구현 마감 기록
 

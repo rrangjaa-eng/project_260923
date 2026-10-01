@@ -70,7 +70,7 @@
 
 `b97bea3`은 실제 보존할 작업이 있을 때만 invalidate가 초안을 보존하도록 했으며 첫 로딩·사용 전 다시 켜기·switch/begin 뒤 capture를 복구했다. 쉬기 재개는 실행을 선택하지 않고, 편집한 문장과 명시적 빈 새 문장은 다시 켜기/begin 뒤에도 유지한다. 팝업은 고정 카드 단축키를 클릭·숫자 키의 공통 필터 식별자로 사용한다. 화면 위치가 바뀐 같은 카드 반복도 거절하고 다른 카드 선택은 허용한다. W1은 서로 다른 카드가 7.8px/33.7ms 차이에 놓여 좌표 필터300ms/16px에 거절됐다는 실제 로그로 확인했다.
 
-독립 read-only 검토에서 이 두 최소 변경에 새 확정 P1/P2는 없었다. 단, 늦은 `switch/draft/read`가 사용자의 명시적 빈 새 문장을 옛 값으로 덮을 수 있는 기존 코드 경로를 P2 후보로 확인했다. 현재 단위6건은 즉시 read만 다루므로 **지연 RED는 아직 미실행**이다. 다음 턴은 그 재현부터 하고 필요한 최소 보호를 검증한다. 이후 새 코드의 실제 popup Space 시작·즉시 정지·대기 켜기·손상 설정 및 관련 영향 검사를 거쳐 PR15에 반영하고 전체 CI를 한 번 실행한다. 새 ZIP은 이 조건 전 만들거나 전달하지 않는다.
+당시 독립 read-only 검토에서 두 최소 변경에 새 확정 P1/P2는 없었다. 늦은 `switch/draft/read`가 사용자의 명시적 빈 새 문장을 옛 값으로 덮을 수 있는 코드 경로를 P2 후보로 확인했으며, 그 체크포인트의 단위6건은 즉시 read만 다뤄 지연 RED는 미실행이었다. 그 다음 재현·수정·검증 결과는 아래 후속 기록에 보존한다.
 
 ## 지연 초안 응답의 후속 재현·수정
 
@@ -79,3 +79,5 @@
 읽기는 아직 선택·편집하지 않은 초안에서만 시작하고, 응답 시 기존 modeGeneration 및 같은 초안 의도·종료 상태를 다시 검사한다. 상태 함수로 await 전후를 실제 재평가하며 옛 응답만 거절한다. 같은 지연 응답이라도 사용자가 선택·편집하지 않은 정상 저장 초안은 복원된다. **단위8/8 GREEN**, 추가 전체unit148/148, 최종 type/lint pass다(`/tmp/urgent-draft-late-{green,final}.log`, `/tmp/urgent-release-{unit,type-final,lint-final}.log`). async 재검사를 인라인으로 썼을 때 lint4건이 나와 상태 함수로 정리했고 기대값은 변경하지 않았다.
 
 독립 read-only 검토에서 이 async 수정에 남은 P1/P2는 찾지 못했다. 실제 설치·팝업·정지·설정 손상·전체 한글 여정·초안 영향48건은 **48/48 pass**,7.8분,exit0였다(`/tmp/urgent-final-impact.log`). await 전후 조건 함수를 정리한 최종 production 빌드의 설치/팝업5건·전체 한글 여정1건도 **6/6 pass**,3.6분,exit0였다(`/tmp/urgent-release-native-final.log`). 최종제품 HEAD CI는 현황표에서 확정한다. Library 연결 재시도·환경·자동 압축 설정 변경은 하지 않았다.
+
+원격 두 브랜치를 `91c0ae562214816093d29fc60203d6b109f71cb8`로 fast-forward했고 PR15 open/draft·같은 head를 실제 조회했다. 새 [CI65/run36871344925](https://github.com/rrangjaa-eng/project_260923/actions/runs/36871344925)는 type/lint/unit 단계를 통과했고 전체 E2E 실행 중이다. 제품 `3ae6ad2`의 최종 빌드를9파일 ZIP으로 생성해 integrity·production바이트 일치·기존 manifest권한 불변을 확인했다. 파일 경로·해시와 CI 대기 안내서 초안은 현황표에 기록했다. CI가 끝나기 전에 ZIP을 전달하지 않으며 Library도 더 시도하지 않는다.
