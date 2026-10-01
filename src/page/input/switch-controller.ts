@@ -57,7 +57,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   const stopScroll=()=>{if(scrollTimer)clearInterval(scrollTimer);scrollTimer=null;};
   function render(){if(!top||!exclusive())return;
     panel??=createSwitchPanel();
-    panel.render(state,title,draft.text+(initial!==null?` [${INITIALS[initial] ?? ""}${medial!==null?(MEDIALS[medial] ?? ""):""}]`:''),[notice,unknownNotice].filter(Boolean).join(' · '));
+    panel.render(state,title,draft.text+(initial!==null?` [${INITIALS[initial] ?? ""}${medial!==null?(MEDIALS[medial] ?? ""):""}]`:''),[notice,unknownNotice].filter(Boolean).join(' · '),draftSelection(draft));
   }
   function dispatch(event:SwitchEvent){
     const previousMode=state.mode;
@@ -179,7 +179,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       if(group===0||group===1){stack.push(current);if(await refreshTargets(startedGeneration))pageMenu(0,group===0);}
       if(group===2)menu([command('scroll:down','한 화면 아래'),command('scroll:up','한 화면 위'),command('scroll:auto','자동 스크롤'),command('nav:back','뒤로'),command('nav:tabs','열린 탭')],'읽기·이동');
       if(group===3){if(selected)editor();else menu([command('choose-input','입력칸 선택'),command('draft:new','새 문장')],'글쓰기');}
-      if(group===4)menu([command('speed','순환 속도'),command('protection','입력 간격 보호'),command('pause','쉬기'),command('pointer','마우스 조작으로 전환')],'조절·쉬기');
+      if(group===4)menu([command('speed','순환 속도'),command('protection','입력 간격 보호'),command('pause','쉬기'),command('pointer','마우스 조작으로 전환 · 스페이스바 작업판 종료')],'조절·쉬기');
       return;
     }
     if(id==='choose-input'){stack.push(current);if(await refreshTargets(startedGeneration))pageMenu(0,true);return;}
