@@ -78,6 +78,8 @@ function hasBlockingModifier(event: KeyboardEvent): boolean {
 }
 
 export interface InputPipeline {
+  setSwitchHandler(handler: ((kind: 'keyDown' | 'keyUp', event: KeyboardEvent) => boolean) | null): void;
+  setSwitchExclusive(get: () => boolean): void;
   onKey(handler: KeyHandler): void;
   onPress(handler: PressHandler): void;
   setModal(handler: ModalHandler | null): void;
@@ -103,6 +105,8 @@ export function createInputPipeline(opts: {
   const swallowedKeyCodes = new Set<string>();
   let pressSwallowed = false;
   let pendingPressExecute: (() => void) | null = null;
+  let switchHandler: ((kind: 'keyDown' | 'keyUp', event: KeyboardEvent) => boolean) | null = null;
+  let switchExclusive = () => false;
   let lastPointerMoveAt = 0;
   const keyHandlers: KeyHandler[] = [];
   const pressHandlers: PressHandler[] = [];
@@ -255,6 +259,9 @@ export function createInputPipeline(opts: {
       if (!event.isTrusted || !isHelperEnabled()) {
         return;
       }
+      if (switchHandler?.('keyDown', event)) {
+        swallowedKeyCodes.add(event.code); event.preventDefault(); event.stopImmediatePropagation(); return;
+      }
       if (modalHandler) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -378,6 +385,9 @@ export function createInputPipeline(opts: {
       if (!event.isTrusted || !isHelperEnabled()) {
         return;
       }
+      if (switchHandler?.('keyUp', event)) {
+        swallowedKeyCodes.delete(event.code); event.preventDefault(); event.stopImmediatePropagation(); return;
+      }
       if (modalHandler) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -398,6 +408,9 @@ export function createInputPipeline(opts: {
     (event) => {
       if (!event.isTrusted || !isHelperEnabled()) {
         return;
+      }
+      if (switchExclusive()) {
+        pressSwallowed=true;pendingPressExecute=null;event.preventDefault();event.stopImmediatePropagation();return;
       }
       // F1(/review 사용자 결정): 문서 전체 편집기를 "나옴" 상태에서 주 버튼으로 다시 누르면 입력
       // 으로 돌아간다 — 예전에는 이 pointerdown에서 곧바로 resumeDocumentEditor()를 불렀는데, 그
@@ -571,6 +584,8 @@ export function createInputPipeline(opts: {
   });
 
   return {
+    setSwitchHandler(handler) { switchHandler=handler; },
+    setSwitchExclusive(get) { switchExclusive=get; },
     onKey(handler) {
       keyHandlers.push(handler);
     },

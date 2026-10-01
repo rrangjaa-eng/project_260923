@@ -3,6 +3,8 @@ import { inheritedSiteOrigin, isUnsupportedUrl } from '@/core/unsupported-url';
 import { parseMessage } from '@/shared/messages';
 import { createRelay } from '@/worker/relay';
 import { createStorageWriter } from '@/worker/storage-writer';
+import { createSwitchRelay } from '@/worker/switch-relay';
+import { SwitchMessage } from '@/shared/switch-messages';
 
 // 탭·프레임별 마지막 enabled 보고(D-03) — 시험이 globalThis.frameStates로 읽는다.
 type FrameStates = Record<number, Record<number, boolean>>;
@@ -25,6 +27,7 @@ const MUTED_COLOR = extractMutedColor(tokensCssRaw);
 
 export default defineBackground(() => {
   const writer = createStorageWriter();
+  const switchRelay = createSwitchRelay(writer);
   const relay = createRelay();
   const frameStates: FrameStates = {};
   (globalThis as typeof globalThis & { frameStates: FrameStates }).frameStates = frameStates;
@@ -239,6 +242,11 @@ export default defineBackground(() => {
     // 확장 내부 메시지만 받는다(D-09) — externally_connectable 없음, window.postMessage는 받지 않는다.
     if (sender.id !== chrome.runtime.id) {
       return undefined;
+    }
+
+    if (SwitchMessage.safeParse(raw).success) {
+      void switchRelay.handle(raw, sender).then(sendResponse, () => { sendResponse({ result: 'unknown' }); });
+      return true;
     }
 
     const parsed = parseMessage(raw);

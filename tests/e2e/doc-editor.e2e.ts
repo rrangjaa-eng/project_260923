@@ -18,9 +18,11 @@ test('초점 없는 다른 프레임의 늦은 모드 보고는 현재 편집 �
   await page.frameLocator('#frame-design').locator('#doc-text').click();
   await expect.poll(() => dataMode(page)).toBe('typing');
   const tabs = await serviceWorker.evaluate((url) => chrome.tabs.query({ url }), page.url());
+  const tabId = tabs[0]?.id;
+  if (tabId === undefined) throw new Error('target tab missing');
   await serviceWorker.evaluate(async (tabId) => {
     await chrome.tabs.sendMessage(tabId, { type: 'mode/report', mode: 'helper', sourcePath: [1] }, { frameId: 0 });
-  }, tabs[0]!.id!);
+  }, tabId);
   await page.waitForTimeout(100);
   expect(await dataMode(page)).toBe('typing');
 });

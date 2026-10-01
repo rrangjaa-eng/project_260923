@@ -23,6 +23,7 @@ import { buildFrameReport, createCollector, type Item } from '@/page/collector/c
 import { synthesizeDrag } from '@/page/click/drag';
 import { synthesizePress } from '@/page/click/press';
 import { createInputPipeline, type ModalEvent } from '@/page/input/pipeline';
+import { createSwitchController } from '@/page/input/switch-controller';
 import { currentMode, resumeDocumentEditor } from '@/page/input/mode';
 import { closeConfirm, openConfirm } from '@/page/overlay/confirm-dialog';
 import {
@@ -332,7 +333,7 @@ export default defineContentScript({
     }
 
     function syncDwellLoop(): void {
-      const shouldRun = currentEnabled === true && currentSettings.data.dwellEnabled && currentTargetId !== null;
+      const shouldRun = currentEnabled === true && !switchController.exclusive() && currentSettings.data.dwellEnabled && currentTargetId !== null;
       if (shouldRun && !dwellLoopActive) {
         dwellLoopActive = true;
         requestAnimationFrame(dwellTick);
@@ -699,6 +700,9 @@ export default defineContentScript({
     // 잡힌 것이 없으면 통과(D-27 "잡힌 것 없음 = 원래대로"). dragTwoPress가 켜져 있고 끌기
     // 시작 중이거나 대상이 끌 수 있는 요소면, 커서가 요소 위라도 삼켜 pressOrDrag로 보낸다 —
     // 그렇지 않으면 끌기 시작·놓기가 그냥 사이트의 원래 클릭이 되어 버린다(D-08).
+    const switchController=createSwitchController({collector,pipeline:inputPipeline,signal:pipelineController.signal,enabled:()=>currentEnabled??true,
+      onExclusive:()=>{currentTargetId=null;hideRing();stopDwellLoopIfRunning();closeHints();}});
+
     inputPipeline.onPress(({ x, y }) => {
       if (!currentEnabled) {
         return false;

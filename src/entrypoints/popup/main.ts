@@ -1,4 +1,5 @@
 import tokensCss from '../../../docs/design/tokens.css?inline';
+import { SwitchSettings, defaultSwitchSettings } from '@/core/switch-settings';
 // 오버레이·메뉴 서체(D-26, Plan 01-16): document.fonts.add()는 Document 전체에 등록되고 Shadow
 // DOM 경계와 무관하다(A4는 <style> 안 @font-face 규칙에만 해당) — 팝업도 오버레이와 같은 등록
 // 함수를 그대로 쓴다.
@@ -352,7 +353,17 @@ const dragTwoPressCard = createCard({
   },
 });
 
-cards.append(helperCard.element, dwellCard.element, dragTwoPressCard.element);
+let switchSettings = defaultSwitchSettings();
+const switchCard=createCard({keyLabel:'5',digitCodes:['Digit5','Numpad5'],wordFor:(enabled)=>enabled?'마우스 조작으로 전환':'스페이스바 순환 조작 켜기',
+  onToggle:(next,render,revert)=>{
+    render(next);
+    void chrome.runtime.sendMessage({type:'switch/settings',value:{...switchSettings,mode:next?'switch':'pointer'}}).then((raw:unknown)=>{
+      if(typeof raw!=='object'||raw===null||!('ok' in raw)||raw.ok!==true){revert();showToggleWarning('조작 방식을 바꾸지 못했어요');}
+    },()=>{revert();showToggleWarning('조작 방식을 바꾸지 못했어요');});
+  }});
+void chrome.storage.local.get('switchSettings').then((stored)=>{const parsed=SwitchSettings.safeParse(stored.switchSettings);switchSettings=parsed.success?parsed.data:defaultSwitchSettings();switchCard.render(switchSettings.mode==='switch');});
+chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes.switchSettings){const parsed=SwitchSettings.safeParse(changes.switchSettings.newValue);switchSettings=parsed.success?parsed.data:defaultSwitchSettings();switchCard.render(switchSettings.mode==='switch');}});
+cards.append(helperCard.element, dwellCard.element, dragTwoPressCard.element, switchCard.element);
 container.append(title, status, cards);
 shadow.append(container);
 

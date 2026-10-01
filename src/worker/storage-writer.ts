@@ -42,6 +42,7 @@ const SYNC_WRITE_WINDOW_MS = 60_000;
 const SYNC_WRITE_LIMIT = 100;
 
 export interface StorageWriter {
+  writeSwitchData(key: string, value: unknown, area: 'local' | 'session'): Promise<{ ok: boolean }>;
   setEnabled(enabled: boolean): Promise<SetEnabledResult>;
   updateSettings(patch: UpdateSettingsPatch): Promise<UpdateSettingsResult>;
   ensureDefaultSettings(): Promise<void>;
@@ -200,6 +201,13 @@ export function createStorageWriter(): StorageWriter {
   }
 
   return {
+    writeSwitchData(key, value, area) {
+      return enqueue(async () => {
+        if (!/^(switchSettings|switchPhrases|switchDraft:\d+)$/.test(key)) return { ok: false };
+        await chrome.storage[area].set({ [key]: value });
+        return { ok: true };
+      });
+    },
     setEnabled(enabled) {
       return enqueue(async () => {
         const read = await readAndValidateSettings();
