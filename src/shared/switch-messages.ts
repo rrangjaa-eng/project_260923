@@ -16,6 +16,8 @@ export const SwitchReportItem = z.object({ itemId: z.string(), label: z.string()
 export type SwitchReportItem = z.infer<typeof SwitchReportItem>;
 export interface SwitchFrameReport { frameId: number; documentGeneration: string; path: number[]; items: SwitchReportItem[] }
 export const SwitchMessage = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('switch/connect'), tabId: z.number().int(), url: z.string().max(10000) }).strict(),
+  z.object({ type: z.literal('switch/begin'), url: z.string().max(10000) }).strict(),
   z.object({ type: z.literal('switch/report'), documentGeneration: z.string().max(100), path: z.array(z.number().int().nonnegative()), items: z.array(SwitchReportItem).max(5000) }),
   z.object({ type: z.literal('switch/list') }),
   z.object({ type: z.literal('switch/refresh') }),

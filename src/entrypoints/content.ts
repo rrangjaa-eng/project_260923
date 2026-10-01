@@ -6,6 +6,7 @@ import { composeTree, resolveReports, type ComposedItem, type RawFrameReport } f
 import { createGridIndex } from '@/core/grid-index';
 import { orderHints, placeLabels, type HintEntry } from '@/core/hint-order';
 import { pickTarget } from '@/core/magnet';
+import { HELPER_SAFETY_OFF_KEY, isHelperSafetyOff } from '@/core/helper-safety';
 import {
   MIGRATION_FAILED_MESSAGE,
   MIGRATION_NOTICE_KEY,
@@ -129,6 +130,9 @@ export default defineContentScript({
   matchAboutBlank: true,
   runAt: 'document_start',
   main() {
+    const documentOwner = globalThis as typeof globalThis & { tremorHelperDocument?: Document };
+    if (documentOwner.tremorHelperDocument === document) return;
+    documentOwner.tremorHelperDocument = document;
     // Task 1(01-19, ELEM-02, SAFE-04, SAFE-05): 맨 위 about: 문서(주소 없는 새 창, 예: 결재
     // 팝업이 window.open('')으로 열고 DOM이나 document.write로 채운 경우)는 문서 자신의 출처
     // (window.origin — 격리 세계에서 읽는 값이라 페이지가 바꿀 수 없다)가 http(s) 사이트에서
@@ -152,6 +156,7 @@ export default defineContentScript({
     // 늦게 끝나는 비동기 이어짐(설정·알림·site/query·번호표 기록 읽기)이 정리 뒤에는 아무것도
     // 하지 않도록 첫 사용보다 앞선 여기서 선언한다.
     let cleanedUp = false;
+    const contextHealthTimer: { current?: ReturnType<typeof setInterval> } = {};
 
     // 문서 다시 쓰기 감시(Task 2, D-22, probe evidence 2·3번): document.open()은 문서·Window의
     // 이벤트 리스너를 모두 지운다 — 지운 리스너는 되살릴 수 없으므로, 다시 쓰기가 감지되면 이
@@ -203,6 +208,15 @@ export default defineContentScript({
       return localPressFramePath === null ? null : { ...item.fingerprint, framePath: localPressFramePath };
     }
     let currentEnabled: boolean | undefined;
+    let migrationWarningPending = false;
+    let helperSafetyOff = true;
+    let runtimeSafetyOff = true;
+    let runtimeSafetyRevision = -1;
+    let runtimeSafetyInstance = '';
+    let runtimeSafetyRead = 0;
+    let helperSafetyRevision = 0;
+    let settingsRevision = 0;
+    let settingsLoaded = false;
     let currentSettings: SettingsV1 = defaultSettings();
     // 지금 사이트에서만 끄기(Plan 01-13, D-20): 사이트 = 맨 위 페이지 출처. 전역 enabled와 합쳐
     // applyEnabled에 넘긴다(syncEnabled) — 둘 중 하나라도 꺼지면 도우미는 꺼진다.
@@ -358,6 +372,14 @@ export default defineContentScript({
         return undefined;
       }
       const message = parsed.data;
+      if (message.type === 'helper/safety' && _sender.id === chrome.runtime.id) {
+        if (message.instance === runtimeSafetyInstance && message.revision < runtimeSafetyRevision) return undefined;
+        runtimeSafetyRead++;
+        runtimeSafetyInstance = message.instance; runtimeSafetyRevision = message.revision;
+        runtimeSafetyOff = message.off;
+        syncEnabled(); sendResponse({ok:true}); return undefined;
+      }
+      if (message.type === 'helper/state' || message.type === 'helper/safety') return undefined;
 
       if (message.type === 'site/ping' && isTopFrame) {
         // background.ts의 "도울 수 없음" 응답 없음 판정(D-21) — 맨 위 프레임만 답한다. 도우미가
@@ -643,6 +665,7 @@ export default defineContentScript({
         if (enabled) {
           showModeIndicator();
           refreshModeDisplay();
+          if (migrationWarningPending) { migrationWarningPending = false; showToast(MIGRATION_FAILED_MESSAGE); }
         } else {
           hideModeIndicator();
         }
@@ -660,7 +683,7 @@ export default defineContentScript({
       if (cleanedUp) {
         return;
       }
-      applyEnabled(currentSettings.data.enabled && !siteDisabled && siteState !== 'failed');
+      applyEnabled(settingsLoaded && !runtimeSafetyOff && !helperSafetyOff && currentSettings.data.enabled && !siteDisabled && siteState !== 'failed');
     }
 
     // 설정을 읽기 전이라도 리스너를 먼저 걸어야 사이트보다 앞선다(D-06, Pattern 1) — 설정이
@@ -673,7 +696,10 @@ export default defineContentScript({
       // 설정이 아직 안 왔으면(currentEnabled === undefined) defaultSettings()의 enabled(true)로
       // 판단한다(D-06 Pattern 1, 위 pipelineController 주석과 같은 규칙) — currentEnabled는 실제
       // 전역·사이트별 상태가 합쳐진 뒤에만 값이 채워진다(syncEnabled → applyEnabled).
-      isEnabled: () => currentEnabled ?? true,
+      isEnabled: () => {
+        if (!isExtensionContextValid()) { cleanupOldHelper(); return false; }
+        return currentEnabled ?? false;
+      },
       signal: pipelineController.signal,
       // Task 3(01-18, KEY-01, CR-01 iteration 4): 문서 전체 편집기의 Esc 나옴·되돌아옴은 이제
       // 초점을 도우미 오버레이로 옮긴다("초점 옮기기") — 파이프라인이 모드를 바꿀 때마다 여기로도
@@ -706,7 +732,7 @@ export default defineContentScript({
     // 잡힌 것이 없으면 통과(D-27 "잡힌 것 없음 = 원래대로"). dragTwoPress가 켜져 있고 끌기
     // 시작 중이거나 대상이 끌 수 있는 요소면, 커서가 요소 위라도 삼켜 pressOrDrag로 보낸다 —
     // 그렇지 않으면 끌기 시작·놓기가 그냥 사이트의 원래 클릭이 되어 버린다(D-08).
-    const switchController=createSwitchController({collector,pipeline:inputPipeline,signal:pipelineController.signal,enabled:()=>currentEnabled??true,
+    const switchController=createSwitchController({collector,pipeline:inputPipeline,signal:pipelineController.signal,enabled:()=>currentEnabled??false,
       onExclusive:()=>{currentTargetId=null;hideRing();stopDwellLoopIfRunning();closeHints();dragTwoPress.cancel();
         if(activeConfirmKeyHandler){inputPipeline.setModal(null);activeConfirmKeyHandler=null;closeConfirm();void chrome.runtime.sendMessage({type:'confirm/state',open:false});}
       }});
@@ -1079,16 +1105,36 @@ export default defineContentScript({
         }
         const parsed = MigrationNoticeV1.safeParse(stored[MIGRATION_NOTICE_KEY]);
         if (parsed.success) {
-          showToast(MIGRATION_FAILED_MESSAGE);
+          migrationWarningPending = true;
+          if (currentEnabled === true) { migrationWarningPending = false; showToast(MIGRATION_FAILED_MESSAGE); }
         }
       });
     }
 
+    const initialSafetyRevision = helperSafetyRevision;
+    function readRuntimeSafety(): void {
+      const revision = ++runtimeSafetyRead;
+      void chrome.runtime.sendMessage({type:'helper/state'}).then((raw:unknown) => {
+        if (cleanedUp || revision !== runtimeSafetyRead) return;
+        if (typeof raw !== 'object' || raw === null || !('off' in raw) || typeof raw.off !== 'boolean' || !('instance' in raw) || typeof raw.instance !== 'string' || !('revision' in raw) || typeof raw.revision !== 'number') return;
+        runtimeSafetyOff = raw.off; runtimeSafetyInstance = raw.instance; runtimeSafetyRevision = raw.revision;
+        syncEnabled();
+      }).catch(() => undefined);
+    }
+    readRuntimeSafety();
+    void chrome.storage.local.get(HELPER_SAFETY_OFF_KEY).then((stored) => {
+      if (cleanedUp || helperSafetyRevision !== initialSafetyRevision) return;
+      helperSafetyOff = isHelperSafetyOff(stored[HELPER_SAFETY_OFF_KEY]);
+      syncEnabled();
+    }).catch(() => { if (!cleanedUp && helperSafetyRevision === initialSafetyRevision) { helperSafetyOff = true; syncEnabled(); } });
+
+    const initialSettingsRevision = settingsRevision;
     void chrome.storage.sync.get(SETTINGS_KEY).then((stored) => {
-      if (cleanedUp) {
+      if (cleanedUp || settingsRevision !== initialSettingsRevision) {
         return;
       }
       const parsed = SettingsV1.safeParse(stored[SETTINGS_KEY]);
+      settingsLoaded = true;
       if (parsed.success) {
         if (parsed.data.data.dwellMs !== currentSettings.data.dwellMs) {
           dwellTimer = createDwellTimer({ dwellMs: parsed.data.data.dwellMs });
@@ -1099,10 +1145,18 @@ export default defineContentScript({
         collector.refresh();
         syncDwellLoop();
       }
-    });
+      syncEnabled();
+    }).catch(() => { if (!cleanedUp && settingsRevision === initialSettingsRevision) { settingsLoaded = false; syncEnabled(); } });
 
     // 이름 붙인 리스너(Task 2, D-22): cleanupOldHelper()가 removeListener로 뗀다.
     function handleSettingsStorageChange(changes: Record<string, chrome.storage.StorageChange>, areaName: string): void {
+      if (areaName === 'local' && changes[HELPER_SAFETY_OFF_KEY]) {
+        helperSafetyRevision++;
+        // 키 삭제·손상은 재개 동의가 아니다. writer의 명시적인 false만 해제한다.
+        helperSafetyOff = changes[HELPER_SAFETY_OFF_KEY].newValue !== false;
+        syncEnabled();
+        return;
+      }
       if (areaName !== 'sync') {
         return;
       }
@@ -1110,6 +1164,8 @@ export default defineContentScript({
       if (!change) {
         return;
       }
+      settingsRevision++;
+      settingsLoaded = true;
       const parsed = SettingsV1.safeParse(change.newValue);
       if (parsed.success) {
         if (parsed.data.data.dwellMs !== currentSettings.data.dwellMs) {
@@ -1235,6 +1291,8 @@ export default defineContentScript({
         return;
       }
       cleanedUp = true;
+      if (contextHealthTimer.current !== undefined) clearInterval(contextHealthTimer.current);
+      if (documentOwner.tremorHelperDocument === document) delete documentOwner.tremorHelperDocument;
       // T-01-50: 예약된 rAF(자석 재계산·머무르기)와 확대 구독 콜백이 아무 일도 하지 않게 먼저
       // 둔다.
       currentEnabled = false;
@@ -1314,7 +1372,9 @@ export default defineContentScript({
         // 둬 `?.`가 정적으로는 불필요해 보이지만, 실제 크롬은 확장이 무효화되면 이 읽기 자체가
         // 던질 수 있다 — 그래서 옵셔널 체이닝과 바깥 try/catch를 함께 둔다.
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        return typeof chrome.runtime?.id === 'string';
+        if (typeof chrome.runtime?.id !== 'string') return false;
+        chrome.runtime.getManifest();
+        return true;
       } catch {
         return false;
       }
@@ -1331,6 +1391,7 @@ export default defineContentScript({
       }
       alivePort = port; // Task 2: cleanupOldHelper()가 disconnect()할 수 있게 기억해 둔다.
       if (isReconnect) {
+        readRuntimeSafety();
         switchController.connectionLost();
         // CR-08: 끊긴 뒤 다시 연결됐다는 것은 SW가 잠깐 쉬었다 다시 시작했다는 뜻이다 —
         // relay.ts의 기억(reportsByTab)이 사라졌을 수 있으니, 보고 내용이 이전과 같아 보여도
@@ -1353,5 +1414,7 @@ export default defineContentScript({
     }
     let alivePort: chrome.runtime.Port | null = null;
     connectAlivePort();
+    // 확장 관리에서 끈 경우 포트 해제 통지만으로는 오래된 표시가 남을 수 있다.
+    contextHealthTimer.current = setInterval(() => { if (!isExtensionContextValid()) cleanupOldHelper(); }, 250);
   },
 });

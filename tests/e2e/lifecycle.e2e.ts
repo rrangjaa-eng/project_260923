@@ -156,7 +156,7 @@ test('설정 형식 변환이 실패한 상태에서 연습 사이트를 열면 
   await page.close();
 });
 
-test('메뉴에 --warning 경고 카드가 뜨고, 저장이 실패하면 카드 문구가 바뀐다', async ({ serviceWorker, openPopup }) => {
+test('손상된 원본과 --warning 안내를 보존하면서 팝업에서 도우미를 끌 수 있다', async ({ serviceWorker, openPopup }) => {
   await seedMigrationFailure(serviceWorker);
   const popup = await openPopup();
 
@@ -166,7 +166,9 @@ test('메뉴에 --warning 경고 카드가 뜨고, 저장이 실패하면 카드
 
   await popup.getByRole('button', { name: '도우미 끄기' }).click();
 
-  await expect(warningCard).toHaveText(PRESERVED_ORIGINAL_TEXT);
+  await expect(popup.getByText('지금: 꺼짐')).toBeVisible();
+  await expect(warningCard).toHaveText(MIGRATION_FAILED_TOAST_TEXT);
+  expect(await readLocalKey(serviceWorker, 'helperSafetyOff')).toBe(true);
   const settingsAfter = await readSyncKey(serviceWorker, 'settings');
   expect(settingsAfter).toEqual({ schemaVersion: 99, data: { corrupted: true } });
 
@@ -206,8 +208,8 @@ test('F3: 형식 변환 실패 경고가 뜬 상태에서 사이트 카드 토�
 // W1(DOM 감사 2회차 팝업 경고 겹침): showWarningCard가 warningKind를 덮어써, 형식 변환 실패(D-25)
 // 경고가 뜬 상태에서 토글 실패 안내가 뜨면 kind가 toggle로 바뀌고, 이어서 그 토글(또는 다른
 // 토글)이 성공하면 hideToggleWarningCard가 안내를 통째로 지웠다 — 설정은 여전히 깨져 있는데
-// 카드가 0개가 된다. 실제 경로: 설정 손상 → 1(도우미 끄기) 실패 안내 → 2(사이트 끄기) 성공.
-test('W1: 도우미 끄기가 실패한 뒤 사이트 토글이 성공해도 형식 변환 실패 경고가 다시 보인다', async ({
+// 카드가 0개가 된다. 실제 경로: 설정 손상 → 끄기 성공 → 켜기 실패 안내 → 사이트 끄기 성공.
+test('W1: 도우미 켜기가 실패한 뒤 사이트 토글이 성공해도 형식 변환 실패 경고가 다시 보인다', async ({
   context,
   serviceWorker,
   openPopup,
@@ -224,6 +226,9 @@ test('W1: 도우미 끄기가 실패한 뒤 사이트 토글이 성공해도 형
   await expect(warningCard).toHaveText(MIGRATION_FAILED_TOAST_TEXT);
 
   await popup.getByRole('button', { name: '도우미 끄기' }).click();
+  await expect(popup.getByText('지금: 꺼짐')).toBeVisible();
+  await popup.waitForTimeout(350);
+  await popup.getByRole('button', { name: '도우미 켜기' }).click();
   await expect(warningCard).toHaveText(PRESERVED_ORIGINAL_TEXT);
 
   await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();

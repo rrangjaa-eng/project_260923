@@ -1,4 +1,6 @@
 import tokensCss from '../../../docs/design/tokens.css?inline';
+import { HELPER_SAFETY_OFF_KEY, isHelperSafetyOff } from '@/core/helper-safety';
+import { isUnsupportedUrl } from '@/core/unsupported-url';
 import { SwitchSettings, defaultSwitchSettings } from '@/core/switch-settings';
 // 오버레이·메뉴 서체(D-26, Plan 01-16): document.fonts.add()는 Document 전체에 등록되고 Shadow
 // DOM 경계와 무관하다(A4는 <style> 안 @font-face 규칙에만 해당) — 팝업도 오버레이와 같은 등록
@@ -22,7 +24,7 @@ import type { Message } from '@/shared/messages';
 const PRESERVED_ORIGINAL_MESSAGE = '원래 설정을 지키려고 저장하지 않았어요.';
 // WR-03(01-REVIEW.md): preserved-original 말고 다른 실패(무응답·거부·item-too-large 등)에는
 // 안내가 아예 없었다 — 되돌아간 이유를 한 줄로 알린다(§7).
-const HELPER_TOGGLE_FAILED_MESSAGE = '도우미 상태를 바꾸지 못했어요. 다시 눌러 보세요.';
+const HELPER_TOGGLE_FAILED_MESSAGE = '도우미 상태를 바꾸지 못했어요. 브라우저 확장 관리에서 도우미를 끄고 페이지를 새로고침하세요.';
 const SITE_TOGGLE_OFF_FAILED_MESSAGE = '이 사이트를 끄지 못했어요. 1을 눌러 도우미를 끄세요.';
 // DOM 감사 경고 2: "이 사이트에서 켜기"가 실패해도 지금까지는 끄기 실패용 문구가 그대로 떴다 —
 // 켜기 실패는 원인이 다르니(끌 필요가 없다) 다음 행동도 다른 문구를 둔다(§7).
@@ -85,6 +87,10 @@ ${tokensCss}
 .card:focus-visible {
   outline: var(--border-strong) solid var(--accent);
 }
+.card[data-switch-selected=true] { outline: var(--border-strong) solid var(--accent); }
+.card:disabled { color: var(--muted); cursor: default; }
+.popup { max-height: 600px; box-sizing: border-box; overflow: auto; }
+.cards { max-height: 320px; overflow: auto; padding: var(--space-1); }
 .key-chip {
   display: inline-flex;
   align-items: center;
@@ -147,6 +153,15 @@ siteStatus.className = 'status';
 
 const cards = document.createElement('div');
 cards.className = 'cards';
+const popupHelp = document.createElement('p');
+popupHelp.className = 'status';
+popupHelp.textContent = '스페이스바를 누르고 놓으면 테두리 항목을 선택해요. 끝내려면 즉시 정지를 선택하세요.';
+const startCard = document.createElement('button');
+startCard.type = 'button'; startCard.className = 'card';
+const startKey = document.createElement('span'); startKey.className = 'key-chip'; startKey.textContent = '스페이스바';
+const startWord = document.createElement('span'); startWord.className = 'action-word'; startWord.textContent = '활동 선택 시작';
+startCard.append(startKey, startWord);
+startCard.addEventListener('click', () => { void startActivity(); });
 
 // WR-03(01-REVIEW.md): 카드 onToggle이 이제까지 각자 sendMessage(...).then(...)만 썼다 —
 // 응답이 거부되면(SW 종료로 포트가 닫히는 등) unhandled rejection이 나며 되돌리지 않았고, 두
@@ -313,17 +328,27 @@ const helperCard = createCard({
   keyLabel: '1',
   digitCodes: ['Digit1', 'Numpad1'],
   wordFor: (enabled) => (enabled ? '도우미 끄기' : '도우미 켜기'),
-  onToggle: (next, render, revert) => {
+  onToggle: toggleHelper,
+});
+function toggleHelper(next: boolean, render: (enabled: boolean) => void, revert: () => void): void {
+    const intent = ++helperToggleIntent;
     render(next); // 즉시 반영 — 연타해도 이전 누름 기준으로 번갈아 계산된다(writer가 순서대로 처리).
     const message: Message = { type: 'storage/request', op: { kind: 'setEnabled', enabled: next } };
     // WR-05: preserved-original뿐 아니라 ok !== true인 모든 거절(item-too-large 등)에서 화면을
     // 실제 상태로 되돌린다. WR-03: 무응답(시간 제한)·거부(reject)도 같은 방식으로 되돌리고,
     // 이유별로 안내한다(preserved-original만 특별 문구, 나머지는 공통 실패 문구).
-    sendWithRevert(message, revert, (reason) => {
-      showToggleWarning(reason === 'preserved-original' ? PRESERVED_ORIGINAL_MESSAGE : HELPER_TOGGLE_FAILED_MESSAGE);
+    sendWithRevert(message, () => { if (intent === helperToggleIntent) revert(); }, (reason) => {
+      if (intent !== helperToggleIntent) return;
+      showToggleWarning(reason === 'preserved-original' && next ? PRESERVED_ORIGINAL_MESSAGE : HELPER_TOGGLE_FAILED_MESSAGE);
+      void refreshHelperSafety();
     });
-  },
-});
+}
+helperCard.element.dataset.helperToggle = 'true';
+const stopCard = document.createElement('button'); stopCard.type = 'button'; stopCard.className = 'card';
+const stopKey = document.createElement('span'); stopKey.className = 'key-chip'; stopKey.textContent = '스페이스바';
+const stopWord = document.createElement('span'); stopWord.className = 'action-word'; stopWord.textContent = '즉시 정지 · 도우미 전체 종료';
+stopCard.append(stopKey, stopWord);
+stopCard.addEventListener('click', () => { toggleHelper(false, helperCard.render, () => undefined); });
 
 const dwellCard = createCard({
   keyLabel: '3',
@@ -363,9 +388,73 @@ const switchCard=createCard({keyLabel:'5',digitCodes:['Digit5','Numpad5'],wordFo
   }});
 void chrome.storage.local.get('switchSettings').then((stored)=>{const parsed=SwitchSettings.safeParse(stored.switchSettings);switchSettings=parsed.success?parsed.data:defaultSwitchSettings();switchCard.render(switchSettings.mode==='switch');});
 chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes.switchSettings){const parsed=SwitchSettings.safeParse(changes.switchSettings.newValue);switchSettings=parsed.success?parsed.data:defaultSwitchSettings();switchCard.render(switchSettings.mode==='switch');}});
-cards.append(helperCard.element, dwellCard.element, dragTwoPressCard.element, switchCard.element);
-container.append(title, status, cards);
+cards.append(startCard, stopCard, helperCard.element, dwellCard.element, dragTwoPressCard.element, switchCard.element);
+container.append(title, status, popupHelp, cards);
 shadow.append(container);
+
+let scanIndex = 0;
+let pressedCard: HTMLButtonElement | null = null;
+let popupBusy = false;
+let scanChangedAt = performance.now();
+function scanCards(): HTMLButtonElement[] { return Array.from(cards.querySelectorAll<HTMLButtonElement>('button')).filter((card) => !card.disabled); }
+function renderPopupScan(): void {
+  const available = scanCards(); scanIndex %= Math.max(1, available.length);
+  cards.querySelectorAll<HTMLButtonElement>('button').forEach((card) => {
+    const selected = card === (pressedCard ?? available[scanIndex]);
+    card.dataset.switchSelected = String(selected);
+    card.setAttribute('aria-current', String(selected));
+    if (selected) card.scrollIntoView({ block: 'nearest' });
+  });
+}
+setInterval(() => {
+  if (document.hidden || pressedCard) return;
+  if (performance.now() - scanChangedAt >= switchSettings.intervalMs) { scanChangedAt = performance.now(); scanIndex++; renderPopupScan(); }
+}, 100);
+document.addEventListener('keydown', (event) => {
+  if (event.code !== 'Space' || event.isComposing || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey || !event.isTrusted) return;
+  event.preventDefault(); event.stopImmediatePropagation();
+  if (!event.repeat && !pressedCard) pressedCard = scanCards()[scanIndex] ?? null;
+}, true);
+document.addEventListener('keyup', (event) => {
+  if (event.code !== 'Space') return;
+  event.preventDefault(); event.stopImmediatePropagation();
+  const chosen = pressedCard; pressedCard = null;
+  if (chosen?.isConnected && !chosen.disabled && event.isTrusted && !event.isComposing && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) chosen.click();
+  scanChangedAt = performance.now(); renderPopupScan();
+}, true);
+window.addEventListener('blur', () => { pressedCard = null; });
+renderPopupScan();
+
+async function startActivity(): Promise<void> {
+  if (popupBusy || startCard.disabled) return;
+  popupBusy = true;
+  startCard.disabled = true; renderPopupScan();
+  const intent = helperToggleIntent;
+  const current = () => intent === helperToggleIntent && !helperSafetyOff && settingsEnabled;
+  async function bounded<T>(operation: Promise<T>): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try { return await Promise.race([operation, new Promise<never>((_, reject) => { timer=setTimeout(() => { reject(new Error('timeout')); },5000); })]); }
+    finally { if(timer) clearTimeout(timer); }
+  }
+  try {
+    const tabId = await resolveTargetTabId();
+    if (tabId === undefined) throw new Error('no-tab');
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab.url || isUnsupportedUrl(tab.url)) { showToggleWarning('브라우저 설정·확장 스토어에서는 시작할 수 없어요. 일반 웹 탭을 여세요.'); return; }
+    const connected = await bounded(chrome.runtime.sendMessage({ type: 'switch/connect', tabId, url: tab.url })) as {result?:string};
+    if (connected.result !== 'done') throw new Error('connection');
+    if (!current()) return;
+    const changed = await bounded(chrome.runtime.sendMessage({type:'switch/settings',value:{...switchSettings,mode:'switch'}})) as {ok?:boolean};
+    if (changed.ok !== true) throw new Error('settings');
+    if (!current()) return;
+    await chrome.tabs.update(tabId, { active: true });
+    const begun = await bounded(chrome.tabs.sendMessage(tabId, {type:'switch/begin',url:tab.url}, {frameId:0})) as {result?:string};
+    if (begun.result !== 'done') throw new Error('begin');
+    if (current()) window.close();
+  } catch {
+    showToggleWarning('페이지에 연결하지 못했어요. 페이지를 새로고침하고 다시 시작하세요. 종료가 안 되면 브라우저 확장 관리에서 도우미를 끄세요.');
+  } finally { popupBusy = false; renderEffectiveHelper(); }
+}
 
 // 대상 탭 결정(Plan 01-13 Task 2): 쿼리 tabId가 있으면 그 탭, 없으면 현재 활성 탭. 쿼리는 시험
 // 전용(popup.html이 시험에서는 실제 탭으로 열려 스스로 활성 탭이 되기 때문 — fixtures.ts openPopup).
@@ -436,6 +525,10 @@ async function renderForTargetTab(): Promise<void> {
   }
   const title = await chrome.action.getTitle({ tabId });
   if (title === '도울 수 없음') {
+    const tab = await chrome.tabs.get(tabId);
+    unsupportedMessage.textContent = isUnsupportedUrl(tab.url)
+      ? '이 페이지에서는 도울 수 없어요. 다른 탭에서 쓰세요.'
+      : '페이지 연결이 필요해요. 활동 선택 시작을 선택하면 연결을 시도해요.';
     // F6 후속(DOM 감사 4회차, 사용자 결정, DECISIONS.md 2026-09-26): 경고 카드(형식 변환 실패)가
     // 이 함수보다 먼저 떠 있으면(loadMigrationNotice()의 storage.local.get 한 번이 이 함수의
     // 왕복 getTitle→tabs.get보다 먼저 끝남) cards 앞에 그대로 넣으면 경고 카드보다 뒤에 붙는다 —
@@ -489,6 +582,34 @@ function renderStatus(enabled: boolean): void {
   status.textContent = enabled ? '지금: 켜짐' : '지금: 꺼짐';
 }
 
+let helperToggleIntent = 0;
+let helperSafetyRevision = 0;
+let helperSafetyOff = false;
+let settingsEnabled = true;
+let popupSettingsRevision = 0;
+function renderEffectiveHelper(): void {
+  const enabled = settingsEnabled && !helperSafetyOff;
+  renderStatus(enabled);
+  helperCard.render(enabled);
+  startCard.disabled = !enabled || popupBusy;
+  renderPopupScan();
+}
+async function refreshHelperSafety(): Promise<void> {
+  const revision = helperSafetyRevision;
+  try {
+    const stored = await chrome.storage.local.get(HELPER_SAFETY_OFF_KEY);
+    if (revision !== helperSafetyRevision) return;
+    helperSafetyOff = isHelperSafetyOff(stored[HELPER_SAFETY_OFF_KEY]);
+    renderEffectiveHelper();
+  } catch { showToggleWarning(HELPER_TOGGLE_FAILED_MESSAGE); }
+}
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !changes[HELPER_SAFETY_OFF_KEY]) return;
+  helperSafetyRevision++;
+  helperSafetyOff = changes[HELPER_SAFETY_OFF_KEY].newValue !== false;
+  renderEffectiveHelper();
+});
+
 // 초기 렌더는 기본 설정(enabled: true, dwellEnabled: false, dragTwoPress: false)을 가정한다 —
 // 저장소를 읽어 오면 실제 값으로 다시 그린다.
 renderStatus(true);
@@ -497,11 +618,13 @@ dwellCard.render(false);
 dragTwoPressCard.render(false);
 
 async function loadInitial(): Promise<void> {
+  const revision = popupSettingsRevision;
   const stored = await chrome.storage.sync.get(SETTINGS_KEY);
+  if (revision !== popupSettingsRevision) return;
   const parsed = SettingsV1.safeParse(stored[SETTINGS_KEY]);
   if (parsed.success) {
-    renderStatus(parsed.data.data.enabled);
-    helperCard.render(parsed.data.data.enabled);
+    settingsEnabled = parsed.data.data.enabled;
+    renderEffectiveHelper();
     dwellCard.render(parsed.data.data.dwellEnabled);
     dragTwoPressCard.render(parsed.data.data.dragTwoPress);
   }
@@ -515,10 +638,11 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   if (!change) {
     return;
   }
+  popupSettingsRevision++;
   const parsed = SettingsV1.safeParse(change.newValue);
   if (parsed.success) {
-    renderStatus(parsed.data.data.enabled);
-    helperCard.render(parsed.data.data.enabled);
+    settingsEnabled = parsed.data.data.enabled;
+    renderEffectiveHelper();
     dwellCard.render(parsed.data.data.dwellEnabled);
     dragTwoPressCard.render(parsed.data.data.dragTwoPress);
   }
@@ -548,6 +672,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 });
 
 void loadInitial();
+void refreshHelperSafety();
 void loadMigrationNotice();
 void renderForTargetTab();
 void ensureHelperFontsRegistered();

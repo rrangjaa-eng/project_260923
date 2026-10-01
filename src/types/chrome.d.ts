@@ -138,6 +138,7 @@ declare namespace chrome.scripting {
 // 확장 아이콘(D-21): 제목·배지로 "도울 수 없음"을 알린다. tabId를 생략하면 기본값에 적용된다
 // (이 계획들은 항상 tabId를 명시해서 쓴다).
 declare namespace chrome.action {
+  function openPopup(): Promise<void>;
   function setTitle(details: { tabId?: number; title: string }): Promise<void>;
   function getTitle(details: { tabId?: number }): Promise<string>;
   function setBadgeText(details: { tabId?: number; text: string }): Promise<void>;

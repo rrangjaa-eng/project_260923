@@ -33,6 +33,7 @@ export function createSwitchRelay(writer: StorageWriter) {
     const parsed = SwitchMessage.safeParse(raw);
     if (!parsed.success || sender.id !== chrome.runtime.id) return undefined;
     const message = parsed.data;
+    if (message.type === 'switch/connect' || message.type === 'switch/begin') return { result: 'refused' };
     if (message.type === 'switch/settings') return writer.writeSwitchData('switchSettings', message.value, 'local');
     const tabId = sender.tab?.id, frameId = sender.frameId;
     if (tabId === undefined || frameId === undefined) return { result: 'refused' };

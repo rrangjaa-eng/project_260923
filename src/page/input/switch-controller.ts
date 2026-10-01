@@ -50,6 +50,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   let confirmOpenedAt=0;
   let scrollTimer:ReturnType<typeof setInterval>|null=null;
   let disposed=false;
+  let beginOnFocus=false;
   const exclusive=()=>!disposed&&settings.mode==='switch'&&opts.enabled();
   const active=(generation:number)=>exclusive()&&state.modeGeneration===generation;
   const authorization=()=>({documentGeneration:generation,modeGeneration:state.modeGeneration,pendingActionId:state.pendingAction?.actionId??''});
@@ -81,6 +82,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   function up(){const previous=stack.pop();if(!previous){root();return;}current=previous;title=previous.title;
     dispatch({type:'setItems',now:now(),items:previous.items,mode:previous.mode});}
   function pause(reason=''){
+    beginOnFocus=false;
     stopScroll();confirmAction=null;cancelPeers();
     if(state.mode==='confirming'||state.resumeMode==='confirming'){root();}
     notice=reason;dispatch({type:'pause',now:now()});
@@ -174,12 +176,20 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   async function handleCommand(id:string,startedGeneration:number):Promise<PageResult['result']|undefined>{
     if(id==='up'){if(state.resumeMode==='confirming')confirmAction=null;up();return;}
     if(id==='pause'){pause();return;}
+    if(id==='helper-off'){
+      pause('도우미를 끄는 중이에요');
+      try {
+        const result=await request({type:'storage/request',op:{kind:'setEnabled',enabled:false}}) as {ok?:boolean};
+        if(result.ok!==true) notice='끄지 못했어요. 브라우저 확장 관리에서 도우미를 끄고 페이지를 새로고침하세요';
+      } catch { notice='끄지 못했어요. 브라우저 확장 관리에서 도우미를 끄고 페이지를 새로고침하세요'; }
+      render();return;
+    }
     if(id.startsWith('group:')){
       const group=Number(id.split(':')[1]);
       if(group===0||group===1){stack.push(current);if(await refreshTargets(startedGeneration))pageMenu(0,group===0);}
       if(group===2)menu([command('scroll:down','한 화면 아래'),command('scroll:up','한 화면 위'),command('scroll:auto','자동 스크롤'),command('nav:back','뒤로'),command('nav:tabs','열린 탭')],'읽기·이동');
       if(group===3){if(selected)editor();else menu([command('choose-input','입력칸 선택'),command('draft:new','새 문장')],'글쓰기');}
-      if(group===4)menu([command('speed','순환 속도'),command('protection','입력 간격 보호'),command('pause','쉬기'),command('pointer','마우스 조작으로 전환 · 스페이스바 작업판 종료')],'조절·쉬기');
+      if(group===4)menu([command('helper-off','도우미 끄기 · 페이지 입력 돌려주기'),command('speed','순환 속도'),command('protection','입력 간격 보호'),command('pause','쉬기'),command('pointer','마우스 조작으로 전환 · 스페이스바 작업판 종료')],'조절·쉬기');
       return;
     }
     if(id==='choose-input'){stack.push(current);if(await refreshTargets(startedGeneration))pageMenu(0,true);return;}
@@ -257,6 +267,13 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   const messageHandler=(raw:unknown,sender:chrome.runtime.MessageSender,sendResponse:(response?:unknown)=>void):boolean|undefined=>{
     if(sender.id!==chrome.runtime.id)return undefined;
     const parsed=SwitchMessage.safeParse(raw);if(!parsed.success)return undefined;const message=parsed.data;
+    if(message.type==='switch/begin'){
+      if(!top||!exclusive()||message.url!==location.href){sendResponse({result:'refused'});return undefined;}
+      // 팝업을 닫아 페이지 초점이 돌아왔을 때 그룹 순환만 시작한다. 사이트 동작은 선택하지 않는다.
+      invalidate('');beginOnFocus=true;
+      if(document.hasFocus()&&!document.hidden){beginOnFocus=false;root();}
+      sendResponse({result:'done'});return undefined;
+    }
     if(message.type==='switch/action-check'){
       sendResponse({result:top&&exclusive()&&state.mode==='executing'&&state.pendingAction!==null&&message.authorization.documentGeneration===generation&&message.authorization.modeGeneration===state.modeGeneration&&message.authorization.pendingActionId===state.pendingAction.actionId?'done':'refused'});return undefined;
     }
@@ -303,6 +320,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   opts.collector.onChange(()=>{void publish().catch(()=>undefined);});
   const timer=setInterval(()=>{if(top&&exclusive())dispatch({type:'tick',now:now()});},100);
   window.addEventListener('blur',()=>{if(exclusive()){if(top)pause();else {pause();void request({type:'switch/pause'}).catch(()=>undefined);}}},{signal:opts.signal});
+  window.addEventListener('focus',()=>{if(beginOnFocus&&top&&exclusive()&&!document.hidden){beginOnFocus=false;root();}},{signal:opts.signal});
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&exclusive())pause();},{signal:opts.signal});
   const frameObserver=new MutationObserver((records)=>{
     if(!exclusive())return;

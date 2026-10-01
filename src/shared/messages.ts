@@ -207,6 +207,8 @@ const ZoomChangedMessage = z.object({
 });
 
 export const Message = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('helper/state') }).strict(),
+  z.object({ type: z.literal('helper/safety'), off: z.boolean(), revision: z.number().int().nonnegative(), instance: z.string().max(100) }).strict(),
   StorageRequestMessage,
   FrameStateMessage,
   FrameReportMessage,
