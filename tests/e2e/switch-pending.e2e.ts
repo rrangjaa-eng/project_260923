@@ -210,4 +210,67 @@ test('a worker port reconnect cancels confirmation, keeps the draft and never re
   await page.keyboard.press('Space');
   await expect(panel).toHaveAttribute('data-mode', 'groupScan');
   await expect(page.locator('output')).toHaveText('0');
+  await chooseSwitch(page, '페이지 항목');
+  await chooseSwitch(page, '삭제');
+  await expect(panel).toHaveAttribute('data-mode', 'confirming');
+  await chooseSwitch(page, '삭제');
+  await expect(page.locator('output')).toHaveText('1');
+});
+
+test('a real worker stop loses memory, keeps session draft and requires a new selection', async ({ context, serviceWorker, extensionId, openPopup, servePage }) => {
+  test.setTimeout(60000);
+  servePage('http://practice.test/worker-stop.html', '<input type="search" aria-label="검색어"><button onclick="document.querySelector(\'output\').textContent=String(Number(document.querySelector(\'output\').textContent)+1)">삭제</button><output>0</output>');
+  await serviceWorker.evaluate(async () => {
+    await chrome.storage.local.set({ switchSettings: { schemaVersion: 1, mode: 'switch', intervalMs: 800, protectionMs: 100 }, switchPhrases: ['안녕'] });
+    (globalThis as unknown as { switchWorkerProbe?: string }).switchWorkerProbe = 'old-worker';
+  });
+  const page = await context.newPage();
+  await page.goto('http://practice.test/worker-stop.html');
+  // 확장 페이지에 연결해야 ServiceWorker domain에서 확장 worker를 관찰할 수 있다.
+  const popup = await openPopup(page);
+  const session = await context.newCDPSession(popup);
+  let stopped = false;
+  session.on('ServiceWorker.workerVersionUpdated', ({ versions }) => {
+    if (versions.some((version) => version.scriptURL === serviceWorker.url() && version.runningStatus === 'stopped')) stopped = true;
+  });
+  await session.send('ServiceWorker.enable');
+  await page.bringToFront();
+  await startSwitch(page);
+  for (const label of ['찾기', '검색어', '문구', '안녕', '상위로', '페이지 항목', '삭제']) await chooseSwitch(page, label);
+  const panel = page.locator('tremor-helper-root').locator('.switch-panel');
+  await expect(panel).toHaveAttribute('data-mode', 'confirming');
+  await expect(panel.locator('.switch-draft')).toHaveText('안녕');
+  const storedDraft = await serviceWorker.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const key = `switchDraft:${String(tab?.id)}`;
+    return (await chrome.storage.session.get(key))[key];
+  });
+  expect(storedDraft).toBe('안녕');
+  // target ID 재사용 시 Playwright의 새 serviceworker 이벤트는 발생하지 않는다.
+  await session.send('ServiceWorker.stopAllWorkers');
+  await expect(panel).toHaveAttribute('data-mode', 'paused');
+  await popup.evaluate(async () => chrome.runtime.sendMessage({ type: 'switch/draft/read' }));
+  const currentWorker = () => context.serviceWorkers().find((worker) => worker.url().startsWith(`chrome-extension://${extensionId}/`));
+  await expect.poll(async () => {
+    try { return await currentWorker()?.evaluate(() => (globalThis as unknown as { switchWorkerProbe?: string }).switchWorkerProbe ?? null); }
+    catch { return 'restarting'; }
+  }).toBeNull();
+  expect(stopped).toBe(true);
+  await expect(panel).toHaveAttribute('data-mode', 'paused');
+  await expect(panel.locator('.switch-draft')).toHaveText('안녕');
+  const recoveredDraft = await currentWorker()?.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const key = `switchDraft:${String(tab?.id)}`;
+    return (await chrome.storage.session.get(key))[key];
+  });
+  expect(recoveredDraft).toBe('안녕');
+  await expect(page.locator('output')).toHaveText('0');
+  await page.keyboard.press('Space');
+  await expect(panel).toHaveAttribute('data-mode', 'groupScan');
+  await expect(page.locator('output')).toHaveText('0');
+  await chooseSwitch(page, '페이지 항목');
+  await chooseSwitch(page, '삭제');
+  await expect(panel).toHaveAttribute('data-mode', 'confirming');
+  await chooseSwitch(page, '삭제');
+  await expect(page.locator('output')).toHaveText('1');
 });

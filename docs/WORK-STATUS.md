@@ -2,6 +2,27 @@
 
 갱신: 2026-10-01 23:56 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 전달 로컬 `codex/installed-page-investigation` / 원격 PR 작업 브랜치 `codex-single-switch-phase1`
 
+## 남은 개발 재개 — 2026-10-02 00:56 KST
+
+작업명: `PR16 | 파일 선택 연습·안전 계약`. 기존 세션 재사용, 로컬 `codex/phase2-file-practice`, 원격 `codex-phase2-file-practice`; PR15/20440e6·설치ZIP은 보존. 부모가 CI67/run36880332412 최종success와 PR15본문 갱신을 직접 확인했다. 최신 남은 개발 진행 승인으로 PC 시험을 클라우드 개발의 대기조건으로 삼지 않는다.
+
+| 이번 진행 | 실제 결과 | 다음 작업 |
+|---|---|---|
+| 기존 계획 대조 | 8단계 핵심/선택/초점/초안/탭/종료 구현 완료. 오래된 미체크박스를 중복 구현하지 않음 | 실제PC TEST/DIST, 문구관리·최근값·양식전체, 실제OS/USB, 반복업무는 남음 |
+| 보류 회귀 | f21a215의 실제 worker stop만 복원, 최신제품 기준1/1 pass22초 | PR13/14 복사·병합 없음 |
+| 파일 선택 안전 | 고정 가짜provider·토큰/요청/세션/문서·모드/만료/확인1초/정지latch/3초응답유실unknown. 최종 전용16/16·전체164/164 pass | 실제 파일/API 전송은 구현하지 않음 |
+| 독립 리뷰 P2 수정 | 동일요청 pause반복 재실행 RED3 fail/13 pass→16pass. 전송latch와 응답대기중 새요청 차단. 내부input초점 변경+orphanup UI RED1fail→GREEN1pass16.3초 | 리뷰2건 수정. 정상 새요청·초안 보존 유지 |
+| 연습UI/DOM | 선택·확인·취소·복귀·쉬기·종료/키복구·3viewport 관련5pass; 수정된 초점회귀별도1pass. 좁은화면 지속표시 RED1fail→3viewport GREEN | 화면3장 갱신. 실제OS 실행으로 표시하지 않음 |
+| 기존 자동 화면 검토 | 기존 실행40492 회수: **101/101 pass**,0fail/skip/flaky,3.4분,exit0 | 수정 전 실행이며 새6건과 구분. 공통엔진/패널/기존popup 불변. 중복100검사 없음 |
+| 최종 type/lint/build | exit0·production build pass. 기존ZIP 대비permissions/host/content_scripts 동일 | 새권한/설치/OS/네트워크/260917접근 없음 |
+| 전체검증/새PR | [draft PR16](https://github.com/rrangjaa-eng/project_260923/pull/16) 생성 완료·최종HEAD의 전체CI 확인 진행 | PR15 대상으로 별도 stacked PR. merge/release/deploy 없음 |
+
+[최종 수정·검증 기록](verification/2026-10-02-file-practice.md). 완료된 1차를 새로 만들지 않았고 `.planning` human_needed를 임의로 통과시키지 않았다. 현재 기록의 미확정 전체CI는 최종수치 확인 뒤 보완한다.
+
+환경 긴급 보고는 613bbe9에 보존했다. 선택ID와 ready는 런타임 확인, 명령은 Linux6.18.44/x86_64에서 성공, exec도구 응답에는 독립호스트유형·PC연결식별자가 없다. 확인을 반복하거나 PC로 전환하지 않았다.
+
+다음 승인된 클라우드 항목은 가짜provider 경계의 문서/모드/세션 변경 및 결과불명 테스트벡터와 입력소유권 복귀를 확대하는 것이다. 실제 파일 연결, nativeMessaging 권한·Windows host등록·USB접근·웹스토어게시/배포는 승인 필요 항목으로 분리한다. 반복업무 자동화는 현 파일 흐름의 실제연결 이후 설계 순서를 유지한다.
+
 ## 설치본 신고 대응 — 현재 우선 작업
 
 사용자가 기존 ZIP의 페이지 연결·Space 활동 선택·종료 문제를 신고했다. 기존 자동299 통과로 신고를 닫지 않고 실제 설치와 네이티브 popup부터 재현했다. 2차 설계/worker 후속은 로컬 `codex/phase2-cloud-design`의 `f21a215`에 보존하고 중지했다.
@@ -93,3 +114,9 @@
 ## Git 다운로드 검증 완료 — 2026-10-01 23:55 KST
 
 [실제 확인한 ZIP 파일 화면](https://github.com/rrangjaa-eng/project_260923/blob/codex-single-switch-phase1/downloads/tremor-browser-helper-3ae6ad2.zip) · [실제 다운로드 ZIP](https://raw.githubusercontent.com/rrangjaa-eng/project_260923/refs/heads/codex-single-switch-phase1/downloads/tremor-browser-helper-3ae6ad2.zip) · [교체 안내](https://github.com/rrangjaa-eng/project_260923/blob/codex-single-switch-phase1/downloads/README.ko.md). 세 파일의 GitHub/raw 응답200·실제 다운로드 바이트 일치 근거는 [기록](verification/package-smoke/download-verification.json)에 보존했다. 새 전달 커밋에는 제품 코드 변경이 없어 제품SHA3ae6ad2와 CI65 검사HEAD91c0ae5는 그대로다. 전달 후 새 HEAD의 자동CI는 CI65 최종success와 별개이며 아직 완료로 계산하지 않는다. 최종 typecheck·lint는 exit0이다. Library 저장은 하지 않았고 merge/release/deploy는 수행하지 않았다.
+
+새 draft PR16을 실제 생성했다: https://github.com/rrangjaa-eng/project_260923/pull/16 . base=codex-single-switch-phase1/20440e6, head=codex-phase2-file-practice, open/draft/미병합. 제품 수정 커밋d9160f1, 후속 PR번호 기록은 문서만 변경한다. 검증된PR15는 그대로다. 최종 전체CI결과는 별도 안전기록브랜치에 보존해 같은제품의 전체검사 반복을 피한다.
+
+## 2026-10-02 01:12 KST: 만료 후 쉬기 복귀 경계
+
+전체CI69가 실행되는 동안 expiry 경계를 추가 점검했다. page.clock으로 실제연습화면에서 쉬기뒤61초를 앞당긴 다음 같은파일을고르면 flow.select가거절되나 UI의 executing이남아 Space종료메뉴로 돌아오지 못하는 RED1fail을 확인했다. 실패한선택도 적용0·새시작ready로돌아오도록 최소수정했다. 새시작Space는 재개만 하고 종료까지Space만으로가능한 실제회귀를 포함해 **최종관련UI7/7pass,1.4분,exit0**다. 최종type/lint도exit0. 이실제제품수정때문에 기존CI69를최종통과로사용하지 않고 새HEAD 전체CI를확인한다. 환경/권한변경이나 같은소스의 중복전체실행이아니다.
