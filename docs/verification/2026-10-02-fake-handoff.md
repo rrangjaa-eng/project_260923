@@ -23,7 +23,7 @@ version1/허용8명령/opaque token/strict extra 필드 거절, 실행만료·�
 | 최종 새 handoff production E2E | 8/8pass54.7초, exit0 |
 | 기본 자동 화면 검토 첫 실행 | run-8YG5bH:99pass/2fail,3.4분,exit1. hints 초기 표시 빈값 실패. 별도 production build가 겹쳤으므로 성공으로 계산하지 않음 |
 | 기본 자동 화면 검토 최종 | run-bvUsDo:101/101pass,0fail/skip/flaky,3.3분,exit0. 다른 빌드 없이 실행. 첫 실패의 원인은 빌드 겹침으로 의심되나 독립적인 원인 증명은 아님 |
-| 전체 후속 CI | 새 draft PR 최종 HEAD에서 확인 예정 |
+| 전체 후속 CI73 | 최종035ce70/run36895970686 **success**. Node22.23.3, type/lint/build pass, unit223/223·E2E321/321,20.9분. 2026-10-02 02:21:50 KST 완료 |
 
 360/768/1280px DOM에서 패널 화면 안, 선택56px 이상·글자18px 이상, 역할/시제품 제목·상태·취소 첫 항목을 확인했다. [360px](handoff-practice-360.png) · [768px](handoff-practice-768.png) · [1280px](handoff-practice-1280.png). 스크린샷은 보조 근거다.
 
@@ -34,3 +34,5 @@ version1/허용8명령/opaque token/strict extra 필드 거절, 실행만료·�
 최종 type/lint exit0. production manifest와 PR15 전달 ZIP의 permissions/host_permissions/content_scripts 비교는 모두 동일이다. 의존성·공통 엔진·공통 패널 소스는 base 대비 변경0. 검증은 실제 Playwright 확장 환경과 DOM 실측으로 수행했으며 native gstack가 이 확장을 조작했다고 표시하지 않는다.
 
 실제 draft PR17: https://github.com/rrangjaa-eng/project_260923/pull/17 . 기준PR16/baafce2, 원격head codex-phase2-fake-handoff. 후속 PR번호 기록 커밋은 문서만 변경한다. 전체CI결과는 후속 상태 브랜치에 기록해 같은 소스의 전체 실행을 반복하지 않는다.
+
+CI73 실제 job110483412445의 전체로그/상태를 확인했다. 이 결과는 후속 문구 관리 브랜치에서 기록하므로 이미 통과한 PR17 HEAD를 문서 변경으로 재실행하지 않는다. PR16 CI는 조회하지 않았다.

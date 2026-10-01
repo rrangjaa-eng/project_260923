@@ -1,5 +1,6 @@
 import { isSameElement } from '@/core/fingerprint';
 import { HELPER_SAFETY_OFF_KEY } from '@/core/helper-safety';
+import { changedPhrases } from '@/core/switch-phrases';
 import {
   CURRENT_SCHEMA_VERSION,
   MIGRATION_NOTICE_KEY,
@@ -43,6 +44,7 @@ const SYNC_WRITE_WINDOW_MS = 60_000;
 const SYNC_WRITE_LIMIT = 100;
 
 export interface StorageWriter {
+  changeSwitchPhrases(raw: unknown, authorized: () => Promise<boolean>): Promise<{ ok: boolean }>;
   writeSwitchData(key: string, value: unknown, area: 'local' | 'session'): Promise<{ ok: boolean }>;
   setEnabled(enabled: boolean): Promise<SetEnabledResult>;
   updateSettings(patch: UpdateSettingsPatch): Promise<UpdateSettingsResult>;
@@ -214,6 +216,17 @@ export function createStorageWriter(): StorageWriter {
   }
 
   return {
+    changeSwitchPhrases(raw, authorized) {
+      return enqueue(async () => {
+        const stored = await chrome.storage.local.get('switchPhrases');
+        if (changedPhrases(stored.switchPhrases, raw) === null || !await authorized()) return { ok: false };
+        const latest = await chrome.storage.local.get('switchPhrases');
+        const next = changedPhrases(latest.switchPhrases, raw);
+        if (next === null || !await authorized()) return { ok: false };
+        await chrome.storage.local.set({ switchPhrases: next });
+        return { ok: true };
+      });
+    },
     writeSwitchData(key, value, area) {
       return enqueue(async () => {
         if (!/^(switchSettings|switchPhrases|switchDraft:\d+)$/.test(key)) return { ok: false };

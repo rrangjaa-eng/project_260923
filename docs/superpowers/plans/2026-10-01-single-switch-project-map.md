@@ -75,10 +75,10 @@ PR15/20440e6·설치ZIP은 기존8단계 검증본이다. CI67 최종success는 
 | Space 입력/프레임/한글/검색/탭/선택/종료 | PR15 실제구현·자동검사·설치ZIP 완료 | 실제PC IME/손사용감·실사이트 시험은 별도, 클라우드 개발의 대기조건 아님 |
 | worker 재시작 공백 | PR16에 보류f21a215의 실제stop회귀만 복원, 최신제품1/1pass | 실제OS 프로세스 강제종료 검증과 구분 |
 | 파일 선택 연습 | PR16 가짜provider·Space 순환·취소우선/확인1초/복귀/쉬기/정지·전송latch 구현, localunit164/UI관련7pass | 만료복귀 최소수정 뒤 새HEAD 전체CI 최종결과 확인 |
-| 가짜 연결 프로토콜 경계 | 현재FileRequest는 내부typed객체이며 외부/OS 메시지 수신 없음 | 다음 승인된cloud 작업: version/허용command/opaque token/엄격payload검증·문서/모드/세션변경·oldreply discard의 공통 테스트벡터. zod기존의존성 재사용 가능. 실제기기·권한 불필요 |
-| 파일 요청 입력소유권 복귀 | 현재는 독립연습페이지 안의 focus변경·pause·orphanup·stop 검사 | 다음cloud fakehandoff에서 페이지와연습화면 down/up 단일소유권·취소복귀세대확인을 검사. 실제 OS focus/창소유 검증으로 표시하지 않음 |
+| 가짜 연결 프로토콜 경계 | PR17 strict v1/8명령/token/문서·모드·세션·소유권세대/oldreply gate 구현. unit223·새UI8·기존UI101 통과 | 최종035ce70의 CI73 success, unit223/E2E321 pass. 실제 외부 수신/OS/다른 기기 시계 계약은 없음 |
+| 파일 요청 입력소유권 복귀 | PR17 가짜 두 역할 단일 Space 소유권·취소복귀·재개만·초안보존·held focus/응답중정지 경계 구현 | 실제 OS focus/창 소유 검증은 미구현/미검증 |
 | 실제Windows 파일 연결/휴대용 실행기 | 미구현/미검증 | nativeMessaging권한·host등록·Windows UIA/창소유권·USB/등록복구는 별도승인 및실기검증 필요 |
-| 최근값/문구관리·긴양식 전체 | 1차문구저장/삽입 일부만 구현, 관리전체 미완료 | 파일 흐름 다음 업무순서에 따라 bounded설계·검사. 민감칸 수집/자동제출로 확대하지 않음 |
+| 최근값/문구관리·긴양식 전체 | 기존local 저장/삽입에 명시교체·삭제/취소먼저1초확인/목록충돌·늦은승인거절을 추가. 현재unit246·새UI5·기존회복/pending 포함19 pass. 보완한 미리보기 쪽 이동 새6+기존문서/프레임38의 최종44/44pass | INPT-01 최근값 자동수집, INPT-02의 긴문구 전체 Space읽기·수정 사용성, INPT-03 입력칸 전체 보기·select/checkbox·양식 validation은 남음. 민감칸 수집·자동제출·외부전송 없음 |
 | 반복업무/백그라운드/AI | 원로드맵Phase4~6·열린계획들의API 미구현 | 파일흐름의 실제연결 뒤 계획순서 유지. 제출/결제/게시·AI외부전송 승인으로 확대하지 않음 |
 
 현재cloud 계속진행 승인과 별도승인 필요 항목을 분리했다. 새cloud 계약은 실제payload받기 전에 정의할준비이며 외부연결이 이미 구현됐다는 뜻이 아니다. `.planning` human_needed, 현재19PLAN/SUMMARY, PC검증열린항목은 유지한다.

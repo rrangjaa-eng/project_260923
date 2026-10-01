@@ -4,16 +4,19 @@ import { isUnsupportedUrl } from '@/core/unsupported-url';
 
 export function createSwitchRelay(writer: StorageWriter) {
   const frames = new Map<number, Map<number, SwitchFrameReport>>();
-  chrome.tabs.onRemoved.addListener((id) => { frames.delete(id); void writer.writeSwitchData(`switchDraft:${String(id)}`, '', 'session'); });
+  const cancellations = new Map<number, number>();
+  const cancel = (id: number) => { cancellations.set(id, (cancellations.get(id) ?? 0) + 1); };
+  chrome.tabs.onRemoved.addListener((id) => { frames.delete(id); cancellations.delete(id); void writer.writeSwitchData(`switchDraft:${String(id)}`, '', 'session'); });
   chrome.tabs.onUpdated.addListener((id, change) => {
     if (change.status === 'loading') {
+      cancel(id);
       const hadReports = frames.has(id);
       frames.delete(id);
       if (hadReports) void chrome.tabs.sendMessage(id, { type: 'switch/pause', invalidate: true }, { frameId: 0 }).catch(() => undefined);
     }
   });
   chrome.tabs.onActivated.addListener(({ tabId }) => {
-    for (const id of frames.keys()) if (id !== tabId) void chrome.tabs.sendMessage(id, { type: 'switch/pause' }).catch(() => undefined);
+    for (const id of frames.keys()) if (id !== tabId) { cancel(id); void chrome.tabs.sendMessage(id, { type: 'switch/pause' }).catch(() => undefined); }
   });
   async function visibleReport(tabId: number, report: SwitchFrameReport): Promise<boolean> {
     const reports = frames.get(tabId);
@@ -54,11 +57,13 @@ export function createSwitchRelay(writer: StorageWriter) {
       return {};
     }
     if (message.type === 'switch/pause') {
+      cancel(tabId);
       await chrome.tabs.sendMessage(tabId, message, { frameId: 0 }); return {};
     }
     if (message.type === 'switch/action-check') return chrome.tabs.sendMessage(tabId, message, { frameId: 0 });
     if (frameId !== 0) return { result: 'refused' };
     if (message.type === 'switch/cancel-peers') {
+      cancel(tabId);
       await Promise.all(Array.from(frames.get(tabId)?.keys() ?? []).filter((id) => id !== 0).map((id) => chrome.tabs.sendMessage(tabId, { type: 'switch/pause' }, { frameId: id }).catch(() => undefined)));
       return { result: 'done' };
     }
@@ -73,10 +78,16 @@ export function createSwitchRelay(writer: StorageWriter) {
       const stored=await chrome.storage.session.get(`switchDraft:${String(tabId)}`);
       return {text:stored[`switchDraft:${String(tabId)}`]};
     }
-    if (message.type === 'switch/phrase') {
-      const stored = await chrome.storage.local.get('switchPhrases');
-      const phrases = Array.isArray(stored.switchPhrases) ? stored.switchPhrases.filter((v): v is string => typeof v === 'string').slice(-19) : [];
-      return writer.writeSwitchData('switchPhrases', [...new Set([...phrases, message.text])], 'local');
+    if (message.type === 'switch/phrase' || message.type === 'switch/phrase/update') {
+      return writer.changeSwitchPhrases(message.type === 'switch/phrase' ? { kind: 'add', text: message.text } : message.mutation, async () => {
+        const report = frames.get(tabId)?.get(0);
+        const cancellation = cancellations.get(tabId) ?? 0;
+        if (!report || report.documentGeneration !== message.authorization.documentGeneration) return false;
+        try {
+          const reply: unknown = await chrome.tabs.sendMessage(tabId, { type: 'switch/action-check', authorization: message.authorization }, { frameId: 0 });
+          return (cancellations.get(tabId) ?? 0) === cancellation && frames.get(tabId)?.get(0) === report && typeof reply === 'object' && reply !== null && 'result' in reply && reply.result === 'done';
+        } catch { return false; }
+      });
     }
     if (message.type === 'switch/execute') {
       const action = message.action;

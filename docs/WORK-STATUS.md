@@ -1,10 +1,18 @@
 # 작업 현황표
 
+## 문구 관리 후속 — 2026-10-02 02:24 KST
+
+로컬 `codex/switch-phrase-management`, 기준PR17/035ce70. 기존 INPT-02 저장/삽입 흐름에 현재작성문장으로 명시교체·삭제/취소/1초확인, writer 큐의 목록 충돌·현재 승인 검사, worker 취소세대 검사를 추가했다. 독립 리뷰 P2(옛 done 승인 뒤 쉬기에도 저장)를 RED→GREEN으로 수정했다. 페이지 제출·민감칸 수집·외부전송은 없다.
+
+현재 최종type/lint exit0, unit246/246. 기본UI101/101pass3.2분은 미리보기 페이지 추가 전 실행이며 공통스타일은 불변. 짧은 미리보기에서도 새문장이 가려지는 실제 화면 결함을 발견해 24grapheme 쪽과 Space 이전/다음 선택으로 보완했다. 최종 새6+기존doc-editor/editor-frames38 **44/44pass3.8분,exit0**. 긴한글/이모지/줄바꿈 Space미리보기까지 확인. [문구 관리 검증](verification/2026-10-02-phrase-management.md). [draft PR18](https://github.com/rrangjaa-eng/project_260923/pull/18)을 실제 생성했다. base=codex-phase2-fake-handoff/035ce70, head=codex-switch-phrase-management; open/draft/미병합. 제품검증source e360466, PR번호 기록은 문서만 변경하며 최종HEAD의 전체CI는 아직 미확정이다.
+
+PR17 최종CI73는 **success**, E2E321/321·unit223/223. 결과는 이 후속 브랜치에 기록해 통과한 PR17을 반복 실행하지 않는다. 남은 INPT-01 최근값, INPT-03 양식전체, PRIV-01 민감판별전체·실제PC 검증은 열린 상태다.
+
 ## 최신 후속 상태 — 2026-10-02 01:58 KST
 
 PR16 source c608d00의 CI70는 E2E313건 단언 통과 뒤 20분 단계 timeout으로 **failure**다. 시간을 25분으로 조정한 `baafce22511698bcbb2c164cc3afe821ba6bbc93`를 PR16에 일반 push했다. job30분·시험·권한은 유지하며 새 CI는 부모가 관찰한다.
 
-후속 `codex/phase2-fake-handoff`는 baafce2 기반이다. strict payload/reply gate·Space 단일 소유권·전환/취소복귀·초안 보존을 로컬 fake로 구현했다. 독립 리뷰 P2 두 건을 RED→GREEN으로 수정했고 unit223/223·새E2E8/8·기존file-practice7/7이 통과했다. 자동 화면 첫 실행99pass/2fail 뒤 겹친 빌드를 배제한 최종검사101/101pass,0fail/skip/flaky,3.3분,exit0. 최종type/lint도exit0. [검증 전문](verification/2026-10-02-fake-handoff.md). [draft PR17](https://github.com/rrangjaa-eng/project_260923/pull/17)을 실제 생성했다. base=codex-phase2-file-practice/baafce2, head=codex-phase2-fake-handoff. open/draft/미병합. 최종HEAD의 전체CI를 확인하며 PR16CI는 부모에게 맡긴다.
+후속 `codex/phase2-fake-handoff`는 baafce2 기반이다. strict payload/reply gate·Space 단일 소유권·전환/취소복귀·초안 보존을 로컬 fake로 구현했다. 독립 리뷰 P2 두 건을 RED→GREEN으로 수정했고 unit223/223·새E2E8/8·기존file-practice7/7이 통과했다. 자동 화면 첫 실행99pass/2fail 뒤 겹친 빌드를 배제한 최종검사101/101pass,0fail/skip/flaky,3.3분,exit0. 최종type/lint도exit0. [검증 전문](verification/2026-10-02-fake-handoff.md). [draft PR17](https://github.com/rrangjaa-eng/project_260923/pull/17)을 실제 생성했다. base=codex-phase2-file-practice/baafce2, head=codex-phase2-fake-handoff. open/draft/미병합. 최종HEAD035ce70의 CI73/run36895970686는 success: unit223/223·E2E321/321,20.9분,Node22.23.3. PR16CI는 부모에게 맡긴다.
 
 다음 승인된 bounded 작업은 기존 INPT-02 local 문구 관리의 수정/삭제이다. 저장 문구 스냅샷 선택 → 현재 작성 문장으로 바꾸기 또는 삭제 → 취소 먼저/1초 보호 확인 → 단일 저장자에서 목록 일치·현재 승인 재검증 후 쓰기. 취소/쉬기/옛 응답은 실행·재시도 없이 초안을 보존한다. 최근값 수집(INPT-01), 양식 전체 모아 보기(INPT-03), 민감판별 전체(PRIV-01)는 여전히 미완료다. 자동 제출·외부 전송·실제OS 연결은 추가하지 않는다.
 
