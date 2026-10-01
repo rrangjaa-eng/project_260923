@@ -101,3 +101,26 @@ it('refuses restoration when a focus handler changes the field to an unsupported
   expect(el.value).toBe('123');
   expect(f.press).not.toHaveBeenCalled();
 });
+
+it('field metadata strips embedded textarea contents and live sensitive labels refuse capture/apply', () => {
+  const el = document.createElement('textarea'); el.id = 'plain'; el.textContent = 'private-value';
+  const label = document.createElement('label'); label.append('문장', el); document.body.append(label);
+  let item: Item = { id: 'A', name: '문장private-value', kind: 'textarea', danger: false, rect: { x: 0, y: 0, w: 10, h: 10 }, fingerprint: { framePath: [], domPath: 'label/textarea', labelText: '문장private-value' } };
+  const collector: Collector = { get: () => el, items: () => [item], refresh: () => undefined, onChange: () => undefined };
+  const report = reportSwitchItem(item, el); expect(report.label).toBe('문장'); expect(JSON.stringify(report)).not.toContain('private-value');
+  const action: SwitchTargetAction = { actionId: 'once', kind: 'capture', target: { tabId: 1, frameId: 0, documentGeneration: 'doc', itemId: 'A' }, expectedIdentity: report.identity, authorization: { documentGeneration: 'doc', modeGeneration: 0, pendingActionId: 'pending' } };
+  if(label.firstChild)label.firstChild.textContent = 'PW'; el.setAttribute('aria-label', '문장');
+  expect(sensitiveElement(el)).toBe(true); expect(executeSwitchAction(collector, action).result).toBe('refused');
+  expect(executeSwitchAction(collector, { ...action, kind: 'applyText', expectedValue: 'private-value', text: '변경' }).result).toBe('refused');
+  item = { ...item, name: 'PW' }; expect(reportSwitchItem(item, el).sensitive).toBe(true); expect(el.value).toBe('private-value');
+});
+
+it('metadata cannot read a control or contenteditable root through aria-labelledby', () => {
+  for(const tag of ['textarea','div']){
+    document.body.innerHTML='<textarea aria-labelledby="label-source"></textarea>';
+    const source=document.createElement(tag);source.id='label-source';source.textContent='private-value';if(tag==='div')source.setAttribute('contenteditable','true');document.body.append(source);
+    const el=document.querySelector('textarea');if(!el)throw new Error('missing fixture');
+    const item:Item={id:'A',name:'private-value',kind:'textarea',danger:false,rect:{x:0,y:0,w:10,h:10},fingerprint:{framePath:[],domPath:'textarea',aria:'private-value'}};
+    expect(JSON.stringify(reportSwitchItem(item,el))).not.toContain('private-value');
+  }
+});

@@ -1,5 +1,23 @@
 # 작업 현황표
 
+## 양식 탐색 후속 — 2026-10-02 03:36 KST
+
+기준 PR18/6fce6f5, 로컬 `codex/switch-form-navigation`. 최신 게시 클라우드에서 승인된 입력칸 metadata 목록·필드 이동·작업 보존·명시적 적용·원래 화면 복귀를 구현했다. 선택칸만 capture하며 필드별 문장·커서/선택·undo·부분한글은 메모리에 보존한다. 무효화 시 원래 문장을 복원하고 양식 문장은 대상 없이 명시 복구한다. 새 개인 데이터 수집이 필요한 최근값 카드는 구현하지 않았다.
+
+| 이번 결과 | 실제 근거 | 남은 상태 |
+|---|---|---|
+| 설계·제품 | [설계](superpowers/specs/2026-10-02-form-navigation-design.md), [검증](verification/2026-10-02-form-navigation.md) | input/textarea subset; INPT-03 전체 완료 아님 |
+| 타입·린트·단위 | 최종 type/lint exit0, unit251/251pass | 실제 PC 별도 |
+| 관련 실제 확장 | 모든 switch+문서/프레임96/96pass,17.7분,0fail/skip/flaky. 새양식7·기존문서/프레임38 포함 | 같은 제품의 추가 맥락1/1pass16.4초 |
+| 기본 자동 화면 | ui-review run-jQ4Ot3,101/101pass3.3분,exit0 | overview/긴선택칸 360/768/1280px DOM+실제 이미지 확인 |
+| 안전·UX | 독립 P2 4건 RED/수정/재검토; 미해결 P1/P2 없음. [구조화 증거](verification/form-navigation-results.json) | 정적 검토와 실제 테스트 구분 |
+| CI 시간 한도 | E2E30분/job35분, YAML parse pass. 전체335 시험·Node22·frozen install·contents:read 유지 | 최종 draft PR HEAD 전체CI 별도 관찰 |
+| 원격 저장 | 소스·증거 커밋 후 새 draft PR 생성 진행 | 실제 PR번호는 생성 응답 뒤 기록 |
+
+부모가 PR16 CI71·PR17 CI73·PR18 CI75 최종 success를 확인했다. PR18 CI75/run36899740939 원본 job110495937559는 unit246/246, E2E327/327(23.4분), 정상 종료이며 PR18 본문은 부모가 갱신했다. child는 중복 조회/실행하지 않았다.
+
+기존 ZIP·PR15~18은 보존하며 merge/deploy·새권한·실제OS 연결은 이번에 수행하지 않았다. 다음 결정은 select/체크 위젯·사이트 오류 읽기와 변경된 입력값 재적용 확인 UI의 범위다. 실제PC IME/운동 사용성·INPT-01 최근값 수집·PRIV-01 전체 판별은 열린 상태다.
+
 ## 문구 관리 후속 — 2026-10-02 02:24 KST
 
 로컬 `codex/switch-phrase-management`, 기준PR17/035ce70. 기존 INPT-02 저장/삽입 흐름에 현재작성문장으로 명시교체·삭제/취소/1초확인, writer 큐의 목록 충돌·현재 승인 검사, worker 취소세대 검사를 추가했다. 독립 리뷰 P2(옛 done 승인 뒤 쉬기에도 저장)를 RED→GREEN으로 수정했다. 페이지 제출·민감칸 수집·외부전송은 없다.
