@@ -2,9 +2,12 @@ import { z } from 'zod';
 import { SwitchSettings } from '@/core/switch-settings';
 const Target = z.object({ tabId: z.number().int(), frameId: z.number().int().nonnegative(), documentGeneration: z.string().max(100), itemId: z.string().max(100) }).strict();
 const Authorization = z.object({ documentGeneration: z.string().max(100), modeGeneration: z.number().int().nonnegative(), pendingActionId: z.string().max(150) });
+export const TextSelection = z.object({ start: z.number().int().nonnegative().max(4000), end: z.number().int().nonnegative().max(4000), direction: z.enum(['forward', 'backward', 'none']) }).strict().refine((selection) => selection.end >= selection.start);
+export type TextSelection = z.infer<typeof TextSelection>;
 export const SwitchTargetAction = z.object({
   actionId: z.string().max(150), target: Target,
-  kind: z.enum(['capture', 'press', 'applyText', 'search']), text: z.string().max(4000).optional(), expectedValue: z.string().max(4000).optional(),
+  kind: z.enum(['capture', 'press', 'applyText', 'restoreText', 'search']), text: z.string().max(4000).optional(), expectedValue: z.string().max(4000).optional(),
+  selection: TextSelection.optional(),
   expectedIdentity: z.string(), confirmed: z.boolean().optional(),
   authorization: Authorization,
 }).strict();

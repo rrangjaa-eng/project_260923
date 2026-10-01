@@ -1,9 +1,9 @@
 import { buildFrameReport, contentBoxOf, type Collector, type Item } from '@/page/collector/collector';
-import type { SwitchReportItem, SwitchTargetAction } from '@/shared/switch-messages';
+import type { SwitchReportItem, SwitchTargetAction, TextSelection } from '@/shared/switch-messages';
 import { synthesizePress } from '@/page/click/press';
-import { applyDraft, captureTextTarget, sensitiveElement, typingElement } from './text-target';
+import { applyDraft, captureTextTarget, sensitiveElement, typingElement, restoreTextTarget } from './text-target';
 
-export interface SwitchPageResult { result: 'done' | 'refused' | 'unknown'; value?: string }
+export interface SwitchPageResult { result: 'done' | 'refused' | 'unknown'; value?: string; selection?: TextSelection }
 
 export function reportSwitchItem(item: Item, el: Element | undefined): SwitchReportItem {
   const label = (item.name || item.fingerprint.buttonText || item.kind).slice(0, 300);
@@ -60,10 +60,13 @@ export function executeSwitchAction(
   if (current.identity !== action.expectedIdentity) return { result: 'refused' };
   if (action.kind === 'capture') {
     const snapshot = captureTextTarget(collector, action.target.itemId);
-    return snapshot ? { result: 'done', value: snapshot.value } : { result: 'refused' };
+    return snapshot ? { result: 'done', ...snapshot } : { result: 'refused' };
   }
   if (action.kind === 'applyText' && typeof action.expectedValue === 'string' && typeof action.text === 'string') {
-    return { result: applyDraft(collector, action.target.itemId, action.expectedValue, action.text) };
+    return { result: applyDraft(collector, action.target.itemId, action.expectedValue, action.text, action.selection) };
+  }
+  if (action.kind === 'restoreText' && typeof action.expectedValue === 'string') {
+    return { result: restoreTextTarget(collector, action.target.itemId, action.expectedValue, action.selection) };
   }
   if (action.kind === 'press' && !typingElement(el) && !el.matches('input[type=file],select,input[type=date],input[type=color],input[type=time]')) {
     if ((current.danger || !['a', 'link'].includes(current.kind)) && !action.confirmed) return { result: 'refused' };

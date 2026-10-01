@@ -2,10 +2,10 @@ import { createSwitchState, reduceSwitch, type SwitchEvent, type SwitchItem, typ
 import { defaultSwitchSettings, SwitchSettings, SWITCH_SETTINGS_KEY } from '@/core/switch-settings';
 import { snapshotTargets, type ScanTarget } from '@/core/switch-order';
 import { createActionGate } from '@/core/switch-actions';
-import { createDraft, editDraft, type TextDraft, type DraftEdit } from '@/core/text-draft';
+import { createDraft, editDraft, draftSelection, type TextDraft, type DraftEdit } from '@/core/text-draft';
 import { composeHangul, INITIALS, MEDIALS, FINALS } from '@/core/hangul-compose';
 import { framePathOf } from '@/core/frame-path';
-import { SwitchMessage, type SwitchFrameReport, type SwitchTargetAction } from '@/shared/switch-messages';
+import { SwitchMessage, TextSelection, type SwitchFrameReport, type SwitchTargetAction } from '@/shared/switch-messages';
 import type { Collector } from '@/page/collector/collector';
 import type { InputPipeline } from './pipeline';
 import { createSwitchPanel } from '@/page/overlay/switch-panel';
@@ -20,7 +20,7 @@ async function request(message: unknown):Promise<unknown>{
   try{return await Promise.race([chrome.runtime.sendMessage(message),new Promise((_,reject)=>{timeout=setTimeout(()=> { reject(new Error('response-timeout')); },3000);})]);}
   finally{if(timeout)clearTimeout(timeout);}
 }
-type PageResult={result:'done'|'refused'|'unknown';value?:string};
+type PageResult={result:'done'|'refused'|'unknown';value?:string;selection?:TextSelection};
 function resultOf(raw:unknown):PageResult{
   if(typeof raw==='object'&&raw!==null&&'result' in raw&&['done','refused','unknown'].includes(String(raw.result)))return raw as PageResult;
   return {result:'unknown'};
@@ -42,6 +42,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   let targets:ScanTarget[]=[];
   let selected:ScanTarget|null=null;
   let expectedValue='';
+  let capturedSelection:TextSelection|undefined;
   let draft:TextDraft=createDraft();
   let initial:number|null=null,medial:number|null=null;
   let preservedDraft=false;
@@ -85,7 +86,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     notice=reason;dispatch({type:'pause',now:now()});
   }
   function invalidate(reason:string){
-    selected=null;targets=[];confirmAction=null;preservedDraft=true;
+    selected=null;capturedSelection=undefined;targets=[];confirmAction=null;preservedDraft=true;
     root();pause(reason);
   }
   async function publish(){
@@ -135,7 +136,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   }
   function editor(){
     stack=[{title:'스페이스바 작업판',items:groups(),mode:'groupScan'}];
-    menu([command('hangul:initial','한글 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('search','검색')],'글쓰기','composing',false);
+    menu([command('hangul:initial','한글 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('search','검색'),command('restore','원래 입력칸으로')],'글쓰기','composing',false);
   }
   function characterGroups(stage:'initial'|'medial'|'final'){
     const chars=stage==='initial'?INITIALS:stage==='medial'?MEDIALS:FINALS;
@@ -155,7 +156,8 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       if(!active(startedGeneration))return capture.result;
       if(capture.result!=='done'||typeof capture.value!=='string'){notice='입력칸을 다시 선택하세요';return capture.result;}
       selected=target;expectedValue=capture.value;
-      if(!preservedDraft)draft=createDraft(capture.value);
+      const selection=TextSelection.safeParse(capture.selection);capturedSelection=selection.success?selection.data:undefined;
+      if(!preservedDraft)draft=createDraft(capture.value,capturedSelection);
       preservedDraft=false;editor();return;
     }
     const action:SwitchTargetAction={actionId:newSwitchId(),kind:'press',target:target.target,expectedIdentity:target.identity,confirmed:true,authorization:authorization()};
@@ -203,12 +205,19 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       menu([...phrases.map((text,i)=>command(`phrase:${String(i)}`,text)),command('phrase:save','문구 저장')],'문구','composing');return;}
     if(id==='phrase:save'){if(draft.text)await request({type:'switch/phrase',text:draft.text.slice(0,1000)});if(active(startedGeneration))notice='문구를 저장했어요';return;}
     if(id.startsWith('phrase:')){const data=await chrome.storage.local.get('switchPhrases');if(!active(startedGeneration))return;const text=(data.switchPhrases as string[]|undefined)?.[Number(id.split(':')[1])];if(typeof text==='string'){draft=editDraft(draft,{type:'insert',text});editor();await saveDraft();}return;}
+    if(id==='restore'){
+      if(!selected){notice='입력칸을 먼저 선택하세요';return;}
+      const result=await targetRequest('restoreText',selected.target,{expectedValue,selection:capturedSelection});
+      if(!active(startedGeneration))return result.result;
+      if(result.result!=='done'){notice='입력칸이 바뀌었어요. 초안을 보존했으니 다시 선택하세요';preservedDraft=true;selected=null;}
+      return result.result;
+    }
     if(id==='apply'||id==='search'){
       if(!selected){notice='입력칸을 먼저 선택하세요';return;}
-      const result=await targetRequest('applyText',selected.target,{text:draft.text,expectedValue});
+      const result=await targetRequest('applyText',selected.target,{text:draft.text,expectedValue,selection:draftSelection(draft)});
       if(!active(startedGeneration))return result.result;
       if(result.result!=='done'){notice='입력칸이 바뀌었어요. 초안을 보존했으니 다시 선택하세요';preservedDraft=true;selected=null;return result.result;}
-      expectedValue=draft.text;notice='입력했어요';
+      expectedValue=draft.text;capturedSelection=draftSelection(draft);notice='입력했어요';
       if(id==='search'){await saveDraft();if(!active(startedGeneration))return;const result=await targetRequest('search',selected.target,{expectedValue});if(!active(startedGeneration))return;if(result.result!=='done')notice='이 입력칸의 검색 동작을 지원하지 않아요';return result.result;}return;
     }
     if(id.startsWith('scroll:')){if(id==='scroll:auto'){state.mode='scrolling';scrollTimer=setInterval(()=> { window.scrollBy(0,2); },30);}else window.scrollBy(0,(id.endsWith('up')?-1:1)*window.innerHeight*0.8);return;}

@@ -19,6 +19,8 @@ for (const width of [360, 768, 1280]) {
       const p = panel.getBoundingClientRect(), c = choice?.getBoundingClientRect();
       const style = choice ? getComputedStyle(choice) : null;
       return { panel: { x: p.x, y: p.y, right: p.right, bottom: p.bottom }, choice: c ? { top: c.top, bottom: c.bottom, height: c.height } : null,
+        heading: (() => { const r = panel.querySelector('h2')?.getBoundingClientRect(); return r ? { top: r.top, bottom: r.bottom } : null; })(),
+        status: (() => { const r = panel.querySelector('.switch-status')?.getBoundingClientRect(); return r ? { top: r.top, bottom: r.bottom } : null; })(),
         fontSize: Number.parseFloat(style?.fontSize ?? '0'), scrollY: window.scrollY,
         uniqueIds: new Set(Array.from(panel.querySelectorAll('[data-item-id]'), (el) => (el as HTMLElement).dataset.itemId)).size };
     });
@@ -31,6 +33,9 @@ for (const width of [360, 768, 1280]) {
     expect(measured.fontSize).toBeGreaterThanOrEqual(15);
     expect(measured.uniqueIds).toBe(10);
     expect(measured.scrollY).toBe(0);
+    expect(measured.heading?.top).toBeGreaterThanOrEqual(measured.panel.y);
+    expect(measured.status?.top).toBeGreaterThanOrEqual(measured.panel.y);
+    expect(measured.choice?.top).toBeGreaterThanOrEqual(measured.status?.bottom ?? 0);
     await testInfo.attach('switch-dom-measurements', { body: JSON.stringify(measured), contentType: 'application/json' });
     await testInfo.attach('switch-panel', { body: await page.screenshot(), contentType: 'image/png' });
   });

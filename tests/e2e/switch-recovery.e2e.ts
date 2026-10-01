@@ -109,6 +109,8 @@ test('a selected whitespace command and saved phrase are inserted without leakin
   await serviceWorker.evaluate(async () => chrome.storage.local.set({ switchPhrases: ['나'] }));
   const page = await context.newPage();
   await page.goto('http://practice.test/phrases.html');
+  // 끝에 삽입하는 이 시나리오의 실제 입력 위치를 명시한다.
+  await page.getByRole('searchbox').evaluate((el) => { (el as HTMLInputElement).setSelectionRange(1, 1); });
   await startSwitch(page);
   await chooseSwitch(page, '찾기');
   await chooseSwitch(page, '검색어');
