@@ -1,6 +1,6 @@
 # 작업 현황표
 
-갱신: 2026-10-01 17:24 KST · 현재 브랜치: `codex/single-switch-phase1` (승인된 계획 구현·draft PR 게시 준비)
+갱신: 2026-10-01 17:26 KST · 현재 로컬 브랜치: `codex/single-switch-phase1` · 게시 원격 브랜치: `codex-single-switch-phase1`
 
 최신 사용자 승인(계획 제시 뒤 `진행해`)에 따라 제품 구현을 계속한다. 별도 문서 체크포인트 `58cc6e8`은 `codex/single-switch-design-checkpoint`에 보존했으며 개발 승인을 설계 대기로 되돌리지 않는다.
 
@@ -12,7 +12,7 @@
 | typecheck / lint / 전체 unit | exit 0 / exit 0 / 21파일130개 exit 0 | PR 게시 전 실제 검사 확인 |
 | 위험·대상 변경·무입력 확인 | 실패 재현 → 수정 → 통과 | 실행 직전 의미/목적지/위험 대조, 확인 만료/모드 전환 취소 |
 | 쉬기·초안·삭제된 대상 | 통과 | 조합 중 초성 보존, 외부 값 덮어쓰기 거절, 순서 유지·비활성 표시 |
-| 기존 조작 영향 검사 | 84개 실행 중 | 완료 결과를 같은 PR에 기록 |
+| 기존 조작 영향 검사 | 84/84 통과 (3.8분), exit 0 | press/dwell/frames/confirm/lifecycle/helper-toggle 및 새 안전·복구, 공백·문구·새 release 확인 |
 | 후속 안전 검사 | 남음 | pause 이후 늦은 응답의 후속 명령 차단, 프레임/worker 복구·중복 실행 경계 확대 |
 
 로그: `/tmp/switch-editor-parent-red.log`, `/tmp/switch-journey-first.log`, `/tmp/switch-safety-red.log`, `/tmp/switch-pause-red.log`, `/tmp/switch-mode-confirm-red.log`, `/tmp/switch-journey-safety-green.log`, `/tmp/switch-integration-unit.log`, `/tmp/switch-pr-{type,lint}.log`, `/tmp/switch-impact-regression.log`. 초기 조회 기준 unit125·관련E2E22는 이번 여정 전에 통과한 기반이며 전체 기능 완료를 의미하지 않는다.
@@ -32,7 +32,7 @@
 | 제품 구현 / 단계3~5 | 주요 통합 통과·잔여 계약 검사 필요 | 새 한글·중간 수정·입력 적용 및 안전 실행 경계 실제 검사 통과. 전체unit130 통과 | PR 게시 준비 | 기존 입력 실행 통합, 프레임/중복/민감칸 검사 확대 |
 | 제품 구현 / 단계6~8 | 첫 웹 활동 통과·최종 검증 미완료 | 읽기/스크롤 정지/뒤로/탭 전체 여정과 확인·복구 통합8 통과. 독립 리뷰·QA·보안·PC 검증 미실행 | PR 게시 준비 | 승인된 계획 순서로 잔여 계약·최종 검사 |
 | 작업 현황표 / 유지 지침 | 로컬 저장·커밋 완료 | 이 파일과 AGENTS 유지 지침만 포함한 `docs: add maintained work status table` 커밋. 필수 항목·유지 지침·diff 정적 확인 통과 | PR 미생성 | 상태 변경 때 갱신하고 사용자에게 표시 |
-| 원격 반영 | 사용자 draft PR 게시 승인됨 | 같은 브랜치 기존 PR 없음 확인. typecheck/lint 및 diff 정적 검사 통과. PR 생성은 GitHub connector 사용 | PR 게시 준비 | 검토용 draft PR 생성·실제 번호 반영. 병합·배포 없음 |
+| 원격 반영 | 사용자 draft PR 게시 승인됨 | 기존 원격 `codex` 때문에 `codex/single-switch-phase1` push가 경로 충돌로 거절됨. 기존 ref를 보존하고 충돌 없는 `codex-single-switch-phase1` 사용. 해당 head의 기존 PR 없음 확인 | PR 게시 준비 | 검토용 draft PR 생성·실제 번호 반영. 병합·배포 없음 |
 
 검증 로그: `/tmp/single-switch-smoke.log`, `/tmp/single-switch-type.log`, `/tmp/single-switch-lint.log`, `/tmp/single-switch-unit.log`, `/tmp/single-switch-focused-e2e.log` (현재 클라우드의 로컬 로그). 상세 설계와 실패 증거는 위 Library 문서에 있으며 설계 파일은 이번 PR에 포함하지 않는다. 전체 E2E·화면 자동 검토·실제 PC 사용성은 이번 미실행이다.
 
