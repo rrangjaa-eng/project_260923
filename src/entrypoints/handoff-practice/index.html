@@ -1,0 +1,15 @@
+<!doctype html><html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>가짜 입력 전환 연습</title></head>
+<body>
+<h1>가짜 입력 전환 연습 · 실제 파일/OS 입력 없음</h1>
+<p>페이지 역할과 연습 역할 사이의 스페이스바 입력을 연습합니다. 실제 페이지·다른 프로그램·파일과 연결하지 않습니다.</p>
+<p id="owner" role="status">지금 입력: 페이지 역할</p>
+<p>페이지 연습 동작 <output id="page-count">0</output> · 연습 상태 확인 <output id="practice-count">0</output></p>
+<label>페이지 역할 문장 <input aria-label="페이지 역할 문장"></label>
+<label>연습 역할 문장 <input aria-label="연습 역할 문장"></label>
+<button id="normal">일반 버튼</button> <output id="normal-count">0</output>
+<label>일반 입력 <input aria-label="일반 입력"></label>
+<label><input type="checkbox" aria-label="지연 응답 연습"> 지연 응답 연습</label>
+<button id="document-change">문서 변경 연습</button><button id="session-change">세션 변경 연습</button>
+<button id="stop">즉시 정지 · 연습 종료</button>
+<script type="module" src="./main.ts"></script></body></html>
