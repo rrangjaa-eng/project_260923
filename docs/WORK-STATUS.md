@@ -1,26 +1,27 @@
 # 작업 현황표
 
-갱신: 2026-10-01 22:19 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 긴급 수정 로컬 `codex/installed-page-investigation`
+갱신: 2026-10-01 22:45 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 긴급 수정 로컬 `codex/installed-page-investigation`
 
 ## 설치본 신고 대응 — 현재 우선 작업
 
 사용자가 기존 ZIP의 페이지 연결·Space 활동 선택·종료 문제를 신고했다. 기존 자동299 통과로 신고를 닫지 않고 실제 설치와 네이티브 popup부터 재현했다. 2차 설계/worker 후속은 로컬 `codex/phase2-cloud-design`의 `f21a215`에 보존하고 중지했다.
 
-**사용자 전달 보류:** CI64의 초안·선택 복원7건과 팝업 경고1건을 최소 수정하고 기존 기대값을 유지한 집중 검사에서 모두 통과했다. 새 제품 체크포인트는 `b97bea3`이다. 늦은 draft/read 응답 후보 경계, 실제 팝업 안전 재검사와 최종 HEAD CI는 남아 있다. ZIP `6aeb4ce`는 전달하지 않는다. 다음 턴은 같은 수정·검증을 이어가며 새 설계 승인 대기로 돌아가지 않는다.
+**최종 CI 대기:** CI64의 실패8건과 늦은 draft/read 경계를 수정했다. 최종 제품 `3ae6ad2`에서 지연 상태 단위8건·영향E2E48건 및 마지막 production 실제 설치/팝업/한글 전체여정6건이 통과했다. 새 HEAD CI를 확인하기 전 ZIP을 전달하지 않는다. Library는 알려진 연결 차단 때문에 추가 시도하지 않는다. 새 설계 승인 대기로 돌아가지 않는다.
 
 | 항목 | 최신 실제 결과 | 남은 범위 |
 |---|---|---|
-| 수정 제품 SHA | `b97bea39225c6b1e313bb9873fd70feaf21aec4a`; 첫 로딩 초안과 고정 카드 입력 식별자 최소 수정 | 안전 원격에 보존; PR15는 실제 CI64가 검사한 `3027291` 유지. 필수 영향 검사 후 같은 PR에 반영 예정 |
-| 실제 설치·Space 시작·즉시 정지 | 이전 제품 `6aeb4ce`의 관련46/46 통과, native popup·HTTPS·held Space·정상 입력·관리 비활성화 포함 | **새 `b97bea3`의 팝업 안전 재검사 미실행**. 두산 공개 사이트는 `ERR_TUNNEL_CONNECTION_FAILED`, 미검증 |
+| 수정 제품 SHA | `3ae6ad29fd3e77e43cdb68c51d540035e1002b16`; 첫 로딩 초안·고정 카드 식별자·늦은 복원 가드 | 새 검증 문서와 함께 안전 원격/PR15에 fast-forward 반영 후 실제 원격SHA·CI 확인 |
+| 실제 설치·Space 시작·즉시 정지 | 최신 production 설치/팝업5건 및 한글 전체여정1건 **6/6 pass**,3.6분,exit0. HTTPS 기존/새 탭·held Space·일반 입력·관리 비활성화·손상·지연 켜기 포함 | `/tmp/urgent-release-native-final.log`의 최종 빌드. 두산 공개 사이트는 `ERR_TUNNEL_CONNECTION_FAILED`, 미검증 |
 | 종료 경합 | 손상/읽기 실패/늦은 켜기/로컬 commit 지연 회귀 및 독립 검토 수정 | 저장·페이지 API 전체 불통 때 전역 정지 성공을 보장하지 않음 |
-| 최신 type/lint/unit/build | `b97bea3` 로컬 type/lint pass, 전체unit146/146, production build pass. 보조코드 lint3건 수정 후 최종 exit0 | unit146 뒤 lint 문법 정리의 해당6건 재검사6/6. 새 CI Node22 검사는 아직 시작하지 않음 |
+| 최신 type/lint/unit/build | type/lint exit0, 전체unit148/148, production build pass. 비동기 조건 함수 정리 후 해당8건 재검사8/8 | `/tmp/urgent-release-{unit,type-final,lint-final}.log`. 새 CI Node22 결과 별도 확인 |
 | 자동 화면 검토 | 이전 `6aeb4ce`의100/100 pass; 실패·불안정·스킵0 | 새 `b97bea3` 전체 화면 검토로 재사용하지 않음; 실제 운동 사용성 아님 |
 | 새 권한/의존성 | manifest storage/scripting/tabs·all_urls·content_scripts 동일, package/lock/config 변경 없음 | 새 권한·설치·네이티브 실행기 없음 |
 | 독립 안전 검토 | 종료·초기 응답 revision 경계 검토에서 미해결 P1/P2 없었음 | 이후 전체 CI에서 초안·선택 복원7건 발견. 검토 범위를 전체 제품 통과로 확대하지 않음 |
 | 신규 CI64 | [run 36861983233](https://github.com/rrangjaa-eng/project_260923/actions/runs/36861983233), SHA `3027291`: **failure**, E2E296/304 pass·8 fail,18.3분,exit1 | 초안·선택 복원7건 및 popup 경고1건 수정 필요; 과거 CI62 결과를 재사용하지 않음 |
 | CI 실패 관련 로컬 재현 | production 관련26건: **18 pass·같은8 fail**,3.8분,exit1 | `/tmp/urgent-ci64-target-red.log`; 테스트 단언 유지. 전체 수백 건 재실행 없음 |
 | 수정 후 집중 결과 | 상태단위 RED5 fail·1 pass→6/6 GREEN; 기존 text/selection E2E13/13 GREEN; W1·같은 카드 이동 반복2/2 GREEN | 기존 실패8건의 기대값 모두 유지. `/tmp/urgent-draft-state-{red,green,final}.log`, `/tmp/urgent-draft-target-green.log`, `/tmp/urgent-popup-warning-green.log` |
-| 남은 재현 후보 | 늦은 draft/read가 사용자가 고른 빈 새 문장을 이전 값으로 복원할 수 있는 코드 경로 | 실제 지연 RED 미실행. 이 경계부터 집중 검사 후 필수 popup/정지/대기 켜기/손상 설정·영향 검사, 마지막 전체 CI 한 번 |
+| 지연 draft/read 후속 | 실제 RED1 fail·7 pass→최소 응답 가드 후8/8 GREEN. untouched 정상 저장 초안 복구도 유지 | `/tmp/urgent-draft-late-{red,green,final}.log`; 기존 modeGeneration·현재초안의도·disposed 재검사. 독립 검토 미해결P1/P2 없음 |
+| 현재 최종 검증 | production 영향48/48 pass,7.8분,exit0; 마지막 조건 함수의 final 빌드에서 native/전체여정6/6 pass | `/tmp/urgent-final-impact.log`, `/tmp/urgent-release-native-final.log`. 전체 수백 건은 새 CI에서 한 번 확인 |
 | Library 교체 | 공식 업로드 도우미 첫 시도·허용된 1회 재시도 모두 전송 전 exit1; 기존 파일 유지 | tools/list network 오류; 연결 확인 HTTP tunnel403. 현재 read의 version_id는 null, 원본 xattr version0 보존. 직접/raw 업로드 우회 없음 |
 
 [재현·수정·검증 전문](verification/2026-10-01-installed-popup-safety.md) · [새 설치·시작·종료 안내](verification/single-switch-install-and-stop.md). 아래 이전 마감은 역사 기록이며 이번 실사용 신고의 해결 근거가 아니다. merge·배포는 수행하지 않는다.
@@ -33,7 +34,7 @@
 
 팝업 W1의 실제 클릭 기록은 도우미 켜기 `(28,537.390625,t589.7)` 뒤 사이트 끄기 `(28,529.59375,t623.4)`였다. 서로 다른 카드가 7.8px/33.7ms에 놓여 기존300ms/16px 좌표 필터가 사이트 클릭을 거절했고 저장은 `{}`였다. 화면 위치 대신 고정 단축키를 카드 공통 식별자로 사용해 같은 카드 반복은 거르고 다른 카드는 허용했다. 위치가 움직인 같은 카드를 빠르게 다시 누르는 신규 검사도 RED(다시 켜짐)→GREEN(꺼짐 유지)이며 W1의 원래 경고·role 단언은 그대로다. 증거: `/tmp/urgent-popup-toggle-events-red.json`, `/tmp/urgent-popup-site-storage-red.json`, `/tmp/urgent-popup-moving-red.log`.
 
-제품·인계 체크포인트는 별도 안전 원격 `codex-installed-page-investigation`에 저장한다. PR15 head는 실제 CI64가 검사한 `3027291`을 유지하며 남은 집중/필수 검사를 마친 뒤 같은 PR에 안전하게 반영하고 최종 CI를 실행한다. PR15 본문은 이전 완료 설명이 남아 있어 부모의 다음 갱신 대상이며, 이 턴에서 변경·재시도하지 않았다. 자동 압축은 이미 저장된 모델 기본 임계값·total을 유지했고 현재 런타임의 compact 실행은 관찰하지 못했다. 환경·설정·Library 연결은 더 변경하지 않았다.
+제품·인계 체크포인트는 안전 원격 `codex-installed-page-investigation`에 저장하고 필수 검사를 마쳐 PR15 `codex-single-switch-phase1`에 fast-forward 반영한다. 새 HEAD CI 최종 결과까지 확인한다. PR15 본문은 이전 완료 설명이 남아 있어 부모의 갱신 대상이며, 이 턴에서 변경·재시도하지 않았다. 자동 압축은 이미 저장된 모델 기본 임계값·total을 유지했고 현재 런타임의 compact 실행은 관찰하지 못했다. 환경·설정·Library 연결은 더 변경하지 않았다.
 
 ## 이전 1차 구현 마감 기록
 

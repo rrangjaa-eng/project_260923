@@ -2,8 +2,8 @@
 
 환경: 최신 project_260923 클라우드, pnpm 10.33.0, Node 24.19.0, Chrome for Testing 153.0.8010.12. 시간은 KST.
 분기: `codex/installed-page-investigation`, 기준 `cb182d44c025a49feb66f44184867be1b0f3dd28`(제품 `9741b0c`).
-수정 제품: `b97bea39225c6b1e313bb9873fd70feaf21aec4a` (이전 설치/종료 수정 `6aeb4ce4dff8ed807ae7364d84004ba35e2d76a7`).
-전달 상태: **보류**. CI64의8건 실패는 집중 검사에서 수정 확인됐지만 늦은 draft/read 후보 경계·실제 팝업 안전 재검사·최종 HEAD CI가 남아 있다.
+수정 제품: `3ae6ad29fd3e77e43cdb68c51d540035e1002b16` (앞선 초안/카드 수정 `b97bea3`, 설치/종료 수정 `6aeb4ce`).
+전달 상태: **최종 CI 대기**. CI64의8건 실패·늦은 draft/read 경계와 실제 팝업 안전 재검사를 마쳤고 새 HEAD CI를 확인한다.
 2차 작업은 로컬 `codex/phase2-cloud-design` / `f21a215`에 보존하고 중지했다. PR13/14 코드를 병합·복사하지 않았다.
 
 ## 신고와 재현
@@ -71,3 +71,11 @@
 `b97bea3`은 실제 보존할 작업이 있을 때만 invalidate가 초안을 보존하도록 했으며 첫 로딩·사용 전 다시 켜기·switch/begin 뒤 capture를 복구했다. 쉬기 재개는 실행을 선택하지 않고, 편집한 문장과 명시적 빈 새 문장은 다시 켜기/begin 뒤에도 유지한다. 팝업은 고정 카드 단축키를 클릭·숫자 키의 공통 필터 식별자로 사용한다. 화면 위치가 바뀐 같은 카드 반복도 거절하고 다른 카드 선택은 허용한다. W1은 서로 다른 카드가 7.8px/33.7ms 차이에 놓여 좌표 필터300ms/16px에 거절됐다는 실제 로그로 확인했다.
 
 독립 read-only 검토에서 이 두 최소 변경에 새 확정 P1/P2는 없었다. 단, 늦은 `switch/draft/read`가 사용자의 명시적 빈 새 문장을 옛 값으로 덮을 수 있는 기존 코드 경로를 P2 후보로 확인했다. 현재 단위6건은 즉시 read만 다루므로 **지연 RED는 아직 미실행**이다. 다음 턴은 그 재현부터 하고 필요한 최소 보호를 검증한다. 이후 새 코드의 실제 popup Space 시작·즉시 정지·대기 켜기·손상 설정 및 관련 영향 검사를 거쳐 PR15에 반영하고 전체 CI를 한 번 실행한다. 새 ZIP은 이 조건 전 만들거나 전달하지 않는다.
+
+## 지연 초안 응답의 후속 재현·수정
+
+같은 승인 범위에서 지연 순서를 실제 controller 단위로 재현했다. 글쓰기 메뉴에서 문서 변경 보고가 저장 초안을 읽기 시작한 뒤 응답을 보류하고, 사용자가 명시적 ‘새 문장’을 선택·빈 값 저장한 다음 옛 응답을 반환했다. 빈 초안 대신 ‘이전 문장’이 복원되어 **RED1 fail·7 pass**였다(`/tmp/urgent-draft-late-red.log`).
+
+읽기는 아직 선택·편집하지 않은 초안에서만 시작하고, 응답 시 기존 modeGeneration 및 같은 초안 의도·종료 상태를 다시 검사한다. 상태 함수로 await 전후를 실제 재평가하며 옛 응답만 거절한다. 같은 지연 응답이라도 사용자가 선택·편집하지 않은 정상 저장 초안은 복원된다. **단위8/8 GREEN**, 추가 전체unit148/148, 최종 type/lint pass다(`/tmp/urgent-draft-late-{green,final}.log`, `/tmp/urgent-release-{unit,type-final,lint-final}.log`). async 재검사를 인라인으로 썼을 때 lint4건이 나와 상태 함수로 정리했고 기대값은 변경하지 않았다.
+
+독립 read-only 검토에서 이 async 수정에 남은 P1/P2는 찾지 못했다. 실제 설치·팝업·정지·설정 손상·전체 한글 여정·초안 영향48건은 **48/48 pass**,7.8분,exit0였다(`/tmp/urgent-final-impact.log`). await 전후 조건 함수를 정리한 최종 production 빌드의 설치/팝업5건·전체 한글 여정1건도 **6/6 pass**,3.6분,exit0였다(`/tmp/urgent-release-native-final.log`). 최종제품 HEAD CI는 현황표에서 확정한다. Library 연결 재시도·환경·자동 압축 설정 변경은 하지 않았다.
