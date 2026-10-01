@@ -105,6 +105,7 @@ const HintsKeyMessage = z.object({
 const ModeReportMessage = z.object({
   type: z.literal('mode/report'),
   mode: z.enum(['helper', 'typing']),
+  sourcePath: z.array(z.number().int().nonnegative()).optional(),
 });
 
 const SetEnabledOp = z.object({

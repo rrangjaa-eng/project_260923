@@ -128,7 +128,9 @@ export function createRelay(): Relay {
       }
 
       if (message.type === 'mode/report') {
-        void chrome.tabs.sendMessage(tabId, { type: 'mode/report', mode: message.mode }, { frameId: 0 });
+        const report = reportsFor(tabId).get(senderFrameId);
+        if (!report || senderFrameId === 0) return;
+        void chrome.tabs.sendMessage(tabId, { type: 'mode/report', mode: message.mode, sourcePath: report.selfPath }, { frameId: 0 });
         return;
       }
 

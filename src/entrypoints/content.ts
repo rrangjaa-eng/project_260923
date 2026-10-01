@@ -425,6 +425,11 @@ export default defineContentScript({
 
       if (message.type === 'mode/report' && isTopFrame) {
         // Task 3: 자식 프레임 자신의 입력 모드 — 초점이 그 프레임에 위임돼 있을 때만 화면에 쓴다.
+        const active = document.activeElement;
+        const child = message.sourcePath?.[0];
+        if (!(active instanceof HTMLIFrameElement) || child === undefined || window.frames[child] !== active.contentWindow) {
+          return undefined;
+        }
         lastChildMode = message.mode;
         refreshModeDisplay();
         return undefined;
