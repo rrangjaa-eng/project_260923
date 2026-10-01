@@ -53,6 +53,6 @@ Phase 2(TEST/DIST)의 PC 이용자 시험과 배포는 미실행이다. 이번�
 
 제품 체크포인트 `7e8b9f3`(전체 여정), `a22791e`(실행 안전·복구). 검사 명령과 로그는 현황표에 연결한다. 현재 단계 1~7의 **주요 흐름 통과**이며 모든 단계 계약/최종 완료 주장이 아니다.
 
-다음은 pause 뒤 늦은 apply 응답이 후속 search로 이어지는지 RED 재현, 세대 검사 보강, 프레임/worker 복구 및 기존 진입점 검사다. [미실행 회귀 초안](switch-pending.e2e.ts.pending)은 Git에 보존하며 실제 E2E 디렉터리로 옮긴 뒤 활성화해 실행한다. 이번 통과 개수에 포함하지 않았다.
+후속 안전 검사는 실제 `tests/e2e/switch-pending.e2e.ts`로 활성화했다. 늦은 apply 응답·실행 전달 전 pause·unknown·프레임 교체·연결 단절과 끄기/제출 설정/부모 프레임 가시성/DOM 묶음 23건 통과. 기존 `.pending` 초안은 과거 작성 기록이며 현재 검증의 원본이 아니다. 조합 중 삭제·마지막 승인 응답 지연·서로 다른 pendingAction ID·부분 가림의 추가 RED→관련15+단독1 GREEN, 독립 지적 재검토에서 새 P1/P2 없음. 다음은 전체 UI/E2E와 최종 CI 종료 확인이다. 전체 단계 완료나 PC 통과를 주장하지 않는다.
 
 이 PR에서는 공식 GSD CLI의 진행/로드맵 조회와 상태 결정·세션 기록만 수행한다. GSD planner/checker/execute-phase/verify-work/complete-phase를 새로 수행했다고 주장하지 않는다. 기존 `.planning`은 이 상태 도구를 통해서만 변경하며 오래된 PLAN/SUMMARY/HANDOFF/검증 보고는 삭제·재작성하지 않는다.

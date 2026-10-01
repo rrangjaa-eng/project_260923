@@ -8,6 +8,8 @@
 
 **Tech Stack:** 기존 WXT·TypeScript strict·zod·Vitest·Playwright, pnpm 10.33.0. 새 의존성·서버·AI 없음.
 
+**진행 기록 (2026-10-01 18:25 KST):** 승인된 단계별 실행을 유지한다. 분리 파일 이름은 일부 통합(`switch-controller`/`switch-relay`)으로 조정했다. 체크는 아래 문장의 전체 계약을 확인한 경우만 표시하며 미검증 세부 항목·PC 시험을 일괄 완료하지 않는다. 실제 증거는 [안전·검증 보고](../../verification/2026-10-01-single-switch-phase1.md)와 현황표에 연결한다.
+
 **Spec:** [승인된 1차 설계](../specs/2026-10-01-single-switch-phase1-design.md). 사용자 승인 전달: 2026-10-01 KST. 이 계획·기존 클라우드 직접 실행 방식은 `진행해`로 승인됐다. [현재 프로젝트 매핑/진행](2026-10-01-single-switch-project-map.md), [현황](../../WORK-STATUS.md), [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15)을 따른다. 아래 체크박스는 전체 계약 기준이며 일부 여정 pass만으로 모든 단계를 완료 처리하지 않는다.
 
 ## Global Constraints
@@ -54,20 +56,20 @@
 **파일:** 새 `src/core/switch-engine.ts`, `src/page/input/switch-controller.ts`, `tests/unit/switch-engine.test.ts`, `tests/e2e/switch-engine.e2e.ts`; 변경 `pipeline.ts`, `content.ts`.
 
 - [ ] 단위 테스트 `locks_item_on_keydown`은 A에 down→tick→up 뒤 액션 대상 A·횟수1, `repeat_and_orphan_up_do_nothing`은 액션0, `blur_discards_press`는 down→pause→up 뒤 액션0을 검증한다. 300ms 보호, trusted=false·isComposing=true·조합키도 액션0. 실패 확인.
-- [ ] 공통 인터페이스와 reducer를 구현한다. tick은 scanIndex만 변경하고 액션을 확정하지 않는다. 목록/모드 변경 때 눌림과 dwell 상태를 초기화한다.
-- [ ] `switch-controller.ts`가 정규화 이벤트를 reducer에 전달하게 한다. 단일 스위치 모드의 Space는 페이지 keydown/keypress/keyup에 새지 않으며 일반 입력 모드는 기존 composition을 통과시킨다.
-- [ ] 단위 파일과 E2E에서 연습 링크 하나를 스페이스 한 번으로 실행하고 클릭 카운트1, 기본 스크롤0을 확인한다. 완료조건: 한 개 실제 대상까지 엔진→어댑터 수직 연결 통과.
-- [ ] `feat: add single switch input engine` 의도로 해당 파일만 커밋.
+- [x] 공통 인터페이스와 reducer를 구현한다. tick은 scanIndex만 변경하고 액션을 확정하지 않는다. 목록/모드 변경 때 눌림과 dwell 상태를 초기화한다.
+- [x] `switch-controller.ts`가 정규화 이벤트를 reducer에 전달하게 한다. 단일 스위치 모드의 Space는 페이지 keydown/keypress/keyup에 새지 않으며 일반 입력 모드는 기존 composition을 통과시킨다.
+- [x] 단위 파일과 E2E에서 연습 링크 하나를 스페이스 한 번으로 실행하고 클릭 카운트1, 기본 스크롤0을 확인한다. 완료조건: 한 개 실제 대상까지 엔진→어댑터 수직 연결 통과.
+- [x] `feat: add single switch input engine` 의도로 해당 파일만 커밋.
 
 ### 단계 3: 프레임/실행 경계와 중복 방지
 
 **파일:** 새 `src/page/input/switch-actions.ts`, `src/core/switch-actions.ts`, `tests/unit/switch-actions.test.ts`, `tests/e2e/switch-actions.e2e.ts`; 변경 `content.ts`, `src/shared/messages.ts`, `src/worker/relay.ts`, `background.ts`.
 
 - [ ] 테스트 `same_action_once`, `dwell_key_race_once`, `stale_document_refused`, `lost_reply_no_retry`를 실패시킨다. 같은 actionId 수락1, 경쟁 클릭 합계1, 옛 세대 클릭0, unknown 후 재전송0을 단정한다.
-- [ ] actionId와 세대 검증·처리중 잠금을 순수 실행 가드에 구현한다. 대상 프레임은 실행 직전 연결/활성/세대/위험 의미를 다시 검사한다. 재연결 뒤 pending은 unknown으로 폐기한다.
-- [ ] zod 판별 메시지에 실행 요청/결과·frame generation을 추가하고 sender tab/frame/id를 검증한다. 기존 `pressOrDrag`, dwell, hint 실행을 공통 어댑터로 연결하되 기존 모드 기능은 보존한다.
-- [ ] 해당 단위/E2E 및 `press.e2e.ts`, `dwell.e2e.ts`, `frames.e2e.ts` 실행. 완료조건: 프레임 이동 후 옛 실행0, 기존 기능 신규 실패0.
-- [ ] `feat: unify guarded switch actions` 의도로 커밋.
+- [x] actionId와 세대 검증·처리중 잠금을 순수 실행 가드에 구현한다. 대상 프레임은 실행 직전 연결/활성/세대/위험 의미를 다시 검사한다. 재연결 뒤 pending은 unknown으로 폐기한다.
+- [x] zod 판별 메시지에 실행 요청/결과·frame generation을 추가하고 sender tab/frame/id를 검증한다. 기존 `pressOrDrag`, dwell, hint 실행을 공통 어댑터로 연결하되 기존 모드 기능은 보존한다.
+- [x] 해당 단위/E2E 및 `press.e2e.ts`, `dwell.e2e.ts`, `frames.e2e.ts` 실행. 완료조건: 프레임 이동 후 옛 실행0, 기존 기능 신규 실패0.
+- [x] `feat: unify guarded switch actions` 의도로 커밋.
 
 ### 단계 4: 안정된 순환 작업판과 설정
 
@@ -84,9 +86,9 @@
 **파일:** 새 `src/core/hangul-compose.ts`, `text-draft.ts`, `src/page/input/text-target.ts`, `src/page/overlay/switch-editor.ts`, `tests/unit/hangul-compose.test.ts`, `text-draft.test.ts`, `tests/e2e/switch-text.e2e.ts`; 변경 engine/panel/storage-writer/messages.
 
 - [ ] 테스트 `compose_new_sentence`에서 초성/중성/없음 포함 종성으로 `안녕하세요` 생성, `edit_middle`, `space_is_command`에서 중간 수정·공백 선택·물리 Space의 직접 삽입0을 검증하고 실패 확인. 쌍자음·겹모음·겹받침도 포함한다.
-- [ ] `composeHangul(initial: number, medial: number, final: number): string`과 draft reducer를 구현한다. 완성 음절의 Unicode 조합, 미완성 단계 취소, 보이는 문자 단위 이동/삭제/되돌리기/문구 삽입을 제공한다.
+- [x] `composeHangul(initial: number, medial: number, final: number): string`과 draft reducer를 구현한다. 완성 음절의 Unicode 조합, 미완성 단계 취소, 보이는 문자 단위 이동/삭제/되돌리기/문구 삽입을 제공한다.
 - [ ] `captureTextTarget(target: SwitchTarget)`은 input/textarea의 값·선택을 snapshot으로 잡고, `applyDraft(snapshot, text): 'done'|'refused'`는 세대·연결·원래 값 검증 후 input 이벤트로 적용한다. 일반 검색 입력만 첫 지원; rich editor 자동 적용은 거절하고 초안 보존.
-- [ ] E2E `external_value_change_refuses`, `pause_keeps_partial_syllable`, `sensitive_never_saved`를 실행한다. 세션 초안은 탭별 chrome.storage.session, 저장 문구는 명시적 저장만 local. password/민감칸은 초안 저장·문구 수집 제외. 타이핑 composition Space는 선택0. 완료조건: 저장 문구에 없는 한글 문장 작성·수정·적용이 Space만으로 성공.
+- [x] E2E `external_value_change_refuses`, `pause_keeps_partial_syllable`, `sensitive_never_saved`를 실행한다. 세션 초안은 탭별 chrome.storage.session, 저장 문구는 명시적 저장만 local. password/민감칸은 초안 저장·문구 수집 제외. 타이핑 composition Space는 선택0. 완료조건: 저장 문구에 없는 한글 문장 작성·수정·적용이 Space만으로 성공.
 - [ ] `feat: add switch based Korean text editing` 의도로 커밋.
 
 ### 단계 6: 검색·읽기·스크롤·뒤로·탭 전환
@@ -94,20 +96,20 @@
 **파일:** 새 `src/page/input/switch-navigation.ts`, `tests/practice-site/switch-search.html`, `switch-results.html`, `switch-article.html`, `tests/e2e/switch-journey.e2e.ts`; 변경 switch-actions/panel/relay/background 및 `src/types/chrome.d.ts`의 필요한 tabs API 선언.
 
 - [ ] 테스트 `space_only_search_read_back_tab`에 검색어 적용→명시적 검색 동작→결과 링크 선택→본문 확인→한 화면 이동→뒤로→열린 지원 탭 이동을 정의한다. 입력 드라이버는 `page.keyboard.press('Space')`만 사용하고 마우스/Enter/직접 DOM 클릭 없이 실패 확인한다.
-- [ ] 검색은 대상 사이트의 실제 form/requestSubmit 또는 검증된 검색 버튼을 어댑터로 실행한다. Enter 합성·사이트 요청 직접 호출은 사용하지 않는다. 결과는 page collector 대상 목록에서 선택한다.
-- [ ] 읽기 단계·자동 스크롤, history.back, sender 탭 검증을 거친 chrome.tabs.update 활성화를 구현한다. 지원 여부를 확인하며 탭 닫힘 시 refused, 새 탭은 paused에서 시작한다.
+- [x] 검색은 대상 사이트의 실제 form/requestSubmit 또는 검증된 검색 버튼을 어댑터로 실행한다. Enter 합성·사이트 요청 직접 호출은 사용하지 않는다. 결과는 page collector 대상 목록에서 선택한다.
+- [x] 읽기 단계·자동 스크롤, history.back, sender 탭 검증을 거친 chrome.tabs.update 활성화를 구현한다. 지원 여부를 확인하며 탭 닫힘 시 refused, 새 탭은 paused에서 시작한다.
 - [ ] 여정 및 `scroll_stop_consumes_first_press`, `closed_tab_refused`, `background_timer_does_not_advance_work`를 검증한다. 자동 스크롤 중 첫 Space는 정지1/클릭0. 완료조건: 최초 기본 웹 활동 전체 여정 통과.
-- [ ] `feat: complete switch search and reading journey` 의도로 커밋.
+- [x] `feat: complete switch search and reading journey` 의도로 커밋.
 
 ### 단계 7: 위험 확인·쉬기·복구 완성
 
 **파일:** 새 `src/core/switch-confirm.ts`, `tests/unit/switch-confirm.test.ts`, `tests/e2e/switch-recovery.e2e.ts`; 변경 engine/actions/panel/messages/relay 및 기존 confirm 연결. 기존 confirm-guard의 마우스 모드 계약은 보존.
 
 - [ ] `release_then_guard_then_new_press`에서 진입 입력·1초 이내 입력·hold·dwell 확정0, 보호 뒤 새 한 번만 확정1을 단정한다. `two_cycles_cancel`은 무입력 제출0/쉬기, 실패 확인.
-- [ ] 단일 스위치 confirming에서 취소→실제 동작명 순환과 위험 요약을 구현한다. 알 수 없는 버튼 의미는 확인 대상으로 하고 링크/읽기 등 알려진 안전 동작은 바로 실행한다.
-- [ ] blur/hidden/tab change/frame replacement/worker reconnect 시 pause 또는 invalidate. pending 폐기·초안 보존·재개 입력은 선택으로 재사용 금지. 사이트 외 포커스에서 전역 키 처리는 추가하지 않는다.
-- [ ] 해당 검사와 confirm/lifecycle/helper-toggle E2E를 실행한다. 테스트 `late_reply_after_navigation_ignored`, `restart_unknown_not_replayed`에 옛 실행0·자동 재시도0 확인. 완료조건: 위험한 동작은 새 명시 입력 뒤에만 1회.
-- [ ] `feat: guard switch confirmation and recovery` 의도로 커밋.
+- [x] 단일 스위치 confirming에서 취소→실제 동작명 순환과 위험 요약을 구현한다. 알 수 없는 버튼 의미는 확인 대상으로 하고 링크/읽기 등 알려진 안전 동작은 바로 실행한다.
+- [x] blur/hidden/tab change/frame replacement/worker reconnect 시 pause 또는 invalidate. pending 폐기·초안 보존·재개 입력은 선택으로 재사용 금지. 사이트 외 포커스에서 전역 키 처리는 추가하지 않는다.
+- [x] 해당 검사와 confirm/lifecycle/helper-toggle E2E를 실행한다. 테스트 `late_reply_after_navigation_ignored`, `restart_unknown_not_replayed`에 옛 실행0·자동 재시도0 확인. 완료조건: 위험한 동작은 새 명시 입력 뒤에만 1회.
+- [x] `feat: guard switch confirmation and recovery` 의도로 커밋.
 
 ### 단계 8: 최종 회귀·사용자 검증 인계
 
