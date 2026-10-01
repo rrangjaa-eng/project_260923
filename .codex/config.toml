@@ -7,6 +7,13 @@ model = "gpt-6.1-sol"
 model_reasoning_effort = "medium"
 model_verbosity = "low"
 
+# 자동 압축 임계값은 미설정으로 모델 기본값을 유지한다. 설치된 CLI 스키마
+# (0.159.0-alpha.3)와 공식 reference에서 지원 확인. 모델 문맥 크기/접두 길이의
+# 실제 수치가 없으므로 임의 model_context_window나 토큰 임계값을 넣지 않는다.
+# total은 긴 지침 접두까지 포함하는 기본 계산이다. 현재 호스팅 채팅에 이 파일이
+# 즉시 적용되거나 에이전트가 내장 압축을 실행했다는 의미는 아니다.
+model_auto_compact_token_limit_scope = "total"
+
 # Claude BASH_MAX_TIMEOUT_MS는 Codex 명령 제한 시간이 아니다.
 # 호환 환경값은 아래에 보존한다. background_terminal_max_timeout은 폴링 한도라
 # 의미가 달라 20분으로 바꾸지 않는다. 상태 갱신은 60초 이내로 유지한다.
