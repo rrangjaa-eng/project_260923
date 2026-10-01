@@ -1,6 +1,24 @@
 # 작업 현황표
 
-갱신: 2026-10-01 20:20 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 로컬 `codex/single-switch-phase1` → 원격 `codex-single-switch-phase1`
+갱신: 2026-10-01 21:27 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 긴급 수정 로컬 `codex/installed-page-investigation`
+
+## 설치본 신고 대응 — 현재 우선 작업
+
+사용자가 기존 ZIP의 페이지 연결·Space 활동 선택·종료 문제를 신고했다. 기존 자동299 통과로 신고를 닫지 않고 실제 설치와 네이티브 popup부터 재현했다. 2차 설계/worker 후속은 로컬 `codex/phase2-cloud-design`의 `f21a215`에 보존하고 중지했다.
+
+| 항목 | 최신 실제 결과 | 남은 범위 |
+|---|---|---|
+| 수정 제품 SHA | `6aeb4ce4dff8ed807ae7364d84004ba35e2d76a7` | 별도 안전 브랜치와 허용된 PR15 브랜치에 fast-forward 푸시 예정 |
+| 실제 설치·Space 시작·즉시 정지 | 최신 production 관련46/46 통과, native popup·HTTPS·기존/새 탭·held Space·정상 입력·Chrome 확장 관리 비활성화 포함 | 두산 공개 사이트는 `ERR_TUNNEL_CONNECTION_FAILED`, 미검증 |
+| 종료 경합 | 손상/읽기 실패/늦은 켜기/로컬 commit 지연 회귀 및 독립 검토 수정 | 저장·페이지 API 전체 불통 때 전역 정지 성공을 보장하지 않음 |
+| type/lint/unit/build | type/lint pass, unit140/140, production build pass | CI의 Node22 환경은 새 CI 결과로 별도 확인 |
+| 자동 화면 검토 | 100/100 pass; 실패·불안정·스킵0 | 최신 작은 초기 catch·held선택 변경은 관련46에서 확인; 전체 WCAG/실제 운동 사용성 아님 |
+| 새 권한/의존성 | manifest storage/scripting/tabs·all_urls·content_scripts 동일, package/lock/config 변경 없음 | 새 권한·설치·네이티브 실행기 없음 |
+| 신규 CI·Library | 신규 CI 및 기존 ZIP/안내서 버전 교체 예정 | 결과를 실제 실행 뒤 기록 |
+
+[재현·수정·검증 전문](verification/2026-10-01-installed-popup-safety.md) · [새 설치·시작·종료 안내](verification/single-switch-install-and-stop.md). 아래 이전 마감은 역사 기록이며 이번 실사용 신고의 해결 근거가 아니다. merge·배포는 수행하지 않는다.
+
+## 이전 1차 구현 마감 기록
 
 최신 사용자 승인(계획 제시 뒤 `진행해`)에 따라 제품 구현을 계속한다. 별도 문서 체크포인트 `58cc6e8`은 `codex/single-switch-design-checkpoint`에 보존했으며 개발 승인을 설계 대기로 되돌리지 않는다.
 
