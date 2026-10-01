@@ -20,3 +20,5 @@
 독립P2 두건은 각각 실제RED 뒤 최소수정했다. 전송한 요청의 latch를 새요청begin에서만 초기화하며, pause/resume은 전송된 요청을 재선택하지 못한다. 응답대기중 새요청도 거절한다. 내부focusin/IME·수정키로 입력소유권이 바뀌면 눌림·선택승인을 취소한다. 창 내부 이동 뒤 orphanup은 실행0이며 재개Space는 재개만 하고 새선택이 필요하다. 좁은화면 persistent 시제품표시도 신규assertion RED→GREEN. 기존100계열은101건으로 늘어난실제결과를 기록했고 중복실행하지 않았다.
 
 판단: 초점회귀의 빈초안은 DOM preview가 없는 것이 정상이라 부재요소의 not.toContainText 대신 count0으로 검사한다. 초안이 있는 기존쉬기검사는 텍스트보존assertion을 유지한다. 300ms 보호를 해제하지 않고 드라이버가 새입력 간격을 기다린다. 실제 OS·파일/PC 검증은 확대하지 않는다.
+
+새 draft PR16을 실제 생성했다: https://github.com/rrangjaa-eng/project_260923/pull/16 . base=codex-single-switch-phase1/20440e6, head=codex-phase2-file-practice, open/draft/미병합. 제품 수정 커밋d9160f1, 후속 PR번호 기록은 문서만 변경한다. 검증된PR15는 그대로다. 최종 전체CI결과는 별도 안전기록브랜치에 보존해 같은제품의 전체검사 반복을 피한다.

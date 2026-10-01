@@ -4,7 +4,7 @@
 
 ## 남은 개발 재개 — 2026-10-02 00:56 KST
 
-작업명: `PR 미생성 | 파일 선택 연습·안전 계약`. 기존 세션 재사용, 로컬 `codex/phase2-file-practice`, 원격 `codex-phase2-file-practice`; PR15/20440e6·설치ZIP은 보존. 부모가 CI67/run36880332412 최종success와 PR15본문 갱신을 직접 확인했다. 최신 남은 개발 진행 승인으로 PC 시험을 클라우드 개발의 대기조건으로 삼지 않는다.
+작업명: `PR16 | 파일 선택 연습·안전 계약`. 기존 세션 재사용, 로컬 `codex/phase2-file-practice`, 원격 `codex-phase2-file-practice`; PR15/20440e6·설치ZIP은 보존. 부모가 CI67/run36880332412 최종success와 PR15본문 갱신을 직접 확인했다. 최신 남은 개발 진행 승인으로 PC 시험을 클라우드 개발의 대기조건으로 삼지 않는다.
 
 | 이번 진행 | 실제 결과 | 다음 작업 |
 |---|---|---|
@@ -15,7 +15,7 @@
 | 연습UI/DOM | 선택·확인·취소·복귀·쉬기·종료/키복구·3viewport 관련5pass; 수정된 초점회귀별도1pass. 좁은화면 지속표시 RED1fail→3viewport GREEN | 화면3장 갱신. 실제OS 실행으로 표시하지 않음 |
 | 기존 자동 화면 검토 | 기존 실행40492 회수: **101/101 pass**,0fail/skip/flaky,3.4분,exit0 | 수정 전 실행이며 새6건과 구분. 공통엔진/패널/기존popup 불변. 중복100검사 없음 |
 | 최종 type/lint/build | exit0·production build pass. 기존ZIP 대비permissions/host/content_scripts 동일 | 새권한/설치/OS/네트워크/260917접근 없음 |
-| 전체검증/새PR | draftPR 생성·최종HEAD의 전체CI 확인을 진행한다 | PR15 대상으로 별도 stacked PR. merge/release/deploy 없음 |
+| 전체검증/새PR | [draft PR16](https://github.com/rrangjaa-eng/project_260923/pull/16) 생성 완료·최종HEAD의 전체CI 확인 진행 | PR15 대상으로 별도 stacked PR. merge/release/deploy 없음 |
 
 [최종 수정·검증 기록](verification/2026-10-02-file-practice.md). 완료된 1차를 새로 만들지 않았고 `.planning` human_needed를 임의로 통과시키지 않았다. 현재 기록의 미확정 전체CI는 최종수치 확인 뒤 보완한다.
 
@@ -114,3 +114,5 @@
 ## Git 다운로드 검증 완료 — 2026-10-01 23:55 KST
 
 [실제 확인한 ZIP 파일 화면](https://github.com/rrangjaa-eng/project_260923/blob/codex-single-switch-phase1/downloads/tremor-browser-helper-3ae6ad2.zip) · [실제 다운로드 ZIP](https://raw.githubusercontent.com/rrangjaa-eng/project_260923/refs/heads/codex-single-switch-phase1/downloads/tremor-browser-helper-3ae6ad2.zip) · [교체 안내](https://github.com/rrangjaa-eng/project_260923/blob/codex-single-switch-phase1/downloads/README.ko.md). 세 파일의 GitHub/raw 응답200·실제 다운로드 바이트 일치 근거는 [기록](verification/package-smoke/download-verification.json)에 보존했다. 새 전달 커밋에는 제품 코드 변경이 없어 제품SHA3ae6ad2와 CI65 검사HEAD91c0ae5는 그대로다. 전달 후 새 HEAD의 자동CI는 CI65 최종success와 별개이며 아직 완료로 계산하지 않는다. 최종 typecheck·lint는 exit0이다. Library 저장은 하지 않았고 merge/release/deploy는 수행하지 않았다.
+
+새 draft PR16을 실제 생성했다: https://github.com/rrangjaa-eng/project_260923/pull/16 . base=codex-single-switch-phase1/20440e6, head=codex-phase2-file-practice, open/draft/미병합. 제품 수정 커밋d9160f1, 후속 PR번호 기록은 문서만 변경한다. 검증된PR15는 그대로다. 최종 전체CI결과는 별도 안전기록브랜치에 보존해 같은제품의 전체검사 반복을 피한다.

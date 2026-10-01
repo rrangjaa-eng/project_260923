@@ -30,3 +30,5 @@
 ## 다음 경계
 
 cloud에서 독립 실행상태/문서·모드·세션변경의 negative protocol vectors는 현재승인범위다. 실제 파일의브라우저전달은 즉시업로드될수있으므로 파일대화상자/요청창소유권·확인후재검증·nativeMessaging 권한/host등록을 별도 승인/Windows검증해야 한다. 현재 연습은 이를 완료했다고 표시하지 않는다. PR13/14코드를복사·실행하지 않았다. 기존PR15와ZIP을교체하지 않았고merge/deploy/release없다.
+
+새 draft PR16을 실제 생성했다: https://github.com/rrangjaa-eng/project_260923/pull/16 . base=codex-single-switch-phase1/20440e6, head=codex-phase2-file-practice, open/draft/미병합. 제품 수정 커밋d9160f1, 후속 PR번호 기록은 문서만 변경한다. 검증된PR15는 그대로다. 최종 전체CI결과는 별도 안전기록브랜치에 보존해 같은제품의 전체검사 반복을 피한다.
