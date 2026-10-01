@@ -3,8 +3,18 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import type { Collector, Item } from '../../src/page/collector/collector';
 import { executeSwitchAction, reportSwitchItem } from '../../src/page/input/switch-actions';
 import type { SwitchTargetAction } from '../../src/shared/switch-messages';
+import { sensitiveElement } from '../../src/page/input/text-target';
 
 beforeEach(() => { document.body.innerHTML = ''; });
+
+it('excludes sensitive textareas and OTP fields from capture and application', () => {
+  for (const [tag, name] of [['textarea', '주민등록번호'], ['textarea', 'ssn'], ['input', 'otp'], ['input', '인증번호']]) {
+    const f = fixture(tag);
+    f.el.setAttribute('aria-label', name ?? '');
+    expect(sensitiveElement(f.el)).toBe(true);
+    expect(executeSwitchAction(f.collector, { ...f.action, kind: 'capture' }, f.press).result).toBe('refused');
+  }
+});
 
 function fixture(tag = 'a') {
   const el = document.createElement(tag);
@@ -13,7 +23,7 @@ function fixture(tag = 'a') {
   document.body.append(el);
   let item: Item = { id: 'A', name: '읽기', kind: tag, danger: false, rect: { x: 0, y: 0, w: 10, h: 10 }, fingerprint: { framePath: [], domPath: 'body/a', buttonText: '읽기' } };
   const collector: Collector = { get: () => el, items: () => [item], refresh: () => undefined, onChange: () => undefined };
-  const action: SwitchTargetAction = { actionId: 'once', kind: 'press', target: { tabId: 1, frameId: 0, documentGeneration: 'doc', itemId: 'A' }, expectedIdentity: reportSwitchItem(item, el).identity };
+  const action: SwitchTargetAction = { actionId: 'once', kind: 'press', target: { tabId: 1, frameId: 0, documentGeneration: 'doc', itemId: 'A' }, expectedIdentity: reportSwitchItem(item, el).identity, authorization: { documentGeneration: 'doc', modeGeneration: 0, pendingActionId: 'pending' } };
   const press = vi.fn();
   return { el, collector, action, press, change: (patch: Partial<Item>) => { item = { ...item, ...patch }; } };
 }

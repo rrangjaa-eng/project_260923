@@ -1,4 +1,4 @@
-import type { Collector, Item } from '@/page/collector/collector';
+import { buildFrameReport, contentBoxOf, type Collector, type Item } from '@/page/collector/collector';
 import type { SwitchReportItem, SwitchTargetAction } from '@/shared/switch-messages';
 import { synthesizePress } from '@/page/click/press';
 import { applyDraft, captureTextTarget, sensitiveElement, typingElement } from './text-target';
@@ -8,14 +8,33 @@ export interface SwitchPageResult { result: 'done' | 'refused' | 'unknown'; valu
 export function reportSwitchItem(item: Item, el: Element | undefined): SwitchReportItem {
   const label = (item.name || item.fingerprint.buttonText || item.kind).slice(0, 300);
   const destination = el instanceof HTMLAnchorElement ? el.href : '';
-  const form = el instanceof HTMLInputElement ? el.form : null;
+  const submitter = el instanceof HTMLInputElement || el instanceof HTMLButtonElement ? el : null;
+  const form = submitter?.form;
+  const submission = form ? [
+    submitter.hasAttribute('formaction') ? submitter.formAction : form.action,
+    submitter.hasAttribute('formmethod') ? submitter.formMethod : form.method,
+    submitter.hasAttribute('formtarget') ? submitter.formTarget : form.target,
+    submitter.hasAttribute('formenctype') ? submitter.formEnctype : form.enctype,
+    form.noValidate || submitter.formNoValidate,
+  ] : null;
   const inputType = el instanceof HTMLInputElement ? el.type : '';
   const danger = item.danger || (el instanceof HTMLAnchorElement && !['http:', 'https:'].includes(el.protocol));
   return {
     itemId: item.id, label, kind: item.kind, danger,
     editable: typingElement(el), sensitive: !!el && sensitiveElement(el),
-    identity: JSON.stringify([item.name, item.kind, danger, item.fingerprint, destination, inputType, form?.action, form?.method]),
+    identity: JSON.stringify([item.name, item.kind, danger, item.fingerprint, destination, inputType, submission, submitter?.type]),
   };
+}
+
+export function visibleSwitchChild(index: number): boolean {
+  const frame = Array.from(document.querySelectorAll('iframe')).find((el) => el.contentWindow === window.frames[index]);
+  if (!frame || !activeElement(frame)) return false;
+  const child = buildFrameReport([]).children.find((entry) => entry.index === index);
+  const box = contentBoxOf(frame);
+  // 부분적으로 가려진 프레임도 보수적으로 제외한다. 자식의 로컬 뷰포트만으로는
+  // 선택된 요소가 부모의 clip 안에 보이는지 보장할 수 없다.
+  return !!child && child.clip.x <= box.x && child.clip.y <= box.y
+    && child.clip.x + child.clip.w >= box.x + box.w && child.clip.y + child.clip.h >= box.y + box.h;
 }
 
 function activeElement(el: Element): boolean {

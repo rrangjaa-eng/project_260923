@@ -5,10 +5,30 @@ import { isUnsupportedUrl } from '@/core/unsupported-url';
 export function createSwitchRelay(writer: StorageWriter) {
   const frames = new Map<number, Map<number, SwitchFrameReport>>();
   chrome.tabs.onRemoved.addListener((id) => { frames.delete(id); void writer.writeSwitchData(`switchDraft:${String(id)}`, '', 'session'); });
-  chrome.tabs.onUpdated.addListener((id, change) => { if (change.status === 'loading') frames.delete(id); });
+  chrome.tabs.onUpdated.addListener((id, change) => {
+    if (change.status === 'loading') {
+      const hadReports = frames.has(id);
+      frames.delete(id);
+      if (hadReports) void chrome.tabs.sendMessage(id, { type: 'switch/pause', invalidate: true }, { frameId: 0 }).catch(() => undefined);
+    }
+  });
   chrome.tabs.onActivated.addListener(({ tabId }) => {
     for (const id of frames.keys()) if (id !== tabId) void chrome.tabs.sendMessage(id, { type: 'switch/pause' }).catch(() => undefined);
   });
+  async function visibleReport(tabId: number, report: SwitchFrameReport): Promise<boolean> {
+    const reports = frames.get(tabId);
+    if (!reports || (report.frameId === 0) !== (report.path.length === 0)) return false;
+    for (let depth = 0; depth < report.path.length; depth++) {
+      const prefix = JSON.stringify(report.path.slice(0, depth));
+      const parent = Array.from(reports.values()).find((entry) => JSON.stringify(entry.path) === prefix);
+      if (!parent) return false;
+      try {
+        const response: unknown = await chrome.tabs.sendMessage(tabId, { type: 'switch/frame-check', childIndex: report.path[depth], documentGeneration: parent.documentGeneration }, { frameId: parent.frameId });
+        if (typeof response !== 'object' || response === null || !('result' in response) || response.result !== 'done') return false;
+      } catch { return false; }
+    }
+    return frames.get(tabId)?.get(report.frameId) === report;
+  }
   async function handle(raw: unknown, sender: chrome.runtime.MessageSender): Promise<unknown> {
     const parsed = SwitchMessage.safeParse(raw);
     if (!parsed.success || sender.id !== chrome.runtime.id) return undefined;
@@ -19,8 +39,12 @@ export function createSwitchRelay(writer: StorageWriter) {
     if (message.type === 'switch/report') {
       const reports = frames.get(tabId) ?? new Map<number, SwitchFrameReport>();
       const old = reports.get(frameId);
+      let replaced=!!old&&old.documentGeneration!==message.documentGeneration;
+      for(const [id,report] of reports){
+        if(id!==frameId&&JSON.stringify(report.path)===JSON.stringify(message.path)){reports.delete(id);replaced=true;}
+      }
       reports.set(frameId, { frameId, documentGeneration: message.documentGeneration, path: message.path, items: message.items }); frames.set(tabId, reports);
-      if (old && old.documentGeneration !== message.documentGeneration) void chrome.tabs.sendMessage(tabId, { type: 'switch/pause' }, { frameId: 0 }).catch(() => undefined);
+      if (replaced) void chrome.tabs.sendMessage(tabId, { type: 'switch/pause', invalidate: true }, { frameId: 0 }).catch(() => undefined);
       void chrome.tabs.sendMessage(tabId, { type: 'switch/refresh' }, { frameId: 0 }).catch(() => undefined);
       return { tabId, frameId };
     }
@@ -31,9 +55,18 @@ export function createSwitchRelay(writer: StorageWriter) {
     if (message.type === 'switch/pause') {
       await chrome.tabs.sendMessage(tabId, message, { frameId: 0 }); return {};
     }
+    if (message.type === 'switch/action-check') return chrome.tabs.sendMessage(tabId, message, { frameId: 0 });
     if (frameId !== 0) return { result: 'refused' };
-    if (message.type === 'switch/refresh') return { result: 'refused' };
-    if (message.type === 'switch/list') return { tabId, frames: Array.from(frames.get(tabId)?.values() ?? []) };
+    if (message.type === 'switch/cancel-peers') {
+      await Promise.all(Array.from(frames.get(tabId)?.keys() ?? []).filter((id) => id !== 0).map((id) => chrome.tabs.sendMessage(tabId, { type: 'switch/pause' }, { frameId: id }).catch(() => undefined)));
+      return { result: 'done' };
+    }
+    if (message.type === 'switch/refresh' || message.type === 'switch/frame-check') return { result: 'refused' };
+    if (message.type === 'switch/list') {
+      const reports = Array.from(frames.get(tabId)?.values() ?? []);
+      const visible = await Promise.all(reports.map(async (report) => await visibleReport(tabId, report) ? report : null));
+      return { tabId, frames: visible.filter((report) => report !== null) };
+    }
     if (message.type === 'switch/draft') return writer.writeSwitchData(`switchDraft:${String(tabId)}`, message.text, 'session');
     if (message.type === 'switch/draft/read') {
       const stored=await chrome.storage.session.get(`switchDraft:${String(tabId)}`);
@@ -48,8 +81,13 @@ export function createSwitchRelay(writer: StorageWriter) {
       const action = message.action;
       const report = frames.get(tabId)?.get(action.target.frameId);
       if (action.target.tabId !== tabId || !report || report.documentGeneration !== action.target.documentGeneration
-          || !report.items.some((item) => item.itemId === action.target.itemId && !item.sensitive && item.identity === action.expectedIdentity)) return { result: 'refused' };
-      try { return await chrome.tabs.sendMessage(tabId, message, { frameId: action.target.frameId }); }
+          || !report.items.some((item) => item.itemId === action.target.itemId && !item.sensitive && item.identity === action.expectedIdentity)
+          || !await visibleReport(tabId, report)) return { result: 'refused' };
+      try {
+        const authorization: unknown = await chrome.tabs.sendMessage(tabId, { type: 'switch/action-check', authorization: action.authorization }, { frameId: 0 });
+        if (typeof authorization !== 'object' || authorization === null || !('result' in authorization) || authorization.result !== 'done') return { result: 'refused' };
+        return await chrome.tabs.sendMessage(tabId, message, { frameId: action.target.frameId });
+      }
       catch { return { result: 'unknown' }; }
     }
     {

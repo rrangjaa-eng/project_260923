@@ -5,6 +5,44 @@ test.beforeEach(async ({ serviceWorker }) => {
   await serviceWorker.evaluate(async () => chrome.storage.local.set({ switchSettings: { schemaVersion: 1, mode: 'switch', intervalMs: 800, protectionMs: 100 } }));
 });
 
+test('a sensitive textarea is never captured into session drafts or saved phrases', async ({ context, serviceWorker, servePage }) => {
+  servePage('http://practice.test/sensitive-switch.html', '<textarea aria-label="주민등록번호" name="ssn">SENSITIVE-SENTINEL</textarea>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/sensitive-switch.html');
+  await startSwitch(page);
+  await chooseSwitch(page, '찾기');
+  await chooseSwitch(page, '주민등록번호 · 민감칸');
+  await expect(page.locator('tremor-helper-root').locator('.switch-status')).toContainText('민감칸');
+  const stored = await serviceWorker.evaluate(async () => ({ session: await chrome.storage.session.get(null), local: await chrome.storage.local.get('switchPhrases') }));
+  expect(JSON.stringify(stored)).not.toContain('SENSITIVE-SENTINEL');
+  await expect(page.locator('textarea')).toHaveValue('SENSITIVE-SENTINEL');
+});
+
+test('delete cancels an unfinished syllable before deleting completed text', async ({ context, servePage }) => {
+  test.setTimeout(60000);
+  servePage('http://practice.test/compose-delete.html', '<input type="search" aria-label="검색어" value="가">');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/compose-delete.html');
+  await startSwitch(page);
+  await chooseSwitch(page, '찾기');
+  await chooseSwitch(page, '검색어');
+  await chooseSwitch(page, '한글 쓰기');
+  await chooseSwitch(page, 'ㄱ ㄲ ㄴ ㄷ ㄸ ㄹ');
+  await chooseSwitch(page, 'ㄴ');
+  await chooseSwitch(page, 'ㅏ ㅐ ㅑ ㅒ ㅓ ㅔ');
+  await chooseSwitch(page, 'ㅏ');
+  const panel = page.locator('tremor-helper-root').locator('.switch-panel');
+  await expect(panel.locator('.switch-draft')).toHaveText('가 [ㄴㅏ]');
+  for (let i = 0; i < 6 && await panel.locator('h2').textContent() !== '글쓰기'; i++) await chooseSwitch(page, '상위로');
+  await expect(panel.locator('h2')).toHaveText('글쓰기');
+  await chooseSwitch(page, '수정');
+  await chooseSwitch(page, '앞 글자 삭제');
+  await expect(panel.locator('.switch-draft')).toHaveText('가 [ㄴ]');
+  await chooseSwitch(page, '앞 글자 삭제');
+  await expect(panel.locator('.switch-draft')).toHaveText('가');
+  await expect(page.getByRole('searchbox')).toHaveValue('가');
+});
+
 test('pause and resume preserve a partial Korean syllable and the resume press only resumes', async ({ context, servePage }) => {
   test.setTimeout(60000);
   servePage('http://practice.test/partial.html', '<input type="search" aria-label="검색어">');

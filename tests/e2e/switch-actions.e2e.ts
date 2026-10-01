@@ -5,6 +5,38 @@ test.beforeEach(async ({ serviceWorker }) => {
   await serviceWorker.evaluate(async () => chrome.storage.local.set({ switchSettings: { schemaVersion: 1, mode: 'switch', intervalMs: 800, protectionMs: 100 } }));
 });
 
+test('legacy hint keys cannot bypass single-switch confirmation while paused', async ({ context, servePage }) => {
+  servePage('http://practice.test/legacy-switch.html', '<button onclick="document.querySelector(\'output\').textContent=\'1\'">실행</button><output>0</output>');
+  const page = await context.newPage();
+  await page.goto('http://practice.test/legacy-switch.html');
+  await startSwitch(page);
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(350);
+  await page.keyboard.press('Digit1');
+  await expect(page.locator('output')).toHaveText('0');
+  await expect(page.locator('tremor-helper-root').locator('.hint-label')).toHaveCount(0);
+});
+
+for (const change of ['action', 'method', 'formaction', 'formmethod', 'formtarget'] as const) {
+  test(`a confirmed submit button refuses a changed ${change}`, async ({ context, servePage }) => {
+    servePage('http://practice.test/form-identity.html', '<form action="/safe" method="get" onsubmit="event.preventDefault();document.querySelector(\'output\').textContent=\'1\'"><button type="submit">삭제</button></form><output>0</output>');
+    const page = await context.newPage();
+    await page.goto('http://practice.test/form-identity.html');
+    await startSwitch(page);
+    await chooseSwitch(page, '페이지 항목');
+    await chooseSwitch(page, '삭제');
+    await page.locator('button').evaluate((button, change) => {
+      if (change === 'action' || change === 'method') button.closest('form')?.setAttribute(change, change === 'action' ? '/delete' : 'post');
+      else button.setAttribute(change, change === 'formaction' ? '/delete' : change === 'formmethod' ? 'post' : '_blank');
+    }, change);
+    await page.waitForTimeout(1000);
+    await chooseSwitch(page, '삭제');
+    await expect(page.locator('output')).toHaveText('0');
+    await expect(page.locator('tremor-helper-root').locator('.switch-status')).toContainText('결과');
+  });
+}
+
 test('a snapshot link whose meaning changes cannot execute the old choice', async ({ context, servePage }) => {
   servePage('http://practice.test/changed.html', '<a href="#read" onclick="document.querySelector(\'output\').textContent=\'1\'">읽기</a><output>0</output>');
   const page = await context.newPage();

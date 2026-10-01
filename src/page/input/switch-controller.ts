@@ -9,7 +9,7 @@ import { SwitchMessage, type SwitchFrameReport, type SwitchTargetAction } from '
 import type { Collector } from '@/page/collector/collector';
 import type { InputPipeline } from './pipeline';
 import { createSwitchPanel } from '@/page/overlay/switch-panel';
-import { executeSwitchAction, reportSwitchItem } from './switch-actions';
+import { executeSwitchAction, reportSwitchItem, visibleSwitchChild } from './switch-actions';
 
 const now=()=>performance.now();
 const newSwitchId=()=>Array.from(crypto.getRandomValues(new Uint32Array(4)),(n)=>n.toString(16)).join('-');
@@ -49,6 +49,9 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   let scrollTimer:ReturnType<typeof setInterval>|null=null;
   let disposed=false;
   const exclusive=()=>!disposed&&settings.mode==='switch'&&opts.enabled();
+  const active=(generation:number)=>exclusive()&&state.modeGeneration===generation;
+  const authorization=()=>({documentGeneration:generation,modeGeneration:state.modeGeneration,pendingActionId:state.pendingAction?.actionId??''});
+  const cancelPeers=()=>{if(top)void request({type:'switch/cancel-peers'}).catch(()=>undefined);};
   const stopScroll=()=>{if(scrollTimer)clearInterval(scrollTimer);scrollTimer=null;};
   function render(){if(!top||!exclusive())return;
     panel??=createSwitchPanel();
@@ -60,6 +63,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(previousMode==='confirming'&&state.mode==='paused'){
       confirmAction=null;root();pause();return;
     }
+    if(event.type==='actionResult'&&event.result==='unknown')cancelPeers();
     if(output.actions.length>0)notice='';
     render();
     for(const action of output.actions)void execute(action);
@@ -75,9 +79,13 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   function up(){const previous=stack.pop();if(!previous){root();return;}current=previous;title=previous.title;
     dispatch({type:'setItems',now:now(),items:previous.items,mode:previous.mode});}
   function pause(reason=''){
-    stopScroll();confirmAction=null;
+    stopScroll();confirmAction=null;cancelPeers();
     if(state.mode==='confirming'||state.resumeMode==='confirming'){root();}
     notice=reason;dispatch({type:'pause',now:now()});
+  }
+  function invalidate(reason:string){
+    selected=null;targets=[];confirmAction=null;preservedDraft=true;
+    root();pause(reason);
   }
   async function publish(){
     if(disposed)return;
@@ -90,11 +98,14 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     }
   }
   function restoreDraft(text:unknown){if(typeof text==='string'&&text&&draft.text===''){draft=createDraft(text);preservedDraft=true;render();}}
-  async function refreshTargets(){
+  async function refreshTargets(startedGeneration:number){
     await publish();
+    if(!active(startedGeneration))return false;
     const raw=await request({type:'switch/list'}) as {tabId:number;frames:SwitchFrameReport[]};
+    if(!active(startedGeneration))return false;
     if(!Array.isArray(raw.frames))throw new Error('대상 목록을 읽지 못했어요');
     targets=snapshotTargets(raw.tabId,raw.frames);
+    return true;
   }
   async function refreshAvailability(){
     if(!top||!exclusive()||targets.length===0)return;
@@ -133,42 +144,45 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   async function targetRequest(kind:SwitchTargetAction['kind'],target:SwitchTarget,extra:Partial<SwitchTargetAction>={}):Promise<PageResult>{
     const expectedIdentity=targets.find((entry)=>entry.target.itemId===target.itemId&&entry.target.frameId===target.frameId)?.identity;
     if(expectedIdentity===undefined)return {result:'refused'};
-    try{return resultOf(await request({type:'switch/execute',action:{actionId:newSwitchId(),kind,target,expectedIdentity,...extra}}));}
+    try{return resultOf(await request({type:'switch/execute',action:{actionId:newSwitchId(),kind,target,expectedIdentity,...extra,authorization:authorization()}}));}
     catch{return {result:'unknown'};}
   }
-  async function chooseTarget(index:number){
+  async function chooseTarget(index:number,startedGeneration:number):Promise<PageResult['result']|undefined>{
     const target=targets[index];if(!target||target.sensitive){notice='민감칸은 단일 스위치 입력을 지원하지 않아요';return;}
     if(target.editable){
       const capture=await targetRequest('capture',target.target);
-      if(capture.result!=='done'||typeof capture.value!=='string'){notice='입력칸을 다시 선택하세요';return;}
+      if(!active(startedGeneration))return;
+      if(capture.result!=='done'||typeof capture.value!=='string'){notice='입력칸을 다시 선택하세요';return capture.result;}
       selected=target;expectedValue=capture.value;
       if(!preservedDraft)draft=createDraft(capture.value);
       preservedDraft=false;editor();return;
     }
-    const action:SwitchTargetAction={actionId:newSwitchId(),kind:'press',target:target.target,expectedIdentity:target.identity,confirmed:true};
+    const action:SwitchTargetAction={actionId:newSwitchId(),kind:'press',target:target.target,expectedIdentity:target.identity,confirmed:true,authorization:authorization()};
     if(target.danger||!['a','link'].includes(target.kind)){
       confirmAction=action;confirmOpenedAt=now();
       menu([command('confirm:cancel','취소'),command('confirm:run',target.label)],`${target.label}할까요?`,'confirming');
       return;
     }
     const result=await targetRequest('press',target.target);
+    if(!active(startedGeneration))return;
     if(result.result!=='done')notice=result.result==='unknown'?'실행 결과를 확인하세요. 자동 재시도하지 않아요':'대상이 바뀌었어요. 목록을 새로 읽으세요';
+    return result.result;
   }
-  async function handleCommand(id:string){
+  async function handleCommand(id:string,startedGeneration:number):Promise<PageResult['result']|undefined>{
     if(id==='up'){if(state.resumeMode==='confirming')confirmAction=null;up();return;}
     if(id==='pause'){pause();return;}
     if(id.startsWith('group:')){
       const group=Number(id.split(':')[1]);
-      if(group===0||group===1){stack.push(current);await refreshTargets();pageMenu(0,group===0);}
+      if(group===0||group===1){stack.push(current);if(await refreshTargets(startedGeneration))pageMenu(0,group===0);}
       if(group===2)menu([command('scroll:down','한 화면 아래'),command('scroll:up','한 화면 위'),command('scroll:auto','자동 스크롤'),command('nav:back','뒤로'),command('nav:tabs','열린 탭')],'읽기·이동');
       if(group===3){if(selected)editor();else menu([command('choose-input','입력칸 선택'),command('draft:new','새 문장')],'글쓰기');}
       if(group===4)menu([command('speed','순환 속도'),command('protection','입력 간격 보호'),command('pause','쉬기'),command('pointer','마우스 조작으로 전환')],'조절·쉬기');
       return;
     }
-    if(id==='choose-input'){stack.push(current);await refreshTargets();pageMenu(0,true);return;}
-    if(id.startsWith('target:')){await chooseTarget(Number(id.split(':')[1]));return;}
+    if(id==='choose-input'){stack.push(current);if(await refreshTargets(startedGeneration))pageMenu(0,true);return;}
+    if(id.startsWith('target:'))return chooseTarget(Number(id.split(':')[1]),startedGeneration);
     if(id.startsWith('page:')){const parts=id.split(':');pageMenu(Number(parts[1]),parts[2]==='input');return;}
-    if(id.startsWith('refresh:')){await refreshTargets();pageMenu(0,id.endsWith('input'));return;}
+    if(id.startsWith('refresh:')){if(await refreshTargets(startedGeneration))pageMenu(0,id.endsWith('input'));return;}
     if(id==='draft:new'){draft=createDraft();initial=null;medial=null;preservedDraft=true;editor();await saveDraft();return;}
     if(id.startsWith('hangul:')){characterGroups(medial!==null?'final':initial!==null?'medial':'initial');return;}
     if(id.startsWith('chars:')){const [,stage,page]=id.split(':');const chars=stage==='initial'?INITIALS:stage==='medial'?MEDIALS:FINALS;
@@ -181,36 +195,39 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(id==='compose:cancel'){if(medial!==null)medial=null;else initial=null;editor();return;}
     if(id==='draft:discard'){menu([command('up','취소'),command('discard:run','문장 버리기')],'문장을 버릴까요?','composing');return;}
     if(id==='discard:run'){draft=createDraft();initial=null;medial=null;editor();await saveDraft();return;}
+    if(id==='edit:delete'&&(initial!==null||medial!==null)){if(medial!==null)medial=null;else initial=null;return;}
     if(id.startsWith('edit:')){const kind=id.slice(5);const edit:DraftEdit=kind==='space'?{type:'insert',text:' '}:{type:kind as 'left'|'right'|'delete'|'undo'};draft=editDraft(draft,edit);await saveDraft();return;}
     if(id==='phrases'){const data=await chrome.storage.local.get('switchPhrases');const phrases=Array.isArray(data.switchPhrases)?data.switchPhrases.filter((p):p is string=>typeof p==='string'):[];
+      if(!active(startedGeneration))return;
       menu([...phrases.map((text,i)=>command(`phrase:${String(i)}`,text)),command('phrase:save','문구 저장')],'문구','composing');return;}
-    if(id==='phrase:save'){if(draft.text)await request({type:'switch/phrase',text:draft.text.slice(0,1000)});notice='문구를 저장했어요';return;}
-    if(id.startsWith('phrase:')){const data=await chrome.storage.local.get('switchPhrases');const text=(data.switchPhrases as string[]|undefined)?.[Number(id.split(':')[1])];if(typeof text==='string'){draft=editDraft(draft,{type:'insert',text});editor();await saveDraft();}return;}
+    if(id==='phrase:save'){if(draft.text)await request({type:'switch/phrase',text:draft.text.slice(0,1000)});if(active(startedGeneration))notice='문구를 저장했어요';return;}
+    if(id.startsWith('phrase:')){const data=await chrome.storage.local.get('switchPhrases');if(!active(startedGeneration))return;const text=(data.switchPhrases as string[]|undefined)?.[Number(id.split(':')[1])];if(typeof text==='string'){draft=editDraft(draft,{type:'insert',text});editor();await saveDraft();}return;}
     if(id==='apply'||id==='search'){
       if(!selected){notice='입력칸을 먼저 선택하세요';return;}
       const result=await targetRequest('applyText',selected.target,{text:draft.text,expectedValue});
-      if(result.result!=='done'){notice='입력칸이 바뀌었어요. 초안을 보존했으니 다시 선택하세요';preservedDraft=true;selected=null;return;}
+      if(!active(startedGeneration))return;
+      if(result.result!=='done'){notice='입력칸이 바뀌었어요. 초안을 보존했으니 다시 선택하세요';preservedDraft=true;selected=null;return result.result;}
       expectedValue=draft.text;notice='입력했어요';
-      if(id==='search'){await saveDraft();const result=await targetRequest('search',selected.target,{expectedValue});if(result.result!=='done')notice='이 입력칸의 검색 동작을 지원하지 않아요';}return;
+      if(id==='search'){await saveDraft();if(!active(startedGeneration))return;const result=await targetRequest('search',selected.target,{expectedValue});if(!active(startedGeneration))return;if(result.result!=='done')notice='이 입력칸의 검색 동작을 지원하지 않아요';return result.result;}return;
     }
     if(id.startsWith('scroll:')){if(id==='scroll:auto'){state.mode='scrolling';scrollTimer=setInterval(()=> { window.scrollBy(0,2); },30);}else window.scrollBy(0,(id.endsWith('up')?-1:1)*window.innerHeight*0.8);return;}
-    if(id==='nav:back'){await saveDraft();await request({type:'switch/navigation',kind:'back'});return;}
-    if(id==='nav:tabs'){const raw=await request({type:'switch/navigation',kind:'tabs'}) as {tabs:Array<{id:number;title:string}>};menu(raw.tabs.map((tab)=>command(`tab:${String(tab.id)}`,tab.title)),'열린 탭');return;}
-    if(id.startsWith('tab:')){await saveDraft();pause();const result=resultOf(await request({type:'switch/navigation',kind:'activate',tabId:Number(id.split(':')[1])}));if(result.result!=='done')notice='탭을 다시 선택하세요';return;}
+    if(id==='nav:back'){await saveDraft();if(!active(startedGeneration))return;return resultOf(await request({type:'switch/navigation',kind:'back'})).result;}
+    if(id==='nav:tabs'){const raw=await request({type:'switch/navigation',kind:'tabs'}) as {tabs:Array<{id:number;title:string}>};if(active(startedGeneration))menu(raw.tabs.map((tab)=>command(`tab:${String(tab.id)}`,tab.title)),'열린 탭');return;}
+    if(id.startsWith('tab:')){await saveDraft();if(!active(startedGeneration))return;pause();const result=resultOf(await request({type:'switch/navigation',kind:'activate',tabId:Number(id.split(':')[1])}));if(result.result!=='done')notice='탭을 다시 선택하세요';return;}
     if(id==='speed'){menu([800,1500,2500,4000].map((ms)=>command(`speed:${String(ms)}`,`${String(ms/1000)}초`)),'순환 속도');return;}
     if(id==='protection'){menu([100,300,600,1000].map((ms)=>command(`protection:${String(ms)}`,`${String(ms/1000)}초`)),'입력 간격 보호');return;}
     if(id.startsWith('speed:')||id.startsWith('protection:')){const ms=Number(id.split(':')[1]);const value={...settings,...(id.startsWith('speed:')?{intervalMs:ms}:{protectionMs:ms})};await request({type:'switch/settings',value});up();return;}
     if(id==='pointer'){await request({type:'switch/settings',value:{...settings,mode:'pointer'}});return;}
     if(id==='confirm:cancel'){confirmAction=null;up();return;}
-    if(id==='confirm:run'){const action=confirmAction;confirmAction=null;if(action){const result=resultOf(await request({type:'switch/execute',action}));if(result.result!=='done'){notice='결과를 확인하세요. 자동 재시도하지 않아요';pause(notice);}else up();}return;}
+    if(id==='confirm:run'){const action=confirmAction;confirmAction=null;if(action){const result=resultOf(await request({type:'switch/execute',action:{...action,authorization:authorization()}}));if(!active(startedGeneration))return;if(result.result!=='done'){notice='결과를 확인하세요. 자동 재시도하지 않아요';return result.result;}up();}return;}
   }
   async function execute(action:SwitchAction){
     const startedGeneration=state.modeGeneration;
     try{
       if(action.kind==='scrollStop'){stopScroll();state.mode='itemScan';state.pendingAction=null;state.changedAt=now();render();return;}
-      if(action.kind==='command')await handleCommand(action.itemId??'');
+      const result=action.kind==='command'?await handleCommand(action.itemId??'',startedGeneration):'refused';
       if(disposed||state.modeGeneration!==startedGeneration)return;
-      if(!scrollTimer)dispatch({type:'actionResult',now:now(),actionId:action.actionId,result:'done'});
+      if(!scrollTimer)dispatch({type:'actionResult',now:now(),actionId:action.actionId,result:result??'done'});
       else state.pendingAction=null;
     }catch(error){console.error('Switch action failed',error instanceof Error?error.message:String(error));if(!disposed&&state.modeGeneration===startedGeneration){notice='처리 결과를 확인하세요. 자동 재시도하지 않아요';dispatch({type:'actionResult',now:now(),actionId:action.actionId,result:'unknown'});}}
   }
@@ -226,16 +243,31 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   const messageHandler=(raw:unknown,sender:chrome.runtime.MessageSender,sendResponse:(response?:unknown)=>void):boolean|undefined=>{
     if(sender.id!==chrome.runtime.id)return undefined;
     const parsed=SwitchMessage.safeParse(raw);if(!parsed.success)return undefined;const message=parsed.data;
+    if(message.type==='switch/action-check'){
+      sendResponse({result:top&&exclusive()&&state.mode==='executing'&&state.pendingAction!==null&&message.authorization.documentGeneration===generation&&message.authorization.modeGeneration===state.modeGeneration&&message.authorization.pendingActionId===state.pendingAction.actionId?'done':'refused'});return undefined;
+    }
+    if(message.type==='switch/frame-check'){
+      sendResponse({result:exclusive()&&message.documentGeneration===generation&&visibleSwitchChild(message.childIndex)?'done':'refused'});return undefined;
+    }
     if(message.type==='switch/key'&&top&&exclusive()){
       if(state.mode!=='confirming'||now()-confirmOpenedAt>=1000)dispatch({type:message.kind,now:now(),code:'Space',trusted:true,repeat:message.repeat,isComposing:message.isComposing,modified:message.modified});return undefined;
     }
-    if(message.type==='switch/pause'){if(top&&exclusive())pause();sendResponse({result:'done'});return undefined;}
+    if(message.type==='switch/pause'){if(exclusive()){if(top&&message.invalidate)invalidate('페이지가 바뀌었어요. 대상을 다시 선택하세요');else pause();}sendResponse({result:'done'});return undefined;}
     if(message.type==='switch/refresh'&&top){void refreshAvailability().catch(()=>undefined);return undefined;}
     if(message.type==='switch/execute'){
       const action=message.action;
       if(!exclusive()||!gate.accept(action.actionId,action.target.documentGeneration)){sendResponse({result:'refused'});return undefined;}
+      const authorized=()=>exclusive()&&state.mode==='executing'&&state.pendingAction!==null&&action.authorization.documentGeneration===generation&&action.authorization.modeGeneration===state.modeGeneration&&action.authorization.pendingActionId===state.pendingAction.actionId;
+      if(!top){
+        const localGeneration=state.modeGeneration;
+        void request({type:'switch/action-check',authorization:action.authorization}).then((raw)=>{
+          const result=resultOf(raw).result==='done'&&exclusive()&&localGeneration===state.modeGeneration?executeSwitchAction(opts.collector,action):{result:'refused'};
+          sendResponse(result);
+        }).catch(()=>{sendResponse({result:'unknown'});}).finally(()=>{gate.finish(action.actionId);});
+        return true;
+      }
       let result:PageResult={result:'unknown'};
-      try{result=executeSwitchAction(opts.collector,action);}
+      try{result=authorized()?executeSwitchAction(opts.collector,action):{result:'refused'};}
       catch{result={result:'unknown'};}
       finally{gate.finish(action.actionId);}
       sendResponse(result);return undefined;
@@ -255,9 +287,21 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   chrome.runtime.onMessage.addListener(messageHandler);chrome.storage.onChanged.addListener(storageHandler);
   void chrome.storage.local.get(SWITCH_SETTINGS_KEY).then((stored)=> { applySettings(stored[SWITCH_SETTINGS_KEY]); });
   opts.collector.onChange(()=>{void publish().catch(()=>undefined);});
-  const timer=setInterval(()=>{if(top&&exclusive()){if(!opts.enabled()){pause();return;}dispatch({type:'tick',now:now()});}},100);
-  window.addEventListener('blur',()=>{if(exclusive()){if(top)pause();else void request({type:'switch/pause'}).catch(()=>undefined);}},{signal:opts.signal});
+  const timer=setInterval(()=>{if(top&&exclusive())dispatch({type:'tick',now:now()});},100);
+  window.addEventListener('blur',()=>{if(exclusive()){if(top)pause();else {pause();void request({type:'switch/pause'}).catch(()=>undefined);}}},{signal:opts.signal});
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&exclusive())pause();},{signal:opts.signal});
-  opts.signal.addEventListener('abort',()=>{disposed=true;stopScroll();clearInterval(timer);panel?.destroy();chrome.runtime.onMessage.removeListener(messageHandler);chrome.storage.onChanged.removeListener(storageHandler);});
-  return {exclusive,pause};
+  const frameObserver=new MutationObserver((records)=>{
+    if(!exclusive())return;
+    const hasFrame=(node:Node)=>node instanceof Element&&(node.matches('iframe')||node.querySelector('iframe')!==null);
+    if(records.some((record)=>record.type==='attributes'&&hasFrame(record.target)
+        ||Array.from(record.addedNodes).some(hasFrame)||Array.from(record.removedNodes).some(hasFrame))){
+      if(top)invalidate('페이지가 바뀌었어요. 대상을 다시 선택하세요');
+      else void request({type:'switch/pause'}).catch(()=>undefined);
+    }
+  });
+  frameObserver.observe(document,{subtree:true,childList:true,attributes:true,attributeFilter:['src','srcdoc','hidden','inert','style','class']});
+  opts.signal.addEventListener('abort',()=>{disposed=true;stopScroll();clearInterval(timer);frameObserver.disconnect();panel?.destroy();chrome.runtime.onMessage.removeListener(messageHandler);chrome.storage.onChanged.removeListener(storageHandler);});
+  return {exclusive,pause,
+    enabledChanged:()=>{invalidate('조작을 쉬고 있어요. 스페이스바로 다시 선택하세요');panel?.destroy();panel=null;if(exclusive()){opts.onExclusive();render();void publish().catch(()=>undefined);}},
+    connectionLost:()=>{if(exclusive())invalidate('연결이 바뀌었어요. 실행 결과를 확인하고 다시 선택하세요');}};
 }

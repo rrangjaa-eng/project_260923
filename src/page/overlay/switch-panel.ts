@@ -28,6 +28,12 @@ export function createSwitchPanel() {
       state.items.forEach((item,index)=>{const el=document.createElement('div');el.className='switch-choice';el.dataset.itemId=item.id;el.textContent=item.label;
         el.setAttribute('role','listitem');el.setAttribute('aria-current',String(index===state.scanIndex && !['paused','ready','recovering','executing','scrolling'].includes(state.mode)));el.setAttribute('aria-disabled',String(!!item.disabled));list.append(el);});
       panel.append(list);
+      const selected=list.querySelector('[aria-current="true"]');
+      if(selected instanceof HTMLElement){
+        const choice=selected.getBoundingClientRect(),bounds=panel.getBoundingClientRect();
+        if(choice.bottom>bounds.bottom)panel.scrollTop+=choice.bottom-bounds.bottom+12;
+        else if(choice.top<bounds.top)panel.scrollTop-=bounds.top-choice.top+12;
+      }
     },
     destroy(){panel.remove();style.remove();},
   };

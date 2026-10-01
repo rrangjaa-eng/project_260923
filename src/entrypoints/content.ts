@@ -260,6 +260,7 @@ export default defineContentScript({
     // 그냥 누른다. 켜져 있으면 상태 기계 결과(arm/drop/cancel/pass)에 따라 힌트를 보여 주거나
     // synthesizeDrag로 대신 끌어서 놓는다.
     function pressOrDrag(id: string, el: Element, fingerprint: Fingerprint | null, danger: boolean): void {
+      if (!currentEnabled || switchController.exclusive()) return;
       if (!currentSettings.data.dragTwoPress || danger) {
         const { picker } = synthesizePress(el);
         if (picker === 'blocked') {
@@ -607,7 +608,9 @@ export default defineContentScript({
       if (currentEnabled === enabled) {
         return;
       }
+      const wasInitialized = currentEnabled !== undefined;
       currentEnabled = enabled;
+      if (wasInitialized) switchController.enabledChanged();
 
       if (!enabled) {
         // 사용자 결정(/review): 도우미를 끄면 문서 전체 편집기 "나옴" 상태도 함께 풀어 둔다 —
@@ -701,7 +704,9 @@ export default defineContentScript({
     // 시작 중이거나 대상이 끌 수 있는 요소면, 커서가 요소 위라도 삼켜 pressOrDrag로 보낸다 —
     // 그렇지 않으면 끌기 시작·놓기가 그냥 사이트의 원래 클릭이 되어 버린다(D-08).
     const switchController=createSwitchController({collector,pipeline:inputPipeline,signal:pipelineController.signal,enabled:()=>currentEnabled??true,
-      onExclusive:()=>{currentTargetId=null;hideRing();stopDwellLoopIfRunning();closeHints();}});
+      onExclusive:()=>{currentTargetId=null;hideRing();stopDwellLoopIfRunning();closeHints();dragTwoPress.cancel();
+        if(activeConfirmKeyHandler){inputPipeline.setModal(null);activeConfirmKeyHandler=null;closeConfirm();void chrome.runtime.sendMessage({type:'confirm/state',open:false});}
+      }});
 
     inputPipeline.onPress(({ x, y }) => {
       if (!currentEnabled) {
@@ -1323,6 +1328,7 @@ export default defineContentScript({
       }
       alivePort = port; // Task 2: cleanupOldHelper()가 disconnect()할 수 있게 기억해 둔다.
       if (isReconnect) {
+        switchController.connectionLost();
         // CR-08: 끊긴 뒤 다시 연결됐다는 것은 SW가 잠깐 쉬었다 다시 시작했다는 뜻이다 —
         // relay.ts의 기억(reportsByTab)이 사라졌을 수 있으니, 보고 내용이 이전과 같아 보여도
         // 강제로 다시 보고해 relay.ts가 이 프레임을 다시 알게 한다.

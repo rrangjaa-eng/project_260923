@@ -3,8 +3,9 @@ export function typingElement(el: Element | undefined): el is HTMLInputElement |
   return el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && ['text','search','email','tel','url'].includes(el.type));
 }
 export function sensitiveElement(el: Element): boolean {
-  return el instanceof HTMLInputElement && (el.type === 'password' || /password|one-time-code|cc-/.test(el.autocomplete)
-    || /비밀번호|주민|계좌|카드번호|password|ssn/i.test(`${el.name} ${el.id} ${el.getAttribute('aria-label') ?? ''}`));
+  return (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)
+    && (el instanceof HTMLInputElement && el.type === 'password' || /password|one-time-code|cc-/i.test(el.autocomplete)
+    || /비밀번호|주민|계좌|카드번호|인증번호|password|ssn|\botp\b/i.test(`${el.name} ${el.id} ${el.getAttribute('aria-label') ?? ''}`));
 }
 export function captureTextTarget(collector: Collector, itemId: string): { value: string } | null {
   const el=collector.get(itemId);

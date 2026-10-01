@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { SwitchSettings } from '@/core/switch-settings';
 const Target = z.object({ tabId: z.number().int(), frameId: z.number().int().nonnegative(), documentGeneration: z.string().max(100), itemId: z.string().max(100) }).strict();
+const Authorization = z.object({ documentGeneration: z.string().max(100), modeGeneration: z.number().int().nonnegative(), pendingActionId: z.string().max(150) });
 export const SwitchTargetAction = z.object({
   actionId: z.string().max(150), target: Target,
   kind: z.enum(['capture', 'press', 'applyText', 'search']), text: z.string().max(4000).optional(), expectedValue: z.string().max(4000).optional(),
   expectedIdentity: z.string(), confirmed: z.boolean().optional(),
+  authorization: Authorization,
 }).strict();
 export type SwitchTargetAction = z.infer<typeof SwitchTargetAction>;
 export const SwitchReportItem = z.object({ itemId: z.string(), label: z.string().max(300), kind: z.string(), danger: z.boolean(), editable: z.boolean(), sensitive: z.boolean(), identity: z.string() });
@@ -14,9 +16,12 @@ export const SwitchMessage = z.discriminatedUnion('type', [
   z.object({ type: z.literal('switch/report'), documentGeneration: z.string().max(100), path: z.array(z.number().int().nonnegative()), items: z.array(SwitchReportItem).max(5000) }),
   z.object({ type: z.literal('switch/list') }),
   z.object({ type: z.literal('switch/refresh') }),
+  z.object({ type: z.literal('switch/frame-check'), childIndex: z.number().int().nonnegative(), documentGeneration: z.string().max(100) }),
+  z.object({ type: z.literal('switch/action-check'), authorization: Authorization }),
   z.object({ type: z.literal('switch/execute'), action: SwitchTargetAction }),
   z.object({ type: z.literal('switch/key'), kind: z.enum(['keyDown', 'keyUp']), repeat: z.boolean(), isComposing: z.boolean(), modified: z.boolean() }),
-  z.object({ type: z.literal('switch/pause') }),
+  z.object({ type: z.literal('switch/pause'), invalidate: z.boolean().optional() }),
+  z.object({ type: z.literal('switch/cancel-peers') }),
   z.object({ type: z.literal('switch/navigation'), kind: z.enum(['tabs', 'back', 'activate']), tabId: z.number().int().optional() }),
   z.object({ type: z.literal('switch/settings'), value: SwitchSettings }),
   z.object({ type: z.literal('switch/draft'), text: z.string().max(4000) }),

@@ -262,6 +262,7 @@ export function createInputPipeline(opts: {
       if (switchHandler?.('keyDown', event)) {
         swallowedKeyCodes.add(event.code); event.preventDefault(); event.stopImmediatePropagation(); return;
       }
+      if (switchExclusive()) return;
       if (modalHandler) {
         event.preventDefault();
         event.stopImmediatePropagation();
