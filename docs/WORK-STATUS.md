@@ -1,5 +1,13 @@
 # 작업 현황표
 
+## 최신 후속 상태 — 2026-10-02 01:58 KST
+
+PR16 source c608d00의 CI70는 E2E313건 단언 통과 뒤 20분 단계 timeout으로 **failure**다. 시간을 25분으로 조정한 `baafce22511698bcbb2c164cc3afe821ba6bbc93`를 PR16에 일반 push했다. job30분·시험·권한은 유지하며 새 CI는 부모가 관찰한다.
+
+후속 `codex/phase2-fake-handoff`는 baafce2 기반이다. strict payload/reply gate·Space 단일 소유권·전환/취소복귀·초안 보존을 로컬 fake로 구현했다. 독립 리뷰 P2 두 건을 RED→GREEN으로 수정했고 unit223/223·새E2E8/8·기존file-practice7/7이 통과했다. 자동 화면 첫 실행99pass/2fail 뒤 겹친 빌드를 배제한 최종검사101/101pass,0fail/skip/flaky,3.3분,exit0. 최종type/lint도exit0. [검증 전문](verification/2026-10-02-fake-handoff.md). [draft PR17](https://github.com/rrangjaa-eng/project_260923/pull/17)을 실제 생성했다. base=codex-phase2-file-practice/baafce2, head=codex-phase2-fake-handoff. open/draft/미병합. 최종HEAD의 전체CI를 확인하며 PR16CI는 부모에게 맡긴다.
+
+다음 승인된 bounded 작업은 기존 INPT-02 local 문구 관리의 수정/삭제이다. 저장 문구 스냅샷 선택 → 현재 작성 문장으로 바꾸기 또는 삭제 → 취소 먼저/1초 보호 확인 → 단일 저장자에서 목록 일치·현재 승인 재검증 후 쓰기. 취소/쉬기/옛 응답은 실행·재시도 없이 초안을 보존한다. 최근값 수집(INPT-01), 양식 전체 모아 보기(INPT-03), 민감판별 전체(PRIV-01)는 여전히 미완료다. 자동 제출·외부 전송·실제OS 연결은 추가하지 않는다.
+
 갱신: 2026-10-01 23:56 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 전달 로컬 `codex/installed-page-investigation` / 원격 PR 작업 브랜치 `codex-single-switch-phase1`
 
 ## 남은 개발 재개 — 2026-10-02 00:56 KST
