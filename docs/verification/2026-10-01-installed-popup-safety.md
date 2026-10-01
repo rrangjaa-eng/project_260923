@@ -89,3 +89,5 @@ CI65/run36871344925의 job110399604371은 최종 success다. 로그에서 Node22
 최종 ZIP은 재생성하지 않고 기존1163247bytes·SHA256 `bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb`를 재사용했다. 9파일 integrity·현재 production 출력 바이트일치 pass. 전달 ZIP을 임시 폴더에 풀어 새 Chromium 프로필에 동적 설치한 추가 smoke1/1 pass(58.3초,exit0). 실제 native popup의 Space 시작부터 ‘가’ 조합·검색/결과선택/읽기·자동스크롤/즉시정지/일반문자·Space복구를 확인했다. 시작을 우회하는 storage.set은 없다. 공개 사이트·로그인·결제·게시를 건드리지 않았다. [실행 스크립트](package-smoke/package.spec.ts), [화면 증거](../../downloads/evidence/02-korean-reading.png), [설치 안내](../../downloads/README.ko.md), [SHA256](../../downloads/SHA256SUMS)를 Git에 보존한다.
 
 사용자 새 승인으로 ZIP Git 저장 금지가 해소됐다. 기존 c4f9267 문서 체크포인트를 보존하고 downloads와 결과 문서만 추가하는 일반 커밋으로 PR15 작업 브랜치에 전달한다. Library403 재시도/우회는 하지 않았다. merge/release/deploy/권한 변경·제품 코드 수정도 없다. 다운로드 링크는 push 뒤 실제 응답·바이트를 확인한다. 실제 Windows IME·운동사용감·두산 사이트는 미검증이다.
+
+Git 전달 커밋 `2a0b3f5`를 양쪽 승인 브랜치에 push한 뒤 ZIP/안내/SHA 파일의 GitHub 파일 화면과 rawURL을 실제 읽었다. 전부 HTTP200이며 raw 세 파일 모두 로컬 바이트와 일치했다. ZIP1163247bytes·원래SHA256 유지. [전체 링크 검증 기록](package-smoke/download-verification.json). 새 전달 HEAD의 자동CI는 기존 제품 검사 CI65와 별도로 완료를 주장하지 않는다. 최종 추가 typecheck·lint도exit0이다.

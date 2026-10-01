@@ -1,12 +1,12 @@
 # 작업 현황표
 
-갱신: 2026-10-01 23:53 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 전달 로컬 `codex/installed-page-investigation` / 원격 PR 작업 브랜치 `codex-single-switch-phase1`
+갱신: 2026-10-01 23:56 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 전달 로컬 `codex/installed-page-investigation` / 원격 PR 작업 브랜치 `codex-single-switch-phase1`
 
 ## 설치본 신고 대응 — 현재 우선 작업
 
 사용자가 기존 ZIP의 페이지 연결·Space 활동 선택·종료 문제를 신고했다. 기존 자동299 통과로 신고를 닫지 않고 실제 설치와 네이티브 popup부터 재현했다. 2차 설계/worker 후속은 로컬 `codex/phase2-cloud-design`의 `f21a215`에 보존하고 중지했다.
 
-**최종 검증·Git 전달:** 제품 `3ae6ad2`, 검사 HEAD `91c0ae5`의 CI65는 최종 success다(단위148/148·E2E305/305,17.0분,Node22.23.3). 사용자가 설치 ZIP의 Git 작업 브랜치 저장을 새로 승인했다. 최종 ZIP을 새 프로필에 실제 설치한 Space 시작·한글 검색·읽기·즉시 정지·일반 키 복구 smoke도1/1 통과했다. 전달 파일은 `downloads/`에 보존하고 PR15 작업 브랜치에 일반 push한다. Library403 재시도·우회, 제품 코드 변경·merge·release·deploy는 하지 않는다.
+**최종 검증·Git 전달:** 제품 `3ae6ad2`, 검사 HEAD `91c0ae5`의 CI65는 최종 success다(단위148/148·E2E305/305,17.0분,Node22.23.3). 사용자가 설치 ZIP의 Git 작업 브랜치 저장을 새로 승인했다. 최종 ZIP을 새 프로필에 실제 설치한 Space 시작·한글 검색·읽기·즉시 정지·일반 키 복구 smoke도1/1 통과했다. 전달 파일을 `downloads/`에 보존한 `2a0b3f5`를 PR15 작업 브랜치와 안전 브랜치 양쪽에 일반 push 완료했다. GitHub 파일 화면·raw 다운로드 모두 HTTP200이며 다운로드 ZIP·안내·SHA파일의 로컬 바이트 일치를 확인했다. Library403 재시도·우회, 제품 코드 변경·merge·release·deploy는 하지 않는다.
 
 | 항목 | 최신 실제 결과 | 남은 범위 |
 |---|---|---|
@@ -23,7 +23,7 @@
 | 지연 draft/read 후속 | 실제 RED1 fail·7 pass→최소 응답 가드 후8/8 GREEN. untouched 정상 저장 초안 복구도 유지 | `/tmp/urgent-draft-late-{red,green,final}.log`; 기존 modeGeneration·현재초안의도·disposed 재검사. 독립 검토 미해결P1/P2 없음 |
 | 현재 최종 검증 | production 영향48/48 pass,7.8분,exit0; 마지막 조건 함수의 final 빌드에서 native/전체여정6/6 pass | `/tmp/urgent-final-impact.log`, `/tmp/urgent-release-native-final.log`. 전체 수백 건은 새 CI에서 한 번 확인 |
 | 신규 CI65 | [run36871344925](https://github.com/rrangjaa-eng/project_260923/actions/runs/36871344925), head `91c0ae5`, job110399604371: **success**, type/lint/build pass,unit148/148·E2E305/305,17.0분 | 2026-10-01 23:06 KST 종료. GitHub 실제 jobs·로그 직접 확인. 후속 전달 커밋은 제품 소스 변경 없음 |
-| 최종 설치물 | [ZIP](../downloads/tremor-browser-helper-3ae6ad2.zip),9파일,1,163,247 bytes, SHA256 `bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb`; integrity·production바이트대조·기존권한대조 pass | 사용자 승인에 따라 ZIP을 Git 추적·PR15 브랜치 push. Library는 저장되지 않음 |
+| 최종 설치물 | [ZIP](../downloads/tremor-browser-helper-3ae6ad2.zip),9파일,1,163,247 bytes, SHA256 `bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb`; integrity·production바이트대조·기존권한대조 pass | 사용자 승인에 따라 ZIP을 Git 추적·PR15 브랜치 push 완료. 실제 raw 다운로드 바이트 일치 pass. Library는 저장되지 않음 |
 | 최종 교체 안내 | [한국어 설치·교체·시작·종료 안내](../downloads/README.ko.md), [SHA256SUMS](../downloads/SHA256SUMS) | CI 대기 문구 제거. 구버전 끄기/제거·새버전 하나 로드·기존 탭 새로고침 안내 |
 | Library 교체 | 공식 업로드 도우미 첫 시도·허용된 1회 재시도 모두 전송 전 exit1; 기존 파일 유지 | tools/list network 오류; 연결 확인 HTTP tunnel403. 현재 read의 version_id는 null, 원본 xattr version0 보존. 직접/raw 업로드 우회 없음 |
 
@@ -89,3 +89,7 @@
 최신 구현 로그: `/tmp/switch-task1-green.log` (관련52 pass), `/tmp/switch-mode-report-red.log` (늦은 프레임 모드 보고 RED), `/tmp/switch-click-proxy.log` (실제 Space 링크 실행 pass), `/tmp/switch-checkpoint-type.log`, `/tmp/switch-checkpoint-lint.log`, `/tmp/switch-checkpoint-unit.log` (신규10 pass). 각 로컬 로그는 그 실행의 검증 범위에 한정하며 최종 종합 결과는 위 CI62를 참조한다. HTTP 문서에서 crypto.randomUUID 미지원과 content script의 storage.session 접근 차단을 실제 오류로 확인해 getRandomValues ID 및 백그라운드 읽기 중계로 수정했다.
 
 최신 마감: 구현 SHA `9741b0c467671a8e345b7663954b3495ba87f6f8`의 [CI62](https://github.com/rrangjaa-eng/project_260923/actions/runs/36852334422)는 success이며 E2E299/299, unit135/135, type/lint/build가 통과했다. 제품 구현과 해당 자동 검증은 완료로 기록한다. 실제 PC·IME·운동 사용성·실사이트는 미검증이다. CI run에서 worker 종료 후 재시작을 기다린 timeout 시나리오는 통과하지 않았으며, 자동 압축 설정의 파일/스키마 검증은 호스팅 runtime에서 실제 적용·실행됐다는 증거가 아니다. 둘 다 통과 수치에 포함하지 않는다. 후속 문서 커밋은 제품 구현 SHA를 바꾸지 않는다.
+
+## Git 다운로드 검증 완료 — 2026-10-01 23:55 KST
+
+[실제 확인한 ZIP 파일 화면](https://github.com/rrangjaa-eng/project_260923/blob/codex-single-switch-phase1/downloads/tremor-browser-helper-3ae6ad2.zip) · [실제 다운로드 ZIP](https://raw.githubusercontent.com/rrangjaa-eng/project_260923/refs/heads/codex-single-switch-phase1/downloads/tremor-browser-helper-3ae6ad2.zip) · [교체 안내](https://github.com/rrangjaa-eng/project_260923/blob/codex-single-switch-phase1/downloads/README.ko.md). 세 파일의 GitHub/raw 응답200·실제 다운로드 바이트 일치 근거는 [기록](verification/package-smoke/download-verification.json)에 보존했다. 새 전달 커밋에는 제품 코드 변경이 없어 제품SHA3ae6ad2와 CI65 검사HEAD91c0ae5는 그대로다. 전달 후 새 HEAD의 자동CI는 CI65 최종success와 별개이며 아직 완료로 계산하지 않는다. 최종 typecheck·lint는 exit0이다. Library 저장은 하지 않았고 merge/release/deploy는 수행하지 않았다.
