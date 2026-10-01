@@ -3,6 +3,7 @@
 환경: 최신 project_260923 클라우드, pnpm 10.33.0, Node 24.19.0, Chrome for Testing 153.0.8010.12. 시간은 KST.
 분기: `codex/installed-page-investigation`, 기준 `cb182d44c025a49feb66f44184867be1b0f3dd28`(제품 `9741b0c`).
 수정 제품: `6aeb4ce4dff8ed807ae7364d84004ba35e2d76a7`.
+전달 상태: **보류**. 새 CI64의 전체 E2E8건이 실패했으며 다음 턴에서 회귀 수정과 새 HEAD 검증을 이어간다.
 2차 작업은 로컬 `codex/phase2-cloud-design` / `f21a215`에 보존하고 중지했다. PR13/14 코드를 병합·복사하지 않았다.
 
 ## 신고와 재현
@@ -42,6 +43,8 @@
 | 최신 type/lint | 통과(exit 0) | `/tmp/urgent-type.log`, `/tmp/urgent-lint.log`; 커밋 전 `/tmp/urgent-checkpoint-type.log`, `/tmp/urgent-checkpoint-lint.log` |
 | 화면 자동 검사100 | 100/100 통과, 실패·불안정·스킵 0 | `/tmp/urgent-ui-review.log`, `/workspace/.cloud-onboarding/ui-review-runs/run-E13OCD/results.json` |
 | 최신 설치/기본 활동/편집기 회귀 | 46/46 통과(exit 0), production build 포함 | `/tmp/urgent-latest-e2e.log`; installed-popup, switch-journey, doc-editor, editor-frames, switch-disable |
+| 신규 CI64 전체 | **296 pass·8 fail**,18.3분,exit1. Node22.23.3의 type/lint/unit140/build pass | [run36861983233](https://github.com/rrangjaa-eng/project_260923/actions/runs/36861983233), head `3027291`, job110368157034 |
+| CI 실패 관련 로컬 재현 | **18 pass·같은8 fail**,3.8분,exit1; production build pass | `/tmp/urgent-ci64-target-red.log`, lifecycle/switch-editor-feedback/switch-recovery/switch-text |
 
 실패 기록은 삭제하거나 최종 통과 수에 합치지 않는다. 기존 CI62의 E2E299 통과는 이번 실제 설치 신고의 해결 근거가 아니다. 전체 E2E 수백 개를 로컬에서 재실행하지 않았다. 별도 신규 CI 결과는 최신 작업 현황표에 기록한다.
 
@@ -50,3 +53,11 @@
 독립 안전 검토에서 지연된 local 해제, 손상 안전 키, 초기 응답·실패 덮어쓰기, 초기 설정 미로딩 경계를 발견해 수정했다. 보안 경계는 extension sender ID, 정확한 popup URL, 탭 URL 재대조, 제한 URL 거절이다. DOM은 textContent/text node를 사용하고 기존 디자인 토큰·56px 카드·가시적 선택·600px popup 상한을 유지한다. 실제 native popup DOM 수치와 disabled 뒤 정상 키·클릭을 검사한다.
 
 실제 Windows 한국어 IME·운동 사용성·사용자 설치 프로필 및 두산 사이트 동작은 미검증이다. 수정 ZIP은 새 SHA로 구분하며 기존 설치본 비활성화를 유지하고 교체 시 중복 로드를 피하도록 안내한다. 2차 확장·파일창·실행기 작업은 이 신고 해결 결과를 전달한 뒤 별도로 재개한다. merge·배포·새 권한은 실행하지 않는다.
+
+## CI64 실패 인계
+
+- 초안·선택 복원7건: `switch-editor-feedback:4`, `switch-recovery:21,106`, `switch-text:22`의 input/textarea 두 경우와 `:51,68`. 기존 문장·선택이 초안에 누락되거나 panel이 없어 실패했다. 단언을 삭제·완화하지 않았다.
+- 코드 경로: 초기 로딩의 `currentEnabled=false→true`도 `enabledChanged()`를 호출하고 `invalidate()`가 빈 초안을 보존 대상으로 표시한다. capture 후 `!preservedDraft` 조건 때문에 실제 문장·선택을 가져오지 않는다. 첫 로딩·`switch/begin`과 이미 사용자가 편집한 작업의 보존을 구분하는 후속 수정이 필요하다. A/B 수정 검증은 아직 하지 않았다.
+- popup 경고1건: `lifecycle:212`, 사이트 토글 뒤 형식 변환 실패 경고로 복귀해야 하지만 저장 거절 경고가 남았다. 소스/재현 조사 중이며 실제 원인은 미확정이다. 자동 순환·scrollIntoView와 기존 좌표 기반 카드 떨림 필터의 상호작용도 확인할 대상이다.
+- 실패 [artifact11162833228](https://github.com/rrangjaa-eng/project_260923/actions/runs/36861983233/artifacts/11162833228)는 GitHub Actions에 보존됐다. 관련26건 로컬 재현도 동일한8건 실패(18 pass,3.8분,exit1)였으며 로그는 `/tmp/urgent-ci64-target-red.log`다.
+- 공식 Library 도우미는 최초와 허용된 재시도 모두 tools/list network 오류로 업로드 전 exit1이었다. 같은 호스트 연결 확인의 tunnel403을 관측했고 기존 Library 두 파일은 그대로다. 수정 ZIP은 `/tmp`에만 있으며 원격 Git에 ZIP 자체를 저장하지 않았다. 정확한 파일 경로·해시는 현황표에 보존한다.

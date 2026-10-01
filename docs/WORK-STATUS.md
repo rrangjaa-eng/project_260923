@@ -1,22 +1,35 @@
 # 작업 현황표
 
-갱신: 2026-10-01 21:27 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 긴급 수정 로컬 `codex/installed-page-investigation`
+갱신: 2026-10-01 21:54 KST · [draft PR #15](https://github.com/rrangjaa-eng/project_260923/pull/15) · 긴급 수정 로컬 `codex/installed-page-investigation`
 
 ## 설치본 신고 대응 — 현재 우선 작업
 
 사용자가 기존 ZIP의 페이지 연결·Space 활동 선택·종료 문제를 신고했다. 기존 자동299 통과로 신고를 닫지 않고 실제 설치와 네이티브 popup부터 재현했다. 2차 설계/worker 후속은 로컬 `codex/phase2-cloud-design`의 `f21a215`에 보존하고 중지했다.
 
+**사용자 전달 보류:** 새 CI64에서 기존 초안·선택 복원 회귀7건과 팝업 경고1건이 실패했다. 수정 ZIP `6aeb4ce`를 사용자에게 전달하지 않는다. 다음 턴은 이 회귀 수정과 새 HEAD 검증부터 이어가며 새 설계 승인 대기로 돌아가지 않는다. 이 턴의 마지막 변경은 검증·현황 문서뿐이다.
+
 | 항목 | 최신 실제 결과 | 남은 범위 |
 |---|---|---|
-| 수정 제품 SHA | `6aeb4ce4dff8ed807ae7364d84004ba35e2d76a7` | 별도 안전 브랜치와 허용된 PR15 브랜치에 fast-forward 푸시 예정 |
+| 수정 제품 SHA | `6aeb4ce4dff8ed807ae7364d84004ba35e2d76a7`; 제품·검증 문서 `3027291` 푸시 완료 | 원격 `codex-installed-page-investigation`·PR15 `codex-single-switch-phase1` 모두 같은 SHA 확인; merge 없음 |
 | 실제 설치·Space 시작·즉시 정지 | 최신 production 관련46/46 통과, native popup·HTTPS·기존/새 탭·held Space·정상 입력·Chrome 확장 관리 비활성화 포함 | 두산 공개 사이트는 `ERR_TUNNEL_CONNECTION_FAILED`, 미검증 |
 | 종료 경합 | 손상/읽기 실패/늦은 켜기/로컬 commit 지연 회귀 및 독립 검토 수정 | 저장·페이지 API 전체 불통 때 전역 정지 성공을 보장하지 않음 |
-| type/lint/unit/build | type/lint pass, unit140/140, production build pass | CI의 Node22 환경은 새 CI 결과로 별도 확인 |
+| type/lint/unit/build | 로컬 및 새 CI64에서 type/lint pass, unit140/140, production build pass; CI Node22.23.3 | 전체 E2E 실패를 별도로 유지 |
 | 자동 화면 검토 | 100/100 pass; 실패·불안정·스킵0 | 최신 작은 초기 catch·held선택 변경은 관련46에서 확인; 전체 WCAG/실제 운동 사용성 아님 |
 | 새 권한/의존성 | manifest storage/scripting/tabs·all_urls·content_scripts 동일, package/lock/config 변경 없음 | 새 권한·설치·네이티브 실행기 없음 |
-| 신규 CI·Library | 신규 CI 및 기존 ZIP/안내서 버전 교체 예정 | 결과를 실제 실행 뒤 기록 |
+| 독립 안전 검토 | 종료·초기 응답 revision 경계 검토에서 미해결 P1/P2 없었음 | 이후 전체 CI에서 초안·선택 복원7건 발견. 검토 범위를 전체 제품 통과로 확대하지 않음 |
+| 신규 CI64 | [run 36861983233](https://github.com/rrangjaa-eng/project_260923/actions/runs/36861983233), SHA `3027291`: **failure**, E2E296/304 pass·8 fail,18.3분,exit1 | 초안·선택 복원7건 및 popup 경고1건 수정 필요; 과거 CI62 결과를 재사용하지 않음 |
+| CI 실패 관련 로컬 재현 | production 관련26건: **18 pass·같은8 fail**,3.8분,exit1 | `/tmp/urgent-ci64-target-red.log`; 테스트 단언 유지. 전체 수백 건 재실행 없음 |
+| Library 교체 | 공식 업로드 도우미 첫 시도·허용된 1회 재시도 모두 전송 전 exit1; 기존 파일 유지 | tools/list network 오류; 연결 확인 HTTP tunnel403. 현재 read의 version_id는 null, 원본 xattr version0 보존. 직접/raw 업로드 우회 없음 |
 
 [재현·수정·검증 전문](verification/2026-10-01-installed-popup-safety.md) · [새 설치·시작·종료 안내](verification/single-switch-install-and-stop.md). 아래 이전 마감은 역사 기록이며 이번 실사용 신고의 해결 근거가 아니다. merge·배포는 수행하지 않는다.
+
+교체 대상은 ZIP `libfile_a430ceb874888191b7376f027cbe8fc8`과 안내서 `libfile_617036eb1a688191a270dcf8266a6326`이다. 재시도 뒤 read에서도 기존 file ID·수정 시각이 그대로였다. 수정 ZIP은 `/tmp/tremor-browser-helper-6aeb4ce.zip`(1,163,219 bytes, SHA256 `a1897b68b1b55e304954c76dec52e867408ca4c4551359b31974f16cead78f06`), 안내서는 `/tmp/Single-Switch-PC-check-6aeb4ce.md`(4,515 bytes, SHA256 `e4afadec3ac13a5455840fa4009020a363001b414db95df2ef4d0a84c3c04123`)에 준비돼 있다. 임시 파일이 장기 배포 저장소라는 뜻은 아니다. 안내서 원문과 제품 소스는 승인된 Git 브랜치에 보존했다. 원격 체크포인트 `3027291`의 Git tree에는 ZIP 파일이 없으며 새 ZIP을 원격에 추가하지 않았다. 업로드 문제로 제품 코드를 더 수정하지 않는다.
+
+업로드 도우미의 오류는 `library upload failed: hosted apps tools/list request failed: network`, exit1이며 결과 stdout은 0 bytes였다. 업로드 준비·바이트 전송·최종 저장 이전 단계다. 실패 호스트는 `chatgpt.com`이고, 같은 공식 엔드포인트의 별도 연결 확인에서 `Tunnel connection failed: 403 Forbidden`을 관측했다. 프록시의 연결 거절은 확인됐지만 정책 이름·거절 사유 본문은 제공되지 않았다. 비공식 업로드, 서명 URL 추측, 인증정보·환경 변경은 수행하지 않았다.
+
+다음 수정 대상: `content.ts`의 첫 안전 상태 로딩도 `currentEnabled=false→true`가 되어 `enabledChanged()`를 호출한다. 이 함수의 `invalidate()`는 아직 가져온 문장도 없는 빈 draft에 `preservedDraft=true`를 설정한다. 입력칸 capture는 성공해도 `!preservedDraft`일 때만 값·선택 범위를 draft로 가져오므로 기존 문장이 누락된다. `switch/begin`도 `invalidate()`를 사용하므로 첫 시작과 실제 보존할 작업의 구분을 함께 점검해야 한다. 이번 턴에서 제품 코드는 더 수정하지 않았으며 기존 단언은 유지한다. popup 경고1건의 원인은 아직 미확정이다.
+
+인계 문서 커밋은 별도 안전 원격 `codex-installed-page-investigation`에만 저장한다. PR15 head는 실제 CI64가 검사한 `3027291`을 유지해 같은 실패 코드의 전체 CI를 재실행하지 않는다. PR15 본문은 이전 완료 설명이 남아 있어 부모의 다음 갱신 대상이며, 이 턴에서 변경·재시도하지 않았다.
 
 ## 이전 1차 구현 마감 기록
 
