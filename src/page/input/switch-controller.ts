@@ -96,12 +96,13 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(disposed)return;
     const items=opts.collector.items().map((item)=>reportSwitchItem(item,opts.collector.get(item.id)));
     const identity=await request({type:'switch/report',documentGeneration:generation,path:framePathOf(window),items}) as {tabId?:number};
-    if(top&&identity.tabId!==undefined&&draft.text===''){
+    if(top&&identity.tabId!==undefined&&canRestoreDraft()){
+      const readGeneration=state.modeGeneration;
       const stored=await request({type:'switch/draft/read'}) as {text?:unknown};
-      const text=stored.text;
-      restoreDraft(text);
+      if(readGeneration===state.modeGeneration&&canRestoreDraft())restoreDraft(stored.text);
     }
   }
+  function canRestoreDraft(){return !disposed&&draft.text===''&&!preservedDraft&&selected===null&&initial===null;}
   function restoreDraft(text:unknown){if(typeof text==='string'&&text&&draft.text===''){draft=createDraft(text);preservedDraft=true;render();}}
   async function refreshTargets(startedGeneration:number){
     await publish();
