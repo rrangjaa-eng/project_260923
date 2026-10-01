@@ -103,7 +103,10 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     items.push(command(`refresh:${onlyInputs?'input':'all'}`,'목록 새로 읽기'));
     menu(items,onlyInputs?'입력칸 선택':'페이지 항목','itemScan',false);
   }
-  function editor(){menu([command('hangul:initial','한글 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('search','검색')],'글쓰기','composing',false);}
+  function editor(){
+    stack=[{title:'스페이스바 작업판',items:groups(),mode:'groupScan'}];
+    menu([command('hangul:initial','한글 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('search','검색')],'글쓰기','composing',false);
+  }
   function characterGroups(stage:'initial'|'medial'|'final'){
     const chars=stage==='initial'?INITIALS:stage==='medial'?MEDIALS:FINALS;
     menu(Array.from({length:Math.ceil(chars.length/6)},(_,i)=>command(`chars:${stage}:${String(i)}`,chars.slice(i*6,i*6+6).join(' '))),'한글 '+(stage==='initial'?'초성':stage==='medial'?'중성':'종성'),'composing');

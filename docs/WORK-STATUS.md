@@ -1,6 +1,17 @@
 # 작업 현황표
 
-갱신: 2026-10-01 16:49 KST · 현재 브랜치: `codex/single-switch-phase1` (로컬 구현)
+갱신: 2026-10-01 17:08 KST · 현재 브랜치: `codex/single-switch-phase1` (승인된 계획 구현)
+
+최신 사용자 승인(계획 제시 뒤 `진행해`)에 따라 제품 구현을 계속한다. 별도 문서 체크포인트 `58cc6e8`은 `codex/single-switch-design-checkpoint`에 보존했으며 개발 승인을 설계 대기로 되돌리지 않는다.
+
+| 최신 체크포인트 | 실제 결과 | 남은 작업 |
+|---|---|---|
+| 한글 새 문장·중간 수정·검색·읽기·뒤로·열린 탭 | 실제 Space만으로 전체 여정 통과 | 지원 실사이트·PC 사용성은 별도 |
+| 한글 완료 후 상위 메뉴 복귀 | 실제 E2E 실패 재현 → 수정 → 통과 | 조합 취소·쉬기·복구 추가 검사 |
+| 위 신규 E2E / typecheck / lint | 2/2 (2.8분), exit 0 / exit 0 / exit 0 | 이후 안전 변경은 영향 검사 재실행 |
+| 위험·대상 변경·무입력 확인 | 회귀 검사 작성·진행 중 | 안전 경계 수정·회귀·최종 리뷰/QA |
+
+로그: `/tmp/switch-editor-parent-red.log`, `/tmp/switch-journey-first.log`, `/tmp/switch-journey-type.log`, `/tmp/switch-journey-lint.log`. 초기 조회 기준 unit125·관련E2E22는 이번 여정 전에 통과한 기반이며 전체 기능 완료를 의미하지 않는다.
 
 이 표는 사용자 보고용 현황이다. GSD 페이즈 상태의 원본은 `.planning/`이며 이 표가 이를 대체하지 않는다. 통과는 아래 실제 실행 범위에 한정한다.
 
