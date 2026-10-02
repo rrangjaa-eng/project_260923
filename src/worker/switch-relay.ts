@@ -103,14 +103,20 @@ export function createSwitchRelay(writer: StorageWriter) {
       catch { return { result: 'unknown' }; }
     }
     {
+      const cancellation = cancellations.get(tabId) ?? 0;
+      cancellations.set(tabId, cancellation);
+      const cancelled = () => cancellations.get(tabId) !== cancellation;
       const tabs = await chrome.tabs.query({});
+      if (cancelled()) return { result: 'refused' };
       const supported = tabs.filter((tab) => tab.id !== undefined && !isUnsupportedUrl(tab.url) && /^https?:/.test(tab.url ?? ''));
       if (message.kind === 'tabs') return { tabs: supported.map((tab) => ({ id: tab.id, title: tab.title ?? tab.url })) };
       if (message.kind === 'back') { await chrome.tabs.goBack(tabId); return { result: 'done' }; }
       if (!supported.some((tab) => tab.id === message.tabId) || message.tabId === undefined) return { result: 'refused' };
       try {
         await chrome.tabs.sendMessage(message.tabId, { type: 'site/ping' }, { frameId: 0 });
+        if (cancelled()) return { result: 'refused' };
         await chrome.tabs.sendMessage(message.tabId, { type: 'switch/pause' }, { frameId: 0 });
+        if (cancelled()) return { result: 'refused' };
         await chrome.tabs.update(message.tabId, { active: true });
         return { result: 'done' };
       }
