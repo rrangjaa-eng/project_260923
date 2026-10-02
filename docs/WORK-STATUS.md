@@ -1,5 +1,13 @@
 # 작업 현황표
 
+## main 대상 통합 후보 전체 CI 완료 — 2026-10-02 16:08 KST
+
+[draft PR26](https://github.com/rrangjaa-eng/project_260923/pull/26), `codex-single-switch-integration`/`a453089c77a5130931cbd37fd948fb251cd33afa`가 main 대상 검토 후보다. [CI92](https://github.com/rrangjaa-eng/project_260923/actions/runs/36973766821)는 workflow/job 모두 success, type/lint/build 및 unit313/313(36파일), 전체E2E358/358(36.3분)으로 종료했다. 로컬 설치·끄기 회귀3/3(1.2분)도 통과했다. [원본 로그 수치·HEAD·트리 증거](verification/ci92-final-results.json).
+
+main/64976a7은 직접 조상이고 후보는54커밋·168파일(+8623/-56)이다. GitHub 테스트용 merge 트리는 후보와 동일하며 실제 main 병합은 하지 않았다. PR25와 제품·테스트·빌드 설정이 같고 통합 문서만 추가했다. PR8–14 별도 구현은 미포함, PR21/22 최종 수정은 동일 런타임 패치로 포함됐다. 기존 PR과 ZIP을 보존했다.
+
+이 `codex-pr26-verification-record` 브랜치는 최종 증거를 저장한 문서 전용 후속이다. 검증한 제품 HEAD를 문서 기록으로 바꾸지 않는다. 실제PC 한국어 IME·운동 사용성·실사이트, INPT-01/PRIV-01 전체는 미완료다. merge 승인 대기이며 deploy·ZIP 교체는 별도 승인 대상이다. 아래는 당시 이력이다.
+
 ## main 대상 통합 후보 준비 — 2026-10-02 15:26 KST
 
 `codex-single-switch-integration`은 main/64976a7의 직접 후손인 PR25/6592a1a에서 시작했다. 제품 코드는 보존하고 PR25 CI91 증거 및 통합·지원 범위 문서를 정리한다. PR8–14 별도 구현 미포함, PR21·22 최종 수정은 동일 런타임 패치로 포함됨을 확인했다. [통합 전략·지원 경계·ZIP 구분](INTEGRATION-CANDIDATE.md). 새 후보 type/lint/build, unit313/313(36파일), 실제 설치·끄기 회귀3/3(1.2분)이 통과했다. 독립 범위·문서 검토에서 추가P1/P2는 없었고 INPT-01/PRIV-01 미완료를 명시했다. [로컬 결과](verification/integration-local-results.json). main 대상 draft PR 최종 HEAD 전체 CI는 아직 실행 전이며 선행 CI91 성공으로 대신하지 않는다. 실제PC/운동 사용성/실사이트 미검증, merge·deploy·ZIP 교체 없음. 아래는 당시 이력이다.

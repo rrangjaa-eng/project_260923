@@ -15,7 +15,12 @@
     "duration": "1.2m",
     "command": "CI=true pnpm exec playwright test tests/e2e/switch-disable.e2e.ts tests/e2e/installed-popup.e2e.ts --grep 'disable stops automatic|production install'"
   },
-  "new_candidate_full_ci": "pending",
+  "new_candidate_full_ci": {
+    "status": "success",
+    "record": "ci92-final-results.json",
+    "unit_passed": 313,
+    "e2e_passed": 358
+  },
   "unchanged_from_product_reference": {
     "src": true,
     "tests": true,
@@ -37,5 +42,6 @@
     "motor usability",
     "real sites"
   ],
-  "independent_review": "No additional P1/P2 integration defects; INPT-01/PRIV-01 limitations added after documentation review"
+  "independent_review": "No additional P1/P2 integration defects; INPT-01/PRIV-01 limitations added after documentation review",
+  "candidate_head": "a453089c77a5130931cbd37fd948fb251cd33afa"
 }

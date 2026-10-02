@@ -1,0 +1,46 @@
+{
+  "checked_at": "2026-10-02T16:08:14+09:00",
+  "pr": 26,
+  "url": "https://github.com/rrangjaa-eng/project_260923/pull/26",
+  "branch": "codex-single-switch-integration",
+  "head": "a453089c77a5130931cbd37fd948fb251cd33afa",
+  "base": "64976a778d13ac884fbce8b4027be433d8d0c4fe",
+  "run": 36973766821,
+  "number": 92,
+  "job": 110733078737,
+  "status": "completed",
+  "conclusion": "success",
+  "unit": {
+    "passed": 313,
+    "files": 36
+  },
+  "browser": {
+    "passed": 358,
+    "minutes_reported": 36.3
+  },
+  "test_merge": {
+    "sha": "1b8539a8ffe4604b0e4ae049aa5f1a1dbd59beb8",
+    "tree": "6f7a98d8486a3ca303fd8e90a03d9aa40f81379e",
+    "tree_matches_candidate": true,
+    "actual_main_merge": false
+  },
+  "diff_against_main": {
+    "commits": 54,
+    "files": 168,
+    "insertions": 8623,
+    "deletions": 56
+  },
+  "log_evidence": [
+    "2026-10-02T06:29:41.0076552Z  Test Files  36 passed (36)",
+    "2026-10-02T06:29:41.0077870Z       Tests  313 passed (313)",
+    "2026-10-02T06:30:06.7612363Z [success] Built extension in 535 ms",
+    "2026-10-02T07:06:22.2618123Z   358 passed (36.3m)"
+  ],
+  "evidence_branch": "codex-pr26-verification-record",
+  "unverified": [
+    "실제 Windows 한국어 IME",
+    "운동 사용성",
+    "실사이트"
+  ],
+  "note": "workflow와 job의 최종 success 및 원본 로그 확인. 제품 HEAD와 main은 그대로이며 기록 브랜치는 문서 전용이다."
+}
