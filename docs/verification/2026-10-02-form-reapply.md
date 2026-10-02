@@ -28,3 +28,7 @@
 기존 open Shadow DOM 표시의 페이지 접근/변조 잔여위험은 이번 변경으로 해결되지 않는다. 다른 탭/사이트 요약과 보호 저장소의 신뢰 경계를 넓히지 않았다.
 
 병행 문서 검토에서 지적된 PR9의 과거03-15/16 타이핑 중150ms live-write/change-on-blur 계획은 최신 명시 적용 계약으로 대체한다. 과거03-14 평문 비밀번호 저장,03-20 OTP 판별 완화, 가져오기로 안전설정 덮어쓰기는 이번 구현 지침으로 사용하지 않는다. 개인정보 범위 변경은 보류한다.
+
+## Git 인계
+
+2026-10-02 11:41 KST: 제품 `53ce30fa0fd76b1a4b8e36a8f90c5007c1fc1bb1`을 `codex-form-reapply-confirmation`에 일반 push하고 [draft PR21](https://github.com/rrangjaa-eng/project_260923/pull/21)을 생성했다. base는 PR20 `codex-form-controls-errors`/`243aa2c`. PR번호 기록 후속은 문서만 바꾸며 제품/테스트 소스해시는 동일하다. 최종 원격 전체CI는 아직 미확정이다.

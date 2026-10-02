@@ -9,9 +9,9 @@ PR19 뒤에 이미 보존된 `codex-form-controls-errors`/`243aa2c`를 발견해
 | 항목 | 확인된 결과 | 남은 범위 |
 |---|---|---|
 | 새 단위 | 최초4 RED→GREEN; 경계 추가 후 새10/10·전체272/272 pass | 실제 PC/운동 사용성 별도 |
-| 독립 검토 | gpt-6.1-sol/high가 코드·최신 단위/브라우저 시험을 읽고 추가 P1/P2 없음 확인 | 실행 중 브라우저 최종 결과와 구분 |
+| 독립 검토 | gpt-6.1-sol/high가 코드·최신 단위/브라우저 시험을 읽고 추가 P1/P2 없음 확인 | 검토 범위와 실제 실행 결과를 구분 |
 | 브라우저·화면 | production 새2+기존양식/문서편집기/프레임 총48/48 pass,6.6분,exit0 | 기본 자동UI101/101 pass,0fail/skip/flaky,exit0 |
-| Git | 현재 후속 PR 미생성, 구현·검증 커밋·푸시 진행 | 실제 PR번호는 생성 응답으로 확인 |
+| Git | [draft PR21](https://github.com/rrangjaa-eng/project_260923/pull/21) 생성·open/draft·미병합, 제품53ce30f 일반push 완료 | 최종HEAD 전체CI 확인 필요 |
 
 [범위·이유·검증](verification/2026-10-02-form-reapply.md). 기존 open Shadow DOM 표시의 중간/낮은 잔여위험을 해결했다고 주장하지 않는다. 회사 시스템 시험·merge/deploy·설치ZIP교체·새권한/의존성 없음. 실제PC IME/손사용감, 사이트별 오류 원문, custom/radio/multiple, 최근값·민감판별 전체, 실제Windows/USB 및 Phase4~6은 여전히 남는다.
 
