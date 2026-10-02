@@ -49,7 +49,14 @@
       }
     }
   },
-  "ci": "not_started",
+  "ci": {
+    "run": 36998991950,
+    "number": 95,
+    "job": 110812099403,
+    "head": "0422cdeaeba7c87aa144f4593360fbdb5b415c56",
+    "status": "in_progress",
+    "conclusion": null
+  },
   "source_sha256": {
     "src/core/switch-order.ts": "6e27f8d0d34112a899f56c2da7f1b6b6adb088740f3378377f25b86edb38cecf",
     "src/shared/switch-messages.ts": "4576426932533ee6e083570d1bc7fe5856fb9f8542b68af8b3a5c89177d3430d",

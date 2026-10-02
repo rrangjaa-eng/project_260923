@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## draft PR28 게시 · 전체 CI 진행 — 2026-10-02 20:05 KST
+
+[draft PR28](https://github.com/rrangjaa-eng/project_260923/pull/28), `codex-switch-multiple-controls`/`0422cdeaeba7c87aa144f4593360fbdb5b415c56`를 게시했다. base는 미병합 PR27/`a22532cdf94f7f420bbb87e3e743adb9d267be98`, mergeable=true다. GitHub 테스트 merge `1e47bf8cbb6c6b6533955e9dd092e0ee96a6dd14`와 후보 tree `7729d74dac029855c4f3e0103e233cef90bd5471`이 같다.
+
+[CI95](https://github.com/rrangjaa-eng/project_260923/actions/runs/36998991950), job110812099403은 실행 중이다. 로컬352단위/새7브라우저/UI101 통과와 전체CI를 구분한다. 제품 HEAD는 고정하고 이 문서 후속은 `codex-pr28-verification-record`에 보존한다. PR27/28 미병합·deploy/ZIP교체 없음. 아래는 당시 기록이다.
+
 ## 일반 다중 선택 로컬 검증 완료 — 2026-10-02 20:03 KST
 
 `codex-switch-multiple-controls`는 미병합 [PR27](https://github.com/rrangjaa-eng/project_260923/pull/27)/`a22532cdf94f7f420bbb87e3e743adb9d267be98`와 CI94 증거 위에 쌓은 후속이다. `select multiple` 항목별 선택·해제를 제안하고 명시 적용한다. 비활성 항목 보존·전체 상태/의미 비교·일회 토큰·외부 form 제거·쉬기/unknown·초안 보존을 검증했다.
