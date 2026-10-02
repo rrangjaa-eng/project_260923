@@ -1,0 +1,48 @@
+{
+  "verified_at_kst": "2026-10-01 23:55 KST",
+  "delivery_commit": "2a0b3f5db70e2fefb0090ed2fe039f64500dd3df",
+  "results": [
+    {
+      "kind": "github",
+      "url": "https://github.com/rrangjaa-eng/project_260923/blob/codex-single-switch-phase1/downloads/tremor-browser-helper-3ae6ad2.zip",
+      "status": 200,
+      "bytes": 228059
+    },
+    {
+      "kind": "raw",
+      "url": "https://raw.githubusercontent.com/rrangjaa-eng/project_260923/refs/heads/codex-single-switch-phase1/downloads/tremor-browser-helper-3ae6ad2.zip",
+      "status": 200,
+      "bytes": 1163247,
+      "sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
+      "local_byte_match": true
+    },
+    {
+      "kind": "github",
+      "url": "https://github.com/rrangjaa-eng/project_260923/blob/codex-single-switch-phase1/downloads/README.ko.md",
+      "status": 200,
+      "bytes": 266933
+    },
+    {
+      "kind": "raw",
+      "url": "https://raw.githubusercontent.com/rrangjaa-eng/project_260923/refs/heads/codex-single-switch-phase1/downloads/README.ko.md",
+      "status": 200,
+      "bytes": 5792,
+      "sha256": "ee162881608876597dde44a94edec3255d22e206689eb6d1567fa223933d7d88",
+      "local_byte_match": true
+    },
+    {
+      "kind": "github",
+      "url": "https://github.com/rrangjaa-eng/project_260923/blob/codex-single-switch-phase1/downloads/SHA256SUMS",
+      "status": 200,
+      "bytes": 231894
+    },
+    {
+      "kind": "raw",
+      "url": "https://raw.githubusercontent.com/rrangjaa-eng/project_260923/refs/heads/codex-single-switch-phase1/downloads/SHA256SUMS",
+      "status": 200,
+      "bytes": 179,
+      "sha256": "c80157f1c75b40df05a0425ddaebe8d398de241e9a299cdfd23c0a4efc363265",
+      "local_byte_match": true
+    }
+  ]
+}

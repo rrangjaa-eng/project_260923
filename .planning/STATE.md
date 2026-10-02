@@ -3,11 +3,11 @@ gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: 클릭 도우미 기반
 status: executing
-stopped_at: Completed 01-19-PLAN.md
-last_updated: "2026-09-26T17:33:02.762Z"
+stopped_at: "PR15: selection/panel 0dfb4ba remote; full296 green; final feedback8/long1/defaultUI100/type/lint/unit135 green. Verify final HEAD CI, then actual-PC handoff; no design restart or GSD phase-complete claim."
+last_updated: "2026-10-01T10:56:37.949Z"
 last_activity: 2026-09-24
 last_activity_desc: Phase 01 execution started
-state_head: 4addac52b08057979eca797f817ff4ec22a05933
+state_head: 0dfb4ba5d814b2ed774340d4a77ba3b65ffb0866
 progress:
   total_phases: 6
   completed_phases: 0
@@ -156,6 +156,7 @@ Recent decisions affecting current work:
 - [Phase 1]: Post-build 진행 방식: 남은 단계(/design-review 마무리 감사 5회차, /cso, /ship)는 머지를 막는 항목(Critical·차단)만 고치고, 경고·작은 지적은 Phase 2 후속 목록으로 넘긴다. 단계 하나가 끝날 때마다 /gsd-pause-work로 인계하고 새 세션에서 이어 간다(사용자 결정 2026-09-26)
 - [Phase 1]: 후속(Phase 2, 비차단 N1): 번호표끼리만 막힌 경우 코드는 링 탐색 없이 요소 안쪽(SYSTEM.md 64행)을 쓰지만 새 규칙 줄·DECISIONS.md는 '자리가 정말 없을 때만' 번호표끼리 겹침 허용 — 문서와 코드 불일치. 50%·67% 축소 big.html에서만 발생(100/75/150%는 0). 어느 규칙을 따를지 Phase 2에서 결정
 - [Phase 1]: /cso(Post-build 4) 완료 — 머지 차단 0. gstack cso 실행기(build:cso)로 제품 코드 사본(벤더링 .claude/skills·gsd-core 제외, 스냅샷 1 MiB 한도) 대상 3회 실행: daily 1790442962041-81fe8594fa6d5ce9(partial, 발견 없음), --supply-chain 1790443163664-3647266704dc6681(partial, 발견 없음; 번들 런타임 zod 4.6.5 권고 0, 잠금 274개 권고 0, CI pull_request·contents:read·시크릿 없음), --code 1790443157658-e9a56262a0374698(partial, F1 medium·F2 low). F1(다른 출처 iframe 위험 확인을 맨 위 open shadow root에 그려 악성 맨 위 페이지가 번호표·확인 문구를 바꿔 우회)과 F2(다른 출처 iframe 위험 버튼 글자·위치 노출)는 Phase 2 후속. 후속 권고: 다른 출처 프레임 확인을 그 프레임/확장 UI로 옮기고 confirmed 불신, 프로덕션 closed shadow root, 액션 SHA 고정, install_pkgs.sh gstack 설치 frozen·ignore-scripts, 시험 훅 빌드 플래그 제거(IN-02), settings-schema·git 이력·OSV 재감사. 보고서 /root/.gstack/security/cso/4a29baba43a59ab40b80efb9/<run>/report.md(컨테이너 로컬). — 사용자 결정: F1은 Critical이 아니고 근본 수정은 확인 화면 위치를 바꾸는 설계 변경(SYSTEM.md·DESIGN §4 절차 대상)이라 Phase 2 후속으로 넘기고 머지(차단만 머지 전 수정 기준).
+- [Phase 1-to-3 single-switch]: 최신 사용자 승인으로 Space 단일 스위치 8단계 구현 중. Phase1 기반 보강과 Phase3 일부 선행 개발이며 기존 Phase 완료·PC 시험 완료는 아님. 기준 연결: docs/superpowers/plans/2026-10-01-single-switch-project-map.md; draft PR15 — 기존 19개 PLAN/SUMMARY, human_needed 검증과 후속 C# 인계 결정을 보존하고 단일 스위치 확인/입력 계약만 승인 설계로 확장한다.
 
 ### Pending Todos
 
@@ -183,6 +184,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-26T06:18:41.738Z
-Stopped at: Completed 01-19-PLAN.md
-Resume file: None
+Last session: 2026-10-01T10:56:37.899Z
+Stopped at: PR15: selection/panel 0dfb4ba remote; full296 green; final feedback8/long1/defaultUI100/type/lint/unit135 green. Verify final HEAD CI, then actual-PC handoff; no design restart or GSD phase-complete claim.
+Resume file: docs/WORK-STATUS.md

@@ -105,6 +105,7 @@ const HintsKeyMessage = z.object({
 const ModeReportMessage = z.object({
   type: z.literal('mode/report'),
   mode: z.enum(['helper', 'typing']),
+  sourcePath: z.array(z.number().int().nonnegative()).optional(),
 });
 
 const SetEnabledOp = z.object({
@@ -206,6 +207,8 @@ const ZoomChangedMessage = z.object({
 });
 
 export const Message = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('helper/state') }).strict(),
+  z.object({ type: z.literal('helper/safety'), off: z.boolean(), revision: z.number().int().nonnegative(), instance: z.string().max(100) }).strict(),
   StorageRequestMessage,
   FrameStateMessage,
   FrameReportMessage,

@@ -54,6 +54,7 @@ declare namespace chrome.runtime {
 }
 
 declare namespace chrome.storage {
+  const session: StorageArea;
   interface StorageArea {
     // key가 null이면 저장된 모든 항목을 돌려준다(01-17 Task 3: 편집기 iframe 기록이 맨 위 사이트
     // 출처 키에만 쌓이는지, presses:null 같은 불투명 출처 키가 없는지 시험이 전체를 훑어본다).
@@ -79,7 +80,11 @@ declare namespace chrome.storage {
 }
 
 declare namespace chrome.tabs {
+  function update(tabId: number, properties: { active: boolean }): Promise<Tab>;
+  function goBack(tabId: number): Promise<void>;
+  function goForward(tabId: number): Promise<void>;
   interface Tab {
+    title?: string;
     id?: number;
     url?: string;
   }
@@ -134,6 +139,7 @@ declare namespace chrome.scripting {
 // 확장 아이콘(D-21): 제목·배지로 "도울 수 없음"을 알린다. tabId를 생략하면 기본값에 적용된다
 // (이 계획들은 항상 tabId를 명시해서 쓴다).
 declare namespace chrome.action {
+  function openPopup(): Promise<void>;
   function setTitle(details: { tabId?: number; title: string }): Promise<void>;
   function getTitle(details: { tabId?: number }): Promise<string>;
   function setBadgeText(details: { tabId?: number; text: string }): Promise<void>;

@@ -1,4 +1,6 @@
 import { isSameElement } from '@/core/fingerprint';
+import { HELPER_SAFETY_OFF_KEY } from '@/core/helper-safety';
+import { changedPhrases } from '@/core/switch-phrases';
 import {
   CURRENT_SCHEMA_VERSION,
   MIGRATION_NOTICE_KEY,
@@ -20,7 +22,7 @@ import type { UpdateSettingsPatch } from '@/shared/messages';
 // 단일 저장자(D-24): chrome.storage.*.set 호출은 이 파일에만 둔다. 요청은 Promise 줄로 순서대로
 // 처리해 연타·동시 요청에도 마지막 요청이 최종 상태가 되게 한다.
 
-export type SetEnabledResult = { ok: true } | { ok: false; reason: 'preserved-original' | 'item-too-large' };
+export type SetEnabledResult = { ok: true } | { ok: false; reason: 'preserved-original' | 'item-too-large' | 'superseded' };
 
 export type UpdateSettingsResult =
   | { ok: true }
@@ -42,6 +44,8 @@ const SYNC_WRITE_WINDOW_MS = 60_000;
 const SYNC_WRITE_LIMIT = 100;
 
 export interface StorageWriter {
+  changeSwitchPhrases(raw: unknown, authorized: () => Promise<boolean>): Promise<{ ok: boolean }>;
+  writeSwitchData(key: string, value: unknown, area: 'local' | 'session'): Promise<{ ok: boolean }>;
   setEnabled(enabled: boolean): Promise<SetEnabledResult>;
   updateSettings(patch: UpdateSettingsPatch): Promise<UpdateSettingsResult>;
   ensureDefaultSettings(): Promise<void>;
@@ -56,6 +60,18 @@ type SyncSetResult = { ok: true } | { ok: false; reason: 'item-too-large'; key: 
 
 export function createStorageWriter(): StorageWriter {
   let queue: Promise<unknown> = Promise.resolve();
+  let enabledIntent = 0;
+  let safetyQueue: Promise<unknown> = Promise.resolve();
+  function writeSafety(off: boolean, intent: number): Promise<boolean> {
+    const writing = safetyQueue.then(async () => {
+      if (intent !== enabledIntent) return false;
+      await chrome.storage.local.set({ [HELPER_SAFETY_OFF_KEY]: off });
+      return intent === enabledIntent;
+    });
+    // 설정·동기화 큐와 분리하되 로컬 해제와 정지 commit 순서는 뒤집히지 않는다.
+    safetyQueue = writing.catch(() => undefined);
+    return writing;
+  }
 
   function enqueue<T>(task: () => Promise<T>): Promise<T> {
     const result = queue.then(task);
@@ -200,9 +216,45 @@ export function createStorageWriter(): StorageWriter {
   }
 
   return {
+    changeSwitchPhrases(raw, authorized) {
+      return enqueue(async () => {
+        const stored = await chrome.storage.local.get('switchPhrases');
+        if (changedPhrases(stored.switchPhrases, raw) === null || !await authorized()) return { ok: false };
+        const latest = await chrome.storage.local.get('switchPhrases');
+        const next = changedPhrases(latest.switchPhrases, raw);
+        if (next === null || !await authorized()) return { ok: false };
+        await chrome.storage.local.set({ switchPhrases: next });
+        return { ok: true };
+      });
+    },
+    writeSwitchData(key, value, area) {
+      return enqueue(async () => {
+        if (!/^(switchSettings|switchPhrases|switchDraft:\d+)$/.test(key)) return { ok: false };
+        await chrome.storage[area].set({ [key]: value });
+        return { ok: true };
+      });
+    },
     setEnabled(enabled) {
+      const intent = ++enabledIntent;
+      if (!enabled) {
+        // 원본 설정을 덮어쓰지 않고 로컬 차단을 영속화한다. 실행 정지는 background가 먼저 방송한다.
+        // 이 쓰기는 동기화 읽기·할당량 대기와 독립적이고 로컬 해제 쓰기 뒤 순서를 지킨다.
+        return writeSafety(true, intent).then((applied) => {
+          if (!applied) return { ok: false as const, reason: 'superseded' as const };
+          // 기존 설정 표시·동기화를 가능한 경우 따라오게 한다. 이 정리는 정지 응답을 막지 않는다.
+          void enqueue(async () => {
+            const stored = await chrome.storage.sync.get(SETTINGS_KEY);
+            const parsed = SettingsV1.safeParse(stored[SETTINGS_KEY] ?? defaultSettings());
+            if (intent !== enabledIntent || !parsed.success) return;
+            const written = await syncSet({ [SETTINGS_KEY]: { ...parsed.data, data: { ...parsed.data.data, enabled: false } } });
+            if (written.ok) void chrome.storage.local.remove(MIGRATION_NOTICE_KEY);
+          }).catch(() => undefined);
+          return { ok: true as const };
+        });
+      }
       return enqueue(async () => {
         const read = await readAndValidateSettings();
+        if (intent !== enabledIntent) return { ok: false, reason: 'superseded' };
         if (!read.ok) {
           return { ok: false, reason: 'preserved-original' };
         }
@@ -215,6 +267,8 @@ export function createStorageWriter(): StorageWriter {
         if (!writeResult.ok) {
           return { ok: false, reason: 'item-too-large' };
         }
+        if (intent !== enabledIntent) return { ok: false, reason: 'superseded' };
+        if (!await writeSafety(false, intent)) return { ok: false, reason: 'superseded' };
         return { ok: true };
       });
     },

@@ -112,6 +112,12 @@ export const test = base.extend<Fixtures>({
     // skeleton.e2e.ts의 launchExtension()과 같은 이유: service worker 대상이 알려지는 시점과
     // chrome.storage 같은 확장 API 바인딩이 실제로 주입되는 시점 사이의 짧은 틈을 기다린다.
     await expect.poll(() => serviceWorker.evaluate(() => typeof chrome.storage !== 'undefined')).toBe(true);
+    // API 주입과 onInstalled 기본 설정 쓰기는 별도 비동기 단계다. 설정을 수정하는 시험은
+    // 실제 초기화가 끝나야 시작한다(값을 만들어 넣거나 기존 단언을 약화하지 않는다).
+    await expect.poll(() => serviceWorker.evaluate(async () => {
+      const stored = await chrome.storage.sync.get('settings');
+      return stored.settings !== undefined;
+    })).toBe(true);
     await use(serviceWorker);
   },
 

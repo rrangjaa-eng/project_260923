@@ -1,0 +1,41 @@
+{
+  "recorded_at": "2026-10-02 11:57 KST",
+  "base": "e736350fba086bfb38a40070db24d4d53a74fef7",
+  "source_sha256": {
+    "src/worker/switch-relay.ts": "f126b99e591fccb76f3c117f37ee4da3161a407ba7a538ec1636e76db07ea626",
+    "tests/unit/switch-navigation.test.ts": "85d381e11eef02d0b59fd35f020881520a95ceba3ad502af9080fb9557376a6a",
+    "tests/e2e/switch-navigation-cancel.e2e.ts": "a026f5e4c7b8a0587f77c37fbda372297bf252d580205017e65b37fc840e0cc9"
+  },
+  "unit_red": {
+    "failed": 2,
+    "passed": 2
+  },
+  "removed_tab_red": {
+    "failed": 1,
+    "passed": 5
+  },
+  "unit_final": {
+    "passed": 278,
+    "new_cases": 6,
+    "exit": 0
+  },
+  "browser_initial": {
+    "failed": 1,
+    "passed": 2,
+    "minutes_reported": 3.0,
+    "failure": "pending Space is not a rest command; existing journey and source-tab removal passed"
+  },
+  "browser_final": {
+    "passed": 2,
+    "seconds_reported": 22.6,
+    "exit": 0,
+    "scope": "actual focus-loss pause, source-tab removal"
+  },
+  "unverified": [
+    "general pending Space stop",
+    "all navigation authorization before worker acceptance",
+    "Windows IME",
+    "motor usability",
+    "real sites"
+  ]
+}

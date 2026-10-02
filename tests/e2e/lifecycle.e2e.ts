@@ -156,7 +156,7 @@ test('설정 형식 변환이 실패한 상태에서 연습 사이트를 열면 
   await page.close();
 });
 
-test('메뉴에 --warning 경고 카드가 뜨고, 저장이 실패하면 카드 문구가 바뀐다', async ({ serviceWorker, openPopup }) => {
+test('손상된 원본과 --warning 안내를 보존하면서 팝업에서 도우미를 끌 수 있다', async ({ serviceWorker, openPopup }) => {
   await seedMigrationFailure(serviceWorker);
   const popup = await openPopup();
 
@@ -166,7 +166,9 @@ test('메뉴에 --warning 경고 카드가 뜨고, 저장이 실패하면 카드
 
   await popup.getByRole('button', { name: '도우미 끄기' }).click();
 
-  await expect(warningCard).toHaveText(PRESERVED_ORIGINAL_TEXT);
+  await expect(popup.getByText('지금: 꺼짐')).toBeVisible();
+  await expect(warningCard).toHaveText(MIGRATION_FAILED_TOAST_TEXT);
+  expect(await readLocalKey(serviceWorker, 'helperSafetyOff')).toBe(true);
   const settingsAfter = await readSyncKey(serviceWorker, 'settings');
   expect(settingsAfter).toEqual({ schemaVersion: 99, data: { corrupted: true } });
 
@@ -206,13 +208,13 @@ test('F3: 형식 변환 실패 경고가 뜬 상태에서 사이트 카드 토�
 // W1(DOM 감사 2회차 팝업 경고 겹침): showWarningCard가 warningKind를 덮어써, 형식 변환 실패(D-25)
 // 경고가 뜬 상태에서 토글 실패 안내가 뜨면 kind가 toggle로 바뀌고, 이어서 그 토글(또는 다른
 // 토글)이 성공하면 hideToggleWarningCard가 안내를 통째로 지웠다 — 설정은 여전히 깨져 있는데
-// 카드가 0개가 된다. 실제 경로: 설정 손상 → 1(도우미 끄기) 실패 안내 → 2(사이트 끄기) 성공.
-test('W1: 도우미 끄기가 실패한 뒤 사이트 토글이 성공해도 형식 변환 실패 경고가 다시 보인다', async ({
+// 카드가 0개가 된다. 실제 경로: 설정 손상 → 끄기 성공 → 켜기 실패 안내 → 사이트 끄기 성공.
+test('W1: 도우미 켜기가 실패한 뒤 사이트 토글이 성공해도 형식 변환 실패 경고가 다시 보인다', async ({
   context,
   serviceWorker,
   openPopup,
   servePage,
-}) => {
+}, testInfo) => {
   await seedMigrationFailure(serviceWorker);
   servePage('http://practice.test/', '<!doctype html><html><body><h1>연습 사이트</h1></body></html>');
   const page = await context.newPage();
@@ -220,14 +222,33 @@ test('W1: 도우미 끄기가 실패한 뒤 사이트 토글이 성공해도 형
   await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(true);
 
   const popup = await openPopup(page);
+  await popup.evaluate(() => {
+    const events: unknown[] = [];
+    (globalThis as unknown as { popupToggleEvents: unknown[] }).popupToggleEvents = events;
+    document.addEventListener('click', (event) => {
+      const button = event.composedPath().find((node) => node instanceof HTMLButtonElement);
+      if (!(button instanceof HTMLButtonElement)) return;
+      const rect = button.getBoundingClientRect();
+      events.push({ label: button.textContent, x: rect.x, y: rect.y, time: event.timeStamp });
+    }, true);
+  });
   const warningCard = popup.locator('.warning-card');
   await expect(warningCard).toHaveText(MIGRATION_FAILED_TOAST_TEXT);
 
   await popup.getByRole('button', { name: '도우미 끄기' }).click();
+  await expect(popup.getByText('지금: 꺼짐')).toBeVisible();
+  await popup.waitForTimeout(350);
+  await popup.getByRole('button', { name: '도우미 켜기' }).click();
   await expect(warningCard).toHaveText(PRESERVED_ORIGINAL_TEXT);
 
   await popup.getByRole('button', { name: /이 사이트에서 끄기/ }).click();
   await expect.poll(() => page.evaluate(() => document.querySelector('tremor-helper-root') !== null)).toBe(false);
+  const eventPath = testInfo.outputPath('popup-toggle-events.json');
+  fs.writeFileSync(eventPath, JSON.stringify(await popup.evaluate(() => (globalThis as unknown as { popupToggleEvents: unknown[] }).popupToggleEvents)));
+  const sitePath = testInfo.outputPath('popup-site-storage.json');
+  fs.writeFileSync(sitePath, JSON.stringify(await serviceWorker.evaluate((key) => chrome.storage.sync.get(key), siteKey('http://practice.test'))));
+  await testInfo.attach('popup-toggle-events', { path: eventPath, contentType: 'application/json' });
+  await testInfo.attach('popup-site-storage', { path: sitePath, contentType: 'application/json' });
 
   // 사이트 토글은 성공했지만 settings는 여전히 깨져 있다 — 카드 0개가 아니라 D-25 경고로
   // 되돌아가야 한다(role="alert" 유지, DOM 감사 경고 1).

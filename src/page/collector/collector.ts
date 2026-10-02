@@ -328,7 +328,7 @@ function intersectRects(a: Rect, b: Rect): Rect | undefined {
   return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
 
-function contentBoxOf(el: HTMLIFrameElement): Rect {
+export function contentBoxOf(el: HTMLIFrameElement): Rect {
   const rect = el.getBoundingClientRect();
   const style = getComputedStyle(el);
   const borderLeft = Number.parseFloat(style.borderLeftWidth) || 0;

@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<title>검색 결과 연습</title>
+<h1>검색 결과</h1>
+<output id="query"></output>
+<a href="/switch-article.html">한글 결과 읽기</a>
+<script>document.querySelector('#query').textContent = new URLSearchParams(location.search).get('q');</script>
+</html>

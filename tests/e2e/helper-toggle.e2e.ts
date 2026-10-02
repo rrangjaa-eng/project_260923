@@ -1,5 +1,16 @@
 import { test, expect } from './fixtures';
 
+test('WR-06: 화면 위치가 움직인 같은 카드를 빠르게 다시 눌러도 한 번만 토글된다', async ({ serviceWorker, openPopup }) => {
+  const popup = await openPopup();
+  const helper = popup.locator('[data-helper-toggle="true"]');
+  await expect(helper).toHaveText('1도우미 끄기');
+  await helper.click();
+  await helper.evaluate((card) => { (card as HTMLElement).style.transform = 'translateY(80px)'; });
+  await helper.click();
+  await expect.poll(() => serviceWorker.evaluate(async () => (await chrome.storage.local.get('helperSafetyOff')).helperSafetyOff)).toBe(true);
+  await expect(popup.getByText('지금: 꺼짐')).toBeVisible();
+});
+
 // D-20(SAFE-04)·D-23(STOR-01): 팝업 "도우미 끄기(전체)" → 단일 저장자 → storage.sync → 모든 프레임 →
 // 맨 위 프레임 모드 표시, 한 경로(tracer). 연습 사이트는 servePage가 등록하는 로컬 고정물이다(D-28).
 
@@ -81,7 +92,7 @@ test('팝업에 포커스가 있을 때 숫자 1(Digit1·Numpad1)을 누르면 �
 
 test('카드를 빠르게 5번 누르면 storage.sync의 최종 상태가 마지막 누름과 같다', async ({ serviceWorker, openPopup }) => {
   const popup = await openPopup();
-  const card = popup.locator('.card').first();
+  const card = popup.locator('[data-helper-toggle=true]');
 
   for (let i = 0; i < 5; i += 1) {
     await card.click();
@@ -122,7 +133,7 @@ test('같은 출처·다른 출처 iframe 모두 도우미 켜짐/꺼짐을 SW�
   }).toBe(true);
 
   const popup = await openPopup();
-  await popup.locator('.card').first().click();
+  await popup.locator('[data-helper-toggle=true]').click();
 
   await expect.poll(async () => {
     const states = await readFrameStates();
@@ -131,7 +142,7 @@ test('같은 출처·다른 출처 iframe 모두 도우미 켜짐/꺼짐을 SW�
 
   // WR-06: 같은 카드를 다시 누르는 것 — 떨림 두 번 탭과 구분되도록 간격을 띄운다.
   await popup.waitForTimeout(350);
-  await popup.locator('.card').first().click();
+  await popup.locator('[data-helper-toggle=true]').click();
 
   await expect.poll(async () => {
     const states = await readFrameStates();
@@ -179,7 +190,7 @@ test('WR-06: 1을 틈 없이 두 번 누르면(떨림 두 번 탭) 한 번만 �
 
 test('WR-06: 카드를 틈 없이 두 번 클릭하면(떨림 두 번 탭) 한 번만 토글된다', async ({ serviceWorker, openPopup }) => {
   const popup = await openPopup();
-  const card = popup.locator('.card').first();
+  const card = popup.locator('[data-helper-toggle=true]');
   // WR-06 위 시험과 같은 이유 — 팝업 레이아웃이 자리 잡을 시간을 준다.
   await popup.waitForTimeout(200);
 
@@ -209,7 +220,7 @@ test('WR-06: 키를 계속 눌러 생기는 자동 반복(keydown repeat)은 토
 
 test('메뉴 카드 높이가 56px 이상이고 카드 안에 키 칩 "1"이 있다', async ({ openPopup }) => {
   const popup = await openPopup();
-  const card = popup.locator('.card').first();
+  const card = popup.locator('[data-helper-toggle=true]');
 
   await expect(card.locator('.key-chip')).toHaveText('1');
   const box = await card.boundingBox();
@@ -220,7 +231,7 @@ test('메뉴 카드 높이가 56px 이상이고 카드 안에 키 칩 "1"이 있
 // 낙관적으로 바뀐 문구가 실제 상태와 다른 채 영원히 남는다 — 안내도 없다. e2e 전용 훅
 // (holdStorageResponseForE2E, background.ts)으로 SW가 sendResponse를 부르지 않는 상황을
 // 재현해, 클라이언트 쪽 시간 제한(3초)이 실제로 되돌리고 안내하는지 본다.
-const HELPER_TOGGLE_FAILED_TEXT = '도우미 상태를 바꾸지 못했어요. 다시 눌러 보세요.';
+const HELPER_TOGGLE_FAILED_TEXT = '도우미 상태를 바꾸지 못했어요. 브라우저 확장 관리에서 도우미를 끄고 페이지를 새로고침하세요.';
 
 test('WR-03: 도우미 카드가 응답 없이 3초 넘게 기다리면 실제 상태로 되돌아가고 안내 문구가 뜬다', async ({
   serviceWorker,

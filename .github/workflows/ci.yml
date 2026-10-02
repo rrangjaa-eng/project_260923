@@ -18,7 +18,7 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       CI: 'true'
     steps:
@@ -42,7 +42,8 @@ jobs:
       # 화면 시험은 확장을 올린 Chromium이 필요하다(tests/e2e/fixtures.ts가 channel 'chromium'을 쓴다).
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
-        timeout-minutes: 20
+        # CI79의 전체343건은32.9분. 이동·정지 후속까지 생략 없이 검증할 여유를 둔다.
+        timeout-minutes: 40
 
       - uses: actions/upload-artifact@v4
         if: failure()

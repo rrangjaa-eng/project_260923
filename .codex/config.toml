@@ -1,0 +1,111 @@
+# .claude/settings.json → Codex 설정 적용판
+# 기존 Claude 설정·프로젝트 소스는 변경하지 않는다.
+# 이 파일은 Codex CLI용이다. 실행 중인 클라우드 채팅의 모델/훅/플러그인을
+# 자동 재등록하거나 즉시 교체하지 않는다. 호스트에는 별도 시작 지침으로 적용한다.
+
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"
+model_verbosity = "low"
+
+# 자동 압축 임계값은 미설정으로 모델 기본값을 유지한다. 설치된 CLI 스키마
+# (0.159.0-alpha.3)와 공식 reference에서 지원 확인. 모델 문맥 크기/접두 길이의
+# 실제 수치가 없으므로 임의 model_context_window나 토큰 임계값을 넣지 않는다.
+# total은 긴 지침 접두까지 포함하는 기본 계산이다. 현재 호스팅 채팅에 이 파일이
+# 즉시 적용되거나 에이전트가 내장 압축을 실행했다는 의미는 아니다.
+model_auto_compact_token_limit_scope = "total"
+
+# Claude BASH_MAX_TIMEOUT_MS는 Codex 명령 제한 시간이 아니다.
+# 호환 환경값은 아래에 보존한다. background_terminal_max_timeout은 폴링 한도라
+# 의미가 달라 20분으로 바꾸지 않는다. 상태 갱신은 60초 이내로 유지한다.
+
+[shell_environment_policy.set]
+TZ = "Asia/Seoul"
+LANG = "ko_KR.UTF-8"
+LC_ALL = "ko_KR.UTF-8"
+LANGUAGE = "ko_KR:ko"
+BASH_MAX_TIMEOUT_MS = "1200000"
+GSD_RUNTIME = "codex"
+GSD_AGENTS_DIR = "/workspace/.cloud-onboarding/gsd-local/.codex/agents"
+RUNTIME_DIR = "/workspace/.cloud-onboarding/gsd-local/.codex"
+
+# 사용자 지정 작업별 기준. 사용 불가 시 보고하고 임의로 대체하지 않는다.
+# 프로필은 선택 설정이며 난이도를 자동 판별해서 모델을 교체하는 기능은 아니다.
+# 작업마다 모델과 추론 강도를 명시해 선택한다. 사용자 변경 요청 시만 기준을 조정한다.
+# 이 파일은 실행 중인 세션이나 부모의 세션 생성 인자를 자동 변경하지 않는다.
+[profiles.quick]
+model = "gpt-6-luna"
+model_reasoning_effort = "low"
+model_verbosity = "low"
+
+[profiles.implementation]
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"
+model_verbosity = "low"
+
+# 복잡한 설계·디버깅·검토.
+[profiles.review]
+model = "gpt-6.1-sol"
+model_reasoning_effort = "high"
+model_verbosity = "low"
+
+[profiles.critical]
+model = "gpt-6.1-sol"
+model_reasoning_effort = "high"
+model_verbosity = "low"
+
+# 독립 작업에서 필요한 경우에만 위임한다. 작은 파일 조회·명령 실행에
+# 별도 LLM을 호출하지 않는다. 명시적 모델 선택이 없는 위임의 기본값만 설정한다.
+[agents]
+max_depth = 1
+max_concurrent_threads_per_session = 3
+default_subagent_model = "gpt-6-luna"
+default_subagent_reasoning_effort = "low"
+
+# extraKnownMarketplaces / enabledPlugins에 대응하는 Codex 선언.
+# 선언은 실제 설치나 이 클라우드 스킬 목록 등록을 뜻하지 않는다.
+# 클라우드에서는 이미 제공되는 superpowers:* 플러그인을 사용한다.
+[marketplaces.superpowers-marketplace]
+source_type = "git"
+source = "https://github.com/obra/superpowers-marketplace.git"
+
+[plugins."superpowers@superpowers-marketplace"]
+enabled = true
+
+[features]
+hooks = true
+
+# SessionStart: 반복 의존성 설치·별도 Codex 재설치/인증 복원·불필요한 DB 설치는
+# 제외한다. 설치는 환경 install_script, 실행은 start_skill이 담당한다.
+[[hooks.SessionStart]]
+matcher = "startup|resume"
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = "python3 /workspace/.cloud-onboarding/codex-hook-policy.py start"
+timeout = 10
+
+# UserPromptSubmit: 과도한 전체 게이트와 특정 Claude 모델 강제를 제외한 짧은 규칙.
+[[hooks.UserPromptSubmit]]
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = "python3 /workspace/.cloud-onboarding/codex-hook-policy.py prompt"
+timeout = 10
+
+# Write|Edit → Codex apply_patch/파일 편집 도구 입력 대응.
+# 원래 Claude 훅은 Codex 패치 입력을 해석하지 못하므로 어댑터를 사용한다.
+[[hooks.PreToolUse]]
+matcher = "apply_patch|edit_file|write_file"
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "python3 /workspace/.cloud-onboarding/codex-hook-policy.py protect"
+timeout = 10
+
+# Bash → Codex exec_command/shell_command 대응. 푸시 전 타입 검사→린트.
+[[hooks.PreToolUse]]
+matcher = "exec_command|shell_command"
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "python3 /workspace/.cloud-onboarding/codex-hook-policy.py push"
+timeout = 300
+
+# 한국어 응답, 자동 화면 검토, 토큰 절약 및 승인 범위는 AGENTS.md에 명시한다.
+# 실제 클라우드 호스트의 훅 연결은 별도이며 이 설정 파일만으로 증명되지 않는다.

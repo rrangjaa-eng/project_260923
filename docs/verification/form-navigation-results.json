@@ -1,0 +1,66 @@
+{
+  "recorded_kst": "2026-10-02T03:36:15.714283+09:00",
+  "base_sha": "6fce6f5ac89db0e5169cca3354fb2ace2bd1a06f",
+  "local_branch": "codex/switch-form-navigation",
+  "runtime": {
+    "node": "24.19.0",
+    "pnpm": "10.33.0",
+    "chrome": "153.0.8010.12"
+  },
+  "checks": {
+    "typecheck_exit": 0,
+    "lint_exit": 0,
+    "unit": {
+      "passed": 251,
+      "files": 31,
+      "exit": 0
+    },
+    "production_e2e": {
+      "related_96": {
+        "startTime": "2026-10-01T18:12:16.299Z",
+        "duration": 1064142.71,
+        "expected": 96,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "selected_context_1": {
+        "startTime": "2026-10-01T18:30:19.650Z",
+        "duration": 16399.042,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "basic_ui_101": {
+        "startTime": "2026-10-01T18:31:20.617Z",
+        "duration": 195090.304,
+        "expected": 101,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "manifest_contract": "permissions/host_permissions/content_scripts match original ZIP",
+    "ci_yaml_parse_exit": 0
+  },
+  "review": {
+    "method": "independent static code review plus screenshot review",
+    "fixed_p2": 4,
+    "unresolved_p1_p2": 0
+  },
+  "source_sha256": {
+    "src/core/form-navigation.ts": "87ca04e1ee5e7246b0516bbbc5aa1b9ee15c4f3c1d8bad260720f60e01bcf3b3",
+    "src/page/input/switch-controller.ts": "de44118f8efbd6eacdcd0f40effcc32a20ca1f048d6267559553ef805678ed8a",
+    "src/page/input/switch-actions.ts": "8cd16fbe967494d870d24562c7add27b4310d892b22bee8405dc1ac7a7808ed0",
+    "src/page/input/text-target.ts": "bc6c9ec3d1c4b3e42f51b263da673b7979115076d48ccb6dc9981acf63886433",
+    ".github/workflows/ci.yml": "851d5db866fc2358440ab6077ddcfb048ec3e6df935bb782e82c0c97962522e3"
+  },
+  "full_ci": "new draft PR final HEAD still requires observation; 335 tests listed, not run locally",
+  "unverified": [
+    "actual PC Korean IME/motor usability",
+    "select/checkbox and validation errors",
+    "changed-site-value reapply confirmation UI",
+    "real OS/native integration"
+  ]
+}

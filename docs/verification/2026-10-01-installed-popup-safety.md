@@ -1,0 +1,93 @@
+# 설치본 시작·종료 회귀 조사
+
+환경: 최신 project_260923 클라우드, pnpm 10.33.0, Node 24.19.0, Chrome for Testing 153.0.8010.12. 시간은 KST.
+분기: `codex/installed-page-investigation`, 기준 `cb182d44c025a49feb66f44184867be1b0f3dd28`(제품 `9741b0c`).
+수정 제품: `3ae6ad29fd3e77e43cdb68c51d540035e1002b16` (앞선 초안/카드 수정 `b97bea3`, 설치/종료 수정 `6aeb4ce`).
+전달 상태: **최종 CI 대기**. CI64의8건 실패·늦은 draft/read 경계와 실제 팝업 안전 재검사를 마쳤고 새 HEAD CI를 확인한다.
+2차 작업은 로컬 `codex/phase2-cloud-design` / `f21a215`에 보존하고 중지했다. PR13/14 코드를 병합·복사하지 않았다.
+
+## 신고와 재현
+
+사용자는 공개 두산아트센터 페이지에서 `이 페이지에서는 도울 수 없어요. 다른 탭에서 쓰세요.`를 보았고, Space로 활동 선택과 종료가 제대로 되지 않는다고 신고했다. 원인을 이 문구 하나로 단정하지 않았다.
+
+원본 ZIP `/tmp/tremor-browser-helper-9741b0c.zip`의 SHA256은 `5af8a15e27f7b29e462170297ee3efc82e7a21cd19e0de2321dfe61bc91776b6`이다. 9개 파일은 동일 제품 SHA의 production 출력과 모두 바이트 단위로 일치했다. manifest는 `<all_urls>`, top/child frame, `document_start`를 포함하고 두산 도메인을 제외하지 않는다.
+
+실제 Chromium에 ZIP을 풀어 `Extensions.loadUnpacked`로 처음 설치했다. 설치 전에 열린 일반 HTTP 탭은 root 0·ping 수신자 없음·`도울 수 없음`이었다. 새로고침 뒤 root 1·ping 성공, 설치 후 새 탭도 성공했다. 브라우저가 연 action popup(`chrome.action.openPopup`)에 CDP로 붙어 trusted Space down/up을 보냈다. 원본은 선택 표시와 Space 선택 처리가 없어 활동이 시작되지 않았다. popup.html을 별도 탭으로 여는 대체 시험과 구분했다.
+
+두산 공개 URL과 example.com의 실제 브라우저 읽기는 `ERR_TUNNEL_CONNECTION_FAILED`로 차단됐다. 접근 제한을 우회하지 않았다. 로컬 Node HTTPS 서버의 일반 문서로 설치·팝업·초점 흐름을 검증한다. 이 결과는 해당 공개 사이트 지원 판정이 아니다. 인증·예매·제출은 조작하지 않았다.
+
+## 최소 수정
+
+- 팝업은 ‘활동 선택 시작’부터 고정 순서로 순환한다. Space를 놓을 때 선택한 카드 하나만 실행한다. 반복 keydown은 추가 실행하지 않는다. 시작을 명시적으로 선택하면 연결을 확인하고 팝업을 닫아 페이지 그룹 순환으로 이어간다.
+- 일반 웹 탭의 수신자가 없으면 현재 URL을 대조한 뒤 기존 scripting 권한으로 연결한다. 제한 URL은 거절한다. content의 문서 소유 가드로 중복 주입이 입력 처리기를 겹쳐 만들지 않게 한다.
+- 상태를 뒤집는 토글과 별도로 ‘즉시 정지 · 도우미 전체 종료’가 항상 있다. 켜기 응답이 대기 중이어도 이 정지를 선택할 수 있다. 페이지 ‘조절·쉬기’에도 전체 끄기 항목이 있다. 마우스 전환과 전체 끄기는 서로 다른 동작이다.
+- 끄기 요청은 저장 응답보다 먼저 각 페이지를 무효화·정지한다. 로컬 차단을 영속화하고, 손상된 원본은 보존한다. 동기화 읽기·쓰기 대기가 끄기를 막지 않게 한다. 로컬 켜기 commit이 지연되더라도 실행 정지는 먼저 적용된다. 늦은 해제·응답은 명시적인 새 켜기 성공 없이 재개시키지 않는다.
+- 초기 설정·안전 상태 읽기 전에는 입력을 가로채지 않는다. storage 변경 이후 도착하는 옛 초기 응답과 실패를 revision으로 걸러낸다. 저장된 안전 키의 손상은 정지로 처리한다.
+- 확장 관리 비활성화 뒤 이전 content 표시·입력을 정리한다. 포트 외에 컨텍스트 유효성 검사도 사용한다. 팝업 오류 시 확장 관리에서 끄고 페이지를 새로고침하는 탈출 안내를 제공한다. 페이지 초점 밖의 전역 정지나 브라우저 API 전체 불통 때의 즉시 성공을 보장하지 않는다.
+
+새 의존성·권한·네이티브 실행기는 추가하지 않았다. 사용자 PC 설정을 변경하지 않았다.
+
+## 검증 기록
+
+| 검사 | 실제 상태 | 증거 |
+|---|---|---|
+| 원본 ZIP 실제 설치·기존/새 탭·native popup | 재현 완료 | `/tmp/installed-local-probe.log`, `/tmp/native-popup-probe.log` |
+| 손상·읽기 실패·대기 켜기 단위 RED | 3 실패(exit 1), 수정 후 통과 | `/tmp/helper-stop-red.log`, `/tmp/helper-stop-green.log` |
+| 로컬 해제 commit 지연 RED | 실패(exit 1), 순서/즉시 정지 수정 | `/tmp/helper-local-race-red.log` |
+| 원본 ZIP의 새 설치 시작 검사 RED | 실패(exit 1), 선택 시작 없음 | `/tmp/installed-popup-red.log` |
+| 설치·종료/기존 한글 전체 활동 초기 회귀 | 7/7 통과 | `/tmp/urgent-e2e.log` |
+| 안전/수명 회귀 첫 확장 실행 | 15 통과·5 실패(exit 1) | `/tmp/urgent-final-e2e.log` |
+| 후속 회귀 | 19 통과·1 실패(exit 1); 대기 켜기의 토글 문구로 정지에 들어갈 수 없어 독립 정지 버튼 추가 | `/tmp/urgent-final-e2e2.log` |
+| 독립 정지 버튼·native popup·Chrome 확장 관리 | 5/5 통과; 초기 gate/held-selection 변경까지 최종46 검사에서 재확인 | `/tmp/installed-popup-final.log` |
+| 전체 단위 | 140/140 통과 | `/tmp/urgent-unit-all.log` |
+| 최신 type/lint | 통과(exit 0) | `/tmp/urgent-type.log`, `/tmp/urgent-lint.log`; 커밋 전 `/tmp/urgent-checkpoint-type.log`, `/tmp/urgent-checkpoint-lint.log` |
+| 화면 자동 검사100 | 100/100 통과, 실패·불안정·스킵 0 | `/tmp/urgent-ui-review.log`, `/workspace/.cloud-onboarding/ui-review-runs/run-E13OCD/results.json` |
+| 최신 설치/기본 활동/편집기 회귀 | 46/46 통과(exit 0), production build 포함 | `/tmp/urgent-latest-e2e.log`; installed-popup, switch-journey, doc-editor, editor-frames, switch-disable |
+| 신규 CI64 전체 | **296 pass·8 fail**,18.3분,exit1. Node22.23.3의 type/lint/unit140/build pass | [run36861983233](https://github.com/rrangjaa-eng/project_260923/actions/runs/36861983233), head `3027291`, job110368157034 |
+| CI 실패 관련 로컬 재현 | **18 pass·같은8 fail**,3.8분,exit1; production build pass | `/tmp/urgent-ci64-target-red.log`, lifecycle/switch-editor-feedback/switch-recovery/switch-text |
+| 후속 상태 전환 단위 | 실제 controller/capture/DOM의6건: RED5 fail·1 pass→GREEN6/6 | `/tmp/urgent-draft-state-{red,green,final}.log` |
+| 후속 텍스트 집중 E2E | 기존 실패7건 포함13/13 pass,3.3분,production build pass | `/tmp/urgent-draft-target-green.log` |
+| 후속 팝업 집중 E2E | W1과 신규 같은 카드 이동 반복2/2 pass; 기존 단언 유지 | `/tmp/urgent-popup-warning-green.log`; W1 원인 `/tmp/urgent-popup-toggle-events-red.json`·site storage `{}` |
+| 후속 type/lint/unit | type/lint exit0, 전체unit146/146; 보조코드 lint3건 수정 후 해당unit6 재검사6/6 | `/tmp/urgent-regression-{type-final,lint-final,unit}.log`; lint 초기 실패 `/tmp/urgent-regression-lint.log` |
+
+실패 기록은 삭제하거나 최종 통과 수에 합치지 않는다. 기존 CI62의 E2E299 통과는 이번 실제 설치 신고의 해결 근거가 아니다. 전체 E2E 수백 개를 로컬에서 재실행하지 않았다. 별도 신규 CI 결과는 최신 작업 현황표에 기록한다.
+
+## 검토와 남은 범위
+
+독립 안전 검토에서 지연된 local 해제, 손상 안전 키, 초기 응답·실패 덮어쓰기, 초기 설정 미로딩 경계를 발견해 수정했다. 보안 경계는 extension sender ID, 정확한 popup URL, 탭 URL 재대조, 제한 URL 거절이다. DOM은 textContent/text node를 사용하고 기존 디자인 토큰·56px 카드·가시적 선택·600px popup 상한을 유지한다. 실제 native popup DOM 수치와 disabled 뒤 정상 키·클릭을 검사한다.
+
+실제 Windows 한국어 IME·운동 사용성·사용자 설치 프로필 및 두산 사이트 동작은 미검증이다. 수정 ZIP은 새 SHA로 구분하며 기존 설치본 비활성화를 유지하고 교체 시 중복 로드를 피하도록 안내한다. 2차 확장·파일창·실행기 작업은 이 신고 해결 결과를 전달한 뒤 별도로 재개한다. merge·배포·새 권한은 실행하지 않는다.
+
+## CI64 실패 인계
+
+- 초안·선택 복원7건: `switch-editor-feedback:4`, `switch-recovery:21,106`, `switch-text:22`의 input/textarea 두 경우와 `:51,68`. 기존 문장·선택이 초안에 누락되거나 panel이 없어 실패했다. 단언을 삭제·완화하지 않았다.
+- 코드 경로: 초기 로딩의 `currentEnabled=false→true`도 `enabledChanged()`를 호출하고 `invalidate()`가 빈 초안을 보존 대상으로 표시한다. capture 후 `!preservedDraft` 조건 때문에 실제 문장·선택을 가져오지 않는다. 첫 로딩·`switch/begin`과 이미 사용자가 편집한 작업의 보존을 구분하는 후속 수정이 필요하다. A/B 수정 검증은 아직 하지 않았다.
+- popup 경고1건: `lifecycle:212`, 사이트 토글 뒤 형식 변환 실패 경고로 복귀해야 하지만 저장 거절 경고가 남았다. 최초 조사에서는 미확정이었고 후속 클릭·저장 증거로 좌표 필터의 다른 카드 오인까지 확인했다. 수정·집중 결과는 아래 체크포인트를 참조한다.
+- 실패 [artifact11162833228](https://github.com/rrangjaa-eng/project_260923/actions/runs/36861983233/artifacts/11162833228)는 GitHub Actions에 보존됐다. 관련26건 로컬 재현도 동일한8건 실패(18 pass,3.8분,exit1)였으며 로그는 `/tmp/urgent-ci64-target-red.log`다.
+- 공식 Library 도우미는 최초와 허용된 재시도 모두 tools/list network 오류로 업로드 전 exit1이었다. 같은 호스트 연결 확인의 tunnel403을 관측했고 기존 Library 두 파일은 그대로다. 수정 ZIP은 `/tmp`에만 있으며 원격 Git에 ZIP 자체를 저장하지 않았다. 정확한 파일 경로·해시는 현황표에 보존한다.
+
+## 집중 수정 체크포인트와 다음 검사
+
+`b97bea3`은 실제 보존할 작업이 있을 때만 invalidate가 초안을 보존하도록 했으며 첫 로딩·사용 전 다시 켜기·switch/begin 뒤 capture를 복구했다. 쉬기 재개는 실행을 선택하지 않고, 편집한 문장과 명시적 빈 새 문장은 다시 켜기/begin 뒤에도 유지한다. 팝업은 고정 카드 단축키를 클릭·숫자 키의 공통 필터 식별자로 사용한다. 화면 위치가 바뀐 같은 카드 반복도 거절하고 다른 카드 선택은 허용한다. W1은 서로 다른 카드가 7.8px/33.7ms 차이에 놓여 좌표 필터300ms/16px에 거절됐다는 실제 로그로 확인했다.
+
+당시 독립 read-only 검토에서 두 최소 변경에 새 확정 P1/P2는 없었다. 늦은 `switch/draft/read`가 사용자의 명시적 빈 새 문장을 옛 값으로 덮을 수 있는 코드 경로를 P2 후보로 확인했으며, 그 체크포인트의 단위6건은 즉시 read만 다뤄 지연 RED는 미실행이었다. 그 다음 재현·수정·검증 결과는 아래 후속 기록에 보존한다.
+
+## 지연 초안 응답의 후속 재현·수정
+
+같은 승인 범위에서 지연 순서를 실제 controller 단위로 재현했다. 글쓰기 메뉴에서 문서 변경 보고가 저장 초안을 읽기 시작한 뒤 응답을 보류하고, 사용자가 명시적 ‘새 문장’을 선택·빈 값 저장한 다음 옛 응답을 반환했다. 빈 초안 대신 ‘이전 문장’이 복원되어 **RED1 fail·7 pass**였다(`/tmp/urgent-draft-late-red.log`).
+
+읽기는 아직 선택·편집하지 않은 초안에서만 시작하고, 응답 시 기존 modeGeneration 및 같은 초안 의도·종료 상태를 다시 검사한다. 상태 함수로 await 전후를 실제 재평가하며 옛 응답만 거절한다. 같은 지연 응답이라도 사용자가 선택·편집하지 않은 정상 저장 초안은 복원된다. **단위8/8 GREEN**, 추가 전체unit148/148, 최종 type/lint pass다(`/tmp/urgent-draft-late-{green,final}.log`, `/tmp/urgent-release-{unit,type-final,lint-final}.log`). async 재검사를 인라인으로 썼을 때 lint4건이 나와 상태 함수로 정리했고 기대값은 변경하지 않았다.
+
+독립 read-only 검토에서 이 async 수정에 남은 P1/P2는 찾지 못했다. 실제 설치·팝업·정지·설정 손상·전체 한글 여정·초안 영향48건은 **48/48 pass**,7.8분,exit0였다(`/tmp/urgent-final-impact.log`). await 전후 조건 함수를 정리한 최종 production 빌드의 설치/팝업5건·전체 한글 여정1건도 **6/6 pass**,3.6분,exit0였다(`/tmp/urgent-release-native-final.log`). 최종제품 HEAD CI는 현황표에서 확정한다. Library 연결 재시도·환경·자동 압축 설정 변경은 하지 않았다.
+
+원격 두 브랜치를 `91c0ae562214816093d29fc60203d6b109f71cb8`로 fast-forward했고 PR15 open/draft·같은 head를 실제 조회했다. 새 [CI65/run36871344925](https://github.com/rrangjaa-eng/project_260923/actions/runs/36871344925)는 type/lint/unit 단계를 통과했고 전체 E2E 실행 중이다. 제품 `3ae6ad2`의 최종 빌드를9파일 ZIP으로 생성해 integrity·production바이트 일치·기존 manifest권한 불변을 확인했다. 파일 경로·해시와 CI 대기 안내서 초안은 현황표에 기록했다. CI가 끝나기 전에 ZIP을 전달하지 않으며 Library도 더 시도하지 않는다.
+
+## 최종 CI 성공 및 사용자 승인 Git 패키지 전달 (2026-10-01 23:53 KST)
+
+CI65/run36871344925의 job110399604371은 최종 success다. 로그에서 Node22.23.3,unit148/148,E2E305/305(17.0분),type/lint 및 production build 성공을 직접 확인했다. 검사 HEAD91c0ae5·제품SHA3ae6ad2를 구분한다.
+
+최종 ZIP은 재생성하지 않고 기존1163247bytes·SHA256 `bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb`를 재사용했다. 9파일 integrity·현재 production 출력 바이트일치 pass. 전달 ZIP을 임시 폴더에 풀어 새 Chromium 프로필에 동적 설치한 추가 smoke1/1 pass(58.3초,exit0). 실제 native popup의 Space 시작부터 ‘가’ 조합·검색/결과선택/읽기·자동스크롤/즉시정지/일반문자·Space복구를 확인했다. 시작을 우회하는 storage.set은 없다. 공개 사이트·로그인·결제·게시를 건드리지 않았다. [실행 스크립트](package-smoke/package.spec.ts), [화면 증거](../../downloads/evidence/02-korean-reading.png), [설치 안내](../../downloads/README.ko.md), [SHA256](../../downloads/SHA256SUMS)를 Git에 보존한다.
+
+사용자 새 승인으로 ZIP Git 저장 금지가 해소됐다. 기존 c4f9267 문서 체크포인트를 보존하고 downloads와 결과 문서만 추가하는 일반 커밋으로 PR15 작업 브랜치에 전달한다. Library403 재시도/우회는 하지 않았다. merge/release/deploy/권한 변경·제품 코드 수정도 없다. 다운로드 링크는 push 뒤 실제 응답·바이트를 확인한다. 실제 Windows IME·운동사용감·두산 사이트는 미검증이다.
+
+Git 전달 커밋 `2a0b3f5`를 양쪽 승인 브랜치에 push한 뒤 ZIP/안내/SHA 파일의 GitHub 파일 화면과 rawURL을 실제 읽었다. 전부 HTTP200이며 raw 세 파일 모두 로컬 바이트와 일치했다. ZIP1163247bytes·원래SHA256 유지. [전체 링크 검증 기록](package-smoke/download-verification.json). 새 전달 HEAD의 자동CI는 기존 제품 검사 CI65와 별도로 완료를 주장하지 않는다. 최종 추가 typecheck·lint도exit0이다.

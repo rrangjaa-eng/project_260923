@@ -1,0 +1,105 @@
+{
+  "base_sha": "930ab0fafe7a446ac1d0c296d8e5b72c035e7638",
+  "branch": "codex/form-controls-errors",
+  "unit": {
+    "pass": 262,
+    "fail": 0
+  },
+  "targeted_e2e": {
+    "pass": 14,
+    "fail": 0,
+    "duration_minutes": 6.6,
+    "notes": "before final checkbox guard and paginated reading; final affected tests recorded separately"
+  },
+  "full_ui_review": {
+    "status": "passed",
+    "stats": {
+      "startTime": "2026-10-02T01:37:07.941Z",
+      "duration": 1783588.505,
+      "expected": 341,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-lC3MbW",
+    "notes": "compiled build before paginated control preview and horizontal overflow correction; final affected/UI tests recorded separately"
+  },
+  "independent_review": {
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "high",
+    "unresolved_confirmed_p1_p2": 0
+  },
+  "original_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
+  "full_before_reading_source_sha256": {
+    "src/core/form-navigation.ts": "afe900de4538380bfce143909554728c3da1b5af6633733777d14bd3cec5e712",
+    "src/core/switch-order.ts": "8198f80a5bf437958bb9daf1dd51eeb184f2b634b3458de56f3b35e05e612307",
+    "src/page/input/switch-actions.ts": "72476afa3b278e2f122a9360fc8acebe2365d36cef17c4d75b432757ac6b6fe2",
+    "src/page/input/switch-controller.ts": "cc22214d4a502e8b941431e4279d0b5164fdd6c20cb1d7bb7078f06f34aaeaa3",
+    "src/page/input/text-target.ts": "85f8739c92effef8ce7d530ad55895f500bc47661b43d1ac50c39dc305cad619",
+    "src/page/input/form-control.ts": "32f7d881179a37d48d8bd9ad5dc15050c8a440d2149f5b208f2536fe672b3d54",
+    "src/shared/switch-messages.ts": "1a8aa5ef919121d85cc2f9092fb0dd7b8922a1bc0481662e2d147b9fb7102541",
+    "tests/e2e/switch-form-controls.e2e.ts": "8956762858dce42f0c27067610a73fe94166aafd637f5db9d9c5b741360bc73d",
+    "tests/e2e/switch-form-navigation.e2e.ts": "ed3e5def47f0808b051d625b55075aba7f11c151b663ed885301a6ba32370789",
+    "tests/unit/switch-form-controls.test.ts": "20ebdf6ffe169ad6bdf0a6fc2de2fb6eebe4f122314747b9aa3590b7d7ba3dbc",
+    "tests/unit/switch-controller-controls.test.ts": "8d4a6f3856edb7592c33c1c306ed4a5f0b6d88934bfb19078d5d0298bb45146c"
+  },
+  "source_sha256": {
+    "src/core/form-navigation.ts": "afe900de4538380bfce143909554728c3da1b5af6633733777d14bd3cec5e712",
+    "src/core/switch-order.ts": "8198f80a5bf437958bb9daf1dd51eeb184f2b634b3458de56f3b35e05e612307",
+    "src/page/input/switch-actions.ts": "72476afa3b278e2f122a9360fc8acebe2365d36cef17c4d75b432757ac6b6fe2",
+    "src/page/input/switch-controller.ts": "066823d1a9d222234c2e27a1565369727cebbdf8fb641ef489950d2482132380",
+    "src/page/input/text-target.ts": "85f8739c92effef8ce7d530ad55895f500bc47661b43d1ac50c39dc305cad619",
+    "src/page/input/form-control.ts": "32f7d881179a37d48d8bd9ad5dc15050c8a440d2149f5b208f2536fe672b3d54",
+    "src/shared/switch-messages.ts": "1a8aa5ef919121d85cc2f9092fb0dd7b8922a1bc0481662e2d147b9fb7102541",
+    "tests/e2e/switch-form-controls.e2e.ts": "e6d3e68bddaa32cd255a51c9da631255fc60bcf40f7e40f4831cbf653d39b7f5",
+    "tests/e2e/switch-form-navigation.e2e.ts": "ed3e5def47f0808b051d625b55075aba7f11c151b663ed885301a6ba32370789",
+    "tests/unit/switch-form-controls.test.ts": "20ebdf6ffe169ad6bdf0a6fc2de2fb6eebe4f122314747b9aa3590b7d7ba3dbc",
+    "tests/unit/switch-controller-controls.test.ts": "f3fae60bedafb8354baa9082dfc129a83baa6ce0290dbbe4e574715b83d70d8c",
+    "src/page/overlay/switch-panel.ts": "55414f08620082c0fd24350b69ea62f022bd8d537cb8719e8719ab44475e1471",
+    ".github/workflows/ci.yml": "f4d2aa3dcf0b5db0a049b44e25dee97c193d39fa1b1f163c1c4197edc92526f0"
+  },
+  "final_ui_review": {
+    "status": "passed",
+    "stats": {
+      "startTime": "2026-10-02T02:07:47.123Z",
+      "duration": 190478.168,
+      "expected": 101,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-GXqk4n",
+    "typecheck": "passed",
+    "lint": "passed",
+    "production_build": "passed"
+  },
+  "ci_timeout": {
+    "e2e_minutes": 35,
+    "job_minutes": 40,
+    "yaml_parse": "passed",
+    "reason": "measured full341 took29.7minutes before expanded full-label reading test"
+  },
+  "horizontal_overflow": {
+    "viewport": 360,
+    "choiceClient": 292,
+    "choiceScroll": 292,
+    "listClient": 298,
+    "listScroll": 298,
+    "panelRight": 344,
+    "choiceRight": 329
+  },
+  "final_native_e2e": {
+    "status": "passed",
+    "stats": {
+      "startTime": "2026-10-02T02:09:01.110Z",
+      "duration": 225089.214,
+      "expected": 6,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "same_production_build_as": "final_ui_review",
+    "notes": "native6 after final paginated reading and width fix, no rebuild during parallel UI run"
+  },
+  "remote_branch": "codex-form-controls-errors"
+}

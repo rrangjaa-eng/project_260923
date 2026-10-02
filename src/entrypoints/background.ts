@@ -3,6 +3,9 @@ import { inheritedSiteOrigin, isUnsupportedUrl } from '@/core/unsupported-url';
 import { parseMessage } from '@/shared/messages';
 import { createRelay } from '@/worker/relay';
 import { createStorageWriter } from '@/worker/storage-writer';
+import { createSwitchRelay } from '@/worker/switch-relay';
+import { SwitchMessage } from '@/shared/switch-messages';
+import { HELPER_SAFETY_OFF_KEY, isHelperSafetyOff } from '@/core/helper-safety';
 
 // 탭·프레임별 마지막 enabled 보고(D-03) — 시험이 globalThis.frameStates로 읽는다.
 type FrameStates = Record<number, Record<number, boolean>>;
@@ -25,6 +28,20 @@ const MUTED_COLOR = extractMutedColor(tokensCssRaw);
 
 export default defineBackground(() => {
   const writer = createStorageWriter();
+  let runtimeStopped = true;
+  let safetyRevision = 0;
+  const safetyInstance = crypto.randomUUID();
+  const initialSafety = chrome.storage.local.get(HELPER_SAFETY_OFF_KEY).then((stored) => {
+    if (safetyRevision === 0) runtimeStopped = isHelperSafetyOff(stored[HELPER_SAFETY_OFF_KEY]);
+  }).catch(() => undefined);
+  function notifySafety(off: boolean): void {
+    runtimeStopped = off;
+    const message = { type: 'helper/safety', off, revision: ++safetyRevision, instance: safetyInstance };
+    void chrome.tabs.query({}).then((tabs) => {
+      for (const tab of tabs) if (tab.id !== undefined) void chrome.tabs.sendMessage(tab.id, message).catch(() => undefined);
+    });
+  }
+  const switchRelay = createSwitchRelay(writer);
   const relay = createRelay();
   const frameStates: FrameStates = {};
   (globalThis as typeof globalThis & { frameStates: FrameStates }).frameStates = frameStates;
@@ -241,12 +258,44 @@ export default defineBackground(() => {
       return undefined;
     }
 
+    const switchMessage = SwitchMessage.safeParse(raw);
+    if (switchMessage.success && switchMessage.data.type === 'switch/connect') {
+      const message = switchMessage.data;
+      // 연결·재주입은 확장 팝업이 명시적으로 선택한 현재 문서에만 허용한다.
+      if (sender.tab || !sender.url || new URL(sender.url).protocol !== 'chrome-extension:' || new URL(sender.url).hostname !== chrome.runtime.id || new URL(sender.url).pathname !== '/popup.html') {
+        sendResponse({ result: 'refused' }); return undefined;
+      }
+      void (async () => {
+        const tab = await chrome.tabs.get(message.tabId);
+        if (tab.url !== message.url || isUnsupportedUrl(tab.url)) return { result: 'refused', reason: 'restricted' };
+        if (!await respondsToSitePing(message.tabId)) {
+          const files = chrome.runtime.getManifest().content_scripts?.[0]?.js;
+          if (!files?.length) return { result: 'refused' };
+          await chrome.scripting.executeScript({ target: { tabId: message.tabId, allFrames: true }, files });
+          if (!await respondsToSitePing(message.tabId)) return { result: 'refused', reason: 'connection' };
+        }
+        if ((await chrome.tabs.get(message.tabId)).url !== message.url) return { result: 'refused' };
+        await updateActionForTab(message.tabId, message.url);
+        return { result: 'done' };
+      })().then(sendResponse, () => { sendResponse({ result: 'unknown', reason: 'connection' }); });
+      return true;
+    }
+    if (switchMessage.success) {
+      void switchRelay.handle(raw, sender).then(sendResponse, () => { sendResponse({ result: 'unknown' }); });
+      return true;
+    }
+
     const parsed = parseMessage(raw);
     if (!parsed.success) {
       return undefined;
     }
 
     const message = parsed.data;
+    if (message.type === 'helper/state') {
+      void initialSafety.then(() => { sendResponse({off:runtimeStopped,revision:safetyRevision,instance:safetyInstance}); });
+      return true;
+    }
+    if (message.type === 'helper/safety') return undefined;
 
     // Task 2(01-19, T-01-59): 맨 위(frameId 0)가 보낸 메시지라면 어떤 종류든 그 탭의 물려받은
     // 출처를 기록한다 — 다음 site/query·recordPress·setSiteDisabled 대조가 이 값을 쓴다.
@@ -269,9 +318,14 @@ export default defineBackground(() => {
       // 메시지 경계에서도 한 번 더 막아 둔다) .then(sendResponse)만으로는 sendResponse가 영영
       // 불리지 않아 요청 쪽(팝업 등)이 응답 없이 멈춘다 — .catch로 반드시 한 번은 답한다.
       if (message.op.kind === 'setEnabled') {
+        // 실행 정지는 어떤 저장 응답도 기다리지 않는다. 늦은 local 해제도 이 차단을 풀지 못한다.
+        if (!message.op.enabled) notifySafety(true);
         void writer
           .setEnabled(message.op.enabled)
-          .then(sendResponse)
+          .then((result) => {
+            if (result.ok && message.op.kind === 'setEnabled' && message.op.enabled) notifySafety(false);
+            sendResponse(result);
+          })
           .catch(() => {
             sendResponse({ ok: false });
           });

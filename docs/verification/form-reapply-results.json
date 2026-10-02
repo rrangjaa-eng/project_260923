@@ -1,0 +1,41 @@
+{
+  "recorded_at": "2026-10-02T11:40:59.774361+09:00",
+  "base": "243aa2c15c250ceebb0b9fc90149dd4310f1d92e",
+  "source_sha256": {
+    "src/page/input/switch-controller.ts": "9e4b0bb2527acd763cba7c70b084b5e138ee5be1e177c883dc820c94697ae024",
+    "tests/unit/switch-controller-reapply.test.ts": "06ea0fa52ee31450d4f77ce2903a53575199addbde7c4bdbd6558b1338d40c31",
+    "tests/e2e/switch-reapply.e2e.ts": "a5f9edfb2292f4db301e21ed3df8d55fe549d95430f097352ae52c473894aa74"
+  },
+  "typecheck_exit": 0,
+  "lint_exit": 0,
+  "unit": {
+    "passed": 272,
+    "files": 34,
+    "exit": 0
+  },
+  "production_focused": {
+    "passed": 48,
+    "duration_minutes_reported": 6.6,
+    "exit": 0,
+    "command": "CI=true pnpm exec playwright test tests/e2e/switch-reapply.e2e.ts tests/e2e/switch-form-navigation.e2e.ts tests/e2e/doc-editor.e2e.ts tests/e2e/editor-frames.e2e.ts"
+  },
+  "ui_review": {
+    "run": "run-UoUgkg",
+    "stats": {
+      "startTime": "2026-10-02T02:36:28.131Z",
+      "duration": 242809.288,
+      "expected": 101,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "exit": 0
+  },
+  "unverified": [
+    "final GitHub full CI",
+    "Windows IME",
+    "motor usability",
+    "real sites",
+    "main integration"
+  ]
+}

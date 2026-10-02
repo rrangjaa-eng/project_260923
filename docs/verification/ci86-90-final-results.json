@@ -1,0 +1,67 @@
+{
+  "checked_at": "2026-10-02T14:04:00+09:00",
+  "product_branch": "codex-switch-forward-navigation",
+  "product_head": "461d431c3a7dffee3b0dd8c13d546380453e6bfc",
+  "results": [
+    {
+      "pr": 21,
+      "head": "b3f8caa7be1ce22f9f1af786ca725af66dc9fed2",
+      "run": 36963423003,
+      "job": 110701938269,
+      "number": 86,
+      "conclusion": "success",
+      "log_evidence": [
+        "2026-10-02T04:11:55.3698132Z  Test Files  34 passed (34)",
+        "2026-10-02T04:11:55.3699548Z       Tests  272 passed (272)",
+        "2026-10-02T04:45:04.9085897Z   343 passed (32.8m)"
+      ]
+    },
+    {
+      "pr": 22,
+      "head": "50082f46662c579f3a4e039e65a5db269ae5c5f3",
+      "run": 36963470306,
+      "job": 110702026776,
+      "number": 87,
+      "conclusion": "success",
+      "log_evidence": [
+        "2026-10-02T04:12:17.8069785Z  Test Files  35 passed (35)",
+        "2026-10-02T04:12:17.8070644Z       Tests  278 passed (278)",
+        "2026-10-02T04:45:13.2630605Z   345 passed (32.5m)"
+      ]
+    },
+    {
+      "pr": 23,
+      "head": "36f3a9cc448df17d06acefd44868a9e12fdce7a4",
+      "run": 36963534023,
+      "job": 110702223265,
+      "number": 88,
+      "conclusion": "success",
+      "log_evidence": [
+        "2026-10-02T04:13:11.8708212Z  Test Files  35 passed (35)",
+        "2026-10-02T04:13:11.8709536Z       Tests  283 passed (283)",
+        "2026-10-02T04:46:52.3582137Z   346 passed (33.3m)"
+      ]
+    },
+    {
+      "pr": 24,
+      "head": "461d431c3a7dffee3b0dd8c13d546380453e6bfc",
+      "run": 36964580714,
+      "job": 110705478647,
+      "number": 90,
+      "conclusion": "success",
+      "log_evidence": [
+        "2026-10-02T04:27:38.2064007Z  Test Files  35 passed (35)",
+        "2026-10-02T04:27:38.2065095Z       Tests  296 passed (296)",
+        "2026-10-02T05:02:47.5540159Z   352 passed (34.7m)"
+      ]
+    }
+  ],
+  "remaining": [],
+  "note": "각 최종 HEAD의 workflow/job terminal success와 원본 job 로그를 조회해 기록. CI 결과 문서 브랜치는 제품 HEAD를 변경하거나 CI 재실행을 요청하지 않는다.",
+  "unverified": [
+    "실제 Windows 한국어 IME",
+    "운동 사용성",
+    "실사이트",
+    "native 연결"
+  ]
+}
