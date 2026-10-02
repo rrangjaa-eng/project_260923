@@ -65,6 +65,8 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   const shortLabel=(label:string)=>{const chars=characters(label);return chars.slice(0,24).join('')+(chars.length>24?'…':'');};
   let confirmAction:SwitchTargetAction|null=null;
   let confirmOpenedAt=0;
+  let reapply:{target:ScanTarget;value:string;text:string;selection:TextSelection}|null=null;
+  let reapplyPage=0;
   let phraseSnapshot:string[]=[];
   let phraseIndex:number|null=null;
   let phraseChange:Exclude<PhraseMutation,{kind:'add'}>|null=null;
@@ -79,7 +81,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   const stopScroll=()=>{if(scrollTimer)clearInterval(scrollTimer);scrollTimer=null;};
   function render(){if(!top||!exclusive())return;
     panel??=createSwitchPanel();
-    const preview=phraseChange?phrasePreviewPages(phraseChange.expected[phraseChange.index]??'',phraseChange.kind==='replace'?phraseChange.text:undefined)[phrasePreviewIndex]??'':null;
+    const preview=reapply?reapplyPages()[reapplyPage]??'':phraseChange?phrasePreviewPages(phraseChange.expected[phraseChange.index]??'',phraseChange.kind==='replace'?phraseChange.text:undefined)[phrasePreviewIndex]??'':null;
     const context=formActive&&formIndex!==null?`양식 ${String(formIndex+1)}/${String(formFields.length)} · ${shortLabel(formFields[formIndex]?.label??'입력칸')} · `:'';
     panel.render(state,context+title,selectedControl?controlPreview():formActive&&formOverview?'':preview??draft.text+(initial!==null?` [${INITIALS[initial] ?? ""}${medial!==null?(MEDIALS[medial] ?? ""):""}]`:''),[notice,unknownNotice].filter(Boolean).join(' · '),preview===null&&!selectedControl?draftSelection(draft):undefined);
   }
@@ -103,13 +105,13 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     current={title:heading,items:[...(includeUp?[command('up','상위로')]:[]),...items,command('pause','쉬기')],mode};title=heading;
     dispatch({type:'setItems',now:now(),items:current.items,mode});
   }
-  function root(){phraseChange=null;if(formActive){stashField();showForm();return;}stack=[];title='스페이스바 작업판';current={title,items:groups(),mode:'groupScan'};
+  function root(){reapply=null;phraseChange=null;if(formActive){stashField();showForm();return;}stack=[];title='스페이스바 작업판';current={title,items:groups(),mode:'groupScan'};
     dispatch({type:'setItems',now:now(),items:current.items,mode:'groupScan'});
   }
-  function up(){phraseChange=null;const previous=stack.pop();if(!previous){root();return;}current=previous;title=previous.title;
+  function up(){reapply=null;phraseChange=null;const previous=stack.pop();if(!previous){root();return;}current=previous;title=previous.title;
     dispatch({type:'setItems',now:now(),items:previous.items,mode:previous.mode});}
   function pause(reason=''){
-    phraseChange=null;
+    reapply=null;phraseChange=null;
     beginOnFocus=false;
     stopScroll();confirmAction=null;cancelPeers();
     if(state.mode==='confirming'||state.resumeMode==='confirming'){root();}
@@ -119,6 +121,14 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(!phraseChange)return;
     const count=phrasePreviewPages(phraseChange.expected[phraseChange.index]??'',phraseChange.kind==='replace'?phraseChange.text:undefined).length;
     menu([command('phrase-cancel','취소'),...(phrasePreviewIndex>0?[command('phrase-preview-prev','이전 미리보기')]:[]),...(phrasePreviewIndex<count-1?[command('phrase-preview-next','다음 미리보기')]:[]),command('phrase-commit',phraseChange.kind==='replace'?'확인 · 저장 문구 바꾸기':'확인 · 저장 문구 삭제')],phraseChange.kind==='replace'?'저장 문구를 바꿀까요?':'저장 문구를 삭제할까요?','confirming',push,false);
+  }
+  function reapplyPages():string[]{
+    return reapply?phrasePreviewPages(reapply.value,reapply.text).map(page=>page.replace(/^기존 문구/,'현재 입력값').replace(/^바꿀 문장/,'작성 문장')):[];
+  }
+  function reapplyConfirmation(push=true){
+    if(!reapply)return;
+    const count=reapplyPages().length;
+    menu([command('reapply-cancel','취소'),...(reapplyPage>0?[command('reapply-prev','이전 비교 읽기')]:[]),...(reapplyPage<count-1?[command('reapply-next','다음 비교 읽기')]:[]),command('reapply-commit','확인 · 입력칸에 적용')],'작성 문장으로 바꿀까요?','confirming',push,false);
   }
   function invalidate(reason:string){
     if(formActive){stashField();formRecovery=structuredClone(workspace());if(formOrigin){loadWorkspace(formOrigin);preservedDraft=formOrigin.preservedDraft;}}
@@ -177,10 +187,10 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   function editor(){
     if(formActive){
       formOverview=false;stack=[formMenu()];
-      menu([command('hangul:initial','한글 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('validity','입력 오류 읽기'),...(formIndex!==null&&formIndex>0?[command('form-prev','이전 칸')]:[]),...(formIndex!==null&&formIndex<formFields.length-1?[command('form-next','다음 칸')]:[]),command('form-list','양식 목록'),command('form-exit','원래 화면으로')],'글쓰기','composing',false);return;
+      menu([command('hangul:initial','한글 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('compare','현재 값과 비교'),command('validity','입력 오류 읽기'),...(formIndex!==null&&formIndex>0?[command('form-prev','이전 칸')]:[]),...(formIndex!==null&&formIndex<formFields.length-1?[command('form-next','다음 칸')]:[]),command('form-list','양식 목록'),command('form-exit','원래 화면으로')],'글쓰기','composing',false);return;
     }
     stack=[{title:'스페이스바 작업판',items:groups(),mode:'groupScan'}];
-    menu([command('hangul:initial','한글 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('validity','입력 오류 읽기'),command('search','검색'),command('form-open','양식 한 장 보기'),...(formRecovery?[command('form-recover','양식 작성 문장 복구')]:[]),command('restore','원래 입력칸으로')],'글쓰기','composing',false);
+    menu([command('hangul:initial','한글 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('compare','현재 값과 비교'),command('validity','입력 오류 읽기'),command('search','검색'),command('form-open','양식 한 장 보기'),...(formRecovery?[command('form-recover','양식 작성 문장 복구')]:[]),command('restore','원래 입력칸으로')],'글쓰기','composing',false);
   }
   function characterGroups(stage:'initial'|'medial'|'final'){
     const chars=stage==='initial'?INITIALS:stage==='medial'?MEDIALS:FINALS;
@@ -392,11 +402,35 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       if(result.result!=='done'){notice='입력칸이 바뀌었어요. 초안을 보존했으니 다시 선택하세요';preservedDraft=true;selected=null;}
       return result.result;
     }
+    if(id==='compare'){
+      if(!selected){notice='입력칸을 먼저 선택하세요';return;}
+      if(initial!==null||medial!==null){notice='한글 조합을 마친 뒤 비교하세요';return;}
+      const target=selected;
+      const capture=await targetRequest('capture',target.target,{expectedIdentity:target.identity});
+      if(!active(startedGeneration))return capture.result;
+      if(capture.result!=='done'||typeof capture.value!=='string'||capture.value.length>4000){notice='입력칸을 다시 확인하세요. 작성 문장은 보존했어요';return capture.result;}
+      reapply={target,value:capture.value,text:draft.text,selection:draftSelection(draft)};
+      reapplyPage=0;confirmOpenedAt=now();reapplyConfirmation();return;
+    }
+    if(id==='reapply-prev'||id==='reapply-next'){if(reapply){reapplyPage=Math.max(0,Math.min(reapplyPages().length-1,reapplyPage+(id==='reapply-next'?1:-1)));reapplyConfirmation(false);}return;}
+    if(id==='reapply-cancel'){reapply=null;editor();return;}
+    if(id==='reapply-commit'){
+      const proposal=reapply;reapply=null;if(!proposal)return;
+      const result=await targetRequest('applyText',proposal.target.target,{text:proposal.text,expectedValue:proposal.value,selection:proposal.selection,expectedIdentity:proposal.target.identity});
+      if(!active(startedGeneration))return result.result;
+      editor();
+      if(result.result!=='done'){
+        notice='입력칸을 다시 확인하세요. 작성 문장은 보존했어요';
+        if(result.result==='unknown'){selected=null;preservedDraft=true;pause('실행 결과를 확인하세요. 자동 재시도하지 않아요');}
+        return result.result;
+      }
+      expectedValue=proposal.text;capturedSelection=proposal.selection;stashField();notice='입력했어요';return;
+    }
     if(id==='apply'||id==='search'){
       if(!selected){notice='입력칸을 먼저 선택하세요';return;}
       const result=await targetRequest('applyText',selected.target,{text:draft.text,expectedValue,selection:draftSelection(draft),expectedIdentity:selected.identity});
       if(!active(startedGeneration))return result.result;
-      if(result.result!=='done'){notice='입력칸이 바뀌었어요. 초안을 보존했으니 다시 선택하세요';preservedDraft=true;selected=null;return result.result;}
+      if(result.result!=='done'){notice='입력칸이 바뀌었어요. 작성 문장은 보존했어요. 현재 값과 비교하세요';preservedDraft=true;if(result.result==='unknown'){selected=null;notice='실행 결과를 확인하세요. 자동 재시도하지 않아요';}return result.result;}
       expectedValue=draft.text;capturedSelection=draftSelection(draft);notice='입력했어요';
       if(id==='search'){await saveDraft();if(!active(startedGeneration))return;const result=await targetRequest('search',selected.target,{expectedValue});if(!active(startedGeneration))return;if(result.result!=='done')notice='이 입력칸의 검색 동작을 지원하지 않아요';return result.result;}return;
     }

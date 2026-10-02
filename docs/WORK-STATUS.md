@@ -1,5 +1,26 @@
 # 작업 현황표
 
+## CI79 안내 회귀 수정 — 2026-10-02 12:23 KST
+
+PR20 CI77은 최종success(unit262/E2E341,31.6분). PR21 e736350의 CI79는 failure(unit272pass, E2E342pass/1fail,32.9분). 기존 복구 테스트가 요구하는 초안 보존 안내가 새 비교 문구에서 누락됐다. 실제 값과 초안 보존은 통과했다. 안내 한 줄을 복원했고 테스트는 변경하지 않았다. 수정 소스 type/lint/unit272/272 및 기존복구E2E6/6을 새로 확인했다. 후속전체CI는 별도이며 완료 전 성공으로 표시하지 않는다. [원인·검증](verification/2026-10-02-ci79-notice.md). **13:08 KST 후속:** CI81도342pass/1fail(31.6분), 보존 복원 때 변경 이유 문구를 제거한 회귀였다. 세 정보 동시 단위1RED→GREEN 뒤 변경 이유·보존·비교 안내를 모두 복원했고 기존양식+복구14/14(6.2분), unit272/type/lint/build를 재검증했다. [CI81 원인·수정](verification/2026-10-02-ci81-notice.md). **13:12 KST:** CI82는343pass/2fail, CI84는345pass/1fail로 terminal확인. 공통안내 외 CI82의 표시생성 전 CSS읽기 null은 정확한0s assertion에 준비대기를 적용해 독립10/10(18.2초) 통과했다. 테스트단언·retry정책은 완화하지 않았다.
+
+PR22 및 대기 중 Space 정지 후속은 보존 중이며 이 문구 수정을 순서대로 반영한다. merge/deploy·ZIP교체 없음. 아래 날짜별 대기 문구는 해당 시점 이력이다.
+
+## 재개·텍스트 재적용 확인 — 2026-10-02 11:40 KST
+
+PR19 뒤에 이미 보존된 `codex-form-controls-errors`/`243aa2c`를 발견해 중복 구현하지 않고 [draft PR20](https://github.com/rrangjaa-eng/project_260923/pull/20)으로 연결했다. PR20 base는 `codex-switch-form-navigation`/`930ab0f`이며 main은 변경하지 않았다. 이번 재개에서 PR20 소스의 타입·린트·단위262/262와 production 선택흐름6/6(3.8분, exit0)을 새로 확인했다. [CI77](https://github.com/rrangjaa-eng/project_260923/actions/runs/36955570396)은 실행 중이며 성공으로 계산하지 않는다. PR19 [CI76](https://github.com/rrangjaa-eng/project_260923/actions/runs/36948311828)은 단위251/브라우저335 success였고 아래 과거의 PR생성·CI대기 문구를 현재 상태로 사용하지 않는다.
+
+후속 `codex-form-reapply-confirmation`은 PR20/243aa2c 위에서 **현재 입력값과 작성 문장 비교 → 취소 먼저/1초 보호 → 명시적 재적용**을 구현했다. 일반 거절 뒤에도 초안·대상을 보존하고, 비교 후 값이 다시 바뀌면 receiver가 거절한다. 쉬기·끄기·늦은 capture·unknown 확인 경계를 검사한다. 검색/제출/자동 재시도 없음. 새 비교값은 저장하지 않고 기존 메모리/표시 경계만 사용한다. 교차사이트 요약/최근값 자동수집/보호저장소로 확장하지 않는다.
+
+| 항목 | 확인된 결과 | 남은 범위 |
+|---|---|---|
+| 새 단위 | 최초4 RED→GREEN; 경계 추가 후 새10/10·전체272/272 pass | 실제 PC/운동 사용성 별도 |
+| 독립 검토 | gpt-6.1-sol/high가 코드·최신 단위/브라우저 시험을 읽고 추가 P1/P2 없음 확인 | 검토 범위와 실제 실행 결과를 구분 |
+| 브라우저·화면 | production 새2+기존양식/문서편집기/프레임 총48/48 pass,6.6분,exit0 | 기본 자동UI101/101 pass,0fail/skip/flaky,exit0 |
+| Git | [draft PR21](https://github.com/rrangjaa-eng/project_260923/pull/21) 생성·open/draft·미병합, 제품53ce30f 일반push 완료 | 최종HEAD 전체CI 확인 필요 |
+
+[범위·이유·검증](verification/2026-10-02-form-reapply.md). 기존 open Shadow DOM 표시의 중간/낮은 잔여위험을 해결했다고 주장하지 않는다. 회사 시스템 시험·merge/deploy·설치ZIP교체·새권한/의존성 없음. 실제PC IME/손사용감, 사이트별 오류 원문, custom/radio/multiple, 최근값·민감판별 전체, 실제Windows/USB 및 Phase4~6은 여전히 남는다.
+
 ## 선택·체크·입력 오류 안내 후속 — 2026-10-02 11:13 KST
 
 기준 PR19 source `930ab0fafe7a446ac1d0c296d8e5b72c035e7638`, 로컬 `codex/form-controls-errors`, 보존 원격 `codex-form-controls-errors`. native 단일 select/checkbox·선택칸 validity 안내를 구현했다. 기존 PR19 수정·중복생성·merge/deploy 없음. 저장모델 기준은 구현 gpt-6.1-sol/medium, 독립검토 gpt-6.1-sol/high이며 현재 채팅 모델 전환을 주장하지 않는다.
