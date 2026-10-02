@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## PR26 병합 후 main 전체 CI 성공 — 2026-10-02 19:01 KST
+
+main `a0738fb832bd04abdb5397c09bbef3f38279e86c`의 [CI93](https://github.com/rrangjaa-eng/project_260923/actions/runs/36989343544)은 workflow/job 모두 success, type/lint/production build·unit313/313(36파일)·전체E2E358/358(36.7분)으로 종료했다. [원본 로그 증거](verification/ci93-main-results.json). 원격 main과 PR27 제품HEAD 보존을 재확인했다.
+
+후속 [draft PR27](https://github.com/rrangjaa-eng/project_260923/pull/27), `codex-switch-radio-controls`/`a22532cdf94f7f420bbb87e3e743adb9d267be98`는 type/lint/unit331/production브라우저6/UI101 로컬 통과 후 [CI94](https://github.com/rrangjaa-eng/project_260923/actions/runs/36992522530) 실행 중이다. 이 `codex-pr27-verification-record`는 제품HEAD를 바꾸지 않는 문서 전용 증거 브랜치다. PR27은 아직 미병합이며 실제PC·운동 사용성·실사이트·프레임 안 radio 미검증, deploy/ZIP교체 없음. 아래는 당시 이력이다.
+
 ## PR26 병합 및 라디오 선택 후속 — 2026-10-02 18:54 KST
 
 사용자가18:19 KST에 “머지하고 계속 진행해”를 승인했다. [PR26](https://github.com/rrangjaa-eng/project_260923/pull/26)의 최신 head/base·CI92 success·충돌없음·리뷰/스레드0건을 재확인하고 merge commit 방식으로 병합했다. 원격 main은 `a0738fb832bd04abdb5397c09bbef3f38279e86c`, 파일 트리는 검증한 후보와 동일하다. [병합 증거](verification/pr26-merge-results.json). main의 [CI93](https://github.com/rrangjaa-eng/project_260923/actions/runs/36989343544)은 실행 중이다.

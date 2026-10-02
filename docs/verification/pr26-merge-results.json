@@ -22,7 +22,13 @@
   "post_merge_ci": {
     "number": 93,
     "run": 36989343544,
-    "status": "in_progress"
+    "job": 110781641649,
+    "status": "completed",
+    "conclusion": "success",
+    "unit": 313,
+    "e2e": 358,
+    "minutes_reported": 36.7,
+    "evidence": "ci93-main-results.json"
   },
   "preservation": {
     "pr26_branch_preserved": true,
