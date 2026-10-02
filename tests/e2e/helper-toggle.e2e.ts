@@ -90,15 +90,16 @@ test('팝업에 포커스가 있을 때 숫자 1(Digit1·Numpad1)을 누르면 �
   await expect.poll(() => readEnabled(serviceWorker)).toBe(true);
 });
 
-test('카드를 빠르게 5번 누르면 storage.sync의 최종 상태가 마지막 누름과 같다', async ({ serviceWorker, openPopup }) => {
+test('떨림 간격을 띄워 카드를 5번 누르면 마지막 선택이 저장된다', async ({ serviceWorker, openPopup }) => {
   const popup = await openPopup();
   const card = popup.locator('[data-helper-toggle=true]');
-
+  // 간격 없는 다섯 클릭은 실제 시각에 따라 1~여러 번만 허용된다.
+  // 다섯 번의 의도적 선택을 검사하고, 빠른 중복 억제는 아래 WR-06에서 별도로 검사한다.
   for (let i = 0; i < 5; i += 1) {
+    if (i > 0) await popup.waitForTimeout(350);
     await card.click();
+    await expect(card).toHaveText(i % 2 === 0 ? '1도우미 켜기' : '1도우미 끄기');
   }
-
-  // 켜짐(기본) → 끄기 → 켜기 → 끄기 → 켜기 → 끄기: 다섯 번째(마지막) 누름의 결과는 꺼짐이다.
   await expect.poll(() => readEnabled(serviceWorker)).toBe(false);
 });
 
