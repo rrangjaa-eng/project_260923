@@ -1,0 +1,124 @@
+{
+  "base": "36f3a9cc448df17d06acefd44868a9e12fdce7a4",
+  "branch": "codex-switch-forward-navigation",
+  "before_ci81_notice_repair": {
+    "source_sha256": {
+      "src/page/input/switch-controller.ts": "4933191ff38130ddae51b9911b28f576336a882b47289934cbc71f1c3ab51d04",
+      "src/shared/switch-messages.ts": "f58323d6d5949f2717a68ad55d931fe9578f3fe8c017aae4ec63a17fb30e2e57",
+      "src/worker/switch-relay.ts": "cfb1201b01867e31586e94e908851fcc630ebbe2b8df9481797848ced1661629",
+      "src/types/chrome.d.ts": "0d7c80293d796ed6713f17ad0cbb7bb5ae31f7d2c323d70219dd3c2bff860c94"
+    },
+    "typecheck_exit": 0,
+    "lint_exit": 0,
+    "unit": {
+      "passed": 296,
+      "files": 35,
+      "exit": 0
+    },
+    "new_and_navigation_browser": {
+      "passed": 8,
+      "minutes_reported": 4.1,
+      "exit": 0,
+      "command": "CI=true pnpm exec playwright test tests/e2e/switch-forward.e2e.ts tests/e2e/switch-navigation-cancel.e2e.ts tests/e2e/switch-journey.e2e.ts",
+      "scope": "new forward4 including360px unavailable + existing navigation3 + whole Korean journey1; before adding768/1280px cases"
+    },
+    "pending_recovery_browser": {
+      "passed": 16,
+      "minutes_reported": 3.4,
+      "exit": 0,
+      "command": "CI=true pnpm exec playwright test tests/e2e/switch-pending.e2e.ts tests/e2e/switch-recovery.e2e.ts"
+    },
+    "ui_review": {
+      "run": "run-nxj0cJ",
+      "exit": 0,
+      "stats": {
+        "startTime": "2026-10-02T03:55:34.046Z",
+        "duration": 249370.954,
+        "expected": 101,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    }
+  },
+  "tdd": {
+    "first_red": {
+      "failed": 5,
+      "passed": 6
+    },
+    "replay_red": {
+      "failed": 2,
+      "passed": 11
+    },
+    "same_document_report_red": {
+      "failed": 1,
+      "passed": 13
+    },
+    "navigation_unit_final": 19
+  },
+  "ci_budget": {
+    "e2e_minutes": 40,
+    "job_minutes": 45,
+    "yaml_parse": "pass",
+    "permissions": "contents: read",
+    "basis": "CI79 343 cases32.9m, CI84 346 cases33.4m; final collected352 cases"
+  },
+  "unverified": [
+    "Windows IME",
+    "motor usability",
+    "real sites",
+    "native integration",
+    "atomicity after browser API invocation"
+  ],
+  "source_sha256": {
+    "src/page/input/switch-controller.ts": "952252bda1bf5ca464daa39c5a0c4895ce074850a4176afd76818f3e07f4b5c6",
+    "src/shared/switch-messages.ts": "f58323d6d5949f2717a68ad55d931fe9578f3fe8c017aae4ec63a17fb30e2e57",
+    "src/worker/switch-relay.ts": "cfb1201b01867e31586e94e908851fcc630ebbe2b8df9481797848ced1661629",
+    "src/types/chrome.d.ts": "0d7c80293d796ed6713f17ad0cbb7bb5ae31f7d2c323d70219dd3c2bff860c94",
+    ".github/workflows/ci.yml": "fce98336a7ac16613263fece8de3c9bcb33d953404d79ff52b0fb2d067f571dd",
+    "tests/unit/switch-navigation.test.ts": "f30bcb494da7361ad4431d58d02471c195b7420dcc06db2ac9457231ceba0ead",
+    "tests/e2e/switch-forward.e2e.ts": "3ba2fe46938a364a35bd64553b483690dcd6f278f8ebb6df10b0becfcd38dbe7"
+  },
+  "combined_after_ci81_ci82_repairs": {
+    "typecheck_exit": 0,
+    "lint_exit": 0,
+    "unit": {
+      "passed": 296,
+      "files": 35,
+      "exit": 0
+    },
+    "browser": {
+      "passed": 8,
+      "failed": 0,
+      "minutes_reported": 3.0,
+      "exit": 0,
+      "command": "CI=true pnpm exec playwright test tests/e2e/switch-forward.e2e.ts tests/e2e/switch-form-navigation.e2e.ts tests/e2e/switch-recovery.e2e.ts --grep 'Space back|unavailable forward|Space cancels|a tab activation|cached cursor|external field updates'"
+    },
+    "ui_review": {
+      "run": "run-Omhe0L",
+      "stats": {
+        "startTime": "2026-10-02T04:21:05.266Z",
+        "duration": 243573.13199999998,
+        "expected": 101,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "exit": 0
+    },
+    "first_browser": {
+      "passed": 6,
+      "failed": 2,
+      "minutes_reported": 3.0,
+      "cause": "separate async boundingBox reads raced 100ms child replacement; current/list handle returned null"
+    }
+  },
+  "local_verified_at": "2026-10-02T13:26:00+09:00",
+  "pr": {
+    "number": 24,
+    "url": "https://github.com/rrangjaa-eng/project_260923/pull/24",
+    "draft": true,
+    "base": "codex-switch-pending-stop",
+    "product_commit": "30c5ba86baf7e5ed705f086a4e66e453dc886110"
+  }
+}

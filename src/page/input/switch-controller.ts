@@ -317,7 +317,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(id.startsWith('group:')){
       const group=Number(id.split(':')[1]);
       if(group===0||group===1){stack.push(current);if(await refreshTargets(startedGeneration))pageMenu(0,group===0);}
-      if(group===2)menu([command('scroll:down','한 화면 아래'),command('scroll:up','한 화면 위'),command('scroll:auto','자동 스크롤'),command('nav:back','뒤로'),command('nav:tabs','열린 탭')],'읽기·이동');
+      if(group===2)menu([command('scroll:down','한 화면 아래'),command('scroll:up','한 화면 위'),command('scroll:auto','자동 스크롤'),command('nav:back','뒤로'),command('nav:forward','앞으로'),command('nav:tabs','열린 탭')],'읽기·이동');
       if(group===3){if(selected||draft.text||initial!==null)editor();else menu([command('choose-input','입력칸 선택'),command('draft:new','새 문장'),command('form-open','양식 한 장 보기'),...(formRecovery?[command('form-recover','양식 작성 문장 복구')]:[])],'글쓰기');}
       if(group===4)menu([command('helper-off','도우미 끄기 · 페이지 입력 돌려주기'),command('speed','순환 속도'),command('protection','입력 간격 보호'),command('pause','쉬기'),command('pointer','마우스 조작으로 전환 · 스페이스바 작업판 종료')],'조절·쉬기');
       return;
@@ -439,9 +439,9 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       if(id==='search'){await saveDraft();if(!active(startedGeneration))return;const result=await targetRequest('search',selected.target,{expectedValue});if(!active(startedGeneration))return;if(result.result!=='done')notice='이 입력칸의 검색 동작을 지원하지 않아요';return result.result;}return;
     }
     if(id.startsWith('scroll:')){if(id==='scroll:auto'){state.mode='scrolling';scrollTimer=setInterval(()=> { window.scrollBy(0,2); },30);}else window.scrollBy(0,(id.endsWith('up')?-1:1)*window.innerHeight*0.8);return;}
-    if(id==='nav:back'){await saveDraft();if(!active(startedGeneration))return;return resultOf(await request({type:'switch/navigation',kind:'back'})).result;}
-    if(id==='nav:tabs'){const raw=await request({type:'switch/navigation',kind:'tabs'}) as {tabs:Array<{id:number;title:string}>};if(active(startedGeneration))menu(raw.tabs.map((tab)=>command(`tab:${String(tab.id)}`,tab.title)),'열린 탭');return;}
-    if(id.startsWith('tab:')){await saveDraft();if(!active(startedGeneration))return;pause();const result=resultOf(await request({type:'switch/navigation',kind:'activate',tabId:Number(id.split(':')[1])}));if(result.result!=='done')notice='탭을 다시 선택하세요';return;}
+    if(id==='nav:back'||id==='nav:forward'){await saveDraft();if(!active(startedGeneration))return;const result=resultOf(await request({type:'switch/navigation',kind:id==='nav:back'?'back':'forward',authorization:authorization()}));if(!active(startedGeneration))return result.result;if(result.result==='refused')notice=`${id==='nav:back'?'뒤로':'앞으로'} 이동할 수 없어요. 현재 화면을 확인하세요`;return result.result;}
+    if(id==='nav:tabs'){const raw=await request({type:'switch/navigation',kind:'tabs',authorization:authorization()}) as {tabs?:Array<{id:number;title:string}>};if(!active(startedGeneration))return;if(!Array.isArray(raw.tabs)){notice='열린 탭을 읽지 못했어요. 현재 화면을 확인하세요';return resultOf(raw).result;}menu(raw.tabs.map((tab)=>command(`tab:${String(tab.id)}`,tab.title)),'열린 탭');return;}
+    if(id.startsWith('tab:')){await saveDraft();if(!active(startedGeneration))return;const result=resultOf(await request({type:'switch/navigation',kind:'activate',tabId:Number(id.split(':')[1]),authorization:authorization()}));if(!active(startedGeneration))return result.result;if(result.result==='done')pause();else notice='탭으로 이동하지 못했어요. 현재 화면을 확인하세요';return result.result;}
     if(id==='speed'){menu([800,1500,2500,4000].map((ms)=>command(`speed:${String(ms)}`,`${String(ms/1000)}초`)),'순환 속도');return;}
     if(id==='protection'){menu([100,300,600,1000].map((ms)=>command(`protection:${String(ms)}`,`${String(ms/1000)}초`)),'입력 간격 보호');return;}
     if(id.startsWith('speed:')||id.startsWith('protection:')){const ms=Number(id.split(':')[1]);const value={...settings,...(id.startsWith('speed:')?{intervalMs:ms}:{protectionMs:ms})};await request({type:'switch/settings',value});if(!active(startedGeneration))return;up();return;}
@@ -483,7 +483,8 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       sendResponse({result:'done'});return undefined;
     }
     if(message.type==='switch/action-check'){
-      sendResponse({result:top&&exclusive()&&state.mode==='executing'&&state.pendingAction!==null&&message.authorization.documentGeneration===generation&&message.authorization.modeGeneration===state.modeGeneration&&message.authorization.pendingActionId===state.pendingAction.actionId?'done':'refused'});return undefined;
+      const nav=message.navigation;const navigationMatches=!nav||state.pendingAction?.itemId===(nav.kind==='activate'?`tab:${String(nav.tabId)}`:`nav:${nav.kind}`);
+      sendResponse({result:navigationMatches&&top&&exclusive()&&state.mode==='executing'&&state.pendingAction!==null&&message.authorization.documentGeneration===generation&&message.authorization.modeGeneration===state.modeGeneration&&message.authorization.pendingActionId===state.pendingAction.actionId?'done':'refused'});return undefined;
     }
     if(message.type==='switch/frame-check'){
       sendResponse({result:exclusive()&&message.documentGeneration===generation&&visibleSwitchChild(message.childIndex)?'done':'refused'});return undefined;

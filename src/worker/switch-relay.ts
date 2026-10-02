@@ -5,8 +5,9 @@ import { isUnsupportedUrl } from '@/core/unsupported-url';
 export function createSwitchRelay(writer: StorageWriter) {
   const frames = new Map<number, Map<number, SwitchFrameReport>>();
   const cancellations = new Map<number, number>();
+  const navigationActions=new Map<number,{documentGeneration:string;seen:Set<string>}>();
   const cancel = (id: number) => { cancellations.set(id, (cancellations.get(id) ?? 0) + 1); };
-  chrome.tabs.onRemoved.addListener((id) => { frames.delete(id); cancellations.delete(id); void writer.writeSwitchData(`switchDraft:${String(id)}`, '', 'session'); });
+  chrome.tabs.onRemoved.addListener((id) => { frames.delete(id); cancellations.delete(id); navigationActions.delete(id); void writer.writeSwitchData(`switchDraft:${String(id)}`, '', 'session'); });
   chrome.tabs.onUpdated.addListener((id, change) => {
     if (change.status === 'loading') {
       cancel(id);
@@ -106,17 +107,35 @@ export function createSwitchRelay(writer: StorageWriter) {
       const cancellation = cancellations.get(tabId) ?? 0;
       cancellations.set(tabId, cancellation);
       const cancelled = () => cancellations.get(tabId) !== cancellation;
+      const report=frames.get(tabId)?.get(0);
+      const navigation={kind:message.kind,...(message.tabId!==undefined?{tabId:message.tabId}:{})};
+      const authorized=async()=>{
+        if(cancelled()||!report||report.documentGeneration!==message.authorization.documentGeneration||frames.get(tabId)?.get(0)?.documentGeneration!==report.documentGeneration)return false;
+        try{
+          const reply:unknown=await chrome.tabs.sendMessage(tabId,{type:'switch/action-check',authorization:message.authorization,navigation},{frameId:0});
+          return !cancelled()&&frames.get(tabId)?.get(0)?.documentGeneration===report.documentGeneration&&typeof reply==='object'&&reply!==null&&'result' in reply&&reply.result==='done';
+        }catch{return false;}
+      };
+      if(!await authorized())return {result:'refused'};
+      const prior=navigationActions.get(tabId);
+      const consumed=prior?.documentGeneration===message.authorization.documentGeneration?prior:{documentGeneration:message.authorization.documentGeneration,seen:new Set<string>()};
+      const actionKey=JSON.stringify([message.authorization.modeGeneration,message.authorization.pendingActionId]);
+      if(consumed.seen.has(actionKey))return {result:'refused'};
+      consumed.seen.add(actionKey);navigationActions.set(tabId,consumed);
       const tabs = await chrome.tabs.query({});
-      if (cancelled()) return { result: 'refused' };
+      if (!await authorized()) return { result: 'refused' };
       const supported = tabs.filter((tab) => tab.id !== undefined && !isUnsupportedUrl(tab.url) && /^https?:/.test(tab.url ?? ''));
       if (message.kind === 'tabs') return { tabs: supported.map((tab) => ({ id: tab.id, title: tab.title ?? tab.url })) };
-      if (message.kind === 'back') { await chrome.tabs.goBack(tabId); return { result: 'done' }; }
+      if (message.kind === 'back'||message.kind==='forward') {
+        try{if(message.kind==='back')await chrome.tabs.goBack(tabId);else await chrome.tabs.goForward(tabId);return {result:'done'};}
+        catch{return {result:'refused',reason:'unavailable'};}
+      }
       if (!supported.some((tab) => tab.id === message.tabId) || message.tabId === undefined) return { result: 'refused' };
       try {
         await chrome.tabs.sendMessage(message.tabId, { type: 'site/ping' }, { frameId: 0 });
-        if (cancelled()) return { result: 'refused' };
+        if (!await authorized()) return { result: 'refused' };
         await chrome.tabs.sendMessage(message.tabId, { type: 'switch/pause' }, { frameId: 0 });
-        if (cancelled()) return { result: 'refused' };
+        if (!await authorized()) return { result: 'refused' };
         await chrome.tabs.update(message.tabId, { active: true });
         return { result: 'done' };
       }
