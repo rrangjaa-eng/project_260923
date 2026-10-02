@@ -75,7 +75,7 @@ async function fixture() {
 async function editor() {const f=await fixture();await f.setEnabled(true);await f.press();await f.choose('글쓰기');await f.choose('양식 한 장 보기');await f.choose('알림');await f.choose('띄어쓰기');f.field.value='사이트 변경';return f;}
 it('refused apply preserves the field and draft for explicit comparison and protected reapply',async()=>{
  const f=await editor();let changes=0;f.field.addEventListener('input',()=>{changes++;});
- await f.choose('입력칸에 적용');expect(f.field.value).toBe('사이트 변경');expect(changes).toBe(0);
+ await f.choose('입력칸에 적용');expect(f.field.value).toBe('사이트 변경');expect(changes).toBe(0);for(const detail of ['바뀌었어요','보존','현재 값과 비교하세요'])expect(view.notice).toContain(detail);
  await f.choose('현재 값과 비교');expect(view.text).toContain('사이트 변경');expect(view.state?.mode).toBe('confirming');expect(view.state?.items[0]?.label).toBe('취소');
  await f.choose('다음 비교 읽기');expect(view.text).toContain('원래 문장 ');
  await f.choose('확인 · 입력칸에 적용');expect(f.field.value).toBe('원래 문장 ');expect(changes).toBe(1);
