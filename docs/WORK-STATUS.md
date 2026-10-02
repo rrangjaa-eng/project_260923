@@ -11,7 +11,7 @@
 | 검토/기반 |추가P1/P2 없음;PR27/a22532c 기준,테스트merge tree 동일 |
 | 저장/병합 |제품HEAD 고정,증거 `codex-pr28-verification-record`;PR27/28 draft·미병합,deploy/ZIP교체 없음 |
 
-일반 다중 선택의 Space 제안·명시 적용 증분을 완료했다. 실제PC 한국어 IME·운동 사용성·실사이트·프레임 안 multiple은 미검증이다. custom 위젯·사이트 임의 오류 원문·최근값 수집/PRIV-01 전체·native 연결은 남으며 이번 완료로 확대하지 않는다. 후속 작업은 최신 원격과 이 기록에서 이어간다. 아래는 당시 이력이다.
+일반 다중 선택의 Space 제안·명시 적용 증분을 완료했다. 실제PC 한국어 IME·운동 사용성·실사이트·프레임 안 multiple은 미검증이다. custom 위젯·사이트 임의 오류 원문·최근값 수집/PRIV-01 전체·native 연결은 남으며 이번 완료로 확대하지 않는다. 후속 작업은 최신 원격과 이 기록에서 이어간다. [남은 범위 분류](verification/2026-10-02-form-navigation-remaining.md)의 우선 권장은 iframe 안 radio/multiple 적용·취소·프레임 교체 회귀 검증이다. 확인된 검증 공백이며 새 기능을 만들지 않는다. 아직 착수하지 않았다. 아래는 당시 이력이다.
 
 ## draft PR28 게시 · 전체 CI 진행 — 2026-10-02 20:05 KST
 
