@@ -38,3 +38,7 @@ CI79 전체343건32.9분, CI84 전체346건33.4분 실측에 근거해 추가 �
 최종 자동UI는 **101/101,4.1분,exit0**, `run-Omhe0L`(2026-10-02 13:21–13:25 KST),0실패/스킵/불안정이다. [구조화 결과](forward-navigation-results.json)의 최종 해시와 실제 파일 일치를 확인했다. 전체 수집 목록은352개/41파일이며 이 수집 수를 실행 통과 수로 사용하지 않는다.
 
 게시: [draft PR24](https://github.com/rrangjaa-eng/project_260923/pull/24), base `codex-switch-pending-stop`/36f3a9c, head `codex-switch-forward-navigation`. 제품·검증 커밋 `30c5ba86baf7e5ed705f086a4e66e453dc886110`. 후속 PR번호 기록 커밋은 문서만 바꾸며 위 검증 소스 해시를 유지한다. 최종 HEAD 전체CI는 별도 확인한다.
+
+## 최종 전체 CI — 2026-10-02 14:04 KST
+
+최종 HEAD `461d431c3a7dffee3b0dd8c13d546380453e6bfc`의 [CI90](https://github.com/rrangjaa-eng/project_260923/actions/runs/36964580714), job110705478647은 **success**로 종료했다. 원본 로그에서 typecheck/lint/production build, unit296/296(35파일), 전체E2E352/352(34.7분)을 확인했다. PR21/22/23의 CI86/87/88도 각각343/345/346개 전체브라우저 success다. [HEAD/run/job/원문 수치](ci86-90-final-results.json)는 문서 전용 `codex-pr24-verification-record`에 저장한다. 제품 HEAD와 그 최종 CI를 기록용 변경으로 다시 실행하지 않았다. 미병합·미배포·설치ZIP 미교체이며 실제PC/실사이트 미검증은 유지한다.

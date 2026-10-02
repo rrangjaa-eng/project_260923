@@ -1,5 +1,32 @@
 # 작업 현황표
 
+## 세로 스크롤 영역 선택 — 2026-10-02 14:34 KST
+
+PR24/461d431 통과 기준 위의 `codex-switch-scroll-regions` 후속이다. 읽기·이동에서 페이지 전체 또는 화면 안의 세로 영역을 이름·번호·강조 테두리로 선택하고 그 영역만 움직인다. 자동 이동 중 첫 Space 누름은 보호 간격 안에서도 즉시 정지에만 쓰며 같은 release는 다른 행동을 하지 않는다. 무효 대상을 페이지 전체로 대신 이동시키지 않는다.
+
+| 항목 | 확인된 결과 | 남은 상태 |
+|---|---|---|
+| 단위·기본 검사 | 최종 type/lint/build, 새17·전체313/313(36파일) | 실제PC·실사이트 별도 |
+| 브라우저 | 최종 새영역6+기존한글여정/앞으로/정지20=26/26(8.3분) | 자동UI101/101(4.1분,0fail/skip/flaky), 끄기/실제설치팝업 정지3/3(1.2분) |
+| 독립 검토 | 가시성·실제 이동 없음·긴 제목 수정 후 추가P1/P2 없음 | 읽기 검토와 실행 결과 구분 |
+| 지원 범위 | 최상위 문서의 일반 세로 overflow 영역과 페이지 전체 | iframe·Shadow DOM 내부·가로·custom 제외 |
+| Git | PR24·설치ZIP 보존, 문서기록883b854 cherry-pick | 별도 draft PR 게시 예정 |
+
+[스크롤 계약·실패/수정 근거](verification/2026-10-02-scroll-regions.md) · [소스 해시·실행 수치](verification/scroll-regions-results.json). 실제Windows IME·운동 사용성·실사이트 미검증, merge/deploy·ZIP교체 없음. 이번 증분의 최종 HEAD 전체CI까지 확인하고 추가 기능은 시작하지 않는다. 아래는 시각별 이전 이력이다.
+
+## 최종 전체 CI 확인 — 2026-10-02 14:04 KST
+
+앞으로 이동 제품은 [draft PR24](https://github.com/rrangjaa-eng/project_260923/pull/24), `codex-switch-forward-navigation`/`461d431c3a7dffee3b0dd8c13d546380453e6bfc`에 저장했다. 이 기록 브랜치 `codex-pr24-verification-record`는 같은 제품 위의 문서 전용 결과 저장소다. 제품 HEAD를 기록만으로 다시 바꾸지 않는다.
+
+| PR·최종 HEAD | 최종 전체 CI | 원본 job 로그에서 확인한 결과 |
+|---|---|---|
+| PR21 b3f8caa | [CI86 success](https://github.com/rrangjaa-eng/project_260923/actions/runs/36963423003) | type/lint/build, unit272/272, E2E343/343(32.8분) |
+| PR22 50082f4 | [CI87 success](https://github.com/rrangjaa-eng/project_260923/actions/runs/36963470306) | type/lint/build, unit278/278, E2E345/345(32.5분) |
+| PR23 36f3a9c | [CI88 success](https://github.com/rrangjaa-eng/project_260923/actions/runs/36963534023) | type/lint/build, unit283/283, E2E346/346(33.3분) |
+| PR24 461d431 | [CI90 success](https://github.com/rrangjaa-eng/project_260923/actions/runs/36964580714) | type/lint/build, unit296/296, E2E352/352(34.7분) |
+
+[원본 run/job/HEAD·로그 수치](verification/ci86-90-final-results.json). 선행 실패를 취소·은폐하거나 성공 수치에 합산하지 않았다. 이후 추가 기능은 구현하지 않았으며 실제PC 한국어 IME·운동 사용성·실사이트는 별도 미검증이다. 모든 PR은 draft/미병합이며 merge/deploy·설치ZIP 교체 없음. 아래 시각별 표는 당시 이력이다.
+
 ## 앞으로 이동·현재 명령 승인 — 2026-10-02 13:26 KST
 
 `codex-switch-forward-navigation`은 PR23/36f3a9c 위의 후속이다. 읽기·이동에서 앞으로 가기, 불가 안내, 현재 문서·모드·명령 승인과 승인 중복 사용 거절을 구현했다. 탭 활성화 대기에서도 Space로 정지하고 늦은 응답은 이동을 실행하지 않는다. 이미 브라우저에 실행된 효과를 되돌리는 기능은 아니다.

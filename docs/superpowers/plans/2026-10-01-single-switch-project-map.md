@@ -90,3 +90,7 @@ PR15/20440e6·설치ZIP은 기존8단계 검증본이다. CI67 최종success는 
 PR22 `9aa3b42`는 worker가 이미 받은 이동 요청의 query/ping/pause 대기 뒤 취소 세대를 확인한다. 이어 `codex-switch-pending-stop`은 일반 실행 대기 중 새 Space 정지, 같은 release 소비, 입력 보호 뒤 재개만, 늦은 설정 응답의 재개 차단을 구현한다. 실행 완료된 외부 효과의 되돌리기와 worker 수신 전 모든 전송 지연의 승인은 보장하지 않는다. 최신 검증·PR/CI 상태는 [현황표](../../WORK-STATUS.md)와 [Space 정지 기록](../../verification/2026-10-02-pending-space-stop.md)을 따른다.
 
 `codex-switch-forward-navigation`은 PR23/36f3a9c 위에서 `앞으로`·이동 불가 안내, 현재 문서/모드/명령 승인과 승인 재사용 거절을 구현했다. 탭 활성화는 요청 전 source 쉬기를 완료 뒤로 옮겨 실행 대기 중 Space 정지와 정상 승인을 함께 유지한다. [이동 검증](../../verification/2026-10-02-forward-navigation.md)에서 TDD·독립 검토·실행 결과를 확인한다. 다음 후보는 다중 스크롤 영역 선택/제거/프레임/쉬기 경계 설계이며 이번 구현에는 추가하지 않았다. native/C# 설치·USB·새 권한·민감 수집·교차사이트 요약·Phase4~6으로 자동 확장하지 않는다. 실제PC IME/운동 사용성·실사이트·merge/deploy는 여전히 별도다.
+
+## 2026-10-02 세로 스크롤 영역 후속
+
+PR24/461d431의 CI90은 unit296/E2E352 success다. `codex-switch-scroll-regions`는 기존 읽기·이동과 공통 Space 엔진 위에 최상위 문서의 세로 영역 선택·명시 대상 표시·선택 영역만 이동·정지/취소/무효 대상 거절을 추가한다. iframe 내부·가로·Shadow DOM 내부·custom 스크롤은 이번 지원 범위 밖이다. [계약과 검증](../../verification/2026-10-02-scroll-regions.md)과 [현황표](../../WORK-STATUS.md)의 실제 실행 결과를 따른다. INPT-03 전체/원래 Phase3 완료나 PC 사용성 통과로 확대하지 않는다. 다음 작업은 이 증분의 최종 전체 CI 확인이며 추가 기능은 시작하지 않는다.
