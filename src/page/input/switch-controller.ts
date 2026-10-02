@@ -430,7 +430,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       if(!selected){notice='입력칸을 먼저 선택하세요';return;}
       const result=await targetRequest('applyText',selected.target,{text:draft.text,expectedValue,selection:draftSelection(draft),expectedIdentity:selected.identity});
       if(!active(startedGeneration))return result.result;
-      if(result.result!=='done'){notice='입력칸이 바뀌었어요. 현재 값과 비교하세요';preservedDraft=true;if(result.result==='unknown'){selected=null;notice='실행 결과를 확인하세요. 자동 재시도하지 않아요';}return result.result;}
+      if(result.result!=='done'){notice='작성 문장은 보존했어요. 현재 값과 비교하세요';preservedDraft=true;if(result.result==='unknown'){selected=null;notice='실행 결과를 확인하세요. 자동 재시도하지 않아요';}return result.result;}
       expectedValue=draft.text;capturedSelection=draftSelection(draft);notice='입력했어요';
       if(id==='search'){await saveDraft();if(!active(startedGeneration))return;const result=await targetRequest('search',selected.target,{expectedValue});if(!active(startedGeneration))return;if(result.result!=='done')notice='이 입력칸의 검색 동작을 지원하지 않아요';return result.result;}return;
     }

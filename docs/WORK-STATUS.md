@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## CI79 안내 회귀 수정 — 2026-10-02 12:23 KST
+
+PR20 CI77은 최종success(unit262/E2E341,31.6분). PR21 e736350의 CI79는 failure(unit272pass, E2E342pass/1fail,32.9분). 기존 복구 테스트가 요구하는 초안 보존 안내가 새 비교 문구에서 누락됐다. 실제 값과 초안 보존은 통과했다. 안내 한 줄을 복원했고 테스트는 변경하지 않았다. 수정 소스 type/lint/unit272/272 및 기존복구E2E6/6을 새로 확인했다. 후속전체CI는 별도이며 완료 전 성공으로 표시하지 않는다. [원인·검증](verification/2026-10-02-ci79-notice.md).
+
+PR22 및 대기 중 Space 정지 후속은 보존 중이며 이 문구 수정을 순서대로 반영한다. merge/deploy·ZIP교체 없음. 아래 날짜별 대기 문구는 해당 시점 이력이다.
+
 ## 재개·텍스트 재적용 확인 — 2026-10-02 11:40 KST
 
 PR19 뒤에 이미 보존된 `codex-form-controls-errors`/`243aa2c`를 발견해 중복 구현하지 않고 [draft PR20](https://github.com/rrangjaa-eng/project_260923/pull/20)으로 연결했다. PR20 base는 `codex-switch-form-navigation`/`930ab0f`이며 main은 변경하지 않았다. 이번 재개에서 PR20 소스의 타입·린트·단위262/262와 production 선택흐름6/6(3.8분, exit0)을 새로 확인했다. [CI77](https://github.com/rrangjaa-eng/project_260923/actions/runs/36955570396)은 실행 중이며 성공으로 계산하지 않는다. PR19 [CI76](https://github.com/rrangjaa-eng/project_260923/actions/runs/36948311828)은 단위251/브라우저335 success였고 아래 과거의 PR생성·CI대기 문구를 현재 상태로 사용하지 않는다.
