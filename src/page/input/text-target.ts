@@ -1,12 +1,25 @@
 import type { TextSelection } from '@/shared/switch-messages';
+import { sensitiveFieldLabel } from '@/core/form-navigation';
 import type { Collector } from '@/page/collector/collector';
 export function typingElement(el: Element | undefined): el is HTMLInputElement | HTMLTextAreaElement {
   return el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && ['text','search','email','tel','url'].includes(el.type));
 }
+function labelText(node:Element):string {
+  if(node.matches('input,textarea,select,[contenteditable]'))return '';
+  const copy=node.cloneNode(true) as Element;
+  copy.querySelectorAll('input,textarea,select,[contenteditable]').forEach((control)=>{control.remove();});
+  return copy.textContent.replace(/\s+/g,' ').trim();
+}
+function labelsOf(el:HTMLInputElement|HTMLTextAreaElement):string[] {
+  return [...Array.from(el.labels??[],labelText),...(el.getAttribute('aria-labelledby')??'').split(/\s+/).map((id)=>{const node=el.ownerDocument.getElementById(id);return node?labelText(node):'';})];
+}
+export function fieldLabel(el:HTMLInputElement|HTMLTextAreaElement):string {
+  return el.getAttribute('aria-label')?.trim()||labelsOf(el).find(Boolean)||el.getAttribute('placeholder')?.trim()||el.name||'입력칸';
+}
 export function sensitiveElement(el: Element): boolean {
   return (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)
     && (el instanceof HTMLInputElement && el.type === 'password' || /password|one-time-code|cc-/i.test(el.autocomplete)
-    || /비밀번호|주민|계좌|카드번호|인증번호|password|ssn|\botp\b/i.test(`${el.name} ${el.id} ${el.getAttribute('aria-label') ?? ''}`));
+    || sensitiveFieldLabel(`${el.name} ${el.id} ${el.getAttribute('aria-label')??''} ${labelsOf(el).join(' ')}`));
 }
 export function captureTextTarget(collector: Collector, itemId: string): { value: string; selection?: TextSelection } | null {
   const el=collector.get(itemId);
