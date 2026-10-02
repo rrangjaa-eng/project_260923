@@ -6,8 +6,10 @@ const Authorization = z.object({ documentGeneration: z.string().max(100), modeGe
 const Navigation = z.object({kind:z.enum(['tabs','back','forward','activate']),tabId:z.number().int().optional()}).strict();
 export const TextSelection = z.object({ start: z.number().int().nonnegative().max(4000), end: z.number().int().nonnegative().max(4000), direction: z.enum(['forward', 'backward', 'none']) }).strict().refine((selection) => selection.end >= selection.start);
 export type TextSelection = z.infer<typeof TextSelection>;
+const Indices=z.array(z.number().int().min(0).max(99)).max(100).refine(indices=>new Set(indices).size===indices.length);
 export const FormControl = z.discriminatedUnion('kind', [
   z.object({kind:z.literal('select'),selectedIndex:z.number().int().min(-1).max(99),signature:z.string().max(64000),options:z.array(z.object({label:z.string().max(300),disabled:z.boolean()}).strict()).min(1).max(100)}).strict(),
+  z.object({kind:z.literal('multiple'),selectedIndices:Indices,signature:z.string().regex(/^[a-f0-9]{32}$/),options:z.array(z.object({label:z.string().max(300),disabled:z.boolean()}).strict()).min(1).max(100)}).strict(),
   z.object({kind:z.literal('radio'),checked:z.boolean(),signature:z.string().regex(/^[a-f0-9]{32}$/)}).strict(),
   z.object({kind:z.literal('checkbox'),checked:z.boolean(),signature:z.string().max(4000)}).strict(),
 ]);
@@ -15,12 +17,12 @@ export type FormControl = z.infer<typeof FormControl>;
 export const SwitchTargetAction = z.object({
   actionId: z.string().max(150), target: Target,
   kind: z.enum(['capture', 'press', 'applyText', 'restoreText', 'search', 'captureControl', 'applyControl', 'readValidity']), text: z.string().max(4000).optional(), expectedValue: z.string().max(4000).optional(),
-  selection: TextSelection.optional(), control: FormControl.optional(), controlIndex:z.number().int().min(0).max(99).optional(), controlChecked:z.boolean().optional(),
+  selection: TextSelection.optional(), control: FormControl.optional(), controlIndices:Indices.optional(), controlIndex:z.number().int().min(0).max(99).optional(), controlChecked:z.boolean().optional(),
   expectedIdentity: z.string(), confirmed: z.boolean().optional(),
   authorization: Authorization,
 }).strict();
 export type SwitchTargetAction = z.infer<typeof SwitchTargetAction>;
-export const SwitchReportItem = z.object({ itemId: z.string(), label: z.string().max(300), kind: z.string(), danger: z.boolean(), editable: z.boolean(), sensitive: z.boolean(), identity: z.string(), controlKind:z.enum(['select','checkbox','radio']).optional() });
+export const SwitchReportItem = z.object({ itemId: z.string(), label: z.string().max(300), kind: z.string(), danger: z.boolean(), editable: z.boolean(), sensitive: z.boolean(), identity: z.string(), controlKind:z.enum(['select','checkbox','radio','multiple']).optional() });
 export type SwitchReportItem = z.infer<typeof SwitchReportItem>;
 export interface SwitchFrameReport { frameId: number; documentGeneration: string; path: number[]; items: SwitchReportItem[] }
 export const SwitchMessage = z.discriminatedUnion('type', [

@@ -5,7 +5,7 @@ const html=`<form onsubmit="window.submits++;return false"><label>분류<select 
 test('Space selects options and checkbox state only on explicit apply; validity read never submits',async({context,servePage,expectNoExternalRequests})=>{
  test.setTimeout(150000);servePage('http://practice.test/controls.html',html);const page=await context.newPage();await page.goto('http://practice.test/controls.html');await startSwitch(page);await chooseSwitch(page,'글쓰기');await chooseSwitch(page,'양식 한 장 보기');
  const panel=page.locator('tremor-helper-root').locator('.switch-panel');
- await expect(panel.locator('.switch-choice[data-item-id^="form-field:"]')).toHaveText(['분류','알림 받기','이메일']);await expect(panel).not.toContainText('secret');await expect(panel).not.toContainText('처음');
+ await expect(panel.locator('.switch-choice[data-item-id^="form-field:"]')).toHaveText(['분류','알림 받기','이메일','여러 선택']);await expect(panel).not.toContainText('secret');await expect(panel).not.toContainText('처음');
  await chooseSwitch(page,'분류');await chooseSwitch(page,'다음');await expect(page.locator('#category')).toHaveValue('secret-a');
  await chooseSwitch(page,'선택값 적용');await expect(page.locator('#category')).toHaveValue('secret-b');
  await chooseSwitch(page,'다음 칸');await chooseSwitch(page,'체크하기');await expect(page.locator('#notify')).not.toBeChecked();await chooseSwitch(page,'체크 상태 적용');await expect(page.locator('#notify')).toBeChecked();

@@ -1,5 +1,18 @@
 # 작업 현황표
 
+## 일반 다중 선택 로컬 검증 완료 — 2026-10-02 20:03 KST
+
+`codex-switch-multiple-controls`는 미병합 [PR27](https://github.com/rrangjaa-eng/project_260923/pull/27)/`a22532cdf94f7f420bbb87e3e743adb9d267be98`와 CI94 증거 위에 쌓은 후속이다. `select multiple` 항목별 선택·해제를 제안하고 명시 적용한다. 비활성 항목 보존·전체 상태/의미 비교·일회 토큰·외부 form 제거·쉬기/unknown·초안 보존을 검증했다.
+
+| 검사 | 실제 결과 |
+|---|---|
+| 최종 기본·단위 | type/lint/production build,352/352(38파일) |
+| 최종 새 브라우저 |7/7,2.7분;360/768/1280px DOM 포함 |
+| 자동UI |101/101,4.0분;실패/스킵/불안정0 |
+| 독립 검토 |외부 form P2 RED→GREEN 및 필드 이름 사후 비교 보완,추가P1/P2 없음 |
+
+[계약·실패 재현·한계](verification/2026-10-02-multiple-controls.md), [실행 결과와 소스 해시](verification/multiple-controls-results.json). 선행15pass/1fixture-error와8/8은 최종 소스 결과와 구분했다. 새 draft PR 및 최종 HEAD 전체CI는 다음 확인 대상이며 아직 완료로 주장하지 않는다. 실제PC·운동 사용성·실사이트·프레임 안 multiple은 미검증. 새권한/의존성·최근값/native·merge/deploy·ZIP 교체 없음. 아래는 당시 기록이다.
+
 ## PR27 최종 전체 CI 성공 — 2026-10-02 19:35 KST
 
 [draft PR27](https://github.com/rrangjaa-eng/project_260923/pull/27), `codex-switch-radio-controls`/`a22532cdf94f7f420bbb87e3e743adb9d267be98`의 [CI94](https://github.com/rrangjaa-eng/project_260923/actions/runs/36992522530)가 workflow/job success로 종료했다. type/lint/production build·unit331/331(37파일)·전체E2E362/362(38.0분). [원본 로그 증거](verification/ci94-final-results.json). main CI93도 성공이며 PR27은 미병합이다.

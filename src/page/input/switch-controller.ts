@@ -13,6 +13,7 @@ import type { Collector } from '@/page/collector/collector';
 import type { InputPipeline } from './pipeline';
 import { createSwitchPanel } from '@/page/overlay/switch-panel';
 import { showRing, hideRing } from '@/page/overlay/ring';
+import {clearMultipleCapture} from './multiple-control';
 import { clearRadioCapture } from './radio-control';
 import { createScrollRegions, type ScrollRegion } from './scroll-regions';
 import { executeSwitchAction, reportSwitchItem, visibleSwitchChild } from './switch-actions';
@@ -53,6 +54,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   let initial:number|null=null,medial:number|null=null;
   let preservedDraft=false;
   let selectedControl:FormControl|null=null;
+  let pendingControlIndices:number[]|undefined;
   let pendingControlIndex:number|undefined;
   let pendingControlChecked:boolean|undefined;
   let controlPage=0,controlPreviewIndex=0;
@@ -106,13 +108,13 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     }
     const previousMode=state.mode;
     const output=reduceSwitch(state,event);state=output.state;
-    if(previousMode!=='paused'&&state.mode==='paused')clearRadioCapture(document);
-    if(previousMode!=='paused'&&state.mode==='paused'&&selectedControl?.kind==='radio'){
+    if(previousMode!=='paused'&&state.mode==='paused'){clearRadioCapture(document);clearMultipleCapture(document);}
+    if(previousMode!=='paused'&&state.mode==='paused'&&(selectedControl?.kind==='radio'||selectedControl?.kind==='multiple')){
       selectedControl=null;formIndex=null;selected=null;formOverview=true;stack=[];current=formMenu();title=current.title;
-      state.items=current.items;state.resumeMode='itemScan';state.scanIndex=0;pendingControlChecked=undefined;
+      state.items=current.items;state.resumeMode='itemScan';state.scanIndex=0;pendingControlIndices=undefined;pendingControlChecked=undefined;
     }
     if(previousMode!=='paused'&&state.mode==='paused'&&selectedControl){
-      pendingControlIndex=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;
+      pendingControlIndex=undefined;pendingControlIndices=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;
       state.items=[command('up','상위로'),...controlChoices(),command('pause','쉬기')];current={...current,items:state.items};
     }
     if(previousMode==='confirming'&&state.mode==='paused'){
@@ -134,7 +136,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   function up(){reapply=null;phraseChange=null;const previous=stack.pop();if(!previous){root();return;}current=previous;title=previous.title;
     dispatch({type:'setItems',now:now(),items:previous.items,mode:previous.mode});}
   function pause(reason=''){
-    clearRadioCapture(document);
+    clearRadioCapture(document);clearMultipleCapture(document);
     reapply=null;phraseChange=null;
     beginOnFocus=false;
     stopScroll();confirmAction=null;cancelPeers();
@@ -247,7 +249,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     return {title:formFields.length?'양식 한 장 보기':'지원하는 입력칸이 없어요',items,mode:'itemScan'};
   }
   function showForm(page=0){
-    selectedControl=null;controlPreviewIndex=0;pendingControlIndex=undefined;pendingControlChecked=undefined;formIndex=null;selected=null;formOverview=true;stack=[];current=formMenu(page);title=current.title;
+    selectedControl=null;controlPreviewIndex=0;pendingControlIndex=undefined;pendingControlIndices=undefined;pendingControlChecked=undefined;formIndex=null;selected=null;formOverview=true;stack=[];current=formMenu(page);title=current.title;
     dispatch({type:'setItems',now:now(),items:current.items,mode:current.mode});
   }
   async function openForm(startedGeneration:number){
@@ -270,7 +272,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       if(!active(startedGeneration))return capture.result;
       const parsed=FormControl.safeParse(capture.control);
       if(capture.result!=='done'||!parsed.success){notice='선택칸을 다시 확인하세요';return capture.result;}
-      selectedControl=parsed.data;pendingControlIndex=undefined;pendingControlChecked=undefined;controlPage=0;controlPreviewIndex=0;
+      selectedControl=parsed.data;pendingControlIndex=undefined;pendingControlIndices=undefined;pendingControlChecked=undefined;controlPage=0;controlPreviewIndex=0;
       formIndex=index;selected=field;formOverview=false;stack=[formMenu()];controlMenu();return;
     }
     const capture=await targetRequest('capture',field.target,{expectedIdentity:field.identity});
@@ -282,6 +284,11 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     selectedControl=null;formRecovering=false;formIndex=index;selected=field;preservedDraft=false;editor();return;
   }
   function controlPreviewPages():string[]{
+    if(selectedControl?.kind==='multiple'){
+      const selected=selectedControl;
+      const summary=(indices:number[])=>indices.map(index=>`${String(index+1)}. ${selected.options[index]?.label??''}${selected.options[index]?.disabled?' · 변경할 수 없음':''}`).join(' / ')||'고르지 않음';
+      return phrasePreviewPages(summary(selected.selectedIndices),pendingControlIndices===undefined?undefined:summary(pendingControlIndices)).map(page=>page.replace(/^기존 문구/,'현재 선택').replace(/^바꿀 문장/,'변경안'));
+    }
     if(selectedControl?.kind!=='select')return [];
     return phrasePreviewPages(selectedControl.options[selectedControl.selectedIndex]?.label??'고르지 않음',pendingControlIndex===undefined?undefined:selectedControl.options[pendingControlIndex]?.label).map(page=>page.replace(/^기존 문구/,'현재 선택').replace(/^바꿀 문장/,'변경안'));
   }
@@ -293,20 +300,21 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   }
   function controlChoices():SwitchItem[]{
     if(!selectedControl)return [];
-    const choices=selectedControl.kind==='select'?selectedControl.options.slice(controlPage*6,controlPage*6+6).flatMap((option,index)=>option.disabled?[]:[command(`control-option:${String(controlPage*6+index)}`,characters(option.label).length>24?`${String(controlPage*6+index+1)}. ${shortLabel(option.label)}`:option.label)]):selectedControl.kind==='radio'?(selectedControl.checked?[]:[command('control-radio','이 항목 선택')]):[command('control-check','체크하기'),command('control-uncheck','체크 해제하기')];
-    if(selectedControl.kind==='select'){
+    const multiple=selectedControl.kind==='multiple'?selectedControl:null;
+    const choices=multiple?multiple.options.slice(controlPage*6,controlPage*6+6).flatMap((option,index)=>option.disabled?[]:[command(`control-option:${String(controlPage*6+index)}`,`${String(controlPage*6+index+1)}. ${shortLabel(option.label)} · ${(pendingControlIndices??multiple.selectedIndices).includes(controlPage*6+index)?'선택 해제하기':'선택하기'}`)]):selectedControl.kind==='select'?selectedControl.options.slice(controlPage*6,controlPage*6+6).flatMap((option,index)=>option.disabled?[]:[command(`control-option:${String(controlPage*6+index)}`,characters(option.label).length>24?`${String(controlPage*6+index+1)}. ${shortLabel(option.label)}`:option.label)]):selectedControl.kind==='radio'?(selectedControl.checked?[]:[command('control-radio','이 항목 선택')]):[command('control-check','체크하기'),command('control-uncheck','체크 해제하기')];
+    if(selectedControl.kind==='select'||selectedControl.kind==='multiple'){
       if(controlPage>0)choices.push(command('control-prev-page','이전 선택 묶음'));
       if((controlPage+1)*6<selectedControl.options.length)choices.push(command('control-next-page','다음 선택 묶음'));
     }
     const previewPages=controlPreviewPages();
     if(controlPreviewIndex>0)choices.push(command('control-preview-prev','이전 항목 읽기'));
     if(controlPreviewIndex<previewPages.length-1)choices.push(command('control-preview-next','다음 항목 읽기'));
-    if(pendingControlIndex!==undefined||pendingControlChecked!==undefined)choices.push(command('control-apply',selectedControl.kind==='select'?'선택값 적용':selectedControl.kind==='radio'?'선택 적용':'체크 상태 적용'));
+    if(pendingControlIndex!==undefined||pendingControlIndices!==undefined||pendingControlChecked!==undefined)choices.push(command('control-apply',selectedControl.kind==='select'?'선택값 적용':selectedControl.kind==='radio'||selectedControl.kind==='multiple'?'선택 적용':'체크 상태 적용'));
     choices.push(command('validity','입력 오류 읽기'),...(formIndex!==null&&formIndex>0?[command('form-prev','이전 칸')]:[]),...(formIndex!==null&&formIndex<formFields.length-1?[command('form-next','다음 칸')]:[]),command('form-list','양식 목록'),command('form-exit','원래 화면으로'));
     return choices;
   }
   function controlMenu(){
-    if(selectedControl)menu(controlChoices(),selectedControl.kind==='select'?'선택 목록':selectedControl.kind==='radio'?'하나만 고르는 항목':'체크 항목','itemScan',false);
+    if(selectedControl)menu(controlChoices(),selectedControl.kind==='multiple'?'여러 항목 고르기':selectedControl.kind==='select'?'선택 목록':selectedControl.kind==='radio'?'하나만 고르는 항목':'체크 항목','itemScan',false);
   }
   async function chooseTarget(index:number,startedGeneration:number):Promise<PageResult['result']|undefined>{
     const target=targets[index];if(!target||target.sensitive){notice='민감칸은 단일 스위치 입력을 지원하지 않아요';return;}
@@ -357,20 +365,27 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(id==='form-recover'){
       if(formRecovery){formOrigin={...structuredClone(workspace()),selected,preservedDraft,current,stack:[...stack]};formActive=true;formRecovering=true;formFields=[];formIndex=null;selected=null;loadWorkspace(formRecovery);preservedDraft=true;editor();}return;
     }
-    if(id.startsWith('control-option:')){if(selectedControl?.kind==='select'){const index=Number(id.slice(15));if(selectedControl.options[index]&&!selectedControl.options[index].disabled){pendingControlIndex=index;controlPreviewIndex=phrasePreviewPages(selectedControl.options[selectedControl.selectedIndex]?.label??'고르지 않음').length;controlMenu();}}return;}
+    if(id.startsWith('control-option:')){if(selectedControl?.kind==='multiple'){
+      const index=Number(id.slice(15));if(selectedControl.options[index]&&!selectedControl.options[index].disabled){
+        const currentPages=controlPreviewPages().filter(page=>page.startsWith('현재 선택')).length;
+        const indices=pendingControlIndices??selectedControl.selectedIndices;pendingControlIndices=indices.includes(index)?indices.filter(value=>value!==index):[...indices,index].sort((a,b)=>a-b);
+        controlPreviewIndex=currentPages;controlMenu();
+      }return;
+    }if(selectedControl?.kind==='select'){const index=Number(id.slice(15));if(selectedControl.options[index]&&!selectedControl.options[index].disabled){pendingControlIndex=index;controlPreviewIndex=phrasePreviewPages(selectedControl.options[selectedControl.selectedIndex]?.label??'고르지 않음').length;controlMenu();}}return;}
     if(id==='control-preview-prev'||id==='control-preview-next'){controlPreviewIndex=Math.max(0,Math.min(controlPreviewPages().length-1,controlPreviewIndex+(id==='control-preview-next'?1:-1)));controlMenu();return;}
     if(id==='control-radio'){if(selectedControl?.kind==='radio'&&!selectedControl.checked){pendingControlChecked=true;controlMenu();}return;}
     if(id==='control-check'||id==='control-uncheck'){if(selectedControl?.kind==='checkbox'){pendingControlChecked=id==='control-check';controlMenu();}return;}
     if(id==='control-prev-page'||id==='control-next-page'){controlPage+=id==='control-next-page'?1:-1;controlMenu();return;}
     if(id==='control-apply'){
       if(!selected||!selectedControl)return;
-      const result=await targetRequest('applyControl',selected.target,{expectedIdentity:selected.identity,control:selectedControl,...(pendingControlIndex!==undefined?{controlIndex:pendingControlIndex}:{}),...(pendingControlChecked!==undefined?{controlChecked:pendingControlChecked}:{})});
+      const result=await targetRequest('applyControl',selected.target,{expectedIdentity:selected.identity,control:selectedControl,...(pendingControlIndices!==undefined?{controlIndices:pendingControlIndices}:{}),...(pendingControlIndex!==undefined?{controlIndex:pendingControlIndex}:{}),...(pendingControlChecked!==undefined?{controlChecked:pendingControlChecked}:{})});
       if(!active(startedGeneration))return result.result;
       if(result.result==='unknown'){showForm();unknownNotice='이전 실행 결과를 확인하세요. 자동 재시도하지 않아요';pause();return 'unknown';}
-      if(result.result!=='done'){pendingControlIndex=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;controlMenu();notice='선택칸이 바뀌었어요. 목록에서 다시 선택하세요';return result.result;}
+      if(result.result!=='done'){pendingControlIndex=undefined;pendingControlIndices=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;controlMenu();notice='선택칸이 바뀌었어요. 목록에서 다시 선택하세요';return result.result;}
+      if(selectedControl.kind==='multiple'){const captured=FormControl.safeParse(result.control);if(!captured.success||captured.data.kind!=='multiple'){showForm();notice='선택칸을 다시 확인하세요';return 'refused';}selectedControl=captured.data;}
       if(selectedControl.kind==='select'&&pendingControlIndex!==undefined)selectedControl={...selectedControl,selectedIndex:pendingControlIndex};
       if((selectedControl.kind==='checkbox'||selectedControl.kind==='radio')&&pendingControlChecked!==undefined)selectedControl={...selectedControl,checked:pendingControlChecked};
-      pendingControlIndex=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;controlMenu();notice='적용했어요';return;
+      pendingControlIndex=undefined;pendingControlIndices=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;controlMenu();notice='적용했어요';return;
     }
     if(id==='validity'){
       if(!selected){notice='입력칸을 먼저 선택하세요';return;}
@@ -590,7 +605,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     }
   });
   frameObserver.observe(document,{subtree:true,childList:true,attributes:true,attributeFilter:['src','srcdoc','hidden','inert','style','class']});
-  opts.signal.addEventListener('abort',()=>{disposed=true;clearRadioCapture(document);stopScroll();scrollRegions?.destroy();hideRing();clearInterval(timer);frameObserver.disconnect();panel?.destroy();chrome.runtime.onMessage.removeListener(messageHandler);chrome.storage.onChanged.removeListener(storageHandler);});
+  opts.signal.addEventListener('abort',()=>{disposed=true;clearRadioCapture(document);clearMultipleCapture(document);stopScroll();scrollRegions?.destroy();hideRing();clearInterval(timer);frameObserver.disconnect();panel?.destroy();chrome.runtime.onMessage.removeListener(messageHandler);chrome.storage.onChanged.removeListener(storageHandler);});
   return {exclusive,pause,
     enabledChanged:()=>{invalidate('조작을 쉬고 있어요. 스페이스바로 다시 선택하세요');panel?.destroy();panel=null;if(exclusive()){opts.onExclusive();render();void publish().catch(()=>undefined);}},
     connectionLost:()=>{if(exclusive())invalidate('연결이 바뀌었어요. 실행 결과를 확인하고 다시 선택하세요');}};
