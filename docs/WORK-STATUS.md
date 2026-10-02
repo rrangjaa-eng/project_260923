@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## PR30 최종 로컬 검증 완료·CI98 진행 — 2026-10-03 00:50 KST
+
+제품 HEAD `af487cb92614f31c3af30b0517bc44f4977cfb8a`, [draft PR30](https://github.com/rrangjaa-eng/project_260923/pull/30). 최종 자동UI101/101(4.2분, 실패/스킵/불안정0), 탭 생명주기 브라우저8/8(2.7분), 시작9/9·추가경계3/3·unit397/397·type/lint 통과. 첫 UI100/101 실패와 테스트 시간 가정 수정 근거는 그대로 보존했다.
+
+[CI98](https://github.com/rrangjaa-eng/project_260923/actions/runs/37028526772), job110909753355은 type/lint/unit 단계 성공, 전체 브라우저 진행 중이다. 이전 HEAD의 CI97은 cancelled이며 최종 성공으로 세지 않는다. 최종 test merge `e48c5b7`과 후보 tree `7ec4f11` 동일. [수치·해시](verification/nav02-results.json), [동작·경계](verification/2026-10-03-nav02.md). 전체 CI 종료까지 추적한다. 실제 Windows IME·운동 사용성·실사이트는 미검증이며 merge/deploy/ZIP교체 없음. 아래는 당시 기록이다.
+
 ## NAV-02 UI 시간 가정 수정 — 2026-10-03 00:37 KST
 
 첫 자동UI100/101에서 기존 팝업5회 클릭 테스트가 실패했다. 300ms 떨림 필터와 무간격5회 모두처리 가정의 충돌을 실제시각 기록으로 재현했다. 제품필터는 유지하고 테스트를350ms 간격의 의도적5회 선택·매 단계 상태 단언으로 수정했다. 빠른중복억제·pending 시작탭재연결 포함3/3(29초) 통과. [근거](verification/2026-10-03-nav02.md).

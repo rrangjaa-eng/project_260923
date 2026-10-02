@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-03T00:40:57+09:00",
+  "checked_at": "2026-10-03T00:50:22+09:00",
   "branch": "codex-switch-nav02",
   "head": "af487cb92614f31c3af30b0517bc44f4977cfb8a",
   "base_pr": 29,
@@ -24,10 +24,19 @@
       "minutes": 1.5
     },
     "final_related_browser": {
-      "status": "pending"
+      "status": "passed",
+      "passed": 8,
+      "minutes": 2.7,
+      "command": "CI=true pnpm exec playwright test tests/e2e/switch-tab-lifecycle.e2e.ts"
     },
     "ui": {
-      "status": "in_progress"
+      "status": "passed",
+      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-KbYBlZ",
+      "passed": 101,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "minutes": 4.2
     },
     "ui_initial": {
       "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-zMcDyj",
@@ -44,8 +53,9 @@
   "ci": {
     "number": 98,
     "run": 37028526772,
-    "status": "pending",
-    "conclusion": null
+    "status": "in_progress",
+    "conclusion": null,
+    "job": 110909753355
   },
   "source_sha256": {
     ".github/workflows/ci.yml": "c3d56bbb75186ad69da49d535396c0faa116c0386a21b3cbd4540a082a69e17c",
@@ -82,8 +92,8 @@
       "number": 97,
       "run": 37027763675,
       "job": 110906648680,
-      "status": "in_progress",
-      "conclusion": null
+      "status": "completed",
+      "conclusion": "cancelled"
     }
   ]
 }
