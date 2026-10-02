@@ -32,6 +32,8 @@ PR14의 portable-hand C#/네이티브 호스트, worker bridge, 보호 USB 저�
 
 제품 기준 PR25의 [CI91](https://github.com/rrangjaa-eng/project_260923/actions/runs/36969554948)은 unit313/313, 전체 E2E358/358 성공이다. 이는 선행 제품 증거이며 통합 후보의 새 CI 성공을 대신하지 않는다. 통합 후보에서 type/lint/unit/build와 설치·종료 회귀를 새로 실행하고, main 대상 draft PR 최종 HEAD의 CI에서 전체 E2E를 다시 확인한다. 결과는 작업 현황과 별도 검증 기록에 남긴다. 실패·미완료 결과를 성공으로 합산하지 않는다.
 
+**최종 확인:** [draft PR26](https://github.com/rrangjaa-eng/project_260923/pull/26)의 `a453089c77a5130931cbd37fd948fb251cd33afa`에서 [CI92](https://github.com/rrangjaa-eng/project_260923/actions/runs/36973766821) workflow/job이 success로 종료했다. unit313/313·전체E2E358/358(36.3분), CI production build 및 type/lint를 원본 로그와 단계 결과로 확인했다. 로컬 type/lint/build/unit313 및 설치·끄기3/3도 통과했다. [최종 증거](verification/ci92-final-results.json). 이 기록은 제품 HEAD를 바꾸지 않는 `codex-pr26-verification-record` 문서 브랜치에 저장한다.
+
 병합 판단 전 확인할 것은 새 후보 전체 CI, 지원 경계 검토와 사용자 merge 승인이다. 배포·설치본 교체에는 별도 승인과 패키지 검증이 필요하며 실제 PC/사용성/실사이트 시험은 이 자동 검증으로 대체하지 않는다. 기존 PR15–25와 PR8–14를 닫거나 retarget하지 않는다.
 
 ## 보존한 과거 설치 파일
