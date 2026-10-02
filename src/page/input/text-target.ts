@@ -10,14 +10,14 @@ function labelText(node:Element):string {
   copy.querySelectorAll('input,textarea,select,[contenteditable]').forEach((control)=>{control.remove();});
   return copy.textContent.replace(/\s+/g,' ').trim();
 }
-function labelsOf(el:HTMLInputElement|HTMLTextAreaElement):string[] {
+function labelsOf(el:HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement):string[] {
   return [...Array.from(el.labels??[],labelText),...(el.getAttribute('aria-labelledby')??'').split(/\s+/).map((id)=>{const node=el.ownerDocument.getElementById(id);return node?labelText(node):'';})];
 }
-export function fieldLabel(el:HTMLInputElement|HTMLTextAreaElement):string {
+export function fieldLabel(el:HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement):string {
   return el.getAttribute('aria-label')?.trim()||labelsOf(el).find(Boolean)||el.getAttribute('placeholder')?.trim()||el.name||'입력칸';
 }
 export function sensitiveElement(el: Element): boolean {
-  return (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)
+  return (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement)
     && (el instanceof HTMLInputElement && el.type === 'password' || /password|one-time-code|cc-/i.test(el.autocomplete)
     || sensitiveFieldLabel(`${el.name} ${el.id} ${el.getAttribute('aria-label')??''} ${labelsOf(el).join(' ')}`));
 }

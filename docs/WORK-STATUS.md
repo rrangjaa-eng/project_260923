@@ -1,5 +1,19 @@
 # 작업 현황표
 
+## 선택·체크·입력 오류 안내 후속 — 2026-10-02 11:13 KST
+
+기준 PR19 source `930ab0fafe7a446ac1d0c296d8e5b72c035e7638`, 로컬 `codex/form-controls-errors`, 보존 원격 `codex-form-controls-errors`. native 단일 select/checkbox·선택칸 validity 안내를 구현했다. 기존 PR19 수정·중복생성·merge/deploy 없음. 저장모델 기준은 구현 gpt-6.1-sol/medium, 독립검토 gpt-6.1-sol/high이며 현재 채팅 모델 전환을 주장하지 않는다.
+
+| 항목 | 확인된 결과 | 남은 범위 |
+|---|---|---|
+| 구현 | 선택칸만 capture·명시 apply·input/change·stale 검사·오류 읽기·긴 원문 읽기쪽 | custom/radio/multiple/site 오류원문 제외 |
+| 단위·빌드 | 최종 unit262/262, type/lint/production build 통과 | 실제 PC 별도 |
+| 브라우저 | 전체341/341 29.7분은 최종 읽기쪽·줄바꿈 보완 전. 보완 후 최신 기본UI101/101 3.2분+실제Space6/6 3.8분. 모두 fail/skip/flaky0 | 최종 전체341 재실행으로 표현하지 않음 |
+| 화면·독립검토 | 360/768/1280px DOM·이미지; 좁은 영문 카드 overflow RED→GREEN. 자동쉬기/unknown 보완; 확인된 미해결P1/P2 없음 | Windows IME·실제사이트·손떨림 사용성 미검증 |
+| CI·Git | 측정 시간에 맞춰 E2E35/job40분, YAML 통과. 후속 브랜치에 소스·검증 보존 | 원격 CI 실행은 별도; 새 PR 없음 |
+
+[검증·지원범위](verification/2026-10-02-form-controls.md), [단계별 구조화 결과](verification/form-controls-results.json). 기존 ZIP·권한 보존, 자동제출·최근값수집·외부전송·OS연결 없음. 전체 INPT-03/PRIV-01/실제PC검증은 완료로 바꾸지 않는다.
+
 ## 양식 탐색 후속 — 2026-10-02 03:36 KST
 
 기준 PR18/6fce6f5, 로컬 `codex/switch-form-navigation`. 최신 게시 클라우드에서 승인된 입력칸 metadata 목록·필드 이동·작업 보존·명시적 적용·원래 화면 복귀를 구현했다. 선택칸만 capture하며 필드별 문장·커서/선택·undo·부분한글은 메모리에 보존한다. 무효화 시 원래 문장을 복원하고 양식 문장은 대상 없이 명시 복구한다. 새 개인 데이터 수집이 필요한 최근값 카드는 구현하지 않았다.

@@ -1,12 +1,14 @@
 import { buildFrameReport, contentBoxOf, type Collector, type Item } from '@/page/collector/collector';
 import type { SwitchReportItem, SwitchTargetAction, TextSelection } from '@/shared/switch-messages';
+import type { FormControl } from '@/shared/switch-messages';
+import { captureControl, applyControl, controlElement, readValidity } from './form-control';
 import { synthesizePress } from '@/page/click/press';
 import { applyDraft, captureTextTarget, sensitiveElement, typingElement, restoreTextTarget, fieldLabel } from './text-target';
 
-export interface SwitchPageResult { result: 'done' | 'refused' | 'unknown'; value?: string; selection?: TextSelection }
+export interface SwitchPageResult { result: 'done' | 'refused' | 'unknown'; value?: string; selection?: TextSelection; control?: FormControl; validation?: string }
 
 export function reportSwitchItem(item: Item, el: Element | undefined): SwitchReportItem {
-  const textField=typingElement(el)||el instanceof HTMLInputElement&&el.type==='password';
+  const textField=typingElement(el)||controlElement(el)||el instanceof HTMLSelectElement||el instanceof HTMLInputElement&&el.type==='password';
   const label = (textField?fieldLabel(el):item.name || item.fingerprint.buttonText || item.kind).slice(0, 300);
   const fingerprint=textField?{...item.fingerprint,labelText:label,aria:label,buttonText:undefined}:item.fingerprint;
   const destination = el instanceof HTMLAnchorElement ? el.href : '';
@@ -23,6 +25,7 @@ export function reportSwitchItem(item: Item, el: Element | undefined): SwitchRep
   const danger = item.danger || (el instanceof HTMLAnchorElement && !['http:', 'https:'].includes(el.protocol));
   return {
     itemId: item.id, label, kind: item.kind, danger,
+    ...(controlElement(el)&&!el.disabled&&(el instanceof HTMLSelectElement?el.options.length>0&&el.options.length<=100:!el.indeterminate)?{controlKind:el instanceof HTMLSelectElement?'select' as const:'checkbox' as const}:{}),
     editable: typingElement(el)&&!el.readOnly&&!el.disabled, sensitive: !!el && sensitiveElement(el),
     identity: JSON.stringify([textField?label:item.name, item.kind, danger, fingerprint, destination, inputType, submission, submitter?.type]),
   };
@@ -60,6 +63,13 @@ export function executeSwitchAction(
   if (!item || !el || !activeElement(el) || sensitiveElement(el)) return { result: 'refused' };
   const current = reportSwitchItem(item, el);
   if (current.identity !== action.expectedIdentity) return { result: 'refused' };
+  if (action.kind === 'captureControl') {
+    const control = captureControl(el); return control ? {result:'done',control} : {result:'refused'};
+  }
+  if (action.kind === 'applyControl') return {result:applyControl(el,action)};
+  if (action.kind === 'readValidity') {
+    const validation=readValidity(el); return validation===null?{result:'refused'}:{result:'done',validation};
+  }
   if (action.kind === 'capture') {
     const snapshot = captureTextTarget(collector, action.target.itemId);
     return snapshot ? { result: 'done', ...snapshot } : { result: 'refused' };
@@ -70,7 +80,7 @@ export function executeSwitchAction(
   if (action.kind === 'restoreText' && typeof action.expectedValue === 'string') {
     return { result: restoreTextTarget(collector, action.target.itemId, action.expectedValue, action.selection) };
   }
-  if (action.kind === 'press' && !typingElement(el) && !el.matches('input[type=file],select,input[type=date],input[type=color],input[type=time]')) {
+  if (action.kind === 'press' && !typingElement(el) && !el.matches('input[type=file],input[type=checkbox],select,input[type=date],input[type=color],input[type=time]')) {
     if ((current.danger || !['a', 'link'].includes(current.kind)) && !action.confirmed) return { result: 'refused' };
     press(el);
     return { result: 'done' };

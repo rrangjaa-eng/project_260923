@@ -8,7 +8,7 @@ import { PhraseList, phrasePreviewPages, type PhraseMutation } from '@/core/swit
 import { formTargets, FormDrafts, sensitiveFieldLabel, type FormDraft } from '@/core/form-navigation';
 import { characters } from '@/core/text-draft';
 import { framePathOf } from '@/core/frame-path';
-import { SwitchMessage, TextSelection, type SwitchFrameReport, type SwitchTargetAction } from '@/shared/switch-messages';
+import { FormControl, SwitchMessage, TextSelection, type SwitchFrameReport, type SwitchTargetAction } from '@/shared/switch-messages';
 import type { Collector } from '@/page/collector/collector';
 import type { InputPipeline } from './pipeline';
 import { createSwitchPanel } from '@/page/overlay/switch-panel';
@@ -23,7 +23,7 @@ async function request(message: unknown):Promise<unknown>{
   try{return await Promise.race([chrome.runtime.sendMessage(message),new Promise((_,reject)=>{timeout=setTimeout(()=> { reject(new Error('response-timeout')); },3000);})]);}
   finally{if(timeout)clearTimeout(timeout);}
 }
-type PageResult={result:'done'|'refused'|'unknown';value?:string;selection?:TextSelection};
+type PageResult={result:'done'|'refused'|'unknown';value?:string;selection?:TextSelection;control?:FormControl;validation?:string};
 function resultOf(raw:unknown):PageResult{
   if(typeof raw==='object'&&raw!==null&&'result' in raw&&['done','refused','unknown'].includes(String(raw.result)))return raw as PageResult;
   return {result:'unknown'};
@@ -49,6 +49,10 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   let draft:TextDraft=createDraft();
   let initial:number|null=null,medial:number|null=null;
   let preservedDraft=false;
+  let selectedControl:FormControl|null=null;
+  let pendingControlIndex:number|undefined;
+  let pendingControlChecked:boolean|undefined;
+  let controlPage=0,controlPreviewIndex=0;
   let formFields:ScanTarget[]=[];
   const formDrafts=new FormDrafts();
   let formActive=false,formOverview=false,formRecovering=false;
@@ -57,7 +61,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   let formOrigin:(FormDraft & {selected:ScanTarget|null;preservedDraft:boolean;current:Menu;stack:Menu[]})|null=null;
   const workspace=():FormDraft=>({draft,initial,medial,expectedValue,capturedSelection});
   function loadWorkspace(value:FormDraft){({draft,initial,medial,expectedValue,capturedSelection}=structuredClone(value));}
-  function stashField(){if(formActive&&formRecovering)formRecovery=structuredClone(workspace());const field=formIndex===null?undefined:formFields[formIndex];if(formActive&&field)formDrafts.set(field,workspace());}
+  function stashField(){if(formActive&&formRecovering)formRecovery=structuredClone(workspace());const field=formIndex===null?undefined:formFields[formIndex];if(formActive&&field&&!field.controlKind)formDrafts.set(field,workspace());}
   const shortLabel=(label:string)=>{const chars=characters(label);return chars.slice(0,24).join('')+(chars.length>24?'…':'');};
   let confirmAction:SwitchTargetAction|null=null;
   let confirmOpenedAt=0;
@@ -77,11 +81,15 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     panel??=createSwitchPanel();
     const preview=phraseChange?phrasePreviewPages(phraseChange.expected[phraseChange.index]??'',phraseChange.kind==='replace'?phraseChange.text:undefined)[phrasePreviewIndex]??'':null;
     const context=formActive&&formIndex!==null?`양식 ${String(formIndex+1)}/${String(formFields.length)} · ${shortLabel(formFields[formIndex]?.label??'입력칸')} · `:'';
-    panel.render(state,context+title,formActive&&formOverview?'':preview??draft.text+(initial!==null?` [${INITIALS[initial] ?? ""}${medial!==null?(MEDIALS[medial] ?? ""):""}]`:''),[notice,unknownNotice].filter(Boolean).join(' · '),preview===null?draftSelection(draft):undefined);
+    panel.render(state,context+title,selectedControl?controlPreview():formActive&&formOverview?'':preview??draft.text+(initial!==null?` [${INITIALS[initial] ?? ""}${medial!==null?(MEDIALS[medial] ?? ""):""}]`:''),[notice,unknownNotice].filter(Boolean).join(' · '),preview===null&&!selectedControl?draftSelection(draft):undefined);
   }
   function dispatch(event:SwitchEvent){
     const previousMode=state.mode;
     const output=reduceSwitch(state,event);state=output.state;
+    if(previousMode!=='paused'&&state.mode==='paused'&&selectedControl){
+      pendingControlIndex=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;
+      state.items=[command('up','상위로'),...controlChoices(),command('pause','쉬기')];current={...current,items:state.items};
+    }
     if(previousMode==='confirming'&&state.mode==='paused'){
       confirmAction=null;root();pause();return;
     }
@@ -115,7 +123,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   function invalidate(reason:string){
     if(formActive){stashField();formRecovery=structuredClone(workspace());if(formOrigin){loadWorkspace(formOrigin);preservedDraft=formOrigin.preservedDraft;}}
     preservedDraft ||= selected!==null || draft.text!=='' || initial!==null;
-    formActive=false;formRecovering=false;formOrigin=null;formFields=[];formIndex=null;
+    selectedControl=null;controlPreviewIndex=0;formActive=false;formRecovering=false;formOrigin=null;formFields=[];formIndex=null;
     selected=null;capturedSelection=undefined;targets=[];confirmAction=null;
     root();pause(reason);
   }
@@ -169,10 +177,10 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   function editor(){
     if(formActive){
       formOverview=false;stack=[formMenu()];
-      menu([command('hangul:initial','한글 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),...(formIndex!==null&&formIndex>0?[command('form-prev','이전 칸')]:[]),...(formIndex!==null&&formIndex<formFields.length-1?[command('form-next','다음 칸')]:[]),command('form-list','양식 목록'),command('form-exit','원래 화면으로')],'글쓰기','composing',false);return;
+      menu([command('hangul:initial','한글 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('validity','입력 오류 읽기'),...(formIndex!==null&&formIndex>0?[command('form-prev','이전 칸')]:[]),...(formIndex!==null&&formIndex<formFields.length-1?[command('form-next','다음 칸')]:[]),command('form-list','양식 목록'),command('form-exit','원래 화면으로')],'글쓰기','composing',false);return;
     }
     stack=[{title:'스페이스바 작업판',items:groups(),mode:'groupScan'}];
-    menu([command('hangul:initial','한글 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('search','검색'),command('form-open','양식 한 장 보기'),...(formRecovery?[command('form-recover','양식 작성 문장 복구')]:[]),command('restore','원래 입력칸으로')],'글쓰기','composing',false);
+    menu([command('hangul:initial','한글 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('validity','입력 오류 읽기'),command('search','검색'),command('form-open','양식 한 장 보기'),...(formRecovery?[command('form-recover','양식 작성 문장 복구')]:[]),command('restore','원래 입력칸으로')],'글쓰기','composing',false);
   }
   function characterGroups(stage:'initial'|'medial'|'final'){
     const chars=stage==='initial'?INITIALS:stage==='medial'?MEDIALS:FINALS;
@@ -194,7 +202,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     return {title:formFields.length?'양식 한 장 보기':'지원하는 입력칸이 없어요',items,mode:'itemScan'};
   }
   function showForm(page=0){
-    formOverview=true;stack=[];current=formMenu(page);title=current.title;
+    selectedControl=null;controlPreviewIndex=0;pendingControlIndex=undefined;pendingControlChecked=undefined;formIndex=null;selected=null;formOverview=true;stack=[];current=formMenu(page);title=current.title;
     dispatch({type:'setItems',now:now(),items:current.items,mode:current.mode});
   }
   async function openForm(startedGeneration:number){
@@ -204,7 +212,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     formFields=formTargets(targets);showForm();
   }
   function exitForm(){
-    stashField();const origin=formOrigin;formActive=false;formRecovering=false;formOverview=false;formOrigin=null;formIndex=null;
+    stashField();selectedControl=null;const origin=formOrigin;formActive=false;formRecovering=false;formOverview=false;formOrigin=null;formIndex=null;
     if(!origin){root();return;}
     loadWorkspace(origin);selected=origin.selected;preservedDraft=origin.preservedDraft;current=origin.current;stack=origin.stack;title=current.title;
     dispatch({type:'setItems',now:now(),items:current.items,mode:current.mode});
@@ -212,16 +220,55 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   async function chooseField(index:number,startedGeneration:number):Promise<PageResult['result']|undefined>{
     const field=formFields[index];if(!formActive||!field)return;
     stashField();
+    if(field.controlKind){
+      const capture=await targetRequest('captureControl',field.target,{expectedIdentity:field.identity});
+      if(!active(startedGeneration))return capture.result;
+      const parsed=FormControl.safeParse(capture.control);
+      if(capture.result!=='done'||!parsed.success){notice='선택칸을 다시 확인하세요';return capture.result;}
+      selectedControl=parsed.data;pendingControlIndex=undefined;pendingControlChecked=undefined;controlPage=0;controlPreviewIndex=0;
+      formIndex=index;selected=field;formOverview=false;stack=[formMenu()];controlMenu();return;
+    }
     const capture=await targetRequest('capture',field.target,{expectedIdentity:field.identity});
     if(!active(startedGeneration))return capture.result;
     if(capture.result!=='done'||typeof capture.value!=='string'||capture.value.length>4000){notice='입력칸을 다시 확인하세요. 작성 문장은 보존했어요';return capture.result;}
     const selection=TextSelection.safeParse(capture.selection);
     const stored=formDrafts.get(field);
     loadWorkspace(stored??{draft:createDraft(capture.value,selection.success?selection.data:undefined),initial:null,medial:null,expectedValue:capture.value,capturedSelection:selection.success?selection.data:undefined});
-    formRecovering=false;formIndex=index;selected=field;preservedDraft=false;editor();return;
+    selectedControl=null;formRecovering=false;formIndex=index;selected=field;preservedDraft=false;editor();return;
+  }
+  function controlPreviewPages():string[]{
+    if(selectedControl?.kind!=='select')return [];
+    return phrasePreviewPages(selectedControl.options[selectedControl.selectedIndex]?.label??'고르지 않음',pendingControlIndex===undefined?undefined:selectedControl.options[pendingControlIndex]?.label).map(page=>page.replace(/^기존 문구/,'현재 선택').replace(/^바꿀 문장/,'변경안'));
+  }
+  function controlPreview():string{
+    if(!selectedControl)return '';
+    if(selectedControl.kind==='checkbox')return `현재: ${selectedControl.checked?'체크됨':'체크 안 됨'} · 변경안: ${pendingControlChecked===undefined?'고르지 않음':pendingControlChecked?'체크하기':'체크 해제하기'}`;
+    return controlPreviewPages()[controlPreviewIndex]??controlPreviewPages()[0]??'';
+  }
+  function controlChoices():SwitchItem[]{
+    if(!selectedControl)return [];
+    const choices=selectedControl.kind==='select'?selectedControl.options.slice(controlPage*6,controlPage*6+6).flatMap((option,index)=>option.disabled?[]:[command(`control-option:${String(controlPage*6+index)}`,characters(option.label).length>24?`${String(controlPage*6+index+1)}. ${shortLabel(option.label)}`:option.label)]):[command('control-check','체크하기'),command('control-uncheck','체크 해제하기')];
+    if(selectedControl.kind==='select'){
+      if(controlPage>0)choices.push(command('control-prev-page','이전 선택 묶음'));
+      if((controlPage+1)*6<selectedControl.options.length)choices.push(command('control-next-page','다음 선택 묶음'));
+    }
+    const previewPages=controlPreviewPages();
+    if(controlPreviewIndex>0)choices.push(command('control-preview-prev','이전 항목 읽기'));
+    if(controlPreviewIndex<previewPages.length-1)choices.push(command('control-preview-next','다음 항목 읽기'));
+    if(pendingControlIndex!==undefined||pendingControlChecked!==undefined)choices.push(command('control-apply',selectedControl.kind==='select'?'선택값 적용':'체크 상태 적용'));
+    choices.push(command('validity','입력 오류 읽기'),...(formIndex!==null&&formIndex>0?[command('form-prev','이전 칸')]:[]),...(formIndex!==null&&formIndex<formFields.length-1?[command('form-next','다음 칸')]:[]),command('form-list','양식 목록'),command('form-exit','원래 화면으로'));
+    return choices;
+  }
+  function controlMenu(){
+    if(selectedControl)menu(controlChoices(),selectedControl.kind==='select'?'선택 목록':'체크 항목','itemScan',false);
   }
   async function chooseTarget(index:number,startedGeneration:number):Promise<PageResult['result']|undefined>{
     const target=targets[index];if(!target||target.sensitive){notice='민감칸은 단일 스위치 입력을 지원하지 않아요';return;}
+    if(target.controlKind){
+      formOrigin={...structuredClone(workspace()),selected,preservedDraft,current,stack:[...stack]};
+      formActive=true;formRecovering=false;formIndex=null;selected=null;formFields=formTargets(targets);
+      return chooseField(formFields.findIndex(field=>field.target.itemId===target.target.itemId&&field.target.frameId===target.target.frameId),startedGeneration);
+    }
     if(target.editable){
       const capture=await targetRequest('capture',target.target);
       if(!active(startedGeneration))return capture.result;
@@ -263,6 +310,26 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     }
     if(id==='form-recover'){
       if(formRecovery){formOrigin={...structuredClone(workspace()),selected,preservedDraft,current,stack:[...stack]};formActive=true;formRecovering=true;formFields=[];formIndex=null;selected=null;loadWorkspace(formRecovery);preservedDraft=true;editor();}return;
+    }
+    if(id.startsWith('control-option:')){if(selectedControl?.kind==='select'){const index=Number(id.slice(15));if(selectedControl.options[index]&&!selectedControl.options[index].disabled){pendingControlIndex=index;controlPreviewIndex=phrasePreviewPages(selectedControl.options[selectedControl.selectedIndex]?.label??'고르지 않음').length;controlMenu();}}return;}
+    if(id==='control-preview-prev'||id==='control-preview-next'){controlPreviewIndex=Math.max(0,Math.min(controlPreviewPages().length-1,controlPreviewIndex+(id==='control-preview-next'?1:-1)));controlMenu();return;}
+    if(id==='control-check'||id==='control-uncheck'){if(selectedControl?.kind==='checkbox'){pendingControlChecked=id==='control-check';controlMenu();}return;}
+    if(id==='control-prev-page'||id==='control-next-page'){controlPage+=id==='control-next-page'?1:-1;controlMenu();return;}
+    if(id==='control-apply'){
+      if(!selected||!selectedControl)return;
+      const result=await targetRequest('applyControl',selected.target,{expectedIdentity:selected.identity,control:selectedControl,...(pendingControlIndex!==undefined?{controlIndex:pendingControlIndex}:{}),...(pendingControlChecked!==undefined?{controlChecked:pendingControlChecked}:{})});
+      if(!active(startedGeneration))return result.result;
+      if(result.result==='unknown'){showForm();unknownNotice='이전 실행 결과를 확인하세요. 자동 재시도하지 않아요';pause();return 'unknown';}
+      if(result.result!=='done'){pendingControlIndex=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;controlMenu();notice='선택칸이 바뀌었어요. 목록에서 다시 선택하세요';return result.result;}
+      if(selectedControl.kind==='select'&&pendingControlIndex!==undefined)selectedControl={...selectedControl,selectedIndex:pendingControlIndex};
+      if(selectedControl.kind==='checkbox'&&pendingControlChecked!==undefined)selectedControl={...selectedControl,checked:pendingControlChecked};
+      pendingControlIndex=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;controlMenu();notice='적용했어요';return;
+    }
+    if(id==='validity'){
+      if(!selected){notice='입력칸을 먼저 선택하세요';return;}
+      const result=await targetRequest('readValidity',selected.target,{expectedIdentity:selected.identity});
+      if(!active(startedGeneration))return result.result;
+      notice=result.result==='done'&&typeof result.validation==='string'?result.validation.slice(0,300):'입력칸을 다시 선택하세요';return result.result;
     }
     if(id==='form-open'){await openForm(startedGeneration);return;}
     if(id==='form-exit'){exitForm();return;}
