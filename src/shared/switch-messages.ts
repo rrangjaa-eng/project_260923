@@ -3,6 +3,7 @@ import { SwitchSettings } from '@/core/switch-settings';
 import { PhraseMutation } from '@/core/switch-phrases';
 const Target = z.object({ tabId: z.number().int(), frameId: z.number().int().nonnegative(), documentGeneration: z.string().max(100), itemId: z.string().max(100) }).strict();
 const Authorization = z.object({ documentGeneration: z.string().max(100), modeGeneration: z.number().int().nonnegative(), pendingActionId: z.string().max(150) });
+const Navigation = z.object({kind:z.enum(['tabs','back','forward','activate']),tabId:z.number().int().optional()}).strict();
 export const TextSelection = z.object({ start: z.number().int().nonnegative().max(4000), end: z.number().int().nonnegative().max(4000), direction: z.enum(['forward', 'backward', 'none']) }).strict().refine((selection) => selection.end >= selection.start);
 export type TextSelection = z.infer<typeof TextSelection>;
 export const FormControl = z.discriminatedUnion('kind', [
@@ -28,12 +29,12 @@ export const SwitchMessage = z.discriminatedUnion('type', [
   z.object({ type: z.literal('switch/list') }),
   z.object({ type: z.literal('switch/refresh') }),
   z.object({ type: z.literal('switch/frame-check'), childIndex: z.number().int().nonnegative(), documentGeneration: z.string().max(100) }),
-  z.object({ type: z.literal('switch/action-check'), authorization: Authorization }),
+  z.object({ type: z.literal('switch/action-check'), authorization: Authorization, navigation: Navigation.optional() }),
   z.object({ type: z.literal('switch/execute'), action: SwitchTargetAction }),
   z.object({ type: z.literal('switch/key'), kind: z.enum(['keyDown', 'keyUp']), repeat: z.boolean(), isComposing: z.boolean(), modified: z.boolean() }),
   z.object({ type: z.literal('switch/pause'), invalidate: z.boolean().optional() }),
   z.object({ type: z.literal('switch/cancel-peers') }),
-  z.object({ type: z.literal('switch/navigation'), kind: z.enum(['tabs', 'back', 'activate']), tabId: z.number().int().optional() }),
+  Navigation.extend({type:z.literal('switch/navigation'),authorization:Authorization.strict()}).strict(),
   z.object({ type: z.literal('switch/settings'), value: SwitchSettings }),
   z.object({ type: z.literal('switch/draft'), text: z.string().max(4000) }),
   z.object({ type: z.literal('switch/draft/read') }),

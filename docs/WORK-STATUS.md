@@ -1,5 +1,22 @@
 # 작업 현황표
 
+## 앞으로 이동·현재 명령 승인 — 2026-10-02 13:26 KST
+
+`codex-switch-forward-navigation`은 PR23/36f3a9c 위의 후속이다. 읽기·이동에서 앞으로 가기, 불가 안내, 현재 문서·모드·명령 승인과 승인 중복 사용 거절을 구현했다. 탭 활성화 대기에서도 Space로 정지하고 늦은 응답은 이동을 실행하지 않는다. 이미 브라우저에 실행된 효과를 되돌리는 기능은 아니다.
+
+| 항목 | 확인된 결과 | 남은 상태 |
+|---|---|---|
+| 최종 로컬 | type/lint/build, unit296/296(35파일), 신규6+기존 실패 양식/복구2=E2E8/8(3.0분), UI101/101(4.1분,0fail/skip/flaky) | 실제PC·실사이트 별도 |
+| 선행 수정 전 검사 | 신규4+기존이동3+한글여정1=8/8, 대기/복구16/16, UI101/101 | 최종 조합 전체CI와 구분 |
+| PR21 | b3f8caa, 공통 안내와 CSS 검사 준비 대기 수정 | [CI86](https://github.com/rrangjaa-eng/project_260923/actions/runs/36963423003) 진행 중 |
+| PR22 | 50082f4, 같은 검증된 두 수정 반영 | [CI87](https://github.com/rrangjaa-eng/project_260923/actions/runs/36963470306) 진행 중 |
+| PR23 | 36f3a9c, 같은 검증된 두 수정 반영 | [CI88](https://github.com/rrangjaa-eng/project_260923/actions/runs/36963534023) 진행 중 |
+| 새 이동 후속 | 독립 검토 P2 두 건 RED→GREEN, 추가 P1/P2 없음 | 별도 draft PR 게시 예정 |
+
+CI81/82/84는 각각 E2E342pass/1fail,343pass/2fail,345pass/1fail로 종료했다. 안내의 변경 이유·보존·비교를 함께 복원했고 기존양식/복구14/14와 표시 준비 대기10/10을 검증해 세 브랜치에 일반 push했다. 최신 CI86/87/88과 새 이동 HEAD의 전체CI를 완료까지 확인한다. 아래 시각별 상태는 과거 이력이다.
+
+[앞으로 이동 검증](verification/2026-10-02-forward-navigation.md) · [구조화 결과](verification/forward-navigation-results.json) · [선행 실패 원인·수정](verification/2026-10-02-ci81-notice.md). 실제PC 한국어 IME·운동 사용성·실사이트는 미검증. merge/deploy·설치ZIP 교체 없음. 다음 후보는 다중 스크롤 영역 설계이며 이번 증분을 넘어 구현하지 않았다.
+
 ## Space 실행 대기 정지 — 2026-10-02 12:33 KST
 
 `codex-switch-pending-stop`은 PR22/53162c9 후속이다. 실행 대기 중 새 Space로 쉬고 같은 release는 소비한다. 보호 간격 뒤 새 Space는 재개만 하며 중단 명령을 재전송하지 않는다. 늦은 설정 응답의 재개 P2와 즉시 입력 튐도 RED→GREEN으로 막았다.

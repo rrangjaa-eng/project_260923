@@ -82,6 +82,7 @@ declare namespace chrome.storage {
 declare namespace chrome.tabs {
   function update(tabId: number, properties: { active: boolean }): Promise<Tab>;
   function goBack(tabId: number): Promise<void>;
+  function goForward(tabId: number): Promise<void>;
   interface Tab {
     title?: string;
     id?: number;
