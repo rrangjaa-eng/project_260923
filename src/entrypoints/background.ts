@@ -4,6 +4,7 @@ import { parseMessage } from '@/shared/messages';
 import { createRelay } from '@/worker/relay';
 import { createStorageWriter } from '@/worker/storage-writer';
 import { createSwitchRelay } from '@/worker/switch-relay';
+import {createStartBridge} from '@/worker/start-bridge';
 import { SwitchMessage } from '@/shared/switch-messages';
 import { HELPER_SAFETY_OFF_KEY, isHelperSafetyOff } from '@/core/helper-safety';
 
@@ -37,11 +38,17 @@ export default defineBackground(() => {
   function notifySafety(off: boolean): void {
     runtimeStopped = off;
     const message = { type: 'helper/safety', off, revision: ++safetyRevision, instance: safetyInstance };
+    startBridge.broadcast(message);
     void chrome.tabs.query({}).then((tabs) => {
       for (const tab of tabs) if (tab.id !== undefined) void chrome.tabs.sendMessage(tab.id, message).catch(() => undefined);
     });
   }
-  const switchRelay = createSwitchRelay(writer);
+  const startBridge=createStartBridge(async(raw,sender)=>{
+    if(typeof raw==='object'&&raw!==null&&'type' in raw&&raw.type==='helper/state'){await initialSafety;return {off:runtimeStopped,revision:safetyRevision,instance:safetyInstance};}
+    return switchRelay.handle(raw,sender);
+  },id=>{switchRelay.disconnect(id);});
+  const switchRelay = createSwitchRelay(writer,startBridge.send);
+  chrome.runtime.onConnect.addListener(port=>{if(port.name==='switch-start')startBridge.attach(port);});
   const relay = createRelay();
   const frameStates: FrameStates = {};
   (globalThis as typeof globalThis & { frameStates: FrameStates }).frameStates = frameStates;
@@ -77,7 +84,7 @@ export default defineBackground(() => {
     for (let attempt = 0; ; attempt += 1) {
       try {
         const response = await Promise.race([
-          chrome.tabs.sendMessage(tabId, { type: 'site/ping' }, { frameId: 0 }),
+          startBridge.send(tabId, { type: 'site/ping' }, { frameId: 0 }),
           new Promise<undefined>((resolve) => {
             setTimeout(() => {
               resolve(undefined);
@@ -110,7 +117,7 @@ export default defineBackground(() => {
     // Task 2(01-19): about: 탭(주소 없는 새 창)은 주소만으로 판정하지 않는다 — content script는
     // Task 1의 맨 위 가드 때문에 물려받은 http(s) 출처가 있을 때만 시작하므로, ping 응답 여부가
     // 곧 도울 수 있는지다. 그 밖의 주소(브라우저 내부·스토어)는 지금 규칙 그대로다.
-    if (!url?.startsWith('about:') && isUnsupportedUrl(url)) {
+    if (url!==chrome.runtime.getURL('start.html')&&!url?.startsWith('about:') && isUnsupportedUrl(url)) {
       if (isCurrent()) {
         await markUnsupported(tabId);
       }

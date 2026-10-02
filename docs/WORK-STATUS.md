@@ -1,5 +1,18 @@
 # 작업 현황표
 
+## NAV-02 구현 체크포인트 — 2026-10-03 00:09 KST
+
+사용자가 새 탭 시작 화면·미적용/진행 작업 보호·마지막 탭 금지/복귀 미리보기의 세 추천을 승인했다. `codex-switch-nav02`는 PR29/04373f8 + 최종 증거 d0da218에서 분기했다. [구현 순서](superpowers/plans/2026-10-02-nav02.md).
+
+| 항목 | 현재 근거 |
+|---|---|
+| 환경 | 10월3일00:03 KST 실제 명령 성공, 변경 보존; 연결 알림만으로 중복 실행하지 않음 |
+| 구현 | 기존 Space 승인 확장, reload/close 취소 확인·초안 차단, exact start.html Port 연결, 새 탭·한글/주소 입력 |
+| 검사 | type/lint 통과; 선행 전체unit388/388; 추가ASCII 포함 관련25/25; 시작화면 실제 한글 작성·명시 검색1/1 |
+| 진행 중 | 새 탭/새로고침/닫기 브라우저7건, 경합·안전 상태·UI·독립 최종 검토 필요 |
+
+완료/출시 가능을 주장하지 않는다. 초기 안전 상태와 이후 끄기 알림 경합, Port 교체/탭 이동, close 이후 결과 안내를 후속 보완한다. 새 권한·저장 확대 없음. PR27–29 미병합, merge/deploy/ZIP교체 없음. 아래는 이전 기록이다.
+
 ## PR29 최종 전체 CI 성공 — 2026-10-02 22:06 KST
 
 [draft PR29](https://github.com/rrangjaa-eng/project_260923/pull/29), `codex-switch-frame-controls`/`04373f8aabf7d5baadc505132fea0ff7bc44b585`의 [CI96](https://github.com/rrangjaa-eng/project_260923/actions/runs/37005764069)이 workflow/job success로 종료했다. [원본 로그 증거](verification/ci96-final-results.json).

@@ -3,7 +3,7 @@ import { SwitchSettings } from '@/core/switch-settings';
 import { PhraseMutation } from '@/core/switch-phrases';
 const Target = z.object({ tabId: z.number().int(), frameId: z.number().int().nonnegative(), documentGeneration: z.string().max(100), itemId: z.string().max(100) }).strict();
 const Authorization = z.object({ documentGeneration: z.string().max(100), modeGeneration: z.number().int().nonnegative(), pendingActionId: z.string().max(150) });
-const Navigation = z.object({kind:z.enum(['tabs','back','forward','activate']),tabId:z.number().int().optional()}).strict();
+const Navigation = z.object({kind:z.enum(['tabs','back','forward','activate','new','reload','close-preview','close']),tabId:z.number().int().optional(),token:z.string().min(1).max(150).optional()}).strict();
 export const TextSelection = z.object({ start: z.number().int().nonnegative().max(4000), end: z.number().int().nonnegative().max(4000), direction: z.enum(['forward', 'backward', 'none']) }).strict().refine((selection) => selection.end >= selection.start);
 export type TextSelection = z.infer<typeof TextSelection>;
 const Indices=z.array(z.number().int().min(0).max(99)).max(100).refine(indices=>new Set(indices).size===indices.length);

@@ -17,6 +17,7 @@ declare namespace chrome.runtime {
     id?: string;
     tab?: { id?: number; url?: string };
     frameId?: number;
+    documentId?: string;
     url?: string;
     // Chrome 80+, 보낸 문서의 실제 출처(01-19 Task 2, T-01-59): 주소 없는 새 창(about: 탭)에서도
     // 이 값은 그 문서가 물려받은 http(s) 출처다 — tab.url("about:blank")과 달리 신뢰할 수 있다.
@@ -38,6 +39,9 @@ declare namespace chrome.runtime {
   // 실제 무효화(확장 업데이트·제거)인지 SW가 잠깐 쉬었다 끊긴 것뿐인지 구분한다(RESEARCH.md Pattern 6).
   interface Port {
     name: string;
+    sender?: MessageSender;
+    postMessage(message: unknown): void;
+    onMessage: { addListener(callback: (message: unknown) => void): void };
     onDisconnect: { addListener(callback: () => void): void };
     disconnect(): void;
   }
@@ -81,9 +85,15 @@ declare namespace chrome.storage {
 
 declare namespace chrome.tabs {
   function update(tabId: number, properties: { active: boolean }): Promise<Tab>;
+  function create(properties: {windowId: number;url: string;active: boolean}): Promise<Tab>;
+  function reload(tabId: number): Promise<void>;
+  function remove(tabId: number): Promise<void>;
   function goBack(tabId: number): Promise<void>;
   function goForward(tabId: number): Promise<void>;
   interface Tab {
+    windowId?: number;
+    index?: number;
+    active?: boolean;
     title?: string;
     id?: number;
     url?: string;
