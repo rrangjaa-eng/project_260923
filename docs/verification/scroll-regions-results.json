@@ -48,7 +48,19 @@
         "flaky": 0
       }
     },
-    "ci": null,
+    "ci": {
+      "number": 91,
+      "run": 36969554948,
+      "job": 110720460934,
+      "head": "6592a1a54473eb2a0a2ae815634f03aef0adc69a",
+      "status": "completed",
+      "conclusion": "success",
+      "unit": 313,
+      "unit_files": 36,
+      "e2e": 358,
+      "e2e_minutes_reported": 35.8,
+      "evidence": "ci91-final-results.json"
+    },
     "disable_installed_browser": {
       "passed": 3,
       "failed": 0,
@@ -73,5 +85,12 @@
     "Windows IME, motor usability and real sites unverified"
   ],
   "merge_deploy_zip_replacement": false,
-  "local_verified_at": "2026-10-02T14:34:00+09:00"
+  "local_verified_at": "2026-10-02T14:34:00+09:00",
+  "pr": {
+    "number": 25,
+    "url": "https://github.com/rrangjaa-eng/project_260923/pull/25",
+    "draft": true,
+    "base": "codex-switch-forward-navigation",
+    "head": "6592a1a54473eb2a0a2ae815634f03aef0adc69a"
+  }
 }
