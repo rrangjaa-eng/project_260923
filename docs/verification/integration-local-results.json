@@ -1,0 +1,41 @@
+{
+  "product_reference": "6592a1a54473eb2a0a2ae815634f03aef0adc69a",
+  "current_main": "64976a778d13ac884fbce8b4027be433d8d0c4fe",
+  "local_checks": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "passed": 313,
+      "files": 36
+    },
+    "build": "passed"
+  },
+  "regression": {
+    "passed": 3,
+    "duration": "1.2m",
+    "command": "CI=true pnpm exec playwright test tests/e2e/switch-disable.e2e.ts tests/e2e/installed-popup.e2e.ts --grep 'disable stops automatic|production install'"
+  },
+  "new_candidate_full_ci": "pending",
+  "unchanged_from_product_reference": {
+    "src": true,
+    "tests": true,
+    "public": true,
+    "wxt.config.ts": true,
+    "package.json": true,
+    "pnpm-lock.yaml": true,
+    ".github": true,
+    "playwright.config.ts": true,
+    "vitest.config.ts": true
+  },
+  "archived_zip": {
+    "path": "downloads/tremor-browser-helper-3ae6ad2.zip",
+    "sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
+    "bytes": 1163247
+  },
+  "unverified": [
+    "real Windows Korean IME",
+    "motor usability",
+    "real sites"
+  ],
+  "independent_review": "No additional P1/P2 integration defects; INPT-01/PRIV-01 limitations added after documentation review"
+}

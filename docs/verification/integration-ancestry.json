@@ -1,0 +1,370 @@
+{
+  "checked_main": "64976a778d13ac884fbce8b4027be433d8d0c4fe",
+  "product_head": "6592a1a54473eb2a0a2ae815634f03aef0adc69a",
+  "merge_base": "64976a778d13ac884fbce8b4027be433d8d0c4fe",
+  "left_right_counts": "0\t52",
+  "chain_commit_count": 52,
+  "prs": [
+    {
+      "number": 8,
+      "title": "Mid-development user trial: task list, easy guide, and practice page",
+      "head": "claude/phase2-trial-prep-uetjx1",
+      "head_sha": "01ee9edacedf30c122ac6c9f13a3f72054227c5f",
+      "base": "claude/project-thread-ew8d9u",
+      "base_sha": "a35ed3ef76b098092a44d1bab575d3d87ff0a05c",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/8",
+      "head_is_ancestor_of_pr25": false,
+      "branch_only_commits_not_in_pr25": [
+        "01ee9edacedf30c122ac6c9f13a3f72054227c5f",
+        "42e8c915988682454a3c68b437babcf77a0836b6",
+        "e34a6533388abeaf50ea93c2ce05773ac06f26b8",
+        "8577789287d4acf1e91b6e5ae13bebe7881db70a"
+      ],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 9,
+      "title": "docs: plan phase 3 (navigation, input, condition modes) ahead of time",
+      "head": "claude/phase3-plans-ng6f32",
+      "head_sha": "8950a2a76e175497d9d02b18c486f93ffae11dfb",
+      "base": "claude/project-thread-ew8d9u",
+      "base_sha": "a35ed3ef76b098092a44d1bab575d3d87ff0a05c",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/9",
+      "head_is_ancestor_of_pr25": false,
+      "branch_only_commits_not_in_pr25": [
+        "8950a2a76e175497d9d02b18c486f93ffae11dfb",
+        "a65a8b81d4d12d8f2d239b7471f8430f2c76f881",
+        "6100c3c794efa6558bfb6880ae80085380f9ae88",
+        "b6f40454f28bb189c5868eb7f4ed0746e2badaff",
+        "6fb34361c734a2decbef0e40c6d733f3166806fa",
+        "d2a69b6643844c73f43082b9224d9a92e2ee61f0"
+      ],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 10,
+      "title": "docs(06): 6단계(화면 정리 AI) 계획 미리 쓰기",
+      "head": "claude/project-thread-wbgimt",
+      "head_sha": "447f3bee3376cdea0b19307e098f3fc3ea18fde6",
+      "base": "claude/project-thread-ew8d9u",
+      "base_sha": "f468b6e0391478fc30bfc4cf329003c1131622db",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/10",
+      "head_is_ancestor_of_pr25": false,
+      "branch_only_commits_not_in_pr25": [
+        "447f3bee3376cdea0b19307e098f3fc3ea18fde6",
+        "bedec4a76930416f009be0fe4b06900352b6a4ce",
+        "6aac96d5423ffded22a34dd2f762ab21c1e430f8",
+        "b57787b359c97f40ee00606ad4fc1844778b2b5c",
+        "a2d2932820850ad3efd430b35ecb9ba88e62f014",
+        "e1b0702da708dd90dc2392a33281e1232178e664"
+      ],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 11,
+      "title": "docs: plan phase 4 (templates and activity log) ahead of time",
+      "head": "claude/project-thread-m7kfhs",
+      "head_sha": "0ca4bef5a6858d62169524fae4b52e7ae1d053e9",
+      "base": "claude/project-thread-ew8d9u",
+      "base_sha": "f468b6e0391478fc30bfc4cf329003c1131622db",
+      "draft": false,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/11",
+      "head_is_ancestor_of_pr25": false,
+      "branch_only_commits_not_in_pr25": [
+        "0ca4bef5a6858d62169524fae4b52e7ae1d053e9",
+        "8251390c0b19ab5428aa1389bcd759e08e2d3e6c",
+        "3dd29a232f5363ecad72b067beaac1209e123149",
+        "50ac7851a9c6ab21f4fee945ae66f26a2f2f4d6b",
+        "4d704833b9d120c25a8a2afbd7d38d165660e28c",
+        "1ab060f72074ef6958c7f78b2da837c20d82df99"
+      ],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 12,
+      "title": "docs: plan phase 5 (task board, background runs, repeat patterns) ahead of time",
+      "head": "claude/project-thread-3baung",
+      "head_sha": "179ded6b96e27c577edf76683c3152fe15561b78",
+      "base": "claude/project-thread-ew8d9u",
+      "base_sha": "3d919265bab8e1ea85465d347450073658b1298b",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/12",
+      "head_is_ancestor_of_pr25": false,
+      "branch_only_commits_not_in_pr25": [
+        "179ded6b96e27c577edf76683c3152fe15561b78",
+        "e1a13198099e92fbd83af820c3f6ccfe5c345be5",
+        "9529dc874f21b48c0742d6785f4642ef531bf604",
+        "5eb0829e825964dcc7524b8d3c92b60538726b73",
+        "3a0dc9b0a28315d2fc714f4f4eadc0f2cbc20854",
+        "8189af315fd0a83b8e60be11ea447f89362fae21",
+        "fe296492570e1a5e1a7fcaf217d7181ad419b448",
+        "ef33f9fc7d5fa12564fa0f97fec37f54be01dbf4"
+      ],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 13,
+      "title": "fix: 깨진 설정에서도 도우미 끄기가 된다 (D-25)",
+      "head": "claude/project-thread-ew8d9u",
+      "head_sha": "39c695baa26c3eb64a0b85e0d0b69e3583a061cc",
+      "base": "main",
+      "base_sha": "2c6e973a5f369630f44047e068107dd1b997a953",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/13",
+      "head_is_ancestor_of_pr25": false,
+      "branch_only_commits_not_in_pr25": [
+        "39c695baa26c3eb64a0b85e0d0b69e3583a061cc",
+        "0bde0483d0a0ae3ebe1f65c23c02b52d5bad7dfd",
+        "3cca741ae9eb49c87a0e281945aba0f40a5a7cdf",
+        "f518c9714c07d1c91a16682ab75a683db972ab06",
+        "7e031c00a04cb61c8a4e971e2b8b89b960847821",
+        "4aab265c2f572e6f6956c628ff0451e5f9fc1c01",
+        "db39b169549d94e2ae1ec7b02006ca4ed3f65808"
+      ],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 14,
+      "title": "Add portable USB C# runner and protected USB storage to design and requirements",
+      "head": "codex",
+      "head_sha": "f69f496bfaa3c15aea65a22d6b094d80b5a6102c",
+      "base": "main",
+      "base_sha": "2c6e973a5f369630f44047e068107dd1b997a953",
+      "draft": false,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/14",
+      "head_is_ancestor_of_pr25": false,
+      "branch_only_commits_not_in_pr25": [
+        "f69f496bfaa3c15aea65a22d6b094d80b5a6102c",
+        "c84f9ece77d522c279f05a3bd09cbd9d6cc99c78",
+        "d2c9ca48c808e3ac5fe5f60bce79ab791554c918"
+      ],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 15,
+      "title": "feat: 스페이스바 단일 스위치 한글 검색·읽기 흐름",
+      "head": "codex-single-switch-phase1",
+      "head_sha": "20440e6ea8f1be1f7db2c8369b6abb71ffb35d73",
+      "base": "main",
+      "base_sha": "64976a778d13ac884fbce8b4027be433d8d0c4fe",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/15",
+      "head_is_ancestor_of_pr25": true,
+      "branch_only_commits_not_in_pr25": [],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 16,
+      "title": "파일 선택 연습: Space 선택·확인·복귀와 안전한 취소",
+      "head": "codex-phase2-file-practice",
+      "head_sha": "baafce22511698bcbb2c164cc3afe821ba6bbc93",
+      "base": "codex-single-switch-phase1",
+      "base_sha": "20440e6ea8f1be1f7db2c8369b6abb71ffb35d73",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/16",
+      "head_is_ancestor_of_pr25": true,
+      "branch_only_commits_not_in_pr25": [],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 17,
+      "title": "가짜 파일 프로토콜과 Space 단일 소유권 전환 검증",
+      "head": "codex-phase2-fake-handoff",
+      "head_sha": "035ce70bf2fe583f575949434acbd8a1e12b1fb8",
+      "base": "codex-phase2-file-practice",
+      "base_sha": "baafce22511698bcbb2c164cc3afe821ba6bbc93",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/17",
+      "head_is_ancestor_of_pr25": true,
+      "branch_only_commits_not_in_pr25": [],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 18,
+      "title": "Space로 저장 문구 교체·삭제와 취소된 승인 거절",
+      "head": "codex-switch-phrase-management",
+      "head_sha": "6fce6f5ac89db0e5169cca3354fb2ace2bd1a06f",
+      "base": "codex-phase2-fake-handoff",
+      "base_sha": "035ce70bf2fe583f575949434acbd8a1e12b1fb8",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/18",
+      "head_is_ancestor_of_pr25": true,
+      "branch_only_commits_not_in_pr25": [],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 19,
+      "title": "Space로 양식 입력칸 탐색·초안 보존·명시적 적용",
+      "head": "codex-switch-form-navigation",
+      "head_sha": "930ab0fafe7a446ac1d0c296d8e5b72c035e7638",
+      "base": "codex-switch-phrase-management",
+      "base_sha": "6fce6f5ac89db0e5169cca3354fb2ace2bd1a06f",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/19",
+      "head_is_ancestor_of_pr25": true,
+      "branch_only_commits_not_in_pr25": [],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 20,
+      "title": "Space로 선택 목록·체크 항목 적용과 입력 오류 안내",
+      "head": "codex-form-controls-errors",
+      "head_sha": "243aa2c15c250ceebb0b9fc90149dd4310f1d92e",
+      "base": "codex-switch-form-navigation",
+      "base_sha": "930ab0fafe7a446ac1d0c296d8e5b72c035e7638",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/20",
+      "head_is_ancestor_of_pr25": true,
+      "branch_only_commits_not_in_pr25": [],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 21,
+      "title": "Space로 변경된 입력값 비교와 초안 재적용 확인",
+      "head": "codex-form-reapply-confirmation",
+      "head_sha": "b3f8caa7be1ce22f9f1af786ca725af66dc9fed2",
+      "base": "codex-form-controls-errors",
+      "base_sha": "243aa2c15c250ceebb0b9fc90149dd4310f1d92e",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/21",
+      "head_is_ancestor_of_pr25": false,
+      "branch_only_commits_not_in_pr25": [
+        "b3f8caa7be1ce22f9f1af786ca725af66dc9fed2",
+        "db53a59a8d2633a900e0bf70dc935cb2a8304439",
+        "5cb98dec058e032c1beeaca4618c2903a0e05dfe"
+      ],
+      "runtime_patch_matches": [
+        {
+          "commit": "b3f8caa7be1ce22f9f1af786ca725af66dc9fed2",
+          "runtime_patch_id": "d3158e2fc9620e6e90d478ce43e4b02b4b145439",
+          "matches": [
+            "36f3a9cc448df17d06acefd44868a9e12fdce7a4"
+          ]
+        },
+        {
+          "commit": "db53a59a8d2633a900e0bf70dc935cb2a8304439",
+          "runtime_patch_id": "a596beae66a39ba48f9f9f4be826e92f1128e881",
+          "matches": [
+            "3474347e5b595dce91fdb6fe396e749dac258368"
+          ]
+        },
+        {
+          "commit": "5cb98dec058e032c1beeaca4618c2903a0e05dfe",
+          "runtime_patch_id": "bdcda2ea830120caed52d9dc07f8fa3573cbc39d",
+          "matches": [
+            "4fd1d5b440ed1b3deeed28dc4de9451d2ff82311"
+          ]
+        }
+      ]
+    },
+    {
+      "number": 22,
+      "title": "쉬기·탭 닫기 뒤 지연된 브라우저 이동 취소",
+      "head": "codex-switch-navigation-guards",
+      "head_sha": "50082f46662c579f3a4e039e65a5db269ae5c5f3",
+      "base": "codex-form-reapply-confirmation",
+      "base_sha": "e736350fba086bfb38a40070db24d4d53a74fef7",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/22",
+      "head_is_ancestor_of_pr25": false,
+      "branch_only_commits_not_in_pr25": [
+        "50082f46662c579f3a4e039e65a5db269ae5c5f3",
+        "26251726ee6345ed087fbb10a141b03545bdd02f"
+      ],
+      "runtime_patch_matches": [
+        {
+          "commit": "50082f46662c579f3a4e039e65a5db269ae5c5f3",
+          "runtime_patch_id": "d3158e2fc9620e6e90d478ce43e4b02b4b145439",
+          "matches": [
+            "36f3a9cc448df17d06acefd44868a9e12fdce7a4"
+          ]
+        },
+        {
+          "commit": "26251726ee6345ed087fbb10a141b03545bdd02f",
+          "runtime_patch_id": "a596beae66a39ba48f9f9f4be826e92f1128e881",
+          "matches": [
+            "3474347e5b595dce91fdb6fe396e749dac258368"
+          ]
+        }
+      ]
+    },
+    {
+      "number": 23,
+      "title": "실행 대기 중 새 Space로 정지하고 늦은 응답 재개 차단",
+      "head": "codex-switch-pending-stop",
+      "head_sha": "36f3a9cc448df17d06acefd44868a9e12fdce7a4",
+      "base": "codex-switch-navigation-guards",
+      "base_sha": "53162c9726167420dcf3a6005856cfc0a05f66e7",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/23",
+      "head_is_ancestor_of_pr25": true,
+      "branch_only_commits_not_in_pr25": [],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 24,
+      "title": "feat: Space 앞으로 이동과 현재 이동 명령 승인",
+      "head": "codex-switch-forward-navigation",
+      "head_sha": "461d431c3a7dffee3b0dd8c13d546380453e6bfc",
+      "base": "codex-switch-pending-stop",
+      "base_sha": "36f3a9cc448df17d06acefd44868a9e12fdce7a4",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/24",
+      "head_is_ancestor_of_pr25": true,
+      "branch_only_commits_not_in_pr25": [],
+      "runtime_patch_matches": []
+    },
+    {
+      "number": 25,
+      "title": "feat: Space로 세로 스크롤 영역 선택과 안전한 정지",
+      "head": "codex-switch-scroll-regions",
+      "head_sha": "6592a1a54473eb2a0a2ae815634f03aef0adc69a",
+      "base": "codex-switch-forward-navigation",
+      "base_sha": "461d431c3a7dffee3b0dd8c13d546380453e6bfc",
+      "draft": true,
+      "merged": false,
+      "state": "open",
+      "url": "https://github.com/rrangjaa-eng/project_260923/pull/25",
+      "head_is_ancestor_of_pr25": true,
+      "branch_only_commits_not_in_pr25": [],
+      "runtime_patch_matches": []
+    }
+  ]
+}

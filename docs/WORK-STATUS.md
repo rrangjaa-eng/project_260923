@@ -1,5 +1,9 @@
 # 작업 현황표
 
+## main 대상 통합 후보 준비 — 2026-10-02 15:26 KST
+
+`codex-single-switch-integration`은 main/64976a7의 직접 후손인 PR25/6592a1a에서 시작했다. 제품 코드는 보존하고 PR25 CI91 증거 및 통합·지원 범위 문서를 정리한다. PR8–14 별도 구현 미포함, PR21·22 최종 수정은 동일 런타임 패치로 포함됨을 확인했다. [통합 전략·지원 경계·ZIP 구분](INTEGRATION-CANDIDATE.md). 새 후보 type/lint/build, unit313/313(36파일), 실제 설치·끄기 회귀3/3(1.2분)이 통과했다. 독립 범위·문서 검토에서 추가P1/P2는 없었고 INPT-01/PRIV-01 미완료를 명시했다. [로컬 결과](verification/integration-local-results.json). main 대상 draft PR 최종 HEAD 전체 CI는 아직 실행 전이며 선행 CI91 성공으로 대신하지 않는다. 실제PC/운동 사용성/실사이트 미검증, merge·deploy·ZIP 교체 없음. 아래는 당시 이력이다.
+
 ## 스크롤 영역 최종 CI 완료 — 2026-10-02 15:13 KST
 
 [draft PR25](https://github.com/rrangjaa-eng/project_260923/pull/25), 제품 브랜치 `codex-switch-scroll-regions`, HEAD `6592a1a54473eb2a0a2ae815634f03aef0adc69a`의 [CI91](https://github.com/rrangjaa-eng/project_260923/actions/runs/36969554948)이 **success**로 종료했다. 원본 job110720460934 로그에서 type/lint/build, 단위313/313(36파일), 전체브라우저358/358(35.8분)을 확인했다.
