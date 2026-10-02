@@ -28,7 +28,7 @@ async function fixture() {
   document.body.append(field);
   const item: Item = { id: 'field', name: '문장', kind: 'input', danger: false,
     rect: { x: 10, y: 10, w: 100, h: 30 }, fingerprint: { framePath: [], domPath: 'body/input', buttonText: '문장' } };
-  let loseReply=false;let holdCapture=false;let releaseCapture:(()=>void)|undefined;
+  let loseReply=false;let holdCapture=false;let holdSettings=false;let releaseCapture:(()=>void)|undefined;
   const collector: Collector = { items: () => [item], get: () => field, onChange: () => undefined, refresh: () => undefined };
   let consume: Parameters<InputPipeline['setSwitchHandler']>[0] = null;
   const pipeline: InputPipeline = { setSwitchHandler: (handler) => { consume = handler; }, setSwitchExclusive: () => undefined,
@@ -39,6 +39,7 @@ async function fixture() {
     runtime: { id: 'unit-extension', onMessage: { addListener: (listener: Listener) => { listeners.push(listener); }, removeListener: (listener: Listener) => { const at = listeners.indexOf(listener); if (at >= 0) listeners.splice(at, 1); } },
       sendMessage: async (raw: unknown) => {
         const message = raw as { type: string; documentGeneration?: string; items?: SwitchFrameReport['items']; text?: string };
+        if (message.type === 'switch/settings'&&holdSettings){await new Promise<void>(resolve=>{releaseCapture=resolve;});return {ok:true};}
         if (message.type === 'switch/report') { frames = [{ frameId: 0, documentGeneration: message.documentGeneration ?? '', path: [], items: message.items ?? [] }]; return { tabId: 1 }; }
         if (message.type === 'switch/list') return { tabId: 1, frames };
         if (message.type === 'switch/draft/read') return { text: storedDraft };
@@ -57,9 +58,9 @@ async function fixture() {
   let enabled = false; const abort = new AbortController(); cleanups.push(() => { abort.abort(); });
   const controller = createSwitchController({ collector, pipeline, enabled: () => enabled, onExclusive: () => undefined, signal: abort.signal });
   await vi.advanceTimersByTimeAsync(1);
+  const event = { code: 'Space', isTrusted: true, repeat: false, isComposing: false, ctrlKey: false, altKey: false, metaKey: false, shiftKey: false } as KeyboardEvent;
   async function press() {
     await vi.advanceTimersByTimeAsync(125);
-    const event = { code: 'Space', isTrusted: true, repeat: false, isComposing: false, ctrlKey: false, altKey: false, metaKey: false, shiftKey: false } as KeyboardEvent;
     consume?.('keyDown', event); consume?.('keyUp', event); await vi.advanceTimersByTimeAsync(1);
   }
   async function choose(label: string) {
@@ -68,7 +69,7 @@ async function fixture() {
     expect(view.state?.items[view.state.scanIndex]?.label).toBe(label); await press();
   }
   async function setEnabled(next: boolean) { enabled = next; controller.enabledChanged(); await vi.advanceTimersByTimeAsync(1); }
-  return { hold:()=>{holdCapture=true;},release:()=>{releaseCapture?.();}, lose:()=>{loseReply=true;}, controller, field, setEnabled, press, choose };
+  return { holdSettings:()=>{holdSettings=true;}, down:()=>consume?.('keyDown',event), up:()=>consume?.('keyUp',event), remoteKey:(flags:{repeat?:boolean;isComposing?:boolean;modified?:boolean})=>{listeners.forEach(listener=>listener({type:'switch/key',kind:'keyDown',repeat:false,isComposing:false,modified:false,...flags},{id:'unit-extension'},()=>undefined));}, hold:()=>{holdCapture=true;},release:()=>{releaseCapture?.();}, lose:()=>{loseReply=true;}, controller, field, setEnabled, press, choose };
 }
 
 async function editor() {const f=await fixture();await f.setEnabled(true);await f.press();await f.choose('글쓰기');await f.choose('양식 한 장 보기');await f.choose('알림');await f.choose('띄어쓰기');f.field.value='사이트 변경';return f;}
@@ -111,4 +112,25 @@ it('automatic rest discards confirmation and keeps the page value',async()=>{
 });
 it('partial Hangul must be completed before comparison without losing composition',async()=>{
  const f=await editor();await f.choose('한글 쓰기');await f.choose('ㄱ ㄲ ㄴ ㄷ ㄸ ㄹ');await f.choose('ㄱ');await f.choose('상위로');await f.choose('상위로');await f.choose('상위로');expect(view.text).toContain('[ㄱ]');await f.choose('현재 값과 비교');expect(view.state?.mode).not.toBe('confirming');expect(view.text).toContain('[ㄱ]');expect(view.notice).toContain('조합');
+});
+it('a fresh Space press stops a pending comparison and its release cannot resume or replay it',async()=>{
+ const f=await editor();f.hold();await f.choose('현재 값과 비교');expect(view.state?.mode).toBe('executing');
+ await f.press();expect(view.state?.mode).toBe('paused');f.release();await vi.advanceTimersByTimeAsync(200);expect(view.state?.mode).toBe('paused');expect(f.field.value).toBe('사이트 변경');
+ await f.press();expect(view.state?.mode).not.toBe('confirming');expect(view.state?.items.some(item=>item.id==='reapply-commit')).toBe(false);expect(f.field.value).toBe('사이트 변경');
+});
+
+it('a capture reply between the stop down and up cannot resume or reopen comparison',async()=>{
+ const f=await editor();f.hold();await f.choose('현재 값과 비교');f.down();expect(view.state?.mode).toBe('paused');f.release();await vi.advanceTimersByTimeAsync(100);f.up();await vi.advanceTimersByTimeAsync(100);expect(view.state?.mode).toBe('paused');expect(f.field.value).toBe('사이트 변경');expect(view.state?.items.some(item=>item.id==='reapply-commit')).toBe(false);
+});
+it('repeated, composing and modified child-frame Space signals do not stop; a fresh Space does',async()=>{
+ const f=await editor();f.hold();await f.choose('현재 값과 비교');
+ for(const flags of [{repeat:true},{isComposing:true},{modified:true}]){f.remoteKey(flags);expect(view.state?.mode).toBe('executing');}
+ f.remoteKey({});expect(view.state?.mode).toBe('paused');f.release();await vi.advanceTimersByTimeAsync(100);expect(view.state?.mode).toBe('paused');
+});
+
+it('late settings replies cannot resume the panel after a Space stop',async()=>{
+ const f=await fixture();await f.setEnabled(true);await f.press();await f.choose('조절·쉬기');await f.choose('순환 속도');f.holdSettings();await f.choose('1.5초');expect(view.state?.mode).toBe('executing');await f.press();expect(view.state?.mode).toBe('paused');f.release();await vi.advanceTimersByTimeAsync(200);expect(view.state?.mode).toBe('paused');
+});
+it('the stop press starts protection so an immediate bounce cannot resume',async()=>{
+ const f=await editor();f.hold();await f.choose('현재 값과 비교');await vi.advanceTimersByTimeAsync(200);f.down();f.up();expect(view.state?.mode).toBe('paused');f.down();f.up();expect(view.state?.mode).toBe('paused');f.release();await vi.advanceTimersByTimeAsync(200);await f.press();expect(view.state?.mode).not.toBe('paused');
 });

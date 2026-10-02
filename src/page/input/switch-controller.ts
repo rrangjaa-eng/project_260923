@@ -86,6 +86,10 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     panel.render(state,context+title,selectedControl?controlPreview():formActive&&formOverview?'':preview??draft.text+(initial!==null?` [${INITIALS[initial] ?? ""}${medial!==null?(MEDIALS[medial] ?? ""):""}]`:''),[notice,unknownNotice].filter(Boolean).join(' · '),preview===null&&!selectedControl?draftSelection(draft):undefined);
   }
   function dispatch(event:SwitchEvent){
+    if(event.type==='keyDown'&&event.code==='Space'&&event.trusted&&!event.repeat&&!event.isComposing&&!event.modified&&state.mode==='executing'){
+      state.lastSelection=event.now;
+      pause('쉬고 있어요. 이전 실행 결과를 확인하세요');return;
+    }
     const previousMode=state.mode;
     const output=reduceSwitch(state,event);state=output.state;
     if(previousMode!=='paused'&&state.mode==='paused'&&selectedControl){
@@ -440,7 +444,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(id.startsWith('tab:')){await saveDraft();if(!active(startedGeneration))return;pause();const result=resultOf(await request({type:'switch/navigation',kind:'activate',tabId:Number(id.split(':')[1])}));if(result.result!=='done')notice='탭을 다시 선택하세요';return;}
     if(id==='speed'){menu([800,1500,2500,4000].map((ms)=>command(`speed:${String(ms)}`,`${String(ms/1000)}초`)),'순환 속도');return;}
     if(id==='protection'){menu([100,300,600,1000].map((ms)=>command(`protection:${String(ms)}`,`${String(ms/1000)}초`)),'입력 간격 보호');return;}
-    if(id.startsWith('speed:')||id.startsWith('protection:')){const ms=Number(id.split(':')[1]);const value={...settings,...(id.startsWith('speed:')?{intervalMs:ms}:{protectionMs:ms})};await request({type:'switch/settings',value});up();return;}
+    if(id.startsWith('speed:')||id.startsWith('protection:')){const ms=Number(id.split(':')[1]);const value={...settings,...(id.startsWith('speed:')?{intervalMs:ms}:{protectionMs:ms})};await request({type:'switch/settings',value});if(!active(startedGeneration))return;up();return;}
     if(id==='pointer'){await request({type:'switch/settings',value:{...settings,mode:'pointer'}});return;}
     if(id==='confirm:cancel'){confirmAction=null;up();return;}
     if(id==='confirm:run'){const action=confirmAction;confirmAction=null;if(action){const result=resultOf(await request({type:'switch/execute',action:{...action,authorization:authorization()}}));if(!active(startedGeneration))return;if(result.result!=='done'){notice='결과를 확인하세요. 자동 재시도하지 않아요';return result.result;}up();}return;}

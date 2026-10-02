@@ -1,5 +1,20 @@
 # 작업 현황표
 
+## Space 실행 대기 정지 — 2026-10-02 12:33 KST
+
+`codex-switch-pending-stop`은 PR22/53162c9 후속이다. 실행 대기 중 새 Space로 쉬고 같은 release는 소비한다. 보호 간격 뒤 새 Space는 재개만 하며 중단 명령을 재전송하지 않는다. 늦은 설정 응답의 재개 P2와 즉시 입력 튐도 RED→GREEN으로 막았다.
+
+| 항목 | 확인된 결과 | 남은 상태 |
+|---|---|---|
+| 최종 로컬 | type/lint/build, unit283/283, 복구·이동취소·재적용E2E11/11(3.0분), UI101/101(4.0분,0fail/skip/flaky) | PC IME·운동 사용성·실사이트 미검증 |
+| 단계별 검사 | 안내 한 줄 복원 전 최종 pending/controls/reapply/navigation21/21(7.0분), UI101/101(4.1분) | 최신소스 전체E2E 성공으로 합산하지 않음 |
+| PR20 | 243aa2c, [CI77](https://github.com/rrangjaa-eng/project_260923/actions/runs/36955570396) success: unit262/E2E341 | draft·미병합 |
+| PR21 | CI79 failure: unit272pass/E2E342pass·1fail. 안내 복원5cb98de, 기존복구6/6(1.6분) 재통과 | [CI81](https://github.com/rrangjaa-eng/project_260923/actions/runs/36959932418) 실행중 |
+| PR22 | [draft PR22](https://github.com/rrangjaa-eng/project_260923/pull/22), 제품9aa3b42→안내4fd1d5b→문서53162c9. 문서 충돌 없이 mergeable=true 확인 | [CI82](https://github.com/rrangjaa-eng/project_260923/actions/runs/36960602815) 대기중, PR merge 없음 |
+| 새 후속 | [draft PR23](https://github.com/rrangjaa-eng/project_260923/pull/23), codex-switch-pending-stop, 제품e10cec4 | 전체CI 별도 확인 필요·미병합 |
+
+[Space 정지 검증](verification/2026-10-02-pending-space-stop.md) · [구조화 결과](verification/pending-space-stop-results.json) · [CI79 원인·수정](verification/2026-10-02-ci79-notice.md). PR21/22의 같은 안내 수정은 이력을 보존한 cherry-pick이며 force-push·PR merge·deploy·ZIP교체 없음. 기존 늦은 이동 취소 기록은 이 문서 끝에 보존했다. 다음 후보는 앞으로 이동/이동 불가 안내·현재 명령 승인, 그 뒤 다중 스크롤 영역이다. native/C#·새민감수집·교차사이트요약은 확장하지 않는다.
+
 ## CI79 안내 회귀 수정 — 2026-10-02 12:23 KST
 
 PR20 CI77은 최종success(unit262/E2E341,31.6분). PR21 e736350의 CI79는 failure(unit272pass, E2E342pass/1fail,32.9분). 기존 복구 테스트가 요구하는 초안 보존 안내가 새 비교 문구에서 누락됐다. 실제 값과 초안 보존은 통과했다. 안내 한 줄을 복원했고 테스트는 변경하지 않았다. 수정 소스 type/lint/unit272/272 및 기존복구E2E6/6을 새로 확인했다. 후속전체CI는 별도이며 완료 전 성공으로 표시하지 않는다. [원인·검증](verification/2026-10-02-ci79-notice.md). **13:08 KST 후속:** CI81도342pass/1fail(31.6분), 보존 복원 때 변경 이유 문구를 제거한 회귀였다. 세 정보 동시 단위1RED→GREEN 뒤 변경 이유·보존·비교 안내를 모두 복원했고 기존양식+복구14/14(6.2분), unit272/type/lint/build를 재검증했다. [CI81 원인·수정](verification/2026-10-02-ci81-notice.md). **13:12 KST:** CI82는343pass/2fail, CI84는345pass/1fail로 terminal확인. 공통안내 외 CI82의 표시생성 전 CSS읽기 null은 정확한0s assertion에 준비대기를 적용해 독립10/10(18.2초) 통과했다. 테스트단언·retry정책은 완화하지 않았다.

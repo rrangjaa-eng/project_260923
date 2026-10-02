@@ -1,0 +1,102 @@
+{
+  "base": "53162c9726167420dcf3a6005856cfc0a05f66e7",
+  "branch": "codex-switch-pending-stop",
+  "source_sha256": {
+    "src/page/input/switch-controller.ts": "699d8ecf6b85a2502fe42b3efdf69768cc601d1fb781f5d0e023ce867d75d8fe",
+    "tests/unit/switch-controller-reapply.test.ts": "65526430cbe8af93f4409e40ef4ed3f4b99be97d655833be381f15281a9fd873",
+    "tests/e2e/switch-navigation-cancel.e2e.ts": "b84845bddd6ed5e9d14c867b53268a050072b2e083632b1998e1bf0630208d69"
+  },
+  "initial_red": {
+    "failed": 1,
+    "passed": 10
+  },
+  "review_red": {
+    "failed": 2,
+    "passed": 13
+  },
+  "targeted_unit_final": {
+    "passed": 15,
+    "exit": 0
+  },
+  "unit_final": {
+    "passed": 283,
+    "files": 35,
+    "exit": 0
+  },
+  "typecheck_exit": 0,
+  "lint_exit": 0,
+  "stage1_browser": {
+    "passed": 21,
+    "minutes_reported": 7.1,
+    "exit": 0,
+    "controller_sha256": "b9750537815f7317a5d6edf7617bcd9ac3c7ad98c231a1ae805714f29ecbc019",
+    "scope": "before final settings-generation and stop-protection fixes"
+  },
+  "browser_final": {
+    "passed": 21,
+    "minutes_reported": 7.0,
+    "exit": 0,
+    "command": "CI=true pnpm exec playwright test tests/e2e/switch-navigation-cancel.e2e.ts tests/e2e/switch-pending.e2e.ts tests/e2e/switch-reapply.e2e.ts tests/e2e/switch-form-controls.e2e.ts",
+    "scope": "pending stop final, before later CI79 notice-only repair"
+  },
+  "ui_review_final": {
+    "run": "run-KWKkkc",
+    "exit": 0,
+    "stats": {
+      "startTime": "2026-10-02T03:15:50.200Z",
+      "duration": 244374.928,
+      "expected": 101,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "scope": "pending stop final, before later CI79 notice-only repair"
+  },
+  "review": {
+    "model_requested": "gpt-6.1-sol",
+    "reasoning_requested": "high",
+    "resolved": "late settings response resumed panel",
+    "remaining_P1_P2_found": 0,
+    "execution": "read-only review; reviewer did not rerun tests"
+  },
+  "unverified": [
+    "Windows IME",
+    "motor usability",
+    "real sites",
+    "all transport delay before worker accepts navigation",
+    "undoing already executed external effects"
+  ],
+  "before_notice_repair_sha256": {
+    "src/page/input/switch-controller.ts": "69071b28a65a12256bd3dc773b94887f810461f36d4de9298e2effceed206322",
+    "tests/unit/switch-controller-reapply.test.ts": "65526430cbe8af93f4409e40ef4ed3f4b99be97d655833be381f15281a9fd873",
+    "tests/e2e/switch-navigation-cancel.e2e.ts": "b84845bddd6ed5e9d14c867b53268a050072b2e083632b1998e1bf0630208d69"
+  },
+  "combined_after_notice_repair": {
+    "unit": {
+      "passed": 283,
+      "files": 35,
+      "exit": 0
+    },
+    "browser": {
+      "passed": 11,
+      "minutes_reported": 3.0,
+      "exit": 0,
+      "command": "CI=true pnpm exec playwright test tests/e2e/switch-recovery.e2e.ts tests/e2e/switch-navigation-cancel.e2e.ts tests/e2e/switch-reapply.e2e.ts"
+    },
+    "ui_review": {
+      "run": "run-FaNHaN",
+      "stats": {
+        "startTime": "2026-10-02T03:27:46.780Z",
+        "duration": 242424.881,
+        "expected": 101,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "exit": 0
+    }
+  },
+  "recorded_at": "2026-10-02T12:33:09.400238+09:00",
+  "pull_request": "https://github.com/rrangjaa-eng/project_260923/pull/23",
+  "product_commit": "e10cec4f93b5887ed2eadaa3ff4889095b915fd4"
+}
