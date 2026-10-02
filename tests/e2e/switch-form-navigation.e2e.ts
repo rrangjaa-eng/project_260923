@@ -13,14 +13,14 @@ test('form overview reads only field names, excludes sensitive and unsupported c
   servePage('http://practice.test/form.html', form);
   const page = await context.newPage(); await page.goto('http://practice.test/form.html'); await startSwitch(page); await chooseSwitch(page, '글쓰기'); await chooseSwitch(page, '양식 한 장 보기');
   const panel = page.locator('tremor-helper-root').locator('.switch-panel');
-  await expect(panel.locator('.switch-choice[data-item-id^="form-field:"]')).toHaveText(['첫 문장', '둘째 문장']);
+  await expect(panel.locator('.switch-choice[data-item-id^="form-field:"]')).toHaveText(['첫 문장', '둘째 문장', '분류']);
   await expect(panel).not.toContainText('secret'); await expect(panel.locator('.switch-draft')).toHaveCount(0);
   for (const width of [360, 768, 1280]) {
     await page.setViewportSize({ width, height: 800 });
     const metrics = await panel.evaluate((el) => ({ right: el.getBoundingClientRect().right, bottom: el.getBoundingClientRect().bottom, choices: Array.from(el.querySelectorAll('.switch-choice')).map((choice) => ({ height: choice.getBoundingClientRect().height, font: parseFloat(getComputedStyle(choice).fontSize) })) }));
     expect(metrics.right).toBeLessThanOrEqual(width); expect(metrics.bottom).toBeLessThanOrEqual(800);
     for (const choice of metrics.choices) { expect(choice.height).toBeGreaterThanOrEqual(56); expect(choice.font).toBeGreaterThanOrEqual(18); }
-    await page.screenshot({ path: `docs/verification/form-overview-${String(width)}.png` });
+    await page.screenshot({ path: `docs/verification/form-controls-overview-${String(width)}.png` });
   }
   const stored = await serviceWorker.evaluate(async () => JSON.stringify({ local: await chrome.storage.local.get(null), session: await chrome.storage.session.get(null) }));
   expect(stored).not.toContain('secret'); expect(stored).not.toContain('처음'); expect(stored).not.toContain('다음');
@@ -102,11 +102,11 @@ test('overview order stays fixed until explicit refresh and a live sensitive rel
   test.setTimeout(90000);servePage('http://practice.test/form-order.html',form);const page=await context.newPage();await page.goto('http://practice.test/form-order.html');await startSwitch(page);await chooseSwitch(page,'글쓰기');await chooseSwitch(page,'양식 한 장 보기');
   const panel=page.locator('tremor-helper-root').locator('.switch-panel');
   await page.evaluate(()=>{const first=document.querySelector('#first')?.parentElement;const second=document.querySelector('#second')?.parentElement;if(!first||!second)throw new Error('missing fields');first.before(second);const extra=document.createElement('input');extra.setAttribute('aria-label','새 칸');document.querySelector('form')?.append(extra);});
-  await expect(panel.locator('.switch-choice[data-item-id^="form-field:"]')).toHaveText(['첫 문장','둘째 문장']);
-  await chooseSwitch(page,'양식 목록 새로 읽기');await expect(panel.locator('.switch-choice[data-item-id^="form-field:"]')).toHaveText(['둘째 문장','첫 문장','새 칸']);
+  await expect(panel.locator('.switch-choice[data-item-id^="form-field:"]')).toHaveText(['첫 문장','둘째 문장','분류']);
+  await chooseSwitch(page,'양식 목록 새로 읽기');await expect(panel.locator('.switch-choice[data-item-id^="form-field:"]')).toHaveText(['둘째 문장','첫 문장','분류','새 칸']);
   await page.evaluate(()=>{const label=document.querySelector('#first')?.parentElement?.firstChild;if(label)label.textContent='PW';});
   // 목록 갱신 뒤에는 새 민감칸을 제외한다. 값은 capture하지 않는다.
-  await chooseSwitch(page,'양식 목록 새로 읽기');await expect(panel.locator('.switch-choice[data-item-id^="form-field:"]')).toHaveText(['둘째 문장','새 칸']);await expect(panel).not.toContainText('secret');
+  await chooseSwitch(page,'양식 목록 새로 읽기');await expect(panel.locator('.switch-choice[data-item-id^="form-field:"]')).toHaveText(['둘째 문장','분류','새 칸']);await expect(panel).not.toContainText('secret');
 });
 
 test('long selected-field context and exit stay inside the viewport while only the choices scroll', async ({ context, servePage }) => {
@@ -119,7 +119,7 @@ test('long selected-field context and exit stay inside the viewport while only t
     expect(metrics.x).toBeGreaterThanOrEqual(0);expect(metrics.right).toBeLessThanOrEqual(width);expect(metrics.bottom).toBeLessThanOrEqual(800);expect(metrics.headingTop).toBeGreaterThanOrEqual(0);expect(metrics.statusBottom).toBeLessThanOrEqual(800);expect(metrics.pageY).toBe(0);
     for(const choice of metrics.choices){expect(choice.height).toBeGreaterThanOrEqual(56);expect(choice.font).toBeGreaterThanOrEqual(18);}
     await expect(panel.locator('h2')).toContainText('양식 1/1');await expect(panel.locator('.switch-choice[data-item-id="form-exit"]')).toHaveText('원래 화면으로');
-    await page.screenshot({path:`docs/verification/form-context-${String(width)}.png`});
+    await page.screenshot({path:`docs/verification/form-controls-context-${String(width)}.png`});
   }
   await chooseSwitch(page,'원래 화면으로');await expect(page.locator('textarea')).toHaveValue('작성 문장');
 });

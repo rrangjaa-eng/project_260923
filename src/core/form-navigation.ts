@@ -6,7 +6,7 @@ export function sensitiveFieldLabel(label: string): boolean {
   return /비밀번호|주민|계좌|카드번호|보안카드|인증번호|password|ssn|\botp\b|\bpw\b/i.test(label);
 }
 export function formTargets(targets: ScanTarget[]): ScanTarget[] {
-  return targets.filter((target) => target.editable && !target.sensitive && !sensitiveFieldLabel(target.label)).map((target) => structuredClone(target));
+  return targets.filter((target) => (target.editable || target.controlKind) && !target.sensitive && !sensitiveFieldLabel(target.label)).map((target) => structuredClone(target));
 }
 const fieldKey = (target: ScanTarget) => JSON.stringify([target.target.tabId, target.target.frameId, target.target.documentGeneration, target.target.itemId, target.identity]);
 export class FormDrafts {

@@ -5,15 +5,20 @@ const Target = z.object({ tabId: z.number().int(), frameId: z.number().int().non
 const Authorization = z.object({ documentGeneration: z.string().max(100), modeGeneration: z.number().int().nonnegative(), pendingActionId: z.string().max(150) });
 export const TextSelection = z.object({ start: z.number().int().nonnegative().max(4000), end: z.number().int().nonnegative().max(4000), direction: z.enum(['forward', 'backward', 'none']) }).strict().refine((selection) => selection.end >= selection.start);
 export type TextSelection = z.infer<typeof TextSelection>;
+export const FormControl = z.discriminatedUnion('kind', [
+  z.object({kind:z.literal('select'),selectedIndex:z.number().int().min(-1).max(99),signature:z.string().max(64000),options:z.array(z.object({label:z.string().max(300),disabled:z.boolean()}).strict()).min(1).max(100)}).strict(),
+  z.object({kind:z.literal('checkbox'),checked:z.boolean(),signature:z.string().max(4000)}).strict(),
+]);
+export type FormControl = z.infer<typeof FormControl>;
 export const SwitchTargetAction = z.object({
   actionId: z.string().max(150), target: Target,
-  kind: z.enum(['capture', 'press', 'applyText', 'restoreText', 'search']), text: z.string().max(4000).optional(), expectedValue: z.string().max(4000).optional(),
-  selection: TextSelection.optional(),
+  kind: z.enum(['capture', 'press', 'applyText', 'restoreText', 'search', 'captureControl', 'applyControl', 'readValidity']), text: z.string().max(4000).optional(), expectedValue: z.string().max(4000).optional(),
+  selection: TextSelection.optional(), control: FormControl.optional(), controlIndex:z.number().int().min(0).max(99).optional(), controlChecked:z.boolean().optional(),
   expectedIdentity: z.string(), confirmed: z.boolean().optional(),
   authorization: Authorization,
 }).strict();
 export type SwitchTargetAction = z.infer<typeof SwitchTargetAction>;
-export const SwitchReportItem = z.object({ itemId: z.string(), label: z.string().max(300), kind: z.string(), danger: z.boolean(), editable: z.boolean(), sensitive: z.boolean(), identity: z.string() });
+export const SwitchReportItem = z.object({ itemId: z.string(), label: z.string().max(300), kind: z.string(), danger: z.boolean(), editable: z.boolean(), sensitive: z.boolean(), identity: z.string(), controlKind:z.enum(['select','checkbox']).optional() });
 export type SwitchReportItem = z.infer<typeof SwitchReportItem>;
 export interface SwitchFrameReport { frameId: number; documentGeneration: string; path: number[]; items: SwitchReportItem[] }
 export const SwitchMessage = z.discriminatedUnion('type', [
