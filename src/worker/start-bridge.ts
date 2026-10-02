@@ -11,7 +11,7 @@ export function createStartBridge(handle:(message:unknown,sender:chrome.runtime.
   port.onDisconnect.addListener(()=>{if(connections.get(id)===rpc){connections.delete(id);invalidate(id);}});
   return true;
  }
- return {attach,send:(tabId:number,message:unknown,options?:{frameId?:number})=>{
+ return {attach,detach:(id:number)=>{const rpc=connections.get(id);if(rpc){connections.delete(id);invalidate(id);rpc.close();}},send:(tabId:number,message:unknown,options?:{frameId?:number})=>{
   const rpc=connections.get(tabId);
   return rpc&&(options?.frameId===undefined||options.frameId===0)?rpc.request(message):chrome.tabs.sendMessage(tabId,message,options);
  },broadcast:(message:unknown)=>{for(const rpc of connections.values())void rpc.request(message);}};

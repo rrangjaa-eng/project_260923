@@ -4,11 +4,13 @@ import { isUnsupportedUrl } from '@/core/unsupported-url';
 
 export function createSwitchRelay(writer: StorageWriter,send:typeof chrome.tabs.sendMessage=(...args)=>chrome.tabs.sendMessage(...args)) {
   const frames = new Map<number, Map<number, SwitchFrameReport>>();
-  const closePreviews=new Map<number,{token:string;sourceUrl:string;windowId:number;documentGeneration:string;targetId:number;targetUrl:string;targetTitle:string;targetDocument:string}>();
+  const closePreviews=new Map<number,{token:string;sourceUrl:string;windowId:number;documentGeneration:string;targetId:number;targetUrl:string;targetTitle:string;targetDocument:string;targetLocation:number}>();
+  const locationChanges=new Map<number,number>();
   const cancellations = new Map<number, number>();
   const navigationActions=new Map<number,{documentGeneration:string;seen:Set<string>}>();
   const cancel = (id: number) => { closePreviews.delete(id); cancellations.set(id, (cancellations.get(id) ?? 0) + 1); };
-  chrome.tabs.onRemoved.addListener((id) => { frames.delete(id); closePreviews.delete(id); cancellations.delete(id); navigationActions.delete(id); void writer.writeSwitchData(`switchDraft:${String(id)}`, '', 'session'); });
+  chrome.tabs.onDetached.addListener(id=>{locationChanges.set(id,(locationChanges.get(id)??0)+1);cancel(id);});
+  chrome.tabs.onRemoved.addListener((id) => { frames.delete(id); locationChanges.delete(id); closePreviews.delete(id); cancellations.delete(id); navigationActions.delete(id); void writer.writeSwitchData(`switchDraft:${String(id)}`, '', 'session'); });
   chrome.tabs.onUpdated.addListener((id, change) => {
     if (change.status === 'loading') {
       cancel(id);
@@ -166,22 +168,23 @@ export function createSwitchRelay(writer: StorageWriter,send:typeof chrome.tabs.
           const targetReport=target?.id===undefined?undefined:frames.get(target.id)?.get(0);
           if(target?.id===undefined||!target.url||!targetReport||!report)return {result:'refused',reason:'no-return-tab'};
           const token=crypto.randomUUID();
-          closePreviews.set(tabId,{token,sourceUrl:source.url,windowId:source.windowId,documentGeneration:report.documentGeneration,targetId:target.id,targetUrl:target.url,targetTitle:target.title??target.url,targetDocument:targetReport.documentGeneration});
+          closePreviews.set(tabId,{token,sourceUrl:source.url,windowId:source.windowId,documentGeneration:report.documentGeneration,targetId:target.id,targetUrl:target.url,targetTitle:target.title??target.url,targetDocument:targetReport.documentGeneration,targetLocation:locationChanges.get(target.id)??0});
           return {result:'done',token,title:target.title??target.url};
         }
         if(!preview||preview.token!==message.token||preview.sourceUrl!==source.url||preview.windowId!==source.windowId||preview.documentGeneration!==report?.documentGeneration)return {result:'refused'};
         const target=supported.find(tab=>tab.id===preview.targetId&&tab.windowId===preview.windowId&&tab.url===preview.targetUrl&&(tab.title??tab.url)===preview.targetTitle);
-        if(!target||frames.get(preview.targetId)?.get(0)?.documentGeneration!==preview.targetDocument)return {result:'refused'};
+        if(!target||(locationChanges.get(preview.targetId)??0)!==preview.targetLocation||frames.get(preview.targetId)?.get(0)?.documentGeneration!==preview.targetDocument)return {result:'refused'};
         try{
-          await send(preview.targetId,{type:'switch/pause'},{frameId:0});
+          const paused:unknown=await send(preview.targetId,{type:'switch/pause',reason:'return-after-close'},{frameId:0});
+          if(typeof paused!=='object'||paused===null||!('result' in paused)||paused.result!=='done')return {result:'refused'};
           if(!await authorized())return {result:'refused'};
           const latest=await chrome.tabs.query({});
           if(!await authorized())return {result:'refused'};
           const current=latest.find(tab=>tab.id===tabId),back=latest.find(tab=>tab.id===preview.targetId);
-          if(!current?.active||current.windowId!==preview.windowId||current.url!==preview.sourceUrl||back?.windowId!==preview.windowId||back.url!==preview.targetUrl||(back.title??back.url)!==preview.targetTitle||frames.get(preview.targetId)?.get(0)?.documentGeneration!==preview.targetDocument)return {result:'refused'};
+          if(!current?.active||current.windowId!==preview.windowId||current.url!==preview.sourceUrl||back?.windowId!==preview.windowId||back.url!==preview.targetUrl||(back.title??back.url)!==preview.targetTitle||(locationChanges.get(preview.targetId)??0)!==preview.targetLocation||frames.get(preview.targetId)?.get(0)?.documentGeneration!==preview.targetDocument)return {result:'refused'};
           await chrome.tabs.remove(tabId);
           const returning=await chrome.tabs.get(preview.targetId);
-          if(returning.windowId!==preview.windowId||returning.url!==preview.targetUrl||frames.get(preview.targetId)?.get(0)?.documentGeneration!==preview.targetDocument)return {result:'unknown'};
+          if(returning.windowId!==preview.windowId||returning.url!==preview.targetUrl||(locationChanges.get(preview.targetId)??0)!==preview.targetLocation||frames.get(preview.targetId)?.get(0)?.documentGeneration!==preview.targetDocument)return {result:'unknown'};
           await chrome.tabs.update(preview.targetId,{active:true});
           return {result:'done'};
         }catch{return {result:'unknown'};}

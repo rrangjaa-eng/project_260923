@@ -41,7 +41,11 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     const type=(message as {type?:string}).type;
     const tracked=['switch/execute','switch/navigation','switch/phrase','switch/phrase/update','switch/draft'].includes(type??'');
     if(tracked)inFlight.add(message);
-    try{return await (opts.transport?.request??requestMessage)(message);}finally{inFlight.delete(message);}
+    try{
+      const result=await (opts.transport?.request??requestMessage)(message);
+      if(tracked&&(!result||typeof result==='object'&&'result' in result&&result.result==='unknown'))unresolvedWork=true;
+      return result;
+    }catch(error){if(tracked)unresolvedWork=true;throw error;}finally{inFlight.delete(message);}
   };
   const top=window===window.top;
   const generation=newSwitchId();
@@ -164,7 +168,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     return dirty(workspace())||dirty(formOrigin)||dirty(formRecovery)||formDrafts.hasUnapplied()||pendingControlIndex!==undefined||pendingControlIndices!==undefined||pendingControlChecked!==undefined;
   }
   function navigationBlocked(){
-    if(unapplied()){notice='적용하지 않은 글이나 선택이 있어요. 글쓰기에서 적용하거나 취소하세요';return true;}
+    if(unapplied()){notice='적용하지 않은 글이나 선택이 있어요. 글쓰기에서 확인하세요';return true;}
     if(inFlight.size>0||unresolvedWork){notice='처리 중이거나 결과를 확인하지 못한 작업이 있어요. 현재 화면을 확인하세요';return true;}
     return false;
   }
@@ -610,7 +614,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(message.type==='switch/key'&&top&&exclusive()){
       if(state.mode!=='confirming'||now()-confirmOpenedAt>=1000)dispatch({type:message.kind,now:now(),code:'Space',trusted:true,repeat:message.repeat,isComposing:message.isComposing,modified:message.modified});return undefined;
     }
-    if(message.type==='switch/pause'){if(exclusive()){if(top&&message.invalidate)invalidate('페이지가 바뀌었어요. 대상을 다시 선택하세요');else pause();}sendResponse({result:'done'});return undefined;}
+    if(message.type==='switch/pause'){if(exclusive()){if(top&&message.invalidate)invalidate('페이지가 바뀌었어요. 대상을 다시 선택하세요');else pause(message.reason==='return-after-close'?'이전 탭 닫기 결과를 확인하세요. 새 스페이스바로 재개하세요':'');}sendResponse({result:'done'});return undefined;}
     if(message.type==='switch/refresh'&&top){void refreshAvailability().catch(()=>undefined);return undefined;}
     if(message.type==='switch/execute'){
       const action=message.action;

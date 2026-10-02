@@ -45,6 +45,8 @@ export default defineBackground(() => {
   }
   const startBridge=createStartBridge(async(raw,sender)=>{
     if(typeof raw==='object'&&raw!==null&&'type' in raw&&raw.type==='helper/state'){await initialSafety;return {off:runtimeStopped,revision:safetyRevision,instance:safetyInstance};}
+    const parsed=parseMessage(raw);
+    if(parsed.success&&parsed.data.type==='storage/request'&&parsed.data.op.kind==='setEnabled'&&!parsed.data.op.enabled){notifySafety(true);return writer.setEnabled(false);}
     return switchRelay.handle(raw,sender);
   },id=>{switchRelay.disconnect(id);});
   const switchRelay = createSwitchRelay(writer,startBridge.send);
@@ -141,6 +143,7 @@ export default defineBackground(() => {
 
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.status === 'loading') {
+      startBridge.detach(tabId);
       // Task 2(01-19): 새 이동이 시작됐다 — 옛 문서의 물려받은 출처 기록을 지운다(다음 about:
       // 문서가 다른 출처를 물려받을 수 있다).
       topDocOrigins.delete(tabId);
@@ -151,6 +154,7 @@ export default defineBackground(() => {
   });
 
   chrome.tabs.onRemoved.addListener((tabId) => {
+    startBridge.detach(tabId);
     topDocOrigins.delete(tabId);
     actionGenerationByTab.delete(tabId);
   });

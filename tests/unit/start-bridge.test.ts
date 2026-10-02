@@ -22,3 +22,6 @@ it('replacing a port invalidates the old document without a late disconnect eras
 it('a disconnected in-flight call resolves unknown and cannot replay',async()=>{
  setup();const p=pair(sender);createPortRpc(p.a,()=>new Promise(()=>{}));const client=createPortRpc(p.b,()=>Promise.resolve({}));const work=client.request({});p.a.disconnect();expect(await work).toEqual({result:'unknown'});expect(await client.request({})).toEqual({result:'unknown'});
 });
+it('tab loading invalidates the endpoint and pending approvals without reconnecting',async()=>{
+ setup();const invalid:number[]=[];const bridge=createStartBridge(()=>Promise.resolve({}),id=>{invalid.push(id);});const p=pair(sender);bridge.attach(p.a);createPortRpc(p.b,()=>new Promise(()=>{}));const waiting=bridge.send(1,{},{});bridge.detach(1);expect(await waiting).toEqual({result:'unknown'});expect(invalid).toEqual([1]);expect(await bridge.send(1,{},{})).toEqual({normal:true});
+});

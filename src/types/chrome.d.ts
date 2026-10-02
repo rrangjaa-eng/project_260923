@@ -122,6 +122,7 @@ declare namespace chrome.tabs {
     status?: string;
   }
 
+  const onDetached: { addListener(callback: (tabId: number) => void): void };
   const onRemoved: {
     addListener(callback: (tabId: number, removeInfo: unknown) => void): void;
   };

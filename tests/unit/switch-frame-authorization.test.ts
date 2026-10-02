@@ -4,7 +4,7 @@ import type {StorageWriter} from '../../src/worker/storage-writer';
 afterEach(()=>{vi.unstubAllGlobals();});
 async function setup(holdAt:'top'|'first-visibility'|'last-visibility'='top'){
  let visible=true,hold=false,release=()=>{},markWaiting=()=>{};const waiting=new Promise<void>(resolve=>{markWaiting=resolve;});const checks:number[]=[];
- vi.stubGlobal('chrome',{runtime:{id:'extension'},tabs:{onRemoved:{addListener:()=>{}},onUpdated:{addListener:()=>{}},onActivated:{addListener:()=>{}},sendMessage:async(_tabId:number,message:{type:string},options?:{frameId:number})=>{
+ vi.stubGlobal('chrome',{runtime:{id:'extension'},tabs:{onDetached:{addListener:()=>undefined},onRemoved:{addListener:()=>{}},onUpdated:{addListener:()=>{}},onActivated:{addListener:()=>{}},sendMessage:async(_tabId:number,message:{type:string},options?:{frameId:number})=>{
   if(message.type==='switch/frame-check'){checks.push(options?.frameId??-1);const reply={result:visible?'done':'refused'};if(hold&&(holdAt==='first-visibility'&&checks.length===1||holdAt==='last-visibility'&&checks.length===2)){markWaiting();await new Promise<void>(resolve=>{release=resolve;});}return reply;}
   if(message.type==='switch/action-check'){if(hold&&holdAt==='top'){markWaiting();await new Promise<void>(resolve=>{release=resolve;});}return {result:'done'};}
   return {result:'done'};

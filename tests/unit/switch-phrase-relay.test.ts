@@ -11,7 +11,7 @@ it.each(['switch/cancel-peers', 'switch/pause'])('a late final authorization rep
   vi.stubGlobal('chrome', {
     runtime: { id: 'extension' },
     storage: { local: { get: () => Promise.resolve({ switchPhrases: phrases }), set: (value: { switchPhrases: string[] }) => { phrases = value.switchPhrases; return Promise.resolve(); } } },
-    tabs: { onRemoved: { addListener: () => undefined }, onUpdated: { addListener: () => undefined }, onActivated: { addListener: () => undefined },
+    tabs: { onDetached:{addListener:()=>undefined},onRemoved: { addListener: () => undefined }, onUpdated: { addListener: () => undefined }, onActivated: { addListener: () => undefined },
       sendMessage: (_tab: number, message: { type: string }) => {
         if (message.type !== 'switch/action-check') return Promise.resolve({ result: 'done' });
         if (++checks === 1) return Promise.resolve({ result: 'done' });

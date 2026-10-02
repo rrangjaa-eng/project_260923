@@ -35,7 +35,7 @@ export const SwitchMessage = z.discriminatedUnion('type', [
   z.object({ type: z.literal('switch/action-check'), authorization: Authorization, navigation: Navigation.optional() }),
   z.object({ type: z.literal('switch/execute'), action: SwitchTargetAction }),
   z.object({ type: z.literal('switch/key'), kind: z.enum(['keyDown', 'keyUp']), repeat: z.boolean(), isComposing: z.boolean(), modified: z.boolean() }),
-  z.object({ type: z.literal('switch/pause'), invalidate: z.boolean().optional() }),
+  z.object({ type: z.literal('switch/pause'), invalidate: z.boolean().optional(), reason:z.literal('return-after-close').optional() }),
   z.object({ type: z.literal('switch/cancel-peers') }),
   Navigation.extend({type:z.literal('switch/navigation'),authorization:Authorization.strict()}).strict(),
   z.object({ type: z.literal('switch/settings'), value: SwitchSettings }),
