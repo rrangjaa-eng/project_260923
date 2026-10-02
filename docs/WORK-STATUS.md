@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## iframe 수정 draft 준비 — 2026-10-02 21:16 KST
+
+`codex-switch-frame-controls`의 제품 수정은 `49e11af7896a07dac07cb3f36b3260d9992e8dc1`에 푸시됐다. 최종 type/lint·unit364/364(39파일),독립검토 추가P1/P2 없음. 선행 관련30/30(9.5분)은 정상 report 갱신 최종 보완 전 소스로 구분한다. 최종 소스 핵심8건과 자동UI를 실행/대기 중이며 새 draft PR에서 전체CI도 종료까지 확인한다. [수치·소스 해시](verification/frame-controls-results.json), [NAV-02 남은 범위와 결정](verification/2026-10-02-nav02-remaining-decisions.md).
+
+두 차례 환경 알림 뒤 실제 실행을 재확인했고 기존30건 프로세스가 정상 종료했다. 실행을 중복 시작하지 않았다. PR27/28 보존·merge/deploy/ZIP교체 없음. 아래는 당시 기록이다.
+
 ## iframe 검증·승인 수정 체크포인트 — 2026-10-02 21:08 KST
 
 `codex-switch-frame-controls`는 PR28/0422cde 위의 후속이다. 환경 연결 알림 뒤21:06 KST에도 실제 명령과 테스트 실행을 확인했다. 정상 iframe 회귀12/12 통과 후, 승인 지연 중 iframe이 화면 밖으로 이동해도 적용되던4RED를 재현했다. worker 최종 child 승인 전후 가시성·문서·취소 재검사로4GREEN, 정상 report 갱신의2RED도 보완했다. 최종 unit364/364(39파일)·type/lint 통과. [계약·실패 재현](verification/2026-10-02-frame-controls.md).

@@ -21,8 +21,10 @@
 
 ## 현재 검증 상태
 
-최종 type/lint와 전체unit364/364 통과 후 체크포인트를 저장한다. 새16+기존 frame visibility4+pending10=30건은 정상 report 갱신 보완 전 빌드로 실행 중이다. 최종 소스 관련 브라우저와 새 draft PR 최종HEAD 전체CI는 아직 완료하지 않았다. 결과는 이 문서와 WORK-STATUS에 갱신한다.
+최종 type/lint와 전체unit364/364 통과 후 체크포인트를 저장한다. 새16+기존 frame visibility4+pending10=30건은 정상 report 갱신 보완 전 빌드로30/30(9.5분) 통과했다. 최종 소스의 정상/취소/쉬기4+가시성4=8건과 자동UI는 실행/대기 중이다. 새 draft PR 최종HEAD 전체CI는 아직 완료하지 않았다. 결과는 이 문서와 WORK-STATUS에 갱신한다.
 
 CI95의 기존369건39.9분에 새 iframe16건(선행12건5.9분+회귀4건1.3분)을 추가하므로 E2E55분/job60분으로 실행 여유만 늘렸다. 테스트별 제한·retry·단언은 완화하지 않았다.
 
 실제 Windows IME·이용자 체감·실사이트, sandbox/특수 scheme/새 권한이 필요한 frame은 이번 검증에 포함하지 않는다. NAV-02 새로고침·새 탭·탭 닫기는 구현하지 않았다.
+
+[NAV-02 남은 정확한 범위와 구현 전 결정](2026-10-02-nav02-remaining-decisions.md). 이번 이정표에서 탐색 기능을 새로 구현하지 않는다.
