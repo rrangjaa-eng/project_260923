@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-02T21:16:03+09:00",
+  "checked_at": "2026-10-02T21:25:08+09:00",
   "branch": "codex-switch-frame-controls",
   "base_pr": 28,
   "base_head": "0422cdeaeba7c87aa144f4593360fbdb5b415c56",
@@ -34,14 +34,37 @@
       }
     ],
     "final_browser": {
-      "status": "running",
-      "command": "CI=true pnpm exec playwright test tests/e2e/switch-frame-controls.e2e.ts --grep 'cancels and pauses|leaving the viewport'"
+      "status": "passed",
+      "command": "CI=true pnpm exec playwright test tests/e2e/switch-frame-controls.e2e.ts --grep 'cancels and pauses|leaving the viewport'",
+      "passed": 8,
+      "duration": "4.5m"
     },
     "ui": {
-      "status": "queued"
+      "status": "passed",
+      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-Twt5ih",
+      "passed": 101,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "duration": "4.5m",
+      "stats": {
+        "startTime": "2026-10-02T12:19:37.006Z",
+        "duration": 272264.564,
+        "expected": 101,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
     }
   },
-  "ci": "not_started",
+  "ci": {
+    "run": 37005764069,
+    "number": 96,
+    "job": 110833532157,
+    "head": "04373f8aabf7d5baadc505132fea0ff7bc44b585",
+    "status": "in_progress",
+    "conclusion": null
+  },
   "source_sha256": {
     ".github/workflows/ci.yml": "09ca36724427aadb730e0778cd2fdce3eeed73f189691ee6aeeaad47e108d1ba",
     "src/worker/switch-relay.ts": "244d2d2887437ead65cd3df1dc76ec0c653babca301581e27cff621c3cfd0309",
@@ -64,5 +87,8 @@
     "실사이트",
     "sandbox/특수 scheme/새권한이 필요한 frame",
     "모든 프로세스 경합의 원자적 가시성 보장"
-  ]
+  ],
+  "pr": 29,
+  "test_merge": "fb2e921c28eebcaebcd5e37bd25173efafbbde3e",
+  "candidate_and_test_merge_tree": "40a6e86f2a7e904f25c3809473427c2fd22b7813"
 }

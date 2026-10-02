@@ -1,5 +1,13 @@
 # 작업 현황표
 
+## PR29 로컬 검증 완료·전체 CI 진행 — 2026-10-02 21:25 KST
+
+[draft PR29](https://github.com/rrangjaa-eng/project_260923/pull/29), `codex-switch-frame-controls`/`04373f8aabf7d5baadc505132fea0ff7bc44b585`는 PR28/0422cde 기준이며 mergeable=true다. GitHub test merge `fb2e921c28eebcaebcd5e37bd25173efafbbde3e`와 후보 tree `40a6e86f2a7e904f25c3809473427c2fd22b7813`이 동일하다.
+
+최종 type/lint/build·unit364/364(39파일),핵심브라우저8/8(4.5분),자동UI101/101(4.5분,실패/스킵/불안정0) 통과. [실행 수치와 소스 해시](verification/frame-controls-results.json). 선행30/30(9.5분)은 정상 report 갱신 최종 보완 전 빌드로 구분한다. [CI96](https://github.com/rrangjaa-eng/project_260923/actions/runs/37005764069),job110833532157은 실행 중이다. 제품HEAD를 고정하고 `codex-pr29-verification-record`에 증거를 저장한다.
+
+PR27/28/29 미병합,회사 시스템 접근·권한/수집/저장 확장·deploy/ZIP교체 없음. 실제PC·IME·운동 사용성·실사이트는 미검증이다. NAV-02는 미착수이며 [구현 전 결정](verification/2026-10-02-nav02-remaining-decisions.md)을 별도로 정리했다. 아래는 당시 기록이다.
+
 ## iframe 수정 draft 준비 — 2026-10-02 21:16 KST
 
 `codex-switch-frame-controls`의 제품 수정은 `49e11af7896a07dac07cb3f36b3260d9992e8dc1`에 푸시됐다. 최종 type/lint·unit364/364(39파일),독립검토 추가P1/P2 없음. 선행 관련30/30(9.5분)은 정상 report 갱신 최종 보완 전 소스로 구분한다. 최종 소스 핵심8건과 자동UI를 실행/대기 중이며 새 draft PR에서 전체CI도 종료까지 확인한다. [수치·소스 해시](verification/frame-controls-results.json), [NAV-02 남은 범위와 결정](verification/2026-10-02-nav02-remaining-decisions.md).
