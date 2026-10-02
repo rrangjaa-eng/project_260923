@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-10-02T15:13:00+09:00",
+  "pr": 25,
+  "url": "https://github.com/rrangjaa-eng/project_260923/pull/25",
+  "branch": "codex-switch-scroll-regions",
+  "head": "6592a1a54473eb2a0a2ae815634f03aef0adc69a",
+  "run": 36969554948,
+  "number": 91,
+  "job": 110720460934,
+  "status": "completed",
+  "conclusion": "success",
+  "unit": {
+    "passed": 313,
+    "files": 36
+  },
+  "browser": {
+    "passed": 358,
+    "minutes_reported": 35.8
+  },
+  "log_evidence": [
+    "2026-10-02T05:35:09.8557579Z  Test Files  36 passed (36)",
+    "2026-10-02T05:35:09.8558624Z       Tests  313 passed (313)",
+    "2026-10-02T06:11:22.9008237Z   358 passed (35.8m)"
+  ],
+  "evidence_branch": "codex-pr25-verification-record",
+  "note": "최종 HEAD의 workflow/job terminal 상태와 원본 job 로그 확인. 문서 기록은 제품 HEAD를 바꾸거나 CI 재실행을 요청하지 않는다.",
+  "unverified": [
+    "실제 Windows 한국어 IME",
+    "운동 사용성",
+    "실사이트",
+    "iframe/Shadow DOM 내부 등 지원 범위 밖 스크롤"
+  ]
+}

@@ -32,3 +32,9 @@ iframe 내부, 가로 전용 스크롤, 열린/닫힌 Shadow DOM 내부, canvas/
 최종 자동UI는101/101(4.1분,exit0), `run-StxszP`(2026-10-02 14:27–14:31 KST), 실패/스킵/불안정0이다. 기존디자인 토큰·대비·확대·움직임줄이기·팝업/사이트상태 범위의 결과이며 모든 사이트나 모든 뷰포트의 접근성 인증을 의미하지 않는다.
 
 기존 전역/사이트 끄기2개와 실제 production 확장 설치→native popup 시작/정지→정상입력 복귀1개의 추가회귀3/3(1.2분,exit0)이 통과했다. 이 검사는 Linux Chromium 자동화이며 실제Windows PC 시험으로 표현하지 않는다. 최종 소스 해시 일치와 diff 검사를 통과했다. PR 게시 후 최종 전체CI 결과는 PR본문과 별도 문서 기록 브랜치에 저장해 제품 HEAD를 결과 기록만으로 반복 실행하지 않는다.
+
+게시: [draft PR25](https://github.com/rrangjaa-eng/project_260923/pull/25), 제품 HEAD `6592a1a54473eb2a0a2ae815634f03aef0adc69a`, base PR24/461d431. 최종 [CI91](https://github.com/rrangjaa-eng/project_260923/actions/runs/36969554948) 완료 확인 중이며 결과 기록은 제품 HEAD를 바꾸지 않는 `codex-pr25-verification-record`에서 이어간다.
+
+## 최종 전체 CI — 2026-10-02 15:13 KST
+
+최종 제품 HEAD `6592a1a54473eb2a0a2ae815634f03aef0adc69a`의 [CI91](https://github.com/rrangjaa-eng/project_260923/actions/runs/36969554948), job110720460934는 **success**로 종료했다. 원본 로그에서 typecheck/lint/production build, unit313/313(36파일), 전체E2E358/358(35.8분)을 확인했다. [HEAD/run/job/원문 수치](ci91-final-results.json)는 문서 전용 `codex-pr25-verification-record`에 저장한다. 기록용 변경으로 제품 HEAD의 검사를 다시 시작하지 않았다. 실제PC·실사이트·지원 범위 밖 스크롤은 미검증이며 draft/미병합·미배포·ZIP미교체 상태다. 위 진행 중 문구는 게시 당시 이력이다.

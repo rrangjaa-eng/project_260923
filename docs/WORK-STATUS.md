@@ -1,5 +1,13 @@
 # 작업 현황표
 
+## 스크롤 영역 최종 CI 완료 — 2026-10-02 15:13 KST
+
+[draft PR25](https://github.com/rrangjaa-eng/project_260923/pull/25), 제품 브랜치 `codex-switch-scroll-regions`, HEAD `6592a1a54473eb2a0a2ae815634f03aef0adc69a`의 [CI91](https://github.com/rrangjaa-eng/project_260923/actions/runs/36969554948)이 **success**로 종료했다. 원본 job110720460934 로그에서 type/lint/build, 단위313/313(36파일), 전체브라우저358/358(35.8분)을 확인했다.
+
+관련 브라우저 검사26/26(8.3분), 전역/사이트 끄기·실제설치팝업3/3(1.2분), 자동UI101/101(4.1분,0fail/skip/flaky)도 통과했다. [전체CI 근거](verification/ci91-final-results.json)와 [동작 계약·지원 한계](verification/2026-10-02-scroll-regions.md)를 `codex-pr25-verification-record` 문서 브랜치에 보존한다. 제품 HEAD는 그대로이며 PR24 통과 기준과 설치ZIP도 보존했다.
+
+지원 범위는 최상위 문서의 일반 세로 영역과 페이지 전체다. iframe·열린/닫힌 Shadow DOM 내부·가로·custom 스크롤, 실제Windows IME·운동 사용성·실사이트는 이번 완료 범위 밖이다. 새 권한/의존성·수집/저장·native/AI, merge/deploy·ZIP교체는 없다. 현재 증분을 마감했으며 다음 기능은 아직 시작하지 않았다. 아래 시각별 상태는 과거 이력이다.
+
 ## 세로 스크롤 영역 선택 — 2026-10-02 14:34 KST
 
 PR24/461d431 통과 기준 위의 `codex-switch-scroll-regions` 후속이다. 읽기·이동에서 페이지 전체 또는 화면 안의 세로 영역을 이름·번호·강조 테두리로 선택하고 그 영역만 움직인다. 자동 이동 중 첫 Space 누름은 보호 간격 안에서도 즉시 정지에만 쓰며 같은 release는 다른 행동을 하지 않는다. 무효 대상을 페이지 전체로 대신 이동시키지 않는다.
@@ -10,7 +18,7 @@ PR24/461d431 통과 기준 위의 `codex-switch-scroll-regions` 후속이다. �
 | 브라우저 | 최종 새영역6+기존한글여정/앞으로/정지20=26/26(8.3분) | 자동UI101/101(4.1분,0fail/skip/flaky), 끄기/실제설치팝업 정지3/3(1.2분) |
 | 독립 검토 | 가시성·실제 이동 없음·긴 제목 수정 후 추가P1/P2 없음 | 읽기 검토와 실행 결과 구분 |
 | 지원 범위 | 최상위 문서의 일반 세로 overflow 영역과 페이지 전체 | iframe·Shadow DOM 내부·가로·custom 제외 |
-| Git | PR24·설치ZIP 보존, 문서기록883b854 cherry-pick | 별도 draft PR 게시 예정 |
+| Git | PR24·설치ZIP 보존, 문서기록883b854 cherry-pick | [draft PR25](https://github.com/rrangjaa-eng/project_260923/pull/25), HEAD6592a1a·[CI91](https://github.com/rrangjaa-eng/project_260923/actions/runs/36969554948) 진행 중 |
 
 [스크롤 계약·실패/수정 근거](verification/2026-10-02-scroll-regions.md) · [소스 해시·실행 수치](verification/scroll-regions-results.json). 실제Windows IME·운동 사용성·실사이트 미검증, merge/deploy·ZIP교체 없음. 이번 증분의 최종 HEAD 전체CI까지 확인하고 추가 기능은 시작하지 않는다. 아래는 시각별 이전 이력이다.
 
