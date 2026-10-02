@@ -36,3 +36,5 @@ CI79 전체343건32.9분, CI84 전체346건33.4분 실측에 근거해 추가 �
 수정 후 최종 조합 브라우저는 **8/8,3.0분,exit0**: 신규 앞으로6개(실제 Space 왕복·초안보존,360/768/1280px 불가안내,지연 승인 중 정지,탭활성화 ping 대기 정지)와 선행 실패 양식/복구2개가 함께 통과했다. 최종 typecheck/lint도 exit0이며 제품 코드의 전체단위296/296(35파일)을 확인했다. DOM 측정 수정은 독립 읽기 전용 검토에서 기존 존재/경계 단언 유지와 추가 제품 변경 없음을 확인했다.
 
 최종 자동UI는 **101/101,4.1분,exit0**, `run-Omhe0L`(2026-10-02 13:21–13:25 KST),0실패/스킵/불안정이다. [구조화 결과](forward-navigation-results.json)의 최종 해시와 실제 파일 일치를 확인했다. 전체 수집 목록은352개/41파일이며 이 수집 수를 실행 통과 수로 사용하지 않는다.
+
+게시: [draft PR24](https://github.com/rrangjaa-eng/project_260923/pull/24), base `codex-switch-pending-stop`/36f3a9c, head `codex-switch-forward-navigation`. 제품·검증 커밋 `30c5ba86baf7e5ed705f086a4e66e453dc886110`. 후속 PR번호 기록 커밋은 문서만 바꾸며 위 검증 소스 해시를 유지한다. 최종 HEAD 전체CI는 별도 확인한다.

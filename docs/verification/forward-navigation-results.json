@@ -113,5 +113,12 @@
       "cause": "separate async boundingBox reads raced 100ms child replacement; current/list handle returned null"
     }
   },
-  "local_verified_at": "2026-10-02T13:26:00+09:00"
+  "local_verified_at": "2026-10-02T13:26:00+09:00",
+  "pr": {
+    "number": 24,
+    "url": "https://github.com/rrangjaa-eng/project_260923/pull/24",
+    "draft": true,
+    "base": "codex-switch-pending-stop",
+    "product_commit": "30c5ba86baf7e5ed705f086a4e66e453dc886110"
+  }
 }

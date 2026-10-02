@@ -11,7 +11,7 @@
 | PR21 | b3f8caa, 공통 안내와 CSS 검사 준비 대기 수정 | [CI86](https://github.com/rrangjaa-eng/project_260923/actions/runs/36963423003) 진행 중 |
 | PR22 | 50082f4, 같은 검증된 두 수정 반영 | [CI87](https://github.com/rrangjaa-eng/project_260923/actions/runs/36963470306) 진행 중 |
 | PR23 | 36f3a9c, 같은 검증된 두 수정 반영 | [CI88](https://github.com/rrangjaa-eng/project_260923/actions/runs/36963534023) 진행 중 |
-| 새 이동 후속 | 독립 검토 P2 두 건 RED→GREEN, 추가 P1/P2 없음 | 별도 draft PR 게시 예정 |
+| 새 이동 후속 | 독립 검토 P2 두 건 RED→GREEN, 추가 P1/P2 없음 | [draft PR24](https://github.com/rrangjaa-eng/project_260923/pull/24), 제품30c5ba8·전체CI 확인 중 |
 
 CI81/82/84는 각각 E2E342pass/1fail,343pass/2fail,345pass/1fail로 종료했다. 안내의 변경 이유·보존·비교를 함께 복원했고 기존양식/복구14/14와 표시 준비 대기10/10을 검증해 세 브랜치에 일반 push했다. 최신 CI86/87/88과 새 이동 HEAD의 전체CI를 완료까지 확인한다. 아래 시각별 상태는 과거 이력이다.
 
