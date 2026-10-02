@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-03T00:50:22+09:00",
+  "checked_at": "2026-10-03T01:36:09+09:00",
   "branch": "codex-switch-nav02",
   "head": "af487cb92614f31c3af30b0517bc44f4977cfb8a",
   "base_pr": 29,
@@ -53,9 +53,14 @@
   "ci": {
     "number": 98,
     "run": 37028526772,
-    "status": "in_progress",
-    "conclusion": null,
-    "job": 110909753355
+    "status": "completed",
+    "conclusion": "success",
+    "job": 110909753355,
+    "unit_passed": 397,
+    "unit_files": 42,
+    "browser_passed": 403,
+    "browser_minutes": 51.7,
+    "evidence": "ci98-final-results.json"
   },
   "source_sha256": {
     ".github/workflows/ci.yml": "c3d56bbb75186ad69da49d535396c0faa116c0386a21b3cbd4540a082a69e17c",

@@ -1,5 +1,19 @@
 # 작업 현황표
 
+## PR30 최종 전체 CI 성공 — 2026-10-03 01:36 KST
+
+승인된 Space 새 탭·초안 보호 새로고침·복귀 미리보기 후 닫기 구현과 검증 이정표를 완료했다. [draft PR30](https://github.com/rrangjaa-eng/project_260923/pull/30)의 `codex-switch-nav02`/`af487cb92614f31c3af30b0517bc44f4977cfb8a`, [CI98](https://github.com/rrangjaa-eng/project_260923/actions/runs/37028526772)은 workflow/job success로 종료했다. [원본 로그 근거](verification/ci98-final-results.json).
+
+| 항목 | 확정 결과 |
+|---|---|
+| 전체 CI | type/lint/build·unit397/397(42파일)·브라우저403/403(51.7분) |
+| 최종 로컬 | 탭8/8·시작9/9·추가경계3/3·자동UI101/101(실패/스킵/불안정0) |
+| 제품 보호 | 초안/unknown·문서/탭/승인 변경·마지막 탭 차단, exact 시작 탭 Port·명시 재연결 |
+| 검토·기록 | 독립 검토 결함 RED→GREEN·재검토 추가P1/P2 없음; 첫UI 실패 원인과 CI97 cancelled도 보존 |
+| 원격 상태 | PR27–30 draft·미병합, main a0738fb·기존ZIP 유지, 증거는 codex-pr30-verification-record |
+
+[동작 계약·제한](verification/2026-10-03-nav02.md), [실제 PC 미실행 인계](verification/2026-10-01-single-switch-pc-check.md). 실제 Windows IME·운동 사용성·실사이트·native UI는 미검증이다. 탭 API 간 모든 외부 변경의 원자성을 주장하지 않는다. merge/deploy/새 권한·수집·저장/ZIP교체 없음. 아래는 당시 기록이다.
+
 ## PR30 최종 로컬 검증 완료·CI98 진행 — 2026-10-03 00:50 KST
 
 제품 HEAD `af487cb92614f31c3af30b0517bc44f4977cfb8a`, [draft PR30](https://github.com/rrangjaa-eng/project_260923/pull/30). 최종 자동UI101/101(4.2분, 실패/스킵/불안정0), 탭 생명주기 브라우저8/8(2.7분), 시작9/9·추가경계3/3·unit397/397·type/lint 통과. 첫 UI100/101 실패와 테스트 시간 가정 수정 근거는 그대로 보존했다.
