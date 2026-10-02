@@ -120,5 +120,17 @@
     "draft": true,
     "base": "codex-switch-pending-stop",
     "product_commit": "30c5ba86baf7e5ed705f086a4e66e453dc886110"
+  },
+  "final_ci": {
+    "number": 90,
+    "run": 36964580714,
+    "job": 110705478647,
+    "head": "461d431c3a7dffee3b0dd8c13d546380453e6bfc",
+    "conclusion": "success",
+    "unit": 296,
+    "unit_files": 35,
+    "e2e": 352,
+    "e2e_minutes_reported": 34.7,
+    "evidence": "ci86-90-final-results.json"
   }
 }
