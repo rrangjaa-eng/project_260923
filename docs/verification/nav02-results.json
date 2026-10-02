@@ -1,0 +1,70 @@
+{
+  "checked_at": "2026-10-03T00:35:07+09:00",
+  "branch": "codex-switch-nav02",
+  "head": "8ab35039f673b2f77bd146b44fce54721ceaed0d",
+  "base_pr": 29,
+  "base_head": "04373f8aabf7d5baadc505132fea0ff7bc44b585",
+  "pr": 30,
+  "test_merge": "f240833f00e657cd9c8710c6adb2fe33dc431e4a",
+  "candidate_and_test_merge_tree": "1e909b17f881a8210a765e3bad8139661ece907b",
+  "local": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "passed": 397,
+      "files": 42
+    },
+    "preliminary_browser": {
+      "passed": 15,
+      "minutes": 4.0,
+      "note": "최종 창 이동 epoch/재연결 보완 전"
+    },
+    "final_start_browser": {
+      "passed": 9,
+      "minutes": 1.5
+    },
+    "final_related_browser": {
+      "status": "pending"
+    },
+    "ui": {
+      "status": "in_progress",
+      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-zMcDyj"
+    }
+  },
+  "ci": {
+    "number": 97,
+    "run": 37027763675,
+    "job": 110906648680,
+    "status": "in_progress",
+    "conclusion": null
+  },
+  "source_sha256": {
+    ".github/workflows/ci.yml": "c3d56bbb75186ad69da49d535396c0faa116c0386a21b3cbd4540a082a69e17c",
+    "src/core/form-navigation.ts": "a40548b3e91e5455f230f07436460d1480d52a4e9b596de632852a96b2c9abdc",
+    "src/entrypoints/background.ts": "d7ea116ac79fcd8011a065b3a47212394db4860a4aad1b8aff0c231ed9039532",
+    "src/entrypoints/start/index.html": "9ea7a333dfa066d8ee7cbf55305ee10ddb5386094f09e3141085f99d988a7671",
+    "src/entrypoints/start/main.ts": "5bcb2a444c9732cde9a8786dd68f757548d415fec1f710e7058a7edab263e43d",
+    "src/page/input/switch-controller.ts": "41a8526bcb8a5c4dfae277e48e1ede61f04a1f91ae77789c6c4a42e1d1baca99",
+    "src/shared/port-rpc.ts": "2f6c85cfbd318a3bab647f8c9349f388f6c80a17156092d4bde3066a8e1be2d5",
+    "src/shared/switch-messages.ts": "3572072aee120ff280309c0489c764db5d77148d43f953fe6c9a62d51173a031",
+    "src/types/chrome.d.ts": "fabc54ee4820d8663571125fb3adeadf1196048c8c952b9c6a42d67341a1c1f8",
+    "src/worker/start-bridge.ts": "c7bb18bc045f0957b77aec30361dc03760b2a25de782f2e4d35de24489e659e9",
+    "src/worker/switch-relay.ts": "8090adb387ebda9a937119d23dd8ce4d0323865c591c5a59727085024a2a73be",
+    "tests/e2e/switch-start.e2e.ts": "7099c8f654b7b4365496c055d9c57d38a77122b65f609d06d4664a3b0e438aca",
+    "tests/e2e/switch-tab-lifecycle.e2e.ts": "888917a152ad6097e15090e539fbea67906d0b040f271b7de958dae3fb918aee",
+    "tests/unit/start-bridge.test.ts": "8881427af439e99064cdd13fd8be896d2e85be80c0fcf853ee1e22a210651a55",
+    "tests/unit/switch-controller-navigation.test.ts": "38583fef6e2f44103e3e7d4205011b632057dbe2820c2c059ec46642cbf396eb",
+    "tests/unit/switch-frame-authorization.test.ts": "c93dd2ceb41c6f41226d3e11184ee6cc33c648c4d46f308a364e883145ab98e0",
+    "tests/unit/switch-navigation.test.ts": "bcdc48c148fcc5af88fdb5387936df65951b7f8313552eb76e3f2fcb8d8e2c0a",
+    "tests/unit/switch-phrase-relay.test.ts": "cedbfe9f49279d496bb82d0d89b4b1e2a2d4a18580ebf812037b08c525d386dd",
+    "tests/unit/switch-tab-lifecycle.test.ts": "fdbb7e8abc88ae14f6553c2af15c8d3d4f87871c78ebfa7c98caad6fd8a75e66"
+  },
+  "archived_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
+  "unverified": [
+    "실제 Windows IME",
+    "운동 사용성",
+    "실사이트",
+    "native beforeunload/주소창/설치 UI",
+    "모든 외부 탭·창 경합의 원자적 보장"
+  ]
+}

@@ -1,5 +1,13 @@
 # 작업 현황표
 
+## draft PR30 게시·최종 CI 진행 — 2026-10-03 00:35 KST
+
+[draft PR30](https://github.com/rrangjaa-eng/project_260923/pull/30), `codex-switch-nav02`/`8ab35039f673b2f77bd146b44fce54721ceaed0d`를 게시했다. base는 미병합 PR29/04373f8이며 mergeable=true다. GitHub test merge `f240833f00e657cd9c8710c6adb2fe33dc431e4a`와 후보 tree `1e909b17f881a8210a765e3bad8139661ece907b`이 같다.
+
+[CI97](https://github.com/rrangjaa-eng/project_260923/actions/runs/37027763675), job110906648680은 진행 중이다. type/lint/unit 단계 성공, 전체 브라우저 종료는 미확정이다. 로컬397단위/최종 시작9건과 구분한다. [실행 수치·소스 해시](verification/nav02-results.json). 제품 HEAD를 고정하고 증거는 `codex-pr30-verification-record`에 저장한다.
+
+자동UI와 최종 관련 브라우저 결과를 추적한다. PR27–30 미병합, merge/deploy/ZIP교체 없음. 아래는 당시 기록이다.
+
 ## NAV-02 경합 보완·최종 검사 진행 — 2026-10-03 00:31 KST
 
 `codex-switch-nav02`에서 승인된 새 탭·새로고침·탭 닫기를 구현했다. [동작 계약·RED/GREEN·남은 한계](verification/2026-10-03-nav02.md).
