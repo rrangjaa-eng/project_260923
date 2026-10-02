@@ -21,10 +21,11 @@ beforeEach(() => {
 });
 afterEach(() => { cleanups.splice(0).forEach((cleanup) => { cleanup(); }); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
-async function fixture(labels?:[string,string]) {
+async function fixture(labels?:[string,string],radio=false,multiple=false) {
   const field = labels?document.createElement('select'):document.createElement('input');
-  if(field instanceof HTMLInputElement)field.type='checkbox';
+  if(field instanceof HTMLInputElement){field.type=radio?'radio':'checkbox';if(radio)field.name='delivery';}
   else for(const label of labels??[]){const option=document.createElement('option');option.textContent=label;field.append(option);}
+  if(field instanceof HTMLSelectElement&&multiple){field.multiple=true;const first=field.options[0];if(!first)throw new Error('missing option');first.selected=true;}
   field.setAttribute('aria-label', '알림');
   document.body.append(field);
   const item: Item = { id: 'field', name: '문장', kind: 'input', danger: false,
@@ -83,4 +84,36 @@ it('long current and proposed select labels can be read in complete Space pages 
  while(view.state?.items.some(item=>item.id==='control-preview-next')){await f.choose('다음 항목 읽기');proposalPages.push(view.text);}
  expect(proposalPages.map(page=>page.split('\n').slice(1).join('\n')).join('')).toBe(proposed);
  expect((f.field as HTMLSelectElement).selectedIndex).toBe(0);await f.choose('선택값 적용');expect((f.field as HTMLSelectElement).selectedIndex).toBe(1);
+});
+
+it('radio requires a proposal and explicit apply, then offers no unselect or repeated apply',async()=>{
+ const f=await fixture(undefined,true);await f.setEnabled(true);await f.press();await f.choose('글쓰기');await f.choose('양식 한 장 보기');await f.choose('알림');
+ expect(view.text).toContain('선택 안 됨');expect(view.state?.items.map(item=>item.label)).not.toContain('체크 해제하기');
+ await f.choose('이 항목 선택');expect((f.field as HTMLInputElement).checked).toBe(false);await f.choose('선택 적용');
+ expect((f.field as HTMLInputElement).checked).toBe(true);expect(view.text).toContain('선택됨');expect(view.state?.items.map(item=>item.id)).not.toContain('control-apply');expect(view.state?.items.map(item=>item.label)).not.toContain('이 항목 선택');
+});
+it('pause drops a proposed radio selection',async()=>{
+ const f=await fixture(undefined,true);await f.setEnabled(true);await f.press();await f.choose('글쓰기');await f.choose('양식 한 장 보기');await f.choose('알림');await f.choose('이 항목 선택');await f.choose('쉬기');await f.press();expect((f.field as HTMLInputElement).checked).toBe(false);expect(view.state?.items.map(item=>item.id)).not.toContain('control-apply');await f.choose('알림');await f.choose('이 항목 선택');await f.choose('선택 적용');expect((f.field as HTMLInputElement).checked).toBe(true);
+});
+
+it('automatic rest returns a radio to field selection before a fresh proposal',async()=>{
+ const f=await fixture(undefined,true);await f.setEnabled(true);await f.press();await f.choose('글쓰기');await f.choose('양식 한 장 보기');await f.choose('알림');await f.choose('이 항목 선택');await vi.advanceTimersByTimeAsync(30000);expect(view.state?.mode).toBe('paused');await f.press();await f.choose('알림');await f.choose('이 항목 선택');await f.choose('선택 적용');expect((f.field as HTMLInputElement).checked).toBe(true);
+});
+
+async function multipleControl(){const f=await fixture(['가','나'],false,true);await f.setEnabled(true);await f.press();await f.choose('글쓰기');await f.choose('양식 한 장 보기');await f.choose('알림');return f;}
+it('multiple proposals accumulate, preserve the DOM until apply and allow a new proposal afterwards',async()=>{
+ const f=await multipleControl();await f.choose('2. 나 · 선택하기');await f.choose('1. 가 · 선택 해제하기');expect(Array.from((f.field as HTMLSelectElement).options).filter(o=>o.selected).map(o=>o.text)).toEqual(['가']);await f.choose('선택 적용');expect(Array.from((f.field as HTMLSelectElement).options).filter(o=>o.selected).map(o=>o.text),view.notice+' '+view.text).toEqual(['나']);await f.choose('1. 가 · 선택하기');await f.choose('선택 적용');expect(Array.from((f.field as HTMLSelectElement).options).filter(o=>o.selected).map(o=>o.text)).toEqual(['가','나']);
+});
+it('multiple explicit empty proposal still offers apply',async()=>{
+ const f=await multipleControl();await f.choose('1. 가 · 선택 해제하기');expect(view.text).toContain('고르지 않음');await f.choose('선택 적용');expect((f.field as HTMLSelectElement).selectedOptions.length).toBe(0);
+});
+it('multiple pause and automatic rest drop proposals and require a fresh selection',async()=>{
+ for(const automatic of [false,true]){const f=await multipleControl();await f.choose('2. 나 · 선택하기');if(automatic)await vi.advanceTimersByTimeAsync(30000);else await f.choose('쉬기');await f.press();expect(view.state?.items.map(i=>i.id)).not.toContain('control-apply');await f.choose('알림');await f.choose('2. 나 · 선택하기');await f.choose('선택 적용');expect((f.field as HTMLSelectElement).selectedOptions.length).toBe(2);await f.setEnabled(false);}
+});
+it('multiple unknown result drops proposal and pauses without retrying',async()=>{
+ const f=await multipleControl();await f.choose('2. 나 · 선택하기');f.lose();await f.choose('선택 적용');expect(view.state?.mode).toBe('paused');expect(view.notice).toContain('결과');expect(view.state?.items.map(i=>i.id)).not.toContain('control-apply');
+});
+it('multiple long selected labels remain fully readable and numbered in current and proposed previews',async()=>{
+ const label='긴 항목 '.repeat(9)+'끝';const f=await fixture([label,label],false,true);await f.setEnabled(true);await f.press();await f.choose('글쓰기');await f.choose('양식 한 장 보기');await f.choose('알림');const currentPages=[view.text];while(view.state?.items.some(i=>i.id==='control-preview-next')){await f.choose('다음 항목 읽기');currentPages.push(view.text);}expect(currentPages.map(page=>page.split('\n').slice(1).join('\n')).join('')).toBe('1. '+label);
+ const choice=view.state?.items.find(i=>i.id==='control-option:1');if(!choice)throw new Error('missing choice');expect(choice.label).toMatch(/^2\./);await f.choose(choice.label);const proposalPages=[view.text];while(view.state?.items.some(i=>i.id==='control-preview-next')){await f.choose('다음 항목 읽기');proposalPages.push(view.text);}expect(proposalPages.map(page=>page.split('\n').slice(1).join('\n')).join('')).toBe('1. '+label+' / 2. '+label);expect(Array.from((f.field as HTMLSelectElement).options).filter(o=>o.selected)).toHaveLength(1);
 });

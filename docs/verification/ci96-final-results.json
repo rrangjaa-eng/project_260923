@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-10-02T22:06:38+09:00",
+  "run": {
+    "id": 37005764069,
+    "number": 96,
+    "head": "04373f8aabf7d5baadc505132fea0ff7bc44b585",
+    "status": "completed",
+    "conclusion": "success",
+    "completed_at": "2026-10-02T13:05:25Z"
+  },
+  "job": 110833532157,
+  "unit": {
+    "passed": 364,
+    "files": 39
+  },
+  "browser": {
+    "passed": 385,
+    "minutes_reported": 47.3
+  },
+  "pr": 29,
+  "base_pr": 28,
+  "base_head": "0422cdeaeba7c87aa144f4593360fbdb5b415c56",
+  "test_merge": "fb2e921c28eebcaebcd5e37bd25173efafbbde3e",
+  "candidate_and_test_merge_tree": "40a6e86f2a7e904f25c3809473427c2fd22b7813",
+  "log_evidence": [
+    "2026-10-02T12:17:41.8401457Z  Test Files  39 passed (39)",
+    "2026-10-02T12:17:41.8403255Z       Tests  364 passed (364)",
+    "2026-10-02T12:18:05.0161392Z [success] Built extension in 714 ms",
+    "2026-10-02T12:18:06.4991042Z Running 385 tests using 1 worker",
+    "2026-10-02T13:05:19.6247624Z   385 passed (47.3m)"
+  ],
+  "note": "workflow/job 모두 terminal success. 같은 출처 및 기존 지원 교차 출처의 한 단계 합성 iframe 검증. 실제 PC/IME/운동 사용성/실사이트/모든 nested·sandbox frame은 미검증. 유한 메시지 검사이며 원자적 가시성 보장 아님. NAV-02 결정 대기; PR27/28/29 미병합, deploy/ZIP 교체 없음."
+}

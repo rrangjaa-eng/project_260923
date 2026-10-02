@@ -1,0 +1,32 @@
+{
+  "checked_at": "2026-10-02T20:47:25+09:00",
+  "run": {
+    "id": 36998991950,
+    "number": 95,
+    "head": "0422cdeaeba7c87aa144f4593360fbdb5b415c56",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "job": 110812099403,
+  "unit": {
+    "passed": 352,
+    "files": 38
+  },
+  "browser": {
+    "passed": 369,
+    "minutes_reported": 39.9
+  },
+  "pr": 28,
+  "base_pr": 27,
+  "base_head": "a22532cdf94f7f420bbb87e3e743adb9d267be98",
+  "test_merge": "1e47bf8cbb6c6b6533955e9dd092e0ee96a6dd14",
+  "candidate_and_test_merge_tree": "7729d74dac029855c4f3e0103e233cef90bd5471",
+  "log_evidence": [
+    "2026-10-02T11:05:06.9609303Z  Test Files  38 passed (38)",
+    "2026-10-02T11:05:06.9610591Z       Tests  352 passed (352)",
+    "2026-10-02T11:05:39.3747833Z [success] Built extension in 551 ms",
+    "2026-10-02T11:05:40.5349849Z Running 369 tests using 1 worker",
+    "2026-10-02T11:45:31.0167528Z   369 passed (39.9m)"
+  ],
+  "note": "workflow/job 모두 terminal success. PR27/28 draft·unmerged, mergeable=true 재확인. 실제PC·IME·운동 사용성·실사이트·프레임 안 multiple 미검증. deploy/ZIP 교체 없음."
+}

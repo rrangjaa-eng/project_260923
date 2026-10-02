@@ -25,7 +25,7 @@ export function reportSwitchItem(item: Item, el: Element | undefined): SwitchRep
   const danger = item.danger || (el instanceof HTMLAnchorElement && !['http:', 'https:'].includes(el.protocol));
   return {
     itemId: item.id, label, kind: item.kind, danger,
-    ...(controlElement(el)&&!el.disabled&&(el instanceof HTMLSelectElement?el.options.length>0&&el.options.length<=100:!el.indeterminate)?{controlKind:el instanceof HTMLSelectElement?'select' as const:'checkbox' as const}:{}),
+    ...(controlElement(el)&&!el.disabled&&(el instanceof HTMLSelectElement?el.options.length>0&&el.options.length<=100&&(!el.multiple||el.getRootNode()===el.ownerDocument):(el.type==='radio'?!!el.name&&el.getRootNode()===el.ownerDocument:!el.indeterminate))?{controlKind:el instanceof HTMLSelectElement?(el.multiple?'multiple' as const:'select' as const):el.type==='radio'?'radio' as const:'checkbox' as const}:{}),
     editable: typingElement(el)&&!el.readOnly&&!el.disabled, sensitive: !!el && sensitiveElement(el),
     identity: JSON.stringify([textField?label:item.name, item.kind, danger, fingerprint, destination, inputType, submission, submitter?.type]),
   };
@@ -66,7 +66,11 @@ export function executeSwitchAction(
   if (action.kind === 'captureControl') {
     const control = captureControl(el); return control ? {result:'done',control} : {result:'refused'};
   }
-  if (action.kind === 'applyControl') return {result:applyControl(el,action)};
+  if (action.kind === 'applyControl') {
+    const result=applyControl(el,action);
+    if(result==='done'&&action.control?.kind==='multiple'){const control=captureControl(el);return control?{result,control}:{result:'refused'};}
+    return {result};
+  }
   if (action.kind === 'readValidity') {
     const validation=readValidity(el); return validation===null?{result:'refused'}:{result:'done',validation};
   }
@@ -80,7 +84,7 @@ export function executeSwitchAction(
   if (action.kind === 'restoreText' && typeof action.expectedValue === 'string') {
     return { result: restoreTextTarget(collector, action.target.itemId, action.expectedValue, action.selection) };
   }
-  if (action.kind === 'press' && !typingElement(el) && !el.matches('input[type=file],input[type=checkbox],select,input[type=date],input[type=color],input[type=time]')) {
+  if (action.kind === 'press' && !typingElement(el) && !el.matches('input[type=file],input[type=checkbox],input[type=radio],select,input[type=date],input[type=color],input[type=time]')) {
     if ((current.danger || !['a', 'link'].includes(current.kind)) && !action.confirmed) return { result: 'refused' };
     press(el);
     return { result: 'done' };

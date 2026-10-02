@@ -1,0 +1,98 @@
+{
+  "checked_at": "2026-10-02T22:06:38+09:00",
+  "branch": "codex-switch-frame-controls",
+  "base_pr": 28,
+  "base_head": "0422cdeaeba7c87aa144f4593360fbdb5b415c56",
+  "source_commit": "49e11af7896a07dac07cb3f36b3260d9992e8dc1",
+  "local": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "passed": 364,
+      "files": 39,
+      "new": 12
+    },
+    "preliminary_browser": [
+      {
+        "passed": 12,
+        "duration": "5.9m",
+        "note": "수정 전 정상/취소/쉬기/교체/unknown 기준"
+      },
+      {
+        "failed": 4,
+        "note": "승인 사이 iframe이 화면 밖으로 이동해도 값이 적용되는 실제 결함 RED"
+      },
+      {
+        "passed": 4,
+        "duration": "1.3m",
+        "note": "가시성 재확인 GREEN; 정상 report 갱신 최종 보완 전"
+      },
+      {
+        "passed": 30,
+        "duration": "9.5m",
+        "note": "새16+기존가시성4+pending10; 정상 report 갱신 최종 보완 전 빌드"
+      }
+    ],
+    "final_browser": {
+      "status": "passed",
+      "command": "CI=true pnpm exec playwright test tests/e2e/switch-frame-controls.e2e.ts --grep 'cancels and pauses|leaving the viewport'",
+      "passed": 8,
+      "duration": "4.5m"
+    },
+    "ui": {
+      "status": "passed",
+      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-Twt5ih",
+      "passed": 101,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "duration": "4.5m",
+      "stats": {
+        "startTime": "2026-10-02T12:19:37.006Z",
+        "duration": 272264.564,
+        "expected": 101,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    }
+  },
+  "ci": {
+    "run": 37005764069,
+    "number": 96,
+    "job": 110833532157,
+    "head": "04373f8aabf7d5baadc505132fea0ff7bc44b585",
+    "status": "completed",
+    "conclusion": "success",
+    "unit_passed": 364,
+    "browser_passed": 385,
+    "browser_minutes": 47.3,
+    "evidence": "ci96-final-results.json"
+  },
+  "source_sha256": {
+    ".github/workflows/ci.yml": "09ca36724427aadb730e0778cd2fdce3eeed73f189691ee6aeeaad47e108d1ba",
+    "src/worker/switch-relay.ts": "244d2d2887437ead65cd3df1dc76ec0c653babca301581e27cff621c3cfd0309",
+    "tests/e2e/switch-frame-controls.e2e.ts": "259c0317b5c66137679da64e54377573e3490d06f684a1ea57a532aff0fa0655",
+    "tests/unit/switch-frame-authorization.test.ts": "cf912cb06af9c3fbf8ab4c58e2a5d48c89c6654886cbecf06d62c2fa2a55f037"
+  },
+  "archived_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
+  "independent_review": "가시성 지연 및 정상 report 갱신 P2 종결,최종 추가P1/P2 없음. 읽기 검토와 실행 구분",
+  "unchanged": [
+    "wxt.config.ts",
+    "package.json",
+    "pnpm-lock.yaml",
+    "downloads",
+    ".planning",
+    "CLAUDE.md"
+  ],
+  "unverified": [
+    "실제 Windows IME",
+    "운동 사용성",
+    "실사이트",
+    "sandbox/특수 scheme/새권한이 필요한 frame",
+    "모든 프로세스 경합의 원자적 가시성 보장"
+  ],
+  "pr": 29,
+  "test_merge": "fb2e921c28eebcaebcd5e37bd25173efafbbde3e",
+  "candidate_and_test_merge_tree": "40a6e86f2a7e904f25c3809473427c2fd22b7813"
+}

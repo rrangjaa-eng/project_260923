@@ -1,0 +1,29 @@
+{
+  "checked_at": "2026-10-02T19:01:46+09:00",
+  "run": {
+    "id": 36989343544,
+    "head": "a0738fb832bd04abdb5397c09bbef3f38279e86c",
+    "number": 93,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "job": 110781641649,
+  "unit": {
+    "passed": 313,
+    "files": 36
+  },
+  "browser": {
+    "passed": 358,
+    "minutes_reported": 36.7
+  },
+  "log_evidence": [
+    "2026-10-02T09:22:32.4332092Z  Test Files  36 passed (36)",
+    "2026-10-02T09:22:32.4334318Z       Tests  313 passed (313)",
+    "2026-10-02T09:22:56.6489865Z [success] Built extension in 739 ms",
+    "2026-10-02T09:59:39.3989389Z   358 passed (36.7m)"
+  ],
+  "pr": 26,
+  "merge_sha": "a0738fb832bd04abdb5397c09bbef3f38279e86c",
+  "note": "사용자 승인 PR26 merge 뒤 main push workflow/job 및 원본 로그의 terminal success 확인. 제품 tree는 선행 CI92 검증 트리와 동일. 배포·ZIP 교체 없음."
+}

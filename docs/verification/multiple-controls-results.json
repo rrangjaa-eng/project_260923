@@ -1,0 +1,96 @@
+{
+  "checked_at": "2026-10-02T20:03:40+09:00",
+  "branch": "codex-switch-multiple-controls",
+  "base_pr": 27,
+  "base_branch": "codex-switch-radio-controls",
+  "base_head": "a22532cdf94f7f420bbb87e3e743adb9d267be98",
+  "local": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "passed": 352,
+      "files": 38,
+      "new_multiple": 16,
+      "new_controller": 5
+    },
+    "production_browser": {
+      "passed": 7,
+      "duration": "2.7m",
+      "command": "CI=true pnpm exec playwright test tests/e2e/switch-multiple-controls.e2e.ts"
+    },
+    "preliminary_browser": [
+      {
+        "passed": 15,
+        "failed": 1,
+        "duration": "7.8m",
+        "reason": "제거 테스트의 insertBefore 기준이 optgroup 자식이라 NotFoundError; 테스트를 원래 nextSibling으로 수정. 제품 최종 소스 검사 아님"
+      },
+      {
+        "passed": 8,
+        "duration": "3.4m",
+        "reason": "multiple6+reapply2; 필드 라벨 사후검사 추가 전 빌드"
+      }
+    ],
+    "ui": {
+      "status": "passed",
+      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-vGLPPR",
+      "passed": 101,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "duration": "4.0m",
+      "stats": {
+        "startTime": "2026-10-02T10:58:50.230Z",
+        "duration": 241258.22400000002,
+        "expected": 101,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    }
+  },
+  "ci": {
+    "id": 36998991950,
+    "number": 95,
+    "head": "0422cdeaeba7c87aa144f4593360fbdb5b415c56",
+    "status": "completed",
+    "conclusion": "success",
+    "job": 110812099403,
+    "evidence": "ci95-final-results.json",
+    "unit_passed": 352,
+    "browser_passed": 369
+  },
+  "source_sha256": {
+    "src/core/switch-order.ts": "6e27f8d0d34112a899f56c2da7f1b6b6adb088740f3378377f25b86edb38cecf",
+    "src/shared/switch-messages.ts": "4576426932533ee6e083570d1bc7fe5856fb9f8542b68af8b3a5c89177d3430d",
+    "src/page/input/form-control.ts": "e70f1249607310bec444f7d2cd0f43ba780892b70fbf18838d11a7f795df287a",
+    "src/page/input/multiple-control.ts": "bee3aff933508a986d20fc6297cde658474b97a470d9c082267023fa67fff47a",
+    "src/page/input/switch-actions.ts": "e07476308ec79f122f945e5bf9a895b8f74c491f744a5c117513a87a2a7580ca",
+    "src/page/input/switch-controller.ts": "3762ffd15e96e8b39afeefd6e705a9060f2facd9c9051b72c1a4f394c7d4f977",
+    "tests/unit/switch-multiple-controls.test.ts": "5e386703d26bd3b5aa46696f6e2cda993653ff80bc4922ab0631f992c96f922e",
+    "tests/unit/switch-controller-controls.test.ts": "2f63be8cb03a3de4d76355b29fcf4949f415350b13a0d5c28e851d446875b0ec",
+    "tests/unit/switch-form-controls.test.ts": "c0fda7944f17f36f1c78b98f46ac7fce28effdfc3d8ead75b80d34ceb81a2295",
+    "tests/e2e/switch-multiple-controls.e2e.ts": "f0f48d73ad8062fe3f1043c3b46f31bb60ca727e195bf337b0c3e8e1d0e226bb",
+    "tests/e2e/switch-form-controls.e2e.ts": "8a750ebe4adf91532811d96835b27fcfbf2f7cb7f9a506c1244c7a170d8dccda"
+  },
+  "archived_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
+  "unchanged": [
+    "wxt.config.ts",
+    "package.json",
+    "pnpm-lock.yaml",
+    "downloads",
+    ".planning",
+    "CLAUDE.md"
+  ],
+  "independent_review": "external form 제거 P2 RED→GREEN 수정, fieldLabel 사후 비교 보완 후 추가 P1/P2 없음; 직접 테스트 실행과 읽기검토 구분",
+  "unverified": [
+    "실제 Windows 한국어 IME",
+    "운동 사용성",
+    "실사이트",
+    "프레임 안 multiple",
+    "custom 위젯",
+    "임의 사이트 오류 원문",
+    "INPT-01/PRIV-01 전체",
+    "native 파일 전달"
+  ]
+}

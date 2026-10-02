@@ -41,7 +41,7 @@ it('rejects changed option values, disabled options and unsupported controls', (
     if(change==='disabled')option.disabled=true; if(change==='current')el.selectedIndex=1;
     expect(executeSwitchAction(f.collector,f.action('applyControl',{control,controlIndex:1})).result).toBe('refused');
   }
-  for(const html of ['<select multiple><option>A</option></select>','<input type="radio">','<input type="checkbox" aria-label="계좌 정보">']) {
+  for(const html of ['<select multiple></select>','<input type="radio">','<input type="checkbox" aria-label="계좌 정보">']) {
     const f=fixture(html); expect(executeSwitchAction(f.collector,f.action('captureControl')).result).toBe('refused');
   }
 });

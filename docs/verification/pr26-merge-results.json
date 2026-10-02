@@ -1,0 +1,60 @@
+{
+  "merged_at": "2026-10-02T18:21:48+09:00",
+  "approval": "사용자 2026-10-02 18:19 KST: 머지하고 계속 진행해",
+  "pr": 26,
+  "url": "https://github.com/rrangjaa-eng/project_260923/pull/26",
+  "method": "merge",
+  "expected_head": "a453089c77a5130931cbd37fd948fb251cd33afa",
+  "base_before": "64976a778d13ac884fbce8b4027be433d8d0c4fe",
+  "merge_sha": "a0738fb832bd04abdb5397c09bbef3f38279e86c",
+  "tree": "6f7a98d8486a3ca303fd8e90a03d9aa40f81379e",
+  "tree_matches_reviewed_head": true,
+  "pre_merge_ci": {
+    "number": 92,
+    "run": 36973766821,
+    "status": "success",
+    "unit": 313,
+    "e2e": 358
+  },
+  "pre_merge_review_submissions": 0,
+  "pre_merge_review_threads": 0,
+  "independent_review": "기존 범위·문서 검토 추가 P1/P2 없음",
+  "post_merge_ci": {
+    "number": 93,
+    "run": 36989343544,
+    "job": 110781641649,
+    "status": "completed",
+    "conclusion": "success",
+    "unit": 313,
+    "e2e": 358,
+    "minutes_reported": 36.7,
+    "evidence": "ci93-main-results.json"
+  },
+  "preservation": {
+    "pr26_branch_preserved": true,
+    "pr15_branch_preserved": true,
+    "pr15_github_automatic_merged_at": "2026-10-02T18:21:49+09:00",
+    "pr15_separate_merge_or_close_called": false,
+    "open_pr_numbers": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25
+    ],
+    "deployment": false,
+    "zip_replaced": false
+  }
+}

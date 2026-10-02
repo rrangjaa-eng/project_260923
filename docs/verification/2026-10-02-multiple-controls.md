@@ -1,0 +1,26 @@
+# 일반 다중 선택 — 계약과 검증
+
+기준은 draft PR27 `codex-switch-radio-controls`/`a22532cdf94f7f420bbb87e3e743adb9d267be98`와 최종 CI94 증거 `cf3fb9c`다. main/PR26은 병합됐지만 PR27은 미병합이므로 후속 `codex-switch-multiple-controls`도 PR27 위에 쌓는 검토 증분이다. merge/deploy·설치 ZIP 교체는 하지 않는다.
+
+## 동작 계약
+
+- 일반 HTML `select multiple`을 양식 목록과 페이지 항목에서 선택한다. `여러 항목 고르기`에서 번호·이름이 있는 `선택하기`/`선택 해제하기`로 변경안을 누적하고 `선택 적용`에서 한 번에 적용한다. 값은 변경안 작성만으로 바뀌지 않는다.
+- 현재 선택과 변경안을 전체 라벨·번호로 읽는다. 긴 내용은 기존 24문자 미리보기 페이지를 사용하고 선택지는 기존 6개 묶음이다. 같은 라벨도 번호로 구분한다. 비활성 옵션 및 비활성 optgroup에 속한 옵션은 변경 버튼을 제공하지 않고, 이미 선택됐다면 미리보기에 `변경할 수 없음`을 붙여 유지한다.
+- 빈 배열은 모두 해제하는 명시 제안이며 제안 없음과 구분한다. 비활성 옵션의 상태를 바꾸는 제안은 전체를 쓰기 전에 거절한다. native `HTMLOptionElement.selected` setter를 변경된 활성 옵션에만 호출한다. 변경이 없으면 이벤트 0회, 변경 시 input/change 각1회이며 click/submit은 호출하지 않는다.
+- 최대100개 옵션·라벨300자·내부 signature64000자 한도다. Shadow DOM 내부·비활성/숨김/민감 select는 제외한다. 기존 PRIV-01 전체 분류가 완료됐다는 뜻은 아니다.
+- 값·실제 옵션 참조·폼 소유권·필드 라벨·name/form/required·옵션 의미·전체 선택 상태를 문서 내부 snapshot에 둔다. 메시지에는 라벨·선택 상태와 임의 128-bit 토큰만 전달하며 raw option value를 싣지 않는다. 새 영속 저장·외부 요청·권한·의존성은 없다.
+- 옵션/select/조상뿐 아니라 외부 `form=` 소유 폼과 그 조상 제거도 관찰한다. 제거 후 같은 노드 재삽입은 옛 승인을 무효화한다. 적용 직전 pending records를 처리하고 구성·선택을 다시 비교한다.
+- 유효 토큰은 쓰기 전에 소비한다. 사이트 이벤트 후 최종 옵션 구성·선택·필드 이름이 적용안과 다르면 성공으로 보고하거나 재시도하지 않는다. 모든 중간 상태 변화를 감지하는 기능은 아니다. 성공하면 새 capture를 반환해 다음 변경안을 만들 수 있다. 사이트 자체 이벤트의 외부 부작용을 롤백하는 기능은 아니다.
+- 쉬기·자동 쉼·종료 때 capture와 변경안을 폐기하고 필드를 다시 선택하도록 한다. 결과 응답이 unknown이면 기존 불확실성 안내와 정지를 유지한다. 원래 글쓰기 초안은 보존한다.
+
+## 실패 재현과 보완
+
+초기 수신 검사9RED/2pass와 controller4RED/기존6pass를 확인하고 구현했다. 첫 구현은 Zod parse 후 객체 키 순서가 바뀌어 같은 capture도 JSON 비교에서 거절했으므로 토큰·각 데이터 필드를 따로 비교하도록 고쳤다. happy-dom의 selectedOptions 캐시 때문에 단위 검사에서는 각 option.selected를 읽고, 실제 Chromium 검사에서는 selectedOptions도 검증한다.
+
+독립 검토에서 외부 form 제거→재삽입 P2를 발견했다. 새로운 단위 검사에서 done/refused 불일치를 먼저 재현한 뒤 소유 폼과 조상을 제거 추적 집합에 넣었다. 별도 Chromium negative도 추가했다. 자체 검토에서 사이트 이벤트가 필드 이름을 바꿔도 성공하던 1RED를 추가하고 내부 signature에 필드 라벨도 넣어 적용 후 의미 변경을 거절했다. 테스트 단언이나 retry는 완화하지 않는다. 첫 브라우저 실행 중 옵션 제거 테스트가 optgroup 안의 옵션을 select의 직접 자식으로 오인해 NotFoundError를 냈다. 제거 전 nextSibling을 보존해 원래 자리에 재삽입하도록 테스트를 수정했다. 구현 실패와 구분하고 브라우저 검사를 다시 실행했다. 보완된 multiple6+재적용2는8/8(3.4분) 통과했지만 필드 라벨 사후 검사를 더하기 전 빌드이므로 최종 소스 결과와 분리한다. 첫 자동 UI 호출은 새 브라우저 테스트의 화살표 함수 lint에서 중지돼 브라우저 검사를 실행하지 않았으며 문법을 수정 후 재실행한다.
+
+## 검증 기록
+
+최종 type/lint/production build·unit352/352(38파일), 새 브라우저7/7(2.7분), 자동UI101/101(4.0분, 실패/스킵/불안정0)이 통과했다. 새 흐름의360/768/1280px 미리보기·버튼 크기·긴 라벨 overflow도 검사했다. 최종 독립 재검토의 추가P1/P2는 없었다. 최종 수치와 소스 해시는 `multiple-controls-results.json` 및 WORK-STATUS에 기록한다. draft PR28 최종 HEAD `0422cdeaeba7c87aa144f4593360fbdb5b415c56`의 CI95도 workflow/job success로 종료했다. type/lint/production build·unit352/352(38파일)·전체브라우저369/369(39.9분). [원본 로그·HEAD·tree 증거](ci95-final-results.json). 제품 HEAD를 바꾸지 않는 `codex-pr28-verification-record` 문서 브랜치에 기록한다.
+
+새 실브라우저 검사는 최상위 HTTP 문서다. 실제 Windows 한국어 IME·운동 사용성·실사이트·프레임 안 multiple은 미검증이다. custom 위젯·임의 사이트 오류 원문·최근값 자동수집·native 전달은 이번 범위 밖이다. 기존 ZIP 및 별도 PR은 보존한다.

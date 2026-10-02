@@ -13,6 +13,8 @@ import type { Collector } from '@/page/collector/collector';
 import type { InputPipeline } from './pipeline';
 import { createSwitchPanel } from '@/page/overlay/switch-panel';
 import { showRing, hideRing } from '@/page/overlay/ring';
+import {clearMultipleCapture} from './multiple-control';
+import { clearRadioCapture } from './radio-control';
 import { createScrollRegions, type ScrollRegion } from './scroll-regions';
 import { executeSwitchAction, reportSwitchItem, visibleSwitchChild } from './switch-actions';
 
@@ -20,7 +22,7 @@ const now=()=>performance.now();
 const newSwitchId=()=>Array.from(crypto.getRandomValues(new Uint32Array(4)),(n)=>n.toString(16)).join('-');
 const command=(id:string,label:string):SwitchItem=>({id,label,action:{kind:'command'}});
 const groups=()=>['찾기','페이지 항목','읽기·이동','글쓰기','조절·쉬기'].map((label,i)=>command(`group:${String(i)}`,label));
-async function request(message: unknown):Promise<unknown>{
+async function requestMessage(message: unknown):Promise<unknown>{
   let timeout:ReturnType<typeof setTimeout>|undefined;
   try{return await Promise.race([chrome.runtime.sendMessage(message),new Promise((_,reject)=>{timeout=setTimeout(()=> { reject(new Error('response-timeout')); },3000);})]);}
   finally{if(timeout)clearTimeout(timeout);}
@@ -31,7 +33,20 @@ function resultOf(raw:unknown):PageResult{
   return {result:'unknown'};
 }
 interface Menu { title:string;items:SwitchItem[];mode:'groupScan'|'itemScan'|'composing'|'confirming' }
-export function createSwitchController(opts:{collector:Collector;pipeline:InputPipeline;signal:AbortSignal;enabled:()=>boolean;onExclusive:()=>void}) {
+export type SwitchListener=(raw:unknown,sender:chrome.runtime.MessageSender,respond:(value?:unknown)=>void)=>boolean|undefined;
+export interface SwitchTransport { request:(message:unknown)=>Promise<unknown>; subscribe:(listener:SwitchListener)=>()=>void }
+export function createSwitchController(opts:{collector:Collector;pipeline:InputPipeline;signal:AbortSignal;enabled:()=>boolean;onExclusive:()=>void;transport?:SwitchTransport;helperPage?:boolean}) {
+  const inFlight=new Set<unknown>();
+  const request=async(message:unknown):Promise<unknown>=>{
+    const type=(message as {type?:string}).type;
+    const tracked=['switch/execute','switch/navigation','switch/phrase','switch/phrase/update','switch/draft'].includes(type??'');
+    if(tracked)inFlight.add(message);
+    try{
+      const result=await (opts.transport?.request??requestMessage)(message);
+      if(tracked&&(!result||typeof result==='object'&&'result' in result&&result.result==='unknown'))unresolvedWork=true;
+      return result;
+    }catch(error){if(tracked)unresolvedWork=true;throw error;}finally{inFlight.delete(message);}
+  };
   const top=window===window.top;
   const generation=newSwitchId();
   const gate=createActionGate(generation);
@@ -42,6 +57,8 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   let panel:ReturnType<typeof createSwitchPanel>|null=null;
   let title='스페이스바 작업판',notice='';
   let unknownNotice='';
+  let unresolvedWork=false;
+  let navigationConfirmation:{kind:'reload'|'close';token?:string;title:string}|null=null;
   let current:Menu={title,items:groups(),mode:'groupScan'};
   let stack:Menu[]=[];
   let targets:ScanTarget[]=[];
@@ -52,6 +69,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   let initial:number|null=null,medial:number|null=null;
   let preservedDraft=false;
   let selectedControl:FormControl|null=null;
+  let pendingControlIndices:number[]|undefined;
   let pendingControlIndex:number|undefined;
   let pendingControlChecked:boolean|undefined;
   let controlPage=0,controlPreviewIndex=0;
@@ -91,7 +109,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     const highlighted=title.startsWith('세로 스크롤 영역')&&scrollChoice?.startsWith('scroll-region:')?scrollChoices[Number(scrollChoice.split(':')[1])]:title.startsWith('읽기·이동')?scrollRegion:null;
     const rect=highlighted&&scrollRegions?.rect(highlighted);
     if(rect&&!['paused','ready','recovering'].includes(state.mode))showRing(rect);else hideRing();
-    const preview=reapply?reapplyPages()[reapplyPage]??'':phraseChange?phrasePreviewPages(phraseChange.expected[phraseChange.index]??'',phraseChange.kind==='replace'?phraseChange.text:undefined)[phrasePreviewIndex]??'':null;
+    const preview=navigationConfirmation?navigationConfirmation.title:reapply?reapplyPages()[reapplyPage]??'':phraseChange?phrasePreviewPages(phraseChange.expected[phraseChange.index]??'',phraseChange.kind==='replace'?phraseChange.text:undefined)[phrasePreviewIndex]??'':null;
     const context=formActive&&formIndex!==null?`양식 ${String(formIndex+1)}/${String(formFields.length)} · ${shortLabel(formFields[formIndex]?.label??'입력칸')} · `:'';
     panel.render(state,context+title,selectedControl?controlPreview():formActive&&formOverview?'':preview??draft.text+(initial!==null?` [${INITIALS[initial] ?? ""}${medial!==null?(MEDIALS[medial] ?? ""):""}]`:''),[notice,unknownNotice].filter(Boolean).join(' · '),preview===null&&!selectedControl?draftSelection(draft):undefined);
   }
@@ -105,14 +123,19 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     }
     const previousMode=state.mode;
     const output=reduceSwitch(state,event);state=output.state;
+    if(previousMode!=='paused'&&state.mode==='paused'){clearRadioCapture(document);clearMultipleCapture(document);}
+    if(previousMode!=='paused'&&state.mode==='paused'&&(selectedControl?.kind==='radio'||selectedControl?.kind==='multiple')){
+      selectedControl=null;formIndex=null;selected=null;formOverview=true;stack=[];current=formMenu();title=current.title;
+      state.items=current.items;state.resumeMode='itemScan';state.scanIndex=0;pendingControlIndices=undefined;pendingControlChecked=undefined;
+    }
     if(previousMode!=='paused'&&state.mode==='paused'&&selectedControl){
-      pendingControlIndex=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;
+      pendingControlIndex=undefined;pendingControlIndices=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;
       state.items=[command('up','상위로'),...controlChoices(),command('pause','쉬기')];current={...current,items:state.items};
     }
     if(previousMode==='confirming'&&state.mode==='paused'){
       confirmAction=null;root();pause();return;
     }
-    if(event.type==='actionResult'&&event.result==='unknown'){unknownNotice='이전 실행 결과를 확인하세요. 자동 재시도하지 않아요';cancelPeers();}
+    if(event.type==='actionResult'&&event.result==='unknown'){unresolvedWork=true;unknownNotice='이전 실행 결과를 확인하세요. 자동 재시도하지 않아요';cancelPeers();}
     if(output.actions.length>0){notice='';unknownNotice='';}
     render();
     for(const action of output.actions)void execute(action);
@@ -122,12 +145,14 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     current={title:heading,items:[...(includeUp?[command('up','상위로')]:[]),...items,command('pause','쉬기')],mode};title=heading;
     dispatch({type:'setItems',now:now(),items:current.items,mode});
   }
-  function root(){scrollRegion=null;scrollChoices=[];reapply=null;phraseChange=null;if(formActive){stashField();showForm();return;}stack=[];title='스페이스바 작업판';current={title,items:groups(),mode:'groupScan'};
+  function root(){navigationConfirmation=null;scrollRegion=null;scrollChoices=[];reapply=null;phraseChange=null;if(formActive){stashField();showForm();return;}stack=[];title='스페이스바 작업판';current={title,items:groups(),mode:'groupScan'};
     dispatch({type:'setItems',now:now(),items:current.items,mode:'groupScan'});
   }
-  function up(){reapply=null;phraseChange=null;const previous=stack.pop();if(!previous){root();return;}current=previous;title=previous.title;
+  function up(){navigationConfirmation=null;reapply=null;phraseChange=null;const previous=stack.pop();if(!previous){root();return;}current=previous;title=previous.title;
     dispatch({type:'setItems',now:now(),items:previous.items,mode:previous.mode});}
   function pause(reason=''){
+    navigationConfirmation=null;
+    clearRadioCapture(document);clearMultipleCapture(document);
     reapply=null;phraseChange=null;
     beginOnFocus=false;
     stopScroll();confirmAction=null;cancelPeers();
@@ -135,7 +160,22 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     notice=reason;dispatch({type:'pause',now:now()});
   }
   function readingMenu(push=true){
-    menu([command('scroll:down','한 화면 아래'),command('scroll:up','한 화면 위'),command('scroll:auto','자동 스크롤'),command('scroll-regions','세로 스크롤 영역 선택'),command('nav:back','뒤로'),command('nav:forward','앞으로'),command('nav:tabs','열린 탭')],`읽기·이동 · ${scrollRegion?.label??'영역 선택 필요'}`,'itemScan',push);
+    menu([command('scroll:down','한 화면 아래'),command('scroll:up','한 화면 위'),command('scroll:auto','자동 스크롤'),command('scroll-regions','세로 스크롤 영역 선택'),command('nav:back','뒤로'),command('nav:forward','앞으로'),command('nav:tabs','열린 탭'),command('nav:new','새 탭'),command('nav:reload','새로고침'),command('nav:close-preview','탭 닫기')],`읽기·이동 · ${scrollRegion?.label??'영역 선택 필요'}`,'itemScan',push);
+  }
+  function unapplied(){
+    stashField();
+    const dirty=(value:FormDraft|null)=>value!==null&&(value.initial!==null||value.medial!==null||value.draft.text!==value.expectedValue);
+    return dirty(workspace())||dirty(formOrigin)||dirty(formRecovery)||formDrafts.hasUnapplied()||pendingControlIndex!==undefined||pendingControlIndices!==undefined||pendingControlChecked!==undefined;
+  }
+  function navigationBlocked(){
+    if(unapplied()){notice='적용하지 않은 글이나 선택이 있어요. 글쓰기에서 확인하세요';return true;}
+    if(inFlight.size>0||unresolvedWork){notice='처리 중이거나 결과를 확인하지 못한 작업이 있어요. 현재 화면을 확인하세요';return true;}
+    return false;
+  }
+  function navigationDialog(){
+    if(!navigationConfirmation)return;
+    confirmOpenedAt=now();
+    menu([command('nav:cancel','취소'),command(`nav:${navigationConfirmation.kind}-confirm`,navigationConfirmation.kind==='reload'?'확인 · 새로고침':'확인 · 탭 닫기')],navigationConfirmation.kind==='reload'?'현재 페이지를 새로고침할까요?':'현재 탭을 닫을까요?','confirming',true,false);
   }
   function regionMenu(push=true){
     const start=scrollPage*5;
@@ -215,10 +255,10 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   function editor(){
     if(formActive){
       formOverview=false;stack=[formMenu()];
-      menu([command('hangul:initial','한글 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('compare','현재 값과 비교'),command('validity','입력 오류 읽기'),...(formIndex!==null&&formIndex>0?[command('form-prev','이전 칸')]:[]),...(formIndex!==null&&formIndex<formFields.length-1?[command('form-next','다음 칸')]:[]),command('form-list','양식 목록'),command('form-exit','원래 화면으로')],'글쓰기','composing',false);return;
+      menu([command('hangul:initial','한글 쓰기'),...(opts.helperPage?[command('ascii','영문·주소 쓰기')]:[]),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('compare','현재 값과 비교'),command('validity','입력 오류 읽기'),...(formIndex!==null&&formIndex>0?[command('form-prev','이전 칸')]:[]),...(formIndex!==null&&formIndex<formFields.length-1?[command('form-next','다음 칸')]:[]),command('form-list','양식 목록'),command('form-exit','원래 화면으로')],'글쓰기','composing',false);return;
     }
     stack=[{title:'스페이스바 작업판',items:groups(),mode:'groupScan'}];
-    menu([command('hangul:initial','한글 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('compare','현재 값과 비교'),command('validity','입력 오류 읽기'),command('search','검색'),command('form-open','양식 한 장 보기'),...(formRecovery?[command('form-recover','양식 작성 문장 복구')]:[]),command('restore','원래 입력칸으로')],'글쓰기','composing',false);
+    menu([command('hangul:initial','한글 쓰기'),...(opts.helperPage?[command('ascii','영문·주소 쓰기')]:[]),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('compare','현재 값과 비교'),command('validity','입력 오류 읽기'),command('search','검색'),command('form-open','양식 한 장 보기'),...(formRecovery?[command('form-recover','양식 작성 문장 복구')]:[]),command('restore','원래 입력칸으로')],'글쓰기','composing',false);
   }
   function characterGroups(stage:'initial'|'medial'|'final'){
     const chars=stage==='initial'?INITIALS:stage==='medial'?MEDIALS:FINALS;
@@ -240,7 +280,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     return {title:formFields.length?'양식 한 장 보기':'지원하는 입력칸이 없어요',items,mode:'itemScan'};
   }
   function showForm(page=0){
-    selectedControl=null;controlPreviewIndex=0;pendingControlIndex=undefined;pendingControlChecked=undefined;formIndex=null;selected=null;formOverview=true;stack=[];current=formMenu(page);title=current.title;
+    selectedControl=null;controlPreviewIndex=0;pendingControlIndex=undefined;pendingControlIndices=undefined;pendingControlChecked=undefined;formIndex=null;selected=null;formOverview=true;stack=[];current=formMenu(page);title=current.title;
     dispatch({type:'setItems',now:now(),items:current.items,mode:current.mode});
   }
   async function openForm(startedGeneration:number){
@@ -263,7 +303,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       if(!active(startedGeneration))return capture.result;
       const parsed=FormControl.safeParse(capture.control);
       if(capture.result!=='done'||!parsed.success){notice='선택칸을 다시 확인하세요';return capture.result;}
-      selectedControl=parsed.data;pendingControlIndex=undefined;pendingControlChecked=undefined;controlPage=0;controlPreviewIndex=0;
+      selectedControl=parsed.data;pendingControlIndex=undefined;pendingControlIndices=undefined;pendingControlChecked=undefined;controlPage=0;controlPreviewIndex=0;
       formIndex=index;selected=field;formOverview=false;stack=[formMenu()];controlMenu();return;
     }
     const capture=await targetRequest('capture',field.target,{expectedIdentity:field.identity});
@@ -275,30 +315,37 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     selectedControl=null;formRecovering=false;formIndex=index;selected=field;preservedDraft=false;editor();return;
   }
   function controlPreviewPages():string[]{
+    if(selectedControl?.kind==='multiple'){
+      const selected=selectedControl;
+      const summary=(indices:number[])=>indices.map(index=>`${String(index+1)}. ${selected.options[index]?.label??''}${selected.options[index]?.disabled?' · 변경할 수 없음':''}`).join(' / ')||'고르지 않음';
+      return phrasePreviewPages(summary(selected.selectedIndices),pendingControlIndices===undefined?undefined:summary(pendingControlIndices)).map(page=>page.replace(/^기존 문구/,'현재 선택').replace(/^바꿀 문장/,'변경안'));
+    }
     if(selectedControl?.kind!=='select')return [];
     return phrasePreviewPages(selectedControl.options[selectedControl.selectedIndex]?.label??'고르지 않음',pendingControlIndex===undefined?undefined:selectedControl.options[pendingControlIndex]?.label).map(page=>page.replace(/^기존 문구/,'현재 선택').replace(/^바꿀 문장/,'변경안'));
   }
   function controlPreview():string{
     if(!selectedControl)return '';
+    if(selectedControl.kind==='radio')return `현재: ${selectedControl.checked?'선택됨':'선택 안 됨'} · 변경안: ${pendingControlChecked?'이 항목 선택':'고르지 않음'} · 같은 그룹의 다른 선택은 해제돼요`;
     if(selectedControl.kind==='checkbox')return `현재: ${selectedControl.checked?'체크됨':'체크 안 됨'} · 변경안: ${pendingControlChecked===undefined?'고르지 않음':pendingControlChecked?'체크하기':'체크 해제하기'}`;
     return controlPreviewPages()[controlPreviewIndex]??controlPreviewPages()[0]??'';
   }
   function controlChoices():SwitchItem[]{
     if(!selectedControl)return [];
-    const choices=selectedControl.kind==='select'?selectedControl.options.slice(controlPage*6,controlPage*6+6).flatMap((option,index)=>option.disabled?[]:[command(`control-option:${String(controlPage*6+index)}`,characters(option.label).length>24?`${String(controlPage*6+index+1)}. ${shortLabel(option.label)}`:option.label)]):[command('control-check','체크하기'),command('control-uncheck','체크 해제하기')];
-    if(selectedControl.kind==='select'){
+    const multiple=selectedControl.kind==='multiple'?selectedControl:null;
+    const choices=multiple?multiple.options.slice(controlPage*6,controlPage*6+6).flatMap((option,index)=>option.disabled?[]:[command(`control-option:${String(controlPage*6+index)}`,`${String(controlPage*6+index+1)}. ${shortLabel(option.label)} · ${(pendingControlIndices??multiple.selectedIndices).includes(controlPage*6+index)?'선택 해제하기':'선택하기'}`)]):selectedControl.kind==='select'?selectedControl.options.slice(controlPage*6,controlPage*6+6).flatMap((option,index)=>option.disabled?[]:[command(`control-option:${String(controlPage*6+index)}`,characters(option.label).length>24?`${String(controlPage*6+index+1)}. ${shortLabel(option.label)}`:option.label)]):selectedControl.kind==='radio'?(selectedControl.checked?[]:[command('control-radio','이 항목 선택')]):[command('control-check','체크하기'),command('control-uncheck','체크 해제하기')];
+    if(selectedControl.kind==='select'||selectedControl.kind==='multiple'){
       if(controlPage>0)choices.push(command('control-prev-page','이전 선택 묶음'));
       if((controlPage+1)*6<selectedControl.options.length)choices.push(command('control-next-page','다음 선택 묶음'));
     }
     const previewPages=controlPreviewPages();
     if(controlPreviewIndex>0)choices.push(command('control-preview-prev','이전 항목 읽기'));
     if(controlPreviewIndex<previewPages.length-1)choices.push(command('control-preview-next','다음 항목 읽기'));
-    if(pendingControlIndex!==undefined||pendingControlChecked!==undefined)choices.push(command('control-apply',selectedControl.kind==='select'?'선택값 적용':'체크 상태 적용'));
+    if(pendingControlIndex!==undefined||pendingControlIndices!==undefined||pendingControlChecked!==undefined)choices.push(command('control-apply',selectedControl.kind==='select'?'선택값 적용':selectedControl.kind==='radio'||selectedControl.kind==='multiple'?'선택 적용':'체크 상태 적용'));
     choices.push(command('validity','입력 오류 읽기'),...(formIndex!==null&&formIndex>0?[command('form-prev','이전 칸')]:[]),...(formIndex!==null&&formIndex<formFields.length-1?[command('form-next','다음 칸')]:[]),command('form-list','양식 목록'),command('form-exit','원래 화면으로'));
     return choices;
   }
   function controlMenu(){
-    if(selectedControl)menu(controlChoices(),selectedControl.kind==='select'?'선택 목록':'체크 항목','itemScan',false);
+    if(selectedControl)menu(controlChoices(),selectedControl.kind==='multiple'?'여러 항목 고르기':selectedControl.kind==='select'?'선택 목록':selectedControl.kind==='radio'?'하나만 고르는 항목':'체크 항목','itemScan',false);
   }
   async function chooseTarget(index:number,startedGeneration:number):Promise<PageResult['result']|undefined>{
     const target=targets[index];if(!target||target.sensitive){notice='민감칸은 단일 스위치 입력을 지원하지 않아요';return;}
@@ -349,19 +396,27 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(id==='form-recover'){
       if(formRecovery){formOrigin={...structuredClone(workspace()),selected,preservedDraft,current,stack:[...stack]};formActive=true;formRecovering=true;formFields=[];formIndex=null;selected=null;loadWorkspace(formRecovery);preservedDraft=true;editor();}return;
     }
-    if(id.startsWith('control-option:')){if(selectedControl?.kind==='select'){const index=Number(id.slice(15));if(selectedControl.options[index]&&!selectedControl.options[index].disabled){pendingControlIndex=index;controlPreviewIndex=phrasePreviewPages(selectedControl.options[selectedControl.selectedIndex]?.label??'고르지 않음').length;controlMenu();}}return;}
+    if(id.startsWith('control-option:')){if(selectedControl?.kind==='multiple'){
+      const index=Number(id.slice(15));if(selectedControl.options[index]&&!selectedControl.options[index].disabled){
+        const currentPages=controlPreviewPages().filter(page=>page.startsWith('현재 선택')).length;
+        const indices=pendingControlIndices??selectedControl.selectedIndices;pendingControlIndices=indices.includes(index)?indices.filter(value=>value!==index):[...indices,index].sort((a,b)=>a-b);
+        controlPreviewIndex=currentPages;controlMenu();
+      }return;
+    }if(selectedControl?.kind==='select'){const index=Number(id.slice(15));if(selectedControl.options[index]&&!selectedControl.options[index].disabled){pendingControlIndex=index;controlPreviewIndex=phrasePreviewPages(selectedControl.options[selectedControl.selectedIndex]?.label??'고르지 않음').length;controlMenu();}}return;}
     if(id==='control-preview-prev'||id==='control-preview-next'){controlPreviewIndex=Math.max(0,Math.min(controlPreviewPages().length-1,controlPreviewIndex+(id==='control-preview-next'?1:-1)));controlMenu();return;}
+    if(id==='control-radio'){if(selectedControl?.kind==='radio'&&!selectedControl.checked){pendingControlChecked=true;controlMenu();}return;}
     if(id==='control-check'||id==='control-uncheck'){if(selectedControl?.kind==='checkbox'){pendingControlChecked=id==='control-check';controlMenu();}return;}
     if(id==='control-prev-page'||id==='control-next-page'){controlPage+=id==='control-next-page'?1:-1;controlMenu();return;}
     if(id==='control-apply'){
       if(!selected||!selectedControl)return;
-      const result=await targetRequest('applyControl',selected.target,{expectedIdentity:selected.identity,control:selectedControl,...(pendingControlIndex!==undefined?{controlIndex:pendingControlIndex}:{}),...(pendingControlChecked!==undefined?{controlChecked:pendingControlChecked}:{})});
+      const result=await targetRequest('applyControl',selected.target,{expectedIdentity:selected.identity,control:selectedControl,...(pendingControlIndices!==undefined?{controlIndices:pendingControlIndices}:{}),...(pendingControlIndex!==undefined?{controlIndex:pendingControlIndex}:{}),...(pendingControlChecked!==undefined?{controlChecked:pendingControlChecked}:{})});
       if(!active(startedGeneration))return result.result;
       if(result.result==='unknown'){showForm();unknownNotice='이전 실행 결과를 확인하세요. 자동 재시도하지 않아요';pause();return 'unknown';}
-      if(result.result!=='done'){pendingControlIndex=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;controlMenu();notice='선택칸이 바뀌었어요. 목록에서 다시 선택하세요';return result.result;}
+      if(result.result!=='done'){pendingControlIndex=undefined;pendingControlIndices=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;controlMenu();notice='선택칸이 바뀌었어요. 목록에서 다시 선택하세요';return result.result;}
+      if(selectedControl.kind==='multiple'){const captured=FormControl.safeParse(result.control);if(!captured.success||captured.data.kind!=='multiple'){showForm();notice='선택칸을 다시 확인하세요';return 'refused';}selectedControl=captured.data;}
       if(selectedControl.kind==='select'&&pendingControlIndex!==undefined)selectedControl={...selectedControl,selectedIndex:pendingControlIndex};
-      if(selectedControl.kind==='checkbox'&&pendingControlChecked!==undefined)selectedControl={...selectedControl,checked:pendingControlChecked};
-      pendingControlIndex=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;controlMenu();notice='적용했어요';return;
+      if((selectedControl.kind==='checkbox'||selectedControl.kind==='radio')&&pendingControlChecked!==undefined)selectedControl={...selectedControl,checked:pendingControlChecked};
+      pendingControlIndex=undefined;pendingControlIndices=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;controlMenu();notice='적용했어요';return;
     }
     if(id==='validity'){
       if(!selected){notice='입력칸을 먼저 선택하세요';return;}
@@ -382,6 +437,12 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(id.startsWith('target:'))return chooseTarget(Number(id.split(':')[1]),startedGeneration);
     if(id.startsWith('page:')){const parts=id.split(':');pageMenu(Number(parts[1]),parts[2]==='input');return;}
     if(id.startsWith('refresh:')){if(await refreshTargets(startedGeneration))pageMenu(0,id.endsWith('input'));return;}
+    if(id==='ascii'){
+      const chars=Array.from('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.-_?&=%+#@~');
+      menu(Array.from({length:Math.ceil(chars.length/6)},(_,i)=>command(`ascii-group:${String(i)}`,chars.slice(i*6,i*6+6).join(' '))),'영문·숫자·주소 기호','composing');return;
+    }
+    if(id.startsWith('ascii-group:')){const chars=Array.from('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.-_?&=%+#@~');const start=Number(id.slice(12))*6;menu(chars.slice(start,start+6).map((ch,i)=>command(`ascii-char:${String(start+i)}`,ch)),'문자 선택','composing');return;}
+    if(id.startsWith('ascii-char:')){const ch=Array.from('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.-_?&=%+#@~')[Number(id.slice(11))];if(opts.helperPage&&ch){draft=editDraft(draft,{type:'insert',text:ch});editor();await saveDraft();}return;}
     if(id==='draft:new'){draft=createDraft();initial=null;medial=null;preservedDraft=true;editor();await saveDraft();return;}
     if(id.startsWith('hangul:')){characterGroups(medial!==null?'final':initial!==null?'medial':'initial');return;}
     if(id.startsWith('chars:')){const [,stage,page]=id.split(':');const chars=stage==='initial'?INITIALS:stage==='medial'?MEDIALS:FINALS;
@@ -478,6 +539,25 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       }else{const result=scrollRegions.step(region,id==='scroll:up'?'up':'down');if(result!=='moved')notice=result==='stale'?'영역이 바뀌었어요. 스크롤 영역을 다시 선택하세요':result==='blocked'?'이 영역을 더 이동할 수 없어요':'영역의 끝이에요';}
       return;
     }
+    if(id==='nav:new'){await saveDraft();if(!active(startedGeneration))return;const result=resultOf(await request({type:'switch/navigation',kind:'new',authorization:authorization()}));if(active(startedGeneration)&&result.result==='refused')notice='새 탭을 열지 못했어요. 다시 선택하세요';return result.result;}
+    if(id==='nav:reload'||id==='nav:close-preview'){
+      if(navigationBlocked())return 'refused';
+      if(id==='nav:reload'){navigationConfirmation={kind:'reload',title:'현재 페이지를 다시 불러와요'};navigationDialog();return;}
+      const raw=await request({type:'switch/navigation',kind:'close-preview',authorization:authorization()}) as {result?:string;token?:string;title?:string;reason?:string};
+      if(!active(startedGeneration))return resultOf(raw).result;
+      if(raw.result!=='done'||typeof raw.token!=='string'||typeof raw.title!=='string'){notice=raw.reason==='last-tab'?'이 창의 마지막 탭은 닫지 않아요':raw.reason==='no-return-tab'?'이 창에 돌아갈 수 있는 도우미 탭이 없어요':'돌아갈 탭을 다시 확인하세요';return resultOf(raw).result;}
+      navigationConfirmation={kind:'close',token:raw.token,title:`돌아갈 탭: ${raw.title}`};navigationDialog();return;
+    }
+    if(id==='nav:cancel'){up();return;}
+    if(id==='nav:reload-confirm'||id==='nav:close-confirm'){
+      const confirmation=navigationConfirmation;
+      if(!confirmation||id!==`nav:${confirmation.kind}-confirm`||navigationBlocked())return 'refused';
+      const result=resultOf(await request({type:'switch/navigation',kind:confirmation.kind,...(confirmation.token?{token:confirmation.token}:{}),authorization:authorization()}));
+      if(!active(startedGeneration))return result.result;
+      navigationConfirmation=null;
+      if(result.result==='refused'){up();notice='페이지나 탭이 바뀌었어요. 다시 선택하세요';}
+      return result.result;
+    }
     if(id==='nav:back'||id==='nav:forward'){await saveDraft();if(!active(startedGeneration))return;const result=resultOf(await request({type:'switch/navigation',kind:id==='nav:back'?'back':'forward',authorization:authorization()}));if(!active(startedGeneration))return result.result;if(result.result==='refused')notice=`${id==='nav:back'?'뒤로':'앞으로'} 이동할 수 없어요. 현재 화면을 확인하세요`;return result.result;}
     if(id==='nav:tabs'){const raw=await request({type:'switch/navigation',kind:'tabs',authorization:authorization()}) as {tabs?:Array<{id:number;title:string}>};if(!active(startedGeneration))return;if(!Array.isArray(raw.tabs)){notice='열린 탭을 읽지 못했어요. 현재 화면을 확인하세요';return resultOf(raw).result;}menu(raw.tabs.map((tab)=>command(`tab:${String(tab.id)}`,tab.title)),'열린 탭');return;}
     if(id.startsWith('tab:')){await saveDraft();if(!active(startedGeneration))return;const result=resultOf(await request({type:'switch/navigation',kind:'activate',tabId:Number(id.split(':')[1]),authorization:authorization()}));if(!active(startedGeneration))return result.result;if(result.result==='done')pause();else notice='탭으로 이동하지 못했어요. 현재 화면을 확인하세요';return result.result;}
@@ -495,7 +575,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       const result=action.kind==='command'?await handleCommand(action.itemId??'',startedGeneration):'refused';
       if(disposed)return;
       if(state.modeGeneration!==startedGeneration){
-        if(result==='unknown'&&state.mode==='paused'){unknownNotice='이전 실행 결과를 확인하세요. 자동 재시도하지 않아요';render();}
+        if(result==='unknown'&&state.mode==='paused'){unresolvedWork=true;unknownNotice='이전 실행 결과를 확인하세요. 자동 재시도하지 않아요';render();}
         return;
       }
       if(!scrollTimer)dispatch({type:'actionResult',now:now(),actionId:action.actionId,result:result??'done'});
@@ -522,8 +602,11 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       sendResponse({result:'done'});return undefined;
     }
     if(message.type==='switch/action-check'){
-      const nav=message.navigation;const navigationMatches=!nav||state.pendingAction?.itemId===(nav.kind==='activate'?`tab:${String(nav.tabId)}`:`nav:${nav.kind}`);
-      sendResponse({result:navigationMatches&&top&&exclusive()&&state.mode==='executing'&&state.pendingAction!==null&&message.authorization.documentGeneration===generation&&message.authorization.modeGeneration===state.modeGeneration&&message.authorization.pendingActionId===state.pendingAction.actionId?'done':'refused'});return undefined;
+      const nav=message.navigation;
+      const guarded=nav?.kind==='reload'||nav?.kind==='close';
+      const navigationMatches=!nav||state.pendingAction?.itemId===(nav.kind==='activate'?`tab:${String(nav.tabId)}`:guarded?`nav:${nav.kind}-confirm`:`nav:${nav.kind}`);
+      const clean=!guarded||(!unapplied()&&!unresolvedWork&&inFlight.size===1&&navigationConfirmation?.kind===nav.kind&&(nav.kind!=='close'||navigationConfirmation.token===nav.token));
+      sendResponse({result:clean&&navigationMatches&&top&&exclusive()&&state.mode==='executing'&&state.pendingAction!==null&&message.authorization.documentGeneration===generation&&message.authorization.modeGeneration===state.modeGeneration&&message.authorization.pendingActionId===state.pendingAction.actionId?'done':'refused'});return undefined;
     }
     if(message.type==='switch/frame-check'){
       sendResponse({result:exclusive()&&message.documentGeneration===generation&&visibleSwitchChild(message.childIndex)?'done':'refused'});return undefined;
@@ -531,7 +614,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(message.type==='switch/key'&&top&&exclusive()){
       if(state.mode!=='confirming'||now()-confirmOpenedAt>=1000)dispatch({type:message.kind,now:now(),code:'Space',trusted:true,repeat:message.repeat,isComposing:message.isComposing,modified:message.modified});return undefined;
     }
-    if(message.type==='switch/pause'){if(exclusive()){if(top&&message.invalidate)invalidate('페이지가 바뀌었어요. 대상을 다시 선택하세요');else pause();}sendResponse({result:'done'});return undefined;}
+    if(message.type==='switch/pause'){if(exclusive()){if(top&&message.invalidate)invalidate('페이지가 바뀌었어요. 대상을 다시 선택하세요');else pause(message.reason==='return-after-close'?'이전 탭 닫기 결과를 확인하세요. 새 스페이스바로 재개하세요':'');}sendResponse({result:'done'});return undefined;}
     if(message.type==='switch/refresh'&&top){void refreshAvailability().catch(()=>undefined);return undefined;}
     if(message.type==='switch/execute'){
       const action=message.action;
@@ -563,7 +646,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   }
   const storageHandler=(changes:Record<string,chrome.storage.StorageChange>,area:string)=>{if(area==='local'&&changes[SWITCH_SETTINGS_KEY])applySettings(changes[SWITCH_SETTINGS_KEY].newValue);};
   opts.pipeline.setSwitchHandler(consume);opts.pipeline.setSwitchExclusive(exclusive);
-  chrome.runtime.onMessage.addListener(messageHandler);chrome.storage.onChanged.addListener(storageHandler);
+  const unsubscribe=opts.transport?opts.transport.subscribe(messageHandler):(()=>{chrome.runtime.onMessage.addListener(messageHandler);return ()=>{chrome.runtime.onMessage.removeListener(messageHandler);};})();chrome.storage.onChanged.addListener(storageHandler);
   void chrome.storage.local.get(SWITCH_SETTINGS_KEY).then((stored)=> { applySettings(stored[SWITCH_SETTINGS_KEY]); });
   opts.collector.onChange(()=>{void publish().catch(()=>undefined);});
   const timer=setInterval(()=>{if(top&&exclusive())dispatch({type:'tick',now:now()});},100);
@@ -581,7 +664,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     }
   });
   frameObserver.observe(document,{subtree:true,childList:true,attributes:true,attributeFilter:['src','srcdoc','hidden','inert','style','class']});
-  opts.signal.addEventListener('abort',()=>{disposed=true;stopScroll();scrollRegions?.destroy();hideRing();clearInterval(timer);frameObserver.disconnect();panel?.destroy();chrome.runtime.onMessage.removeListener(messageHandler);chrome.storage.onChanged.removeListener(storageHandler);});
+  opts.signal.addEventListener('abort',()=>{disposed=true;clearRadioCapture(document);clearMultipleCapture(document);stopScroll();scrollRegions?.destroy();hideRing();clearInterval(timer);frameObserver.disconnect();panel?.destroy();unsubscribe();chrome.storage.onChanged.removeListener(storageHandler);});
   return {exclusive,pause,
     enabledChanged:()=>{invalidate('조작을 쉬고 있어요. 스페이스바로 다시 선택하세요');panel?.destroy();panel=null;if(exclusive()){opts.onExclusive();render();void publish().catch(()=>undefined);}},
     connectionLost:()=>{if(exclusive())invalidate('연결이 바뀌었어요. 실행 결과를 확인하고 다시 선택하세요');}};

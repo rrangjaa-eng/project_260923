@@ -12,5 +12,6 @@ const fieldKey = (target: ScanTarget) => JSON.stringify([target.target.tabId, ta
 export class FormDrafts {
   private drafts = new Map<string, FormDraft>();
   set(target: ScanTarget, draft: FormDraft) { this.drafts.set(fieldKey(target), structuredClone(draft)); }
+  hasUnapplied() { return [...this.drafts.values()].some(value=>value.initial!==null||value.medial!==null||value.draft.text!==value.expectedValue); }
   get(target: ScanTarget): FormDraft|null { const draft = this.drafts.get(fieldKey(target)); return draft ? structuredClone(draft) : null; }
 }

@@ -1,5 +1,133 @@
 # 작업 현황표
 
+## NAV-02 UI 시간 가정 수정 — 2026-10-03 00:37 KST
+
+첫 자동UI100/101에서 기존 팝업5회 클릭 테스트가 실패했다. 300ms 떨림 필터와 무간격5회 모두처리 가정의 충돌을 실제시각 기록으로 재현했다. 제품필터는 유지하고 테스트를350ms 간격의 의도적5회 선택·매 단계 상태 단언으로 수정했다. 빠른중복억제·pending 시작탭재연결 포함3/3(29초) 통과. [근거](verification/2026-10-03-nav02.md).
+
+PR30 제품소스는8ab3503과 동일하며 테스트/검증문서만 후속 수정한다. 새 최종HEAD의 전체CI와 자동UI를 종료까지 확인한다. 기존CI97을 새HEAD 검증으로 오인하지 않는다. 아래는 당시 기록이다.
+
+## NAV-02 경합 보완·최종 검사 진행 — 2026-10-03 00:31 KST
+
+`codex-switch-nav02`에서 승인된 새 탭·새로고침·탭 닫기를 구현했다. [동작 계약·RED/GREEN·남은 한계](verification/2026-10-03-nav02.md).
+
+| 항목 | 현재 근거 |
+|---|---|
+| 코드 | Space 시작 화면, 한글·영문·주소 입력, 미적용/진행/unknown 차단, 같은 창 마지막 탭 금지·복귀 미리보기 |
+| 실패 수정 | 늦은 unknown/timeout·복귀 pause 미확인·최종승인 중 창 이동·초기 안전 응답·손상 설정·끊김 복구 |
+| 최종 로컬 | type/lint·전체unit397/397(42파일), 시작 화면9/9(1.5분) |
+| 선행 회귀 | 브라우저15/15(4.0분), 최종 창 이동 epoch/재연결 전 빌드로 구분 |
+| 진행 중 | 자동UI, 추가 pending재연결1건·최종 관련/전체CI; 아직 전체완료 아님 |
+
+독립 읽기 검토의3개P2를 재현·수정했고 추가P1/P2 없음으로 재검토했다. 실행과 읽기 검토는 구분한다. 원래 discard 의미는 유지하고 양식 초안 재선택을 취소라고 안내하지 않는다. 권한/의존성/저장 확장·회사 접근·merge/deploy·ZIP교체 없음. PR27–29 보존. 아래는 당시 기록이다.
+
+## NAV-02 구현 체크포인트 — 2026-10-03 00:09 KST
+
+사용자가 새 탭 시작 화면·미적용/진행 작업 보호·마지막 탭 금지/복귀 미리보기의 세 추천을 승인했다. `codex-switch-nav02`는 PR29/04373f8 + 최종 증거 d0da218에서 분기했다. [구현 순서](superpowers/plans/2026-10-02-nav02.md).
+
+| 항목 | 현재 근거 |
+|---|---|
+| 환경 | 10월3일00:03 KST 실제 명령 성공, 변경 보존; 연결 알림만으로 중복 실행하지 않음 |
+| 구현 | 기존 Space 승인 확장, reload/close 취소 확인·초안 차단, exact start.html Port 연결, 새 탭·한글/주소 입력 |
+| 검사 | type/lint 통과; 선행 전체unit388/388; 추가ASCII 포함 관련25/25; 시작화면 실제 한글 작성·명시 검색1/1 |
+| 진행 중 | 새 탭/새로고침/닫기 브라우저7건, 경합·안전 상태·UI·독립 최종 검토 필요 |
+
+완료/출시 가능을 주장하지 않는다. 초기 안전 상태와 이후 끄기 알림 경합, Port 교체/탭 이동, close 이후 결과 안내를 후속 보완한다. 새 권한·저장 확대 없음. PR27–29 미병합, merge/deploy/ZIP교체 없음. 아래는 이전 기록이다.
+
+## PR29 최종 전체 CI 성공 — 2026-10-02 22:06 KST
+
+[draft PR29](https://github.com/rrangjaa-eng/project_260923/pull/29), `codex-switch-frame-controls`/`04373f8aabf7d5baadc505132fea0ff7bc44b585`의 [CI96](https://github.com/rrangjaa-eng/project_260923/actions/runs/37005764069)이 workflow/job success로 종료했다. [원본 로그 증거](verification/ci96-final-results.json).
+
+| 항목 | 확인 결과 |
+|---|---|
+| 최종 전체 CI | type/lint/build·unit364/364(39파일)·전체 브라우저385/385(47.3분) |
+| 최종 로컬/UI | 핵심 브라우저8/8·자동 UI101/101(실패/스킵/불안정0) |
+| 변경·검토 | iframe 최종 승인 가시성/문서/취소 재검사, 정상 report 갱신 보존; 추가 P1/P2 없음 |
+| 저장·경계 | 제품 HEAD 고정, `codex-pr29-verification-record`에 최종 증거; PR27/28/29 draft·미병합 |
+
+같은 출처·기존 지원 교차 출처의 한 단계 합성 iframe 이정표를 완료했다. 실제 Windows IME·운동 사용성·실사이트·모든 nested/sandbox 조합은 미검증이며 원자적 가시성 보장을 주장하지 않는다. merge/deploy·권한/수집/저장 확장·ZIP교체 없음.
+
+NAV-02 새로고침·새 탭·탭 닫기는 미착수다. [정확한 잔여 범위와 결정](verification/2026-10-02-nav02-remaining-decisions.md)에 따라 새 탭의 Space 시작 페이지, 미적용 초안/진행 중 동작이 있는 새로고침·닫기 차단, 마지막 탭 닫기 금지와 이동할 탭 미리보기·명시 확인 정책에 대한 사용자 결정을 기다린다. 아래는 당시 기록이다.
+
+## PR29 로컬 검증 완료·전체 CI 진행 — 2026-10-02 21:25 KST
+
+[draft PR29](https://github.com/rrangjaa-eng/project_260923/pull/29), `codex-switch-frame-controls`/`04373f8aabf7d5baadc505132fea0ff7bc44b585`는 PR28/0422cde 기준이며 mergeable=true다. GitHub test merge `fb2e921c28eebcaebcd5e37bd25173efafbbde3e`와 후보 tree `40a6e86f2a7e904f25c3809473427c2fd22b7813`이 동일하다.
+
+최종 type/lint/build·unit364/364(39파일),핵심브라우저8/8(4.5분),자동UI101/101(4.5분,실패/스킵/불안정0) 통과. [실행 수치와 소스 해시](verification/frame-controls-results.json). 선행30/30(9.5분)은 정상 report 갱신 최종 보완 전 빌드로 구분한다. [CI96](https://github.com/rrangjaa-eng/project_260923/actions/runs/37005764069),job110833532157은 실행 중이다. 제품HEAD를 고정하고 `codex-pr29-verification-record`에 증거를 저장한다.
+
+PR27/28/29 미병합,회사 시스템 접근·권한/수집/저장 확장·deploy/ZIP교체 없음. 실제PC·IME·운동 사용성·실사이트는 미검증이다. NAV-02는 미착수이며 [구현 전 결정](verification/2026-10-02-nav02-remaining-decisions.md)을 별도로 정리했다. 아래는 당시 기록이다.
+
+## iframe 수정 draft 준비 — 2026-10-02 21:16 KST
+
+`codex-switch-frame-controls`의 제품 수정은 `49e11af7896a07dac07cb3f36b3260d9992e8dc1`에 푸시됐다. 최종 type/lint·unit364/364(39파일),독립검토 추가P1/P2 없음. 선행 관련30/30(9.5분)은 정상 report 갱신 최종 보완 전 소스로 구분한다. 최종 소스 핵심8건과 자동UI를 실행/대기 중이며 새 draft PR에서 전체CI도 종료까지 확인한다. [수치·소스 해시](verification/frame-controls-results.json), [NAV-02 남은 범위와 결정](verification/2026-10-02-nav02-remaining-decisions.md).
+
+두 차례 환경 알림 뒤 실제 실행을 재확인했고 기존30건 프로세스가 정상 종료했다. 실행을 중복 시작하지 않았다. PR27/28 보존·merge/deploy/ZIP교체 없음. 아래는 당시 기록이다.
+
+## iframe 검증·승인 수정 체크포인트 — 2026-10-02 21:08 KST
+
+`codex-switch-frame-controls`는 PR28/0422cde 위의 후속이다. 환경 연결 알림 뒤21:06 KST에도 실제 명령과 테스트 실행을 확인했다. 정상 iframe 회귀12/12 통과 후, 승인 지연 중 iframe이 화면 밖으로 이동해도 적용되던4RED를 재현했다. worker 최종 child 승인 전후 가시성·문서·취소 재검사로4GREEN, 정상 report 갱신의2RED도 보완했다. 최종 unit364/364(39파일)·type/lint 통과. [계약·실패 재현](verification/2026-10-02-frame-controls.md).
+
+관련30건은 report 갱신 최종 보완 전 빌드로 실행 중이며, 최종 브라우저/전체CI는 아직 미확정이다. 제품 완료/실제PC 통과를 주장하지 않는다. 이 체크포인트를 원격에 저장한 뒤 검증을 계속한다. PR27/28 보존,merge/deploy·ZIP교체·새권한/수집/저장 없음. 아래는 당시 기록이다.
+
+## PR28 최종 전체 CI 성공 — 2026-10-02 20:47 KST
+
+[draft PR28](https://github.com/rrangjaa-eng/project_260923/pull/28), `codex-switch-multiple-controls`/`0422cdeaeba7c87aa144f4593360fbdb5b415c56`의 [CI95](https://github.com/rrangjaa-eng/project_260923/actions/runs/36998991950)가 workflow/job success로 종료했다. [원본 로그 증거](verification/ci95-final-results.json).
+
+| 항목 | 확인 결과 |
+|---|---|
+| 최종 전체CI |type/lint/build·unit352/352(38파일)·전체E2E369/369(39.9분) |
+| 로컬 기능/UI |새브라우저7/7(2.7분),UI101/101(4.0분,실패/스킵/불안정0) |
+| 검토/기반 |추가P1/P2 없음;PR27/a22532c 기준,테스트merge tree 동일 |
+| 저장/병합 |제품HEAD 고정,증거 `codex-pr28-verification-record`;PR27/28 draft·미병합,deploy/ZIP교체 없음 |
+
+일반 다중 선택의 Space 제안·명시 적용 증분을 완료했다. 실제PC 한국어 IME·운동 사용성·실사이트·프레임 안 multiple은 미검증이다. custom 위젯·사이트 임의 오류 원문·최근값 수집/PRIV-01 전체·native 연결은 남으며 이번 완료로 확대하지 않는다. 후속 작업은 최신 원격과 이 기록에서 이어간다. [남은 범위 분류](verification/2026-10-02-form-navigation-remaining.md)의 우선 권장은 iframe 안 radio/multiple 적용·취소·프레임 교체 회귀 검증이다. 확인된 검증 공백이며 새 기능을 만들지 않는다. 아직 착수하지 않았다. 아래는 당시 이력이다.
+
+## draft PR28 게시 · 전체 CI 진행 — 2026-10-02 20:05 KST
+
+[draft PR28](https://github.com/rrangjaa-eng/project_260923/pull/28), `codex-switch-multiple-controls`/`0422cdeaeba7c87aa144f4593360fbdb5b415c56`를 게시했다. base는 미병합 PR27/`a22532cdf94f7f420bbb87e3e743adb9d267be98`, mergeable=true다. GitHub 테스트 merge `1e47bf8cbb6c6b6533955e9dd092e0ee96a6dd14`와 후보 tree `7729d74dac029855c4f3e0103e233cef90bd5471`이 같다.
+
+[CI95](https://github.com/rrangjaa-eng/project_260923/actions/runs/36998991950), job110812099403은 실행 중이다. 로컬352단위/새7브라우저/UI101 통과와 전체CI를 구분한다. 제품 HEAD는 고정하고 이 문서 후속은 `codex-pr28-verification-record`에 보존한다. PR27/28 미병합·deploy/ZIP교체 없음. 아래는 당시 기록이다.
+
+## 일반 다중 선택 로컬 검증 완료 — 2026-10-02 20:03 KST
+
+`codex-switch-multiple-controls`는 미병합 [PR27](https://github.com/rrangjaa-eng/project_260923/pull/27)/`a22532cdf94f7f420bbb87e3e743adb9d267be98`와 CI94 증거 위에 쌓은 후속이다. `select multiple` 항목별 선택·해제를 제안하고 명시 적용한다. 비활성 항목 보존·전체 상태/의미 비교·일회 토큰·외부 form 제거·쉬기/unknown·초안 보존을 검증했다.
+
+| 검사 | 실제 결과 |
+|---|---|
+| 최종 기본·단위 | type/lint/production build,352/352(38파일) |
+| 최종 새 브라우저 |7/7,2.7분;360/768/1280px DOM 포함 |
+| 자동UI |101/101,4.0분;실패/스킵/불안정0 |
+| 독립 검토 |외부 form P2 RED→GREEN 및 필드 이름 사후 비교 보완,추가P1/P2 없음 |
+
+[계약·실패 재현·한계](verification/2026-10-02-multiple-controls.md), [실행 결과와 소스 해시](verification/multiple-controls-results.json). 선행15pass/1fixture-error와8/8은 최종 소스 결과와 구분했다. 새 draft PR 및 최종 HEAD 전체CI는 다음 확인 대상이며 아직 완료로 주장하지 않는다. 실제PC·운동 사용성·실사이트·프레임 안 multiple은 미검증. 새권한/의존성·최근값/native·merge/deploy·ZIP 교체 없음. 아래는 당시 기록이다.
+
+## PR27 최종 전체 CI 성공 — 2026-10-02 19:35 KST
+
+[draft PR27](https://github.com/rrangjaa-eng/project_260923/pull/27), `codex-switch-radio-controls`/`a22532cdf94f7f420bbb87e3e743adb9d267be98`의 [CI94](https://github.com/rrangjaa-eng/project_260923/actions/runs/36992522530)가 workflow/job success로 종료했다. type/lint/production build·unit331/331(37파일)·전체E2E362/362(38.0분). [원본 로그 증거](verification/ci94-final-results.json). main CI93도 성공이며 PR27은 미병합이다.
+
+다음 승인된 증분은 일반 HTML `select multiple`의 항목별 선택·해제 제안과 명시 적용이다. 원격 중복 작업 없음 확인, 설계 검토 완료, 아직 구현 전이다. PRIV-01/최근값·native·권한 확장은 제외한다. 실제PC·운동 사용성·실사이트는 미검증, merge/deploy·ZIP 교체 없음. 아래는 당시 기록이다.
+
+## PR26 병합 후 main 전체 CI 성공 — 2026-10-02 19:01 KST
+
+main `a0738fb832bd04abdb5397c09bbef3f38279e86c`의 [CI93](https://github.com/rrangjaa-eng/project_260923/actions/runs/36989343544)은 workflow/job 모두 success, type/lint/production build·unit313/313(36파일)·전체E2E358/358(36.7분)으로 종료했다. [원본 로그 증거](verification/ci93-main-results.json). 원격 main과 PR27 제품HEAD 보존을 재확인했다.
+
+후속 [draft PR27](https://github.com/rrangjaa-eng/project_260923/pull/27), `codex-switch-radio-controls`/`a22532cdf94f7f420bbb87e3e743adb9d267be98`는 type/lint/unit331/production브라우저6/UI101 로컬 통과 후 [CI94](https://github.com/rrangjaa-eng/project_260923/actions/runs/36992522530) 실행 중이다. 이 `codex-pr27-verification-record`는 제품HEAD를 바꾸지 않는 문서 전용 증거 브랜치다. PR27은 아직 미병합이며 실제PC·운동 사용성·실사이트·프레임 안 radio 미검증, deploy/ZIP교체 없음. 아래는 당시 이력이다.
+
+## PR26 병합 및 라디오 선택 후속 — 2026-10-02 18:54 KST
+
+사용자가18:19 KST에 “머지하고 계속 진행해”를 승인했다. [PR26](https://github.com/rrangjaa-eng/project_260923/pull/26)의 최신 head/base·CI92 success·충돌없음·리뷰/스레드0건을 재확인하고 merge commit 방식으로 병합했다. 원격 main은 `a0738fb832bd04abdb5397c09bbef3f38279e86c`, 파일 트리는 검증한 후보와 동일하다. [병합 증거](verification/pr26-merge-results.json). main의 [CI93](https://github.com/rrangjaa-eng/project_260923/actions/runs/36989343544)은 실행 중이다.
+
+GitHub가 포함된 PR15를 자동 merged 처리했으며 별도 merge/close 명령은 하지 않았다. PR15/26 브랜치와 PR8–14·16–25는 보존했다. deploy·ZIP 교체·추가 권한은 없다. 후속 `codex-switch-radio-controls`는 병합 main에서 시작했고 CI92 최종 문서만6d7ae48로 가져왔다. 일반 라디오를 명시 선택·적용하는 양식 후속이며 최근값·native·민감 자동수집으로 확장하지 않는다. 최종 type/lint/production build·unit331/331(37파일), 핵심radio4+재적용2=6/6(2.4분), 자동UI101/101(4.0분,0fail/skip/flaky)이 통과했다. 앞선12/12(6.2분)은 metadata/fieldset/UI 용어 보완 전으로 분리했다. 독립검토 HTTP P2 수정 뒤 추가P1/P2 없음. [계약·실패 재현](verification/2026-10-02-radio-controls.md), [최종 로컬 결과·소스 해시](verification/radio-controls-results.json). 제품 커밋은 `573cc85`이며 새 draft PR와 최종 HEAD 전체CI는 다음 확인 대상이다.
+
+아래 기록은 당시 상태다.
+
+## main 대상 통합 후보 전체 CI 완료 — 2026-10-02 16:08 KST
+
+[draft PR26](https://github.com/rrangjaa-eng/project_260923/pull/26), `codex-single-switch-integration`/`a453089c77a5130931cbd37fd948fb251cd33afa`가 main 대상 검토 후보다. [CI92](https://github.com/rrangjaa-eng/project_260923/actions/runs/36973766821)는 workflow/job 모두 success, type/lint/build 및 unit313/313(36파일), 전체E2E358/358(36.3분)으로 종료했다. 로컬 설치·끄기 회귀3/3(1.2분)도 통과했다. [원본 로그 수치·HEAD·트리 증거](verification/ci92-final-results.json).
+
+main/64976a7은 직접 조상이고 후보는54커밋·168파일(+8623/-56)이다. GitHub 테스트용 merge 트리는 후보와 동일하며 실제 main 병합은 하지 않았다. PR25와 제품·테스트·빌드 설정이 같고 통합 문서만 추가했다. PR8–14 별도 구현은 미포함, PR21/22 최종 수정은 동일 런타임 패치로 포함됐다. 기존 PR과 ZIP을 보존했다.
+
+이 `codex-pr26-verification-record` 브랜치는 최종 증거를 저장한 문서 전용 후속이다. 검증한 제품 HEAD를 문서 기록으로 바꾸지 않는다. 실제PC 한국어 IME·운동 사용성·실사이트, INPT-01/PRIV-01 전체는 미완료다. merge 승인 대기이며 deploy·ZIP 교체는 별도 승인 대상이다. 아래는 당시 이력이다.
+
 ## main 대상 통합 후보 준비 — 2026-10-02 15:26 KST
 
 `codex-single-switch-integration`은 main/64976a7의 직접 후손인 PR25/6592a1a에서 시작했다. 제품 코드는 보존하고 PR25 CI91 증거 및 통합·지원 범위 문서를 정리한다. PR8–14 별도 구현 미포함, PR21·22 최종 수정은 동일 런타임 패치로 포함됨을 확인했다. [통합 전략·지원 경계·ZIP 구분](INTEGRATION-CANDIDATE.md). 새 후보 type/lint/build, unit313/313(36파일), 실제 설치·끄기 회귀3/3(1.2분)이 통과했다. 독립 범위·문서 검토에서 추가P1/P2는 없었고 INPT-01/PRIV-01 미완료를 명시했다. [로컬 결과](verification/integration-local-results.json). main 대상 draft PR 최종 HEAD 전체 CI는 아직 실행 전이며 선행 CI91 성공으로 대신하지 않는다. 실제PC/운동 사용성/실사이트 미검증, merge·deploy·ZIP 교체 없음. 아래는 당시 이력이다.

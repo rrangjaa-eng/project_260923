@@ -16,7 +16,7 @@ async function setup(hold: 'query' | 'ping' | 'pause' | 'authorization' | 'final
   vi.stubGlobal('chrome', {
     runtime: { id: 'extension' },
     storage: { session: { set: () => Promise.resolve() } },
-    tabs: { onRemoved: { addListener: (listener:(id:number)=>void) => {removed=listener;} }, onUpdated: { addListener: () => undefined }, onActivated: { addListener: () => undefined },
+    tabs: { onDetached:{addListener:()=>undefined},onRemoved: { addListener: (listener:(id:number)=>void) => {removed=listener;} }, onUpdated: { addListener: () => undefined }, onActivated: { addListener: () => undefined },
       query: async () => { if (hold === 'query') await delay(); return tabs; },
       goBack: () => { if(rejectHistory)return Promise.reject(new Error('Cannot go back'));effects.push('back'); return Promise.resolve(); },
       goForward: () => { if(rejectHistory)return Promise.reject(new Error('Cannot go forward'));effects.push('forward'); return Promise.resolve(); },
