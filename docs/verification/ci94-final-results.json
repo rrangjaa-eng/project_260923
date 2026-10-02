@@ -1,0 +1,29 @@
+{
+  "checked_at": "2026-10-02T19:35:42+09:00",
+  "run": {
+    "id": 36992522530,
+    "head": "a22532cdf94f7f420bbb87e3e743adb9d267be98",
+    "number": 94,
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "job": 110791780827,
+  "unit": {
+    "passed": 331,
+    "files": 37
+  },
+  "browser": {
+    "passed": 362,
+    "minutes_reported": 38.0
+  },
+  "test_merge": "8e37be4b72a99b2f83ab5624954322d0915eca46",
+  "candidate_and_test_merge_tree": "36462420f30b1d0c4a43e502f559c11b2bcaabb7",
+  "log_evidence": [
+    "2026-10-02T09:55:45.3506862Z  Test Files  37 passed (37)",
+    "2026-10-02T09:55:45.3508840Z       Tests  331 passed (331)",
+    "2026-10-02T09:56:11.2832953Z [success] Built extension in 735 ms",
+    "2026-10-02T09:56:12.8238425Z Running 362 tests using 1 worker",
+    "2026-10-02T10:34:09.6905230Z   362 passed (38.0m)"
+  ],
+  "note": "PR27 draft/unmerged. 실제PC·운동 사용성·실사이트·프레임 안 radio 미검증. 배포·ZIP 교체 없음."
+}

@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## PR27 최종 전체 CI 성공 — 2026-10-02 19:35 KST
+
+[draft PR27](https://github.com/rrangjaa-eng/project_260923/pull/27), `codex-switch-radio-controls`/`a22532cdf94f7f420bbb87e3e743adb9d267be98`의 [CI94](https://github.com/rrangjaa-eng/project_260923/actions/runs/36992522530)가 workflow/job success로 종료했다. type/lint/production build·unit331/331(37파일)·전체E2E362/362(38.0분). [원본 로그 증거](verification/ci94-final-results.json). main CI93도 성공이며 PR27은 미병합이다.
+
+다음 승인된 증분은 일반 HTML `select multiple`의 항목별 선택·해제 제안과 명시 적용이다. 원격 중복 작업 없음 확인, 설계 검토 완료, 아직 구현 전이다. PRIV-01/최근값·native·권한 확장은 제외한다. 실제PC·운동 사용성·실사이트는 미검증, merge/deploy·ZIP 교체 없음. 아래는 당시 기록이다.
+
 ## PR26 병합 후 main 전체 CI 성공 — 2026-10-02 19:01 KST
 
 main `a0738fb832bd04abdb5397c09bbef3f38279e86c`의 [CI93](https://github.com/rrangjaa-eng/project_260923/actions/runs/36989343544)은 workflow/job 모두 success, type/lint/production build·unit313/313(36파일)·전체E2E358/358(36.7분)으로 종료했다. [원본 로그 증거](verification/ci93-main-results.json). 원격 main과 PR27 제품HEAD 보존을 재확인했다.

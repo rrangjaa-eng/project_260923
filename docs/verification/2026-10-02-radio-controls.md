@@ -27,3 +27,5 @@
 최종 실행 수치·소스 해시·CI는 `radio-controls-results.json` 및 WORK-STATUS에 기록한다. 선행 부분검사와 최종 소스를 구분한다. 자동 화면 검토는 기존 토큰·크기·서체·포커스 검사와 새 흐름360/768/1280px DOM 치수를 사용하며 실제 손 움직임의 편안함을 측정하지 않는다.
 
 실제 Windows 한국어 IME·운동 사용성·실사이트, custom/multiple 위젯·임의 사이트 오류 원문·최근값 자동수집·native 파일 전달은 미완료다. 배포·설치본 교체는 별도 승인 대상이다.
+
+최종 HEAD `a22532cdf94f7f420bbb87e3e743adb9d267be98`의 CI94도 workflow/job success로 종료했다. unit331/331(37파일), 전체E2E362/362(38.0분), type/lint/production build 통과. 원본 로그는 [CI94 증거](ci94-final-results.json)에 보존한다. 제품 HEAD는 바꾸지 않고 후속 검증 문서 브랜치에 기록한다.

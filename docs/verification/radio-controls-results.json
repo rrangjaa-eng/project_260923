@@ -31,7 +31,16 @@
       "duration": "4.0m"
     }
   },
-  "ci": "not_started",
+  "ci": {
+    "id": 36992522530,
+    "head": "a22532cdf94f7f420bbb87e3e743adb9d267be98",
+    "number": 94,
+    "status": "completed",
+    "conclusion": "success",
+    "evidence": "ci94-final-results.json",
+    "unit_passed": 331,
+    "browser_passed": 362
+  },
   "source_sha256": {
     ".github/workflows/ci.yml": "4e3d61619ba3f89a16f2506c1b55ea4a3889484ca2f3c7a90cb1efa4a16fcda8",
     "src/core/switch-order.ts": "787e49b439b824ce4cacf4c53373de79da62bbf58f26c2fe13a0b5295f87402c",
