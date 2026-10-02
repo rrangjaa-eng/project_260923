@@ -1,5 +1,20 @@
 # 작업 현황표
 
+## PR29 최종 전체 CI 성공 — 2026-10-02 22:06 KST
+
+[draft PR29](https://github.com/rrangjaa-eng/project_260923/pull/29), `codex-switch-frame-controls`/`04373f8aabf7d5baadc505132fea0ff7bc44b585`의 [CI96](https://github.com/rrangjaa-eng/project_260923/actions/runs/37005764069)이 workflow/job success로 종료했다. [원본 로그 증거](verification/ci96-final-results.json).
+
+| 항목 | 확인 결과 |
+|---|---|
+| 최종 전체 CI | type/lint/build·unit364/364(39파일)·전체 브라우저385/385(47.3분) |
+| 최종 로컬/UI | 핵심 브라우저8/8·자동 UI101/101(실패/스킵/불안정0) |
+| 변경·검토 | iframe 최종 승인 가시성/문서/취소 재검사, 정상 report 갱신 보존; 추가 P1/P2 없음 |
+| 저장·경계 | 제품 HEAD 고정, `codex-pr29-verification-record`에 최종 증거; PR27/28/29 draft·미병합 |
+
+같은 출처·기존 지원 교차 출처의 한 단계 합성 iframe 이정표를 완료했다. 실제 Windows IME·운동 사용성·실사이트·모든 nested/sandbox 조합은 미검증이며 원자적 가시성 보장을 주장하지 않는다. merge/deploy·권한/수집/저장 확장·ZIP교체 없음.
+
+NAV-02 새로고침·새 탭·탭 닫기는 미착수다. [정확한 잔여 범위와 결정](verification/2026-10-02-nav02-remaining-decisions.md)에 따라 새 탭의 Space 시작 페이지, 미적용 초안/진행 중 동작이 있는 새로고침·닫기 차단, 마지막 탭 닫기 금지와 이동할 탭 미리보기·명시 확인 정책에 대한 사용자 결정을 기다린다. 아래는 당시 기록이다.
+
 ## PR29 로컬 검증 완료·전체 CI 진행 — 2026-10-02 21:25 KST
 
 [draft PR29](https://github.com/rrangjaa-eng/project_260923/pull/29), `codex-switch-frame-controls`/`04373f8aabf7d5baadc505132fea0ff7bc44b585`는 PR28/0422cde 기준이며 mergeable=true다. GitHub test merge `fb2e921c28eebcaebcd5e37bd25173efafbbde3e`와 후보 tree `40a6e86f2a7e904f25c3809473427c2fd22b7813`이 동일하다.
