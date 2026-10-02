@@ -1,0 +1,77 @@
+{
+  "base": "461d431c3a7dffee3b0dd8c13d546380453e6bfc",
+  "branch": "codex-switch-scroll-regions",
+  "source_sha256": {
+    "src/page/input/switch-controller.ts": "92a71d1f79edc4bae2786712d266465851819b909a57652e4cdfa8e5e442ac39",
+    "src/page/input/scroll-regions.ts": "84829d8c72c2b8b44f5be1a277152bf635c7e52493604e6c5b12ef4d8379a390",
+    "src/page/overlay/switch-panel.ts": "ccba6f2956aa8cc7e2389b69394b055895cd4de912460dfab55275651285e7c5",
+    "tests/unit/switch-controller-scroll.test.ts": "4b97f765253a6a1283a3c7481008c661833e70067602201d7ebfeb2b453ef8e5",
+    "tests/e2e/switch-scroll-regions.e2e.ts": "3d6194433c43fa096585cbe9fb58172f9b73fef2bca7143595e9037bfec5c59f"
+  },
+  "tdd": {
+    "first_red": 3,
+    "locked_page_red": 1,
+    "visibility_and_blocked_red": 3,
+    "final_new_unit": 17
+  },
+  "first_browser": {
+    "passed": 5,
+    "failed": 1,
+    "minutes_reported": 1.9,
+    "cause": "long unbroken region title: scrollWidth846 > clientWidth322 at360px",
+    "stage": "before title overflow-wrap fix; page visibility and blocked movement review fixes were built only in the later final run"
+  },
+  "final": {
+    "typecheck_exit": 0,
+    "lint_exit": 0,
+    "unit": {
+      "passed": 313,
+      "files": 36,
+      "exit": 0
+    },
+    "browser": {
+      "passed": 26,
+      "failed": 0,
+      "minutes_reported": 8.3,
+      "exit": 0,
+      "command": "CI=true pnpm exec playwright test tests/e2e/switch-scroll-regions.e2e.ts tests/e2e/switch-forward.e2e.ts tests/e2e/switch-navigation-cancel.e2e.ts tests/e2e/switch-pending.e2e.ts tests/e2e/switch-journey.e2e.ts"
+    },
+    "ui_review": {
+      "run": "run-StxszP",
+      "exit": 0,
+      "stats": {
+        "startTime": "2026-10-02T05:27:31.203Z",
+        "duration": 248322.566,
+        "expected": 101,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    "ci": null,
+    "disable_installed_browser": {
+      "passed": 3,
+      "failed": 0,
+      "minutes_reported": 1.2,
+      "exit": 0,
+      "command": "CI=true pnpm exec playwright test tests/e2e/switch-disable.e2e.ts tests/e2e/installed-popup.e2e.ts --grep 'disable stops automatic|production install'"
+    }
+  },
+  "review": {
+    "model": "gpt-6.1-sol",
+    "reasoning": "high",
+    "mode": "read-only",
+    "findings_fixed": [
+      "page visibility opacity/collapse",
+      "long title overflow"
+    ],
+    "remaining_p1_p2": 0
+  },
+  "limitations": [
+    "top-document native vertical scroll regions only",
+    "iframe internals / horizontal-only / open/closed shadow internals / canvas or custom scrolling excluded",
+    "Windows IME, motor usability and real sites unverified"
+  ],
+  "merge_deploy_zip_replacement": false,
+  "local_verified_at": "2026-10-02T14:34:00+09:00"
+}

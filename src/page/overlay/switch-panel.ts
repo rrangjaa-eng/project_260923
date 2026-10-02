@@ -6,7 +6,7 @@ export function createSwitchPanel() {
   const style = document.createElement('style');
   style.textContent = `
 .switch-panel{position:fixed;right:var(--space-4);top:var(--space-4);width:min(420px,calc(100vw - 32px));max-height:70vh;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto;background:var(--bg);color:var(--fg);border:var(--border-strong) solid var(--accent);border-radius:var(--radius-card);padding:var(--space-3);font-family:var(--font);font-size:var(--text-body);line-height:var(--leading);box-sizing:border-box;transform-origin:top right;transform:scale(var(--overlay-scale,1))}
-.switch-panel h2{flex-shrink:0;font-size:var(--text-body);margin:0 0 var(--space-2);font-weight:var(--weight-bold)}
+.switch-panel h2{flex-shrink:0;overflow-wrap:anywhere;font-size:var(--text-body);margin:0 0 var(--space-2);font-weight:var(--weight-bold)}
 .switch-choices{display:grid;gap:var(--space-2);min-height:0;overflow:auto}
 .switch-choice{min-width:0;overflow-wrap:anywhere;min-height:var(--target-min);padding:var(--space-2);border:var(--border-strong) solid transparent;border-radius:var(--radius-button);background:var(--surface);color:var(--fg);font:inherit;text-align:left;box-sizing:border-box}
 .switch-choice[aria-current=true]{border-color:var(--accent);font-weight:var(--weight-bold)}
