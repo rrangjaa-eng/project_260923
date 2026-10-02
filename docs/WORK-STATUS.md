@@ -1,5 +1,13 @@
 # 작업 현황표
 
+## PR26 병합 및 라디오 선택 후속 — 2026-10-02 18:39 KST
+
+사용자가18:19 KST에 “머지하고 계속 진행해”를 승인했다. [PR26](https://github.com/rrangjaa-eng/project_260923/pull/26)의 최신 head/base·CI92 success·충돌없음·리뷰/스레드0건을 재확인하고 merge commit 방식으로 병합했다. 원격 main은 `a0738fb832bd04abdb5397c09bbef3f38279e86c`, 파일 트리는 검증한 후보와 동일하다. [병합 증거](verification/pr26-merge-results.json). main의 [CI93](https://github.com/rrangjaa-eng/project_260923/actions/runs/36989343544)은 실행 중이다.
+
+GitHub가 포함된 PR15를 자동 merged 처리했으며 별도 merge/close 명령은 하지 않았다. PR15/26 브랜치와 PR8–14·16–25는 보존했다. deploy·ZIP 교체·추가 권한은 없다. 후속 `codex-switch-radio-controls`는 병합 main에서 시작했고 CI92 최종 문서만6d7ae48로 가져왔다. 일반 라디오를 명시 선택·적용하는 양식 후속이며 최근값·native·민감 자동수집으로 확장하지 않는다. 최종 type/lint/production build·unit331/331(37파일), 핵심radio4+재적용2=6/6(2.4분), 자동UI101/101(4.0분,0fail/skip/flaky)이 통과했다. 앞선12/12(6.2분)은 metadata/fieldset/UI 용어 보완 전으로 분리했다. 독립검토 HTTP P2 수정 뒤 추가P1/P2 없음. [계약·실패 재현](verification/2026-10-02-radio-controls.md), [최종 로컬 결과·소스 해시](verification/radio-controls-results.json). 새 draft PR와 최종 HEAD 전체CI는 다음 확인 대상이다.
+
+아래 기록은 당시 상태다.
+
 ## main 대상 통합 후보 전체 CI 완료 — 2026-10-02 16:08 KST
 
 [draft PR26](https://github.com/rrangjaa-eng/project_260923/pull/26), `codex-single-switch-integration`/`a453089c77a5130931cbd37fd948fb251cd33afa`가 main 대상 검토 후보다. [CI92](https://github.com/rrangjaa-eng/project_260923/actions/runs/36973766821)는 workflow/job 모두 success, type/lint/build 및 unit313/313(36파일), 전체E2E358/358(36.3분)으로 종료했다. 로컬 설치·끄기 회귀3/3(1.2분)도 통과했다. [원본 로그 수치·HEAD·트리 증거](verification/ci92-final-results.json).

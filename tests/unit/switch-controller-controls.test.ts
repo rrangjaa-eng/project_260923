@@ -21,9 +21,9 @@ beforeEach(() => {
 });
 afterEach(() => { cleanups.splice(0).forEach((cleanup) => { cleanup(); }); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
-async function fixture(labels?:[string,string]) {
+async function fixture(labels?:[string,string],radio=false) {
   const field = labels?document.createElement('select'):document.createElement('input');
-  if(field instanceof HTMLInputElement)field.type='checkbox';
+  if(field instanceof HTMLInputElement){field.type=radio?'radio':'checkbox';if(radio)field.name='delivery';}
   else for(const label of labels??[]){const option=document.createElement('option');option.textContent=label;field.append(option);}
   field.setAttribute('aria-label', '알림');
   document.body.append(field);
@@ -83,4 +83,18 @@ it('long current and proposed select labels can be read in complete Space pages 
  while(view.state?.items.some(item=>item.id==='control-preview-next')){await f.choose('다음 항목 읽기');proposalPages.push(view.text);}
  expect(proposalPages.map(page=>page.split('\n').slice(1).join('\n')).join('')).toBe(proposed);
  expect((f.field as HTMLSelectElement).selectedIndex).toBe(0);await f.choose('선택값 적용');expect((f.field as HTMLSelectElement).selectedIndex).toBe(1);
+});
+
+it('radio requires a proposal and explicit apply, then offers no unselect or repeated apply',async()=>{
+ const f=await fixture(undefined,true);await f.setEnabled(true);await f.press();await f.choose('글쓰기');await f.choose('양식 한 장 보기');await f.choose('알림');
+ expect(view.text).toContain('선택 안 됨');expect(view.state?.items.map(item=>item.label)).not.toContain('체크 해제하기');
+ await f.choose('이 항목 선택');expect((f.field as HTMLInputElement).checked).toBe(false);await f.choose('선택 적용');
+ expect((f.field as HTMLInputElement).checked).toBe(true);expect(view.text).toContain('선택됨');expect(view.state?.items.map(item=>item.id)).not.toContain('control-apply');expect(view.state?.items.map(item=>item.label)).not.toContain('이 항목 선택');
+});
+it('pause drops a proposed radio selection',async()=>{
+ const f=await fixture(undefined,true);await f.setEnabled(true);await f.press();await f.choose('글쓰기');await f.choose('양식 한 장 보기');await f.choose('알림');await f.choose('이 항목 선택');await f.choose('쉬기');await f.press();expect((f.field as HTMLInputElement).checked).toBe(false);expect(view.state?.items.map(item=>item.id)).not.toContain('control-apply');await f.choose('알림');await f.choose('이 항목 선택');await f.choose('선택 적용');expect((f.field as HTMLInputElement).checked).toBe(true);
+});
+
+it('automatic rest returns a radio to field selection before a fresh proposal',async()=>{
+ const f=await fixture(undefined,true);await f.setEnabled(true);await f.press();await f.choose('글쓰기');await f.choose('양식 한 장 보기');await f.choose('알림');await f.choose('이 항목 선택');await vi.advanceTimersByTimeAsync(30000);expect(view.state?.mode).toBe('paused');await f.press();await f.choose('알림');await f.choose('이 항목 선택');await f.choose('선택 적용');expect((f.field as HTMLInputElement).checked).toBe(true);
 });

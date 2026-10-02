@@ -13,6 +13,7 @@ import type { Collector } from '@/page/collector/collector';
 import type { InputPipeline } from './pipeline';
 import { createSwitchPanel } from '@/page/overlay/switch-panel';
 import { showRing, hideRing } from '@/page/overlay/ring';
+import { clearRadioCapture } from './radio-control';
 import { createScrollRegions, type ScrollRegion } from './scroll-regions';
 import { executeSwitchAction, reportSwitchItem, visibleSwitchChild } from './switch-actions';
 
@@ -105,6 +106,11 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     }
     const previousMode=state.mode;
     const output=reduceSwitch(state,event);state=output.state;
+    if(previousMode!=='paused'&&state.mode==='paused')clearRadioCapture(document);
+    if(previousMode!=='paused'&&state.mode==='paused'&&selectedControl?.kind==='radio'){
+      selectedControl=null;formIndex=null;selected=null;formOverview=true;stack=[];current=formMenu();title=current.title;
+      state.items=current.items;state.resumeMode='itemScan';state.scanIndex=0;pendingControlChecked=undefined;
+    }
     if(previousMode!=='paused'&&state.mode==='paused'&&selectedControl){
       pendingControlIndex=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;
       state.items=[command('up','상위로'),...controlChoices(),command('pause','쉬기')];current={...current,items:state.items};
@@ -128,6 +134,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   function up(){reapply=null;phraseChange=null;const previous=stack.pop();if(!previous){root();return;}current=previous;title=previous.title;
     dispatch({type:'setItems',now:now(),items:previous.items,mode:previous.mode});}
   function pause(reason=''){
+    clearRadioCapture(document);
     reapply=null;phraseChange=null;
     beginOnFocus=false;
     stopScroll();confirmAction=null;cancelPeers();
@@ -280,12 +287,13 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   }
   function controlPreview():string{
     if(!selectedControl)return '';
+    if(selectedControl.kind==='radio')return `현재: ${selectedControl.checked?'선택됨':'선택 안 됨'} · 변경안: ${pendingControlChecked?'이 항목 선택':'고르지 않음'} · 같은 그룹의 다른 선택은 해제돼요`;
     if(selectedControl.kind==='checkbox')return `현재: ${selectedControl.checked?'체크됨':'체크 안 됨'} · 변경안: ${pendingControlChecked===undefined?'고르지 않음':pendingControlChecked?'체크하기':'체크 해제하기'}`;
     return controlPreviewPages()[controlPreviewIndex]??controlPreviewPages()[0]??'';
   }
   function controlChoices():SwitchItem[]{
     if(!selectedControl)return [];
-    const choices=selectedControl.kind==='select'?selectedControl.options.slice(controlPage*6,controlPage*6+6).flatMap((option,index)=>option.disabled?[]:[command(`control-option:${String(controlPage*6+index)}`,characters(option.label).length>24?`${String(controlPage*6+index+1)}. ${shortLabel(option.label)}`:option.label)]):[command('control-check','체크하기'),command('control-uncheck','체크 해제하기')];
+    const choices=selectedControl.kind==='select'?selectedControl.options.slice(controlPage*6,controlPage*6+6).flatMap((option,index)=>option.disabled?[]:[command(`control-option:${String(controlPage*6+index)}`,characters(option.label).length>24?`${String(controlPage*6+index+1)}. ${shortLabel(option.label)}`:option.label)]):selectedControl.kind==='radio'?(selectedControl.checked?[]:[command('control-radio','이 항목 선택')]):[command('control-check','체크하기'),command('control-uncheck','체크 해제하기')];
     if(selectedControl.kind==='select'){
       if(controlPage>0)choices.push(command('control-prev-page','이전 선택 묶음'));
       if((controlPage+1)*6<selectedControl.options.length)choices.push(command('control-next-page','다음 선택 묶음'));
@@ -293,12 +301,12 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     const previewPages=controlPreviewPages();
     if(controlPreviewIndex>0)choices.push(command('control-preview-prev','이전 항목 읽기'));
     if(controlPreviewIndex<previewPages.length-1)choices.push(command('control-preview-next','다음 항목 읽기'));
-    if(pendingControlIndex!==undefined||pendingControlChecked!==undefined)choices.push(command('control-apply',selectedControl.kind==='select'?'선택값 적용':'체크 상태 적용'));
+    if(pendingControlIndex!==undefined||pendingControlChecked!==undefined)choices.push(command('control-apply',selectedControl.kind==='select'?'선택값 적용':selectedControl.kind==='radio'?'선택 적용':'체크 상태 적용'));
     choices.push(command('validity','입력 오류 읽기'),...(formIndex!==null&&formIndex>0?[command('form-prev','이전 칸')]:[]),...(formIndex!==null&&formIndex<formFields.length-1?[command('form-next','다음 칸')]:[]),command('form-list','양식 목록'),command('form-exit','원래 화면으로'));
     return choices;
   }
   function controlMenu(){
-    if(selectedControl)menu(controlChoices(),selectedControl.kind==='select'?'선택 목록':'체크 항목','itemScan',false);
+    if(selectedControl)menu(controlChoices(),selectedControl.kind==='select'?'선택 목록':selectedControl.kind==='radio'?'하나만 고르는 항목':'체크 항목','itemScan',false);
   }
   async function chooseTarget(index:number,startedGeneration:number):Promise<PageResult['result']|undefined>{
     const target=targets[index];if(!target||target.sensitive){notice='민감칸은 단일 스위치 입력을 지원하지 않아요';return;}
@@ -351,6 +359,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     }
     if(id.startsWith('control-option:')){if(selectedControl?.kind==='select'){const index=Number(id.slice(15));if(selectedControl.options[index]&&!selectedControl.options[index].disabled){pendingControlIndex=index;controlPreviewIndex=phrasePreviewPages(selectedControl.options[selectedControl.selectedIndex]?.label??'고르지 않음').length;controlMenu();}}return;}
     if(id==='control-preview-prev'||id==='control-preview-next'){controlPreviewIndex=Math.max(0,Math.min(controlPreviewPages().length-1,controlPreviewIndex+(id==='control-preview-next'?1:-1)));controlMenu();return;}
+    if(id==='control-radio'){if(selectedControl?.kind==='radio'&&!selectedControl.checked){pendingControlChecked=true;controlMenu();}return;}
     if(id==='control-check'||id==='control-uncheck'){if(selectedControl?.kind==='checkbox'){pendingControlChecked=id==='control-check';controlMenu();}return;}
     if(id==='control-prev-page'||id==='control-next-page'){controlPage+=id==='control-next-page'?1:-1;controlMenu();return;}
     if(id==='control-apply'){
@@ -360,7 +369,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       if(result.result==='unknown'){showForm();unknownNotice='이전 실행 결과를 확인하세요. 자동 재시도하지 않아요';pause();return 'unknown';}
       if(result.result!=='done'){pendingControlIndex=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;controlMenu();notice='선택칸이 바뀌었어요. 목록에서 다시 선택하세요';return result.result;}
       if(selectedControl.kind==='select'&&pendingControlIndex!==undefined)selectedControl={...selectedControl,selectedIndex:pendingControlIndex};
-      if(selectedControl.kind==='checkbox'&&pendingControlChecked!==undefined)selectedControl={...selectedControl,checked:pendingControlChecked};
+      if((selectedControl.kind==='checkbox'||selectedControl.kind==='radio')&&pendingControlChecked!==undefined)selectedControl={...selectedControl,checked:pendingControlChecked};
       pendingControlIndex=undefined;pendingControlChecked=undefined;controlPreviewIndex=0;controlMenu();notice='적용했어요';return;
     }
     if(id==='validity'){
@@ -581,7 +590,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     }
   });
   frameObserver.observe(document,{subtree:true,childList:true,attributes:true,attributeFilter:['src','srcdoc','hidden','inert','style','class']});
-  opts.signal.addEventListener('abort',()=>{disposed=true;stopScroll();scrollRegions?.destroy();hideRing();clearInterval(timer);frameObserver.disconnect();panel?.destroy();chrome.runtime.onMessage.removeListener(messageHandler);chrome.storage.onChanged.removeListener(storageHandler);});
+  opts.signal.addEventListener('abort',()=>{disposed=true;clearRadioCapture(document);stopScroll();scrollRegions?.destroy();hideRing();clearInterval(timer);frameObserver.disconnect();panel?.destroy();chrome.runtime.onMessage.removeListener(messageHandler);chrome.storage.onChanged.removeListener(storageHandler);});
   return {exclusive,pause,
     enabledChanged:()=>{invalidate('조작을 쉬고 있어요. 스페이스바로 다시 선택하세요');panel?.destroy();panel=null;if(exclusive()){opts.onExclusive();render();void publish().catch(()=>undefined);}},
     connectionLost:()=>{if(exclusive())invalidate('연결이 바뀌었어요. 실행 결과를 확인하고 다시 선택하세요');}};

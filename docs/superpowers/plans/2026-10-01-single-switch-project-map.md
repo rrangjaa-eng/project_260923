@@ -94,3 +94,7 @@ PR22 `9aa3b42`는 worker가 이미 받은 이동 요청의 query/ping/pause 대�
 ## 2026-10-02 세로 스크롤 영역 후속
 
 PR24/461d431의 CI90은 unit296/E2E352 success다. `codex-switch-scroll-regions`는 기존 읽기·이동과 공통 Space 엔진 위에 최상위 문서의 세로 영역 선택·명시 대상 표시·선택 영역만 이동·정지/취소/무효 대상 거절을 추가한다. iframe 내부·가로·Shadow DOM 내부·custom 스크롤은 이번 지원 범위 밖이다. [계약과 검증](../../verification/2026-10-02-scroll-regions.md)과 [현황표](../../WORK-STATUS.md)의 실제 실행 결과를 따른다. INPT-03 전체/원래 Phase3 완료나 PC 사용성 통과로 확대하지 않는다. 이 증분의 최종 CI91은 unit313/E2E358 success로 확인했다. 결과는 codex-pr25-verification-record 문서 브랜치에 보존했으며 다음 기능은 아직 시작하지 않았다.
+
+## 2026-10-02 main 통합 및 일반 라디오 후속
+
+PR26은 사용자 명시 승인으로 main/a0738fb에 병합됐다. 별도 PR8–14의 계획/native/보호USB 구현은 포함되지 않았다. 위 미완료 목록 중 일반 radio만 기존 양식 스캔·명시 적용 흐름으로 추가한다. 같은 문서/폼/name의 전체 그룹을 로컬에서 재검증하고 하나만 선택하며, 클릭/자동제출/선택 해제를 추가하지 않는다. 여러 선택 select·custom 위젯·임의 사이트 오류 원문·최근값 자동수집·PRIV-01 전체는 남는다. 실제 PC·사용성·실사이트·배포 합격으로 확대하지 않는다. 현재 검증과 병합 후 CI는 WORK-STATUS 및 verification 문서를 따른다.

@@ -1,5 +1,7 @@
 # PR15–25 통합 후보
 
+**2026-10-02 후속:** 사용자 승인으로 PR26을 main/`a0738fb832bd04abdb5397c09bbef3f38279e86c`에 병합했다. [병합 증거](verification/pr26-merge-results.json)와 최신 작업 현황을 따른다. 아래 후보 준비·승인 대기 표기는 당시 이력이다. 배포와 ZIP 교체는 하지 않았다.
+
 갱신: 2026-10-02 15:26 KST. 후보 브랜치: `codex-single-switch-integration`. main 대상 draft 검토용이며 merge·deploy·ZIP 교체는 하지 않았다.
 
 ## 통합 방식과 출처

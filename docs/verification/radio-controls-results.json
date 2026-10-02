@@ -1,0 +1,63 @@
+{
+  "checked_at": "2026-10-02T18:53:41+09:00",
+  "branch": "codex-switch-radio-controls",
+  "base_main": "a0738fb832bd04abdb5397c09bbef3f38279e86c",
+  "local": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "passed": 331,
+      "files": 37,
+      "new_radio_tests": 15,
+      "new_controller_tests": 3
+    },
+    "production_browser": {
+      "passed": 6,
+      "duration": "2.4m",
+      "command": "CI=true pnpm exec playwright test tests/e2e/switch-radio-controls.e2e.ts tests/e2e/switch-reapply.e2e.ts"
+    },
+    "preliminary_browser": {
+      "passed": 12,
+      "duration": "6.2m",
+      "note": "최종 metadata/disabled fieldset/UI 용어 보완 전 소스의 radio4+controls6+reapply2; 최종 소스 검사로 합산하지 않음"
+    },
+    "ui": {
+      "status": "passed",
+      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-IfW4Tr",
+      "passed": 101,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "duration": "4.0m"
+    }
+  },
+  "ci": "not_started",
+  "source_sha256": {
+    ".github/workflows/ci.yml": "4e3d61619ba3f89a16f2506c1b55ea4a3889484ca2f3c7a90cb1efa4a16fcda8",
+    "src/core/switch-order.ts": "787e49b439b824ce4cacf4c53373de79da62bbf58f26c2fe13a0b5295f87402c",
+    "src/page/input/form-control.ts": "33b7914ca68403f08df81d2996cc25125fbc04b99daae0021c1d649a84c0f90e",
+    "src/page/input/radio-control.ts": "e3fcac4de15ec2464670c95daa54757d00bdbd63e643c057855f9f8dde4fd080",
+    "src/page/input/switch-actions.ts": "96ddf832647edf8e9cadf1085e37e884551f71026604275828d2a443ce6358be",
+    "src/page/input/switch-controller.ts": "b482945e08b7d473d0c0fe8a7715abcc5f356becafe30515589e7f242a7fa1bc",
+    "src/shared/switch-messages.ts": "70b944ded47d28cd3df00c888ce904139b88ec280dc7e67ef78d1eb559180f41",
+    "tests/e2e/switch-radio-controls.e2e.ts": "d981888224685b4306231462b8216299e1a078be64adecda2a5b6f9856884145",
+    "tests/unit/switch-controller-controls.test.ts": "237333fbd02413005cd14d952c4e6a04c7f6d5521e9d7375f50d2512963fb6bf",
+    "tests/unit/switch-radio-controls.test.ts": "9cae90c32cab5791fde836c0617f951619df58be28a7c5b816d59e02ef83c37e"
+  },
+  "unchanged": {
+    "wxt.config.ts": true,
+    "package.json": true,
+    "pnpm-lock.yaml": true,
+    "downloads": true
+  },
+  "archived_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
+  "independent_review": "HTTP randomUUID P2 RED→getRandomValues 수정 후 추가P1/P2 없음; 제거/동일노드 재삽입·그룹 전체·승인 소비·취소 경계 읽기검토",
+  "unverified": [
+    "실제 Windows 한국어 IME",
+    "운동 사용성",
+    "실사이트",
+    "custom/multiple 위젯",
+    "PRIV-01 전체/최근값 자동수집",
+    "native 파일 전달"
+  ]
+}

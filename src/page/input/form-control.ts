@@ -1,10 +1,12 @@
 import type { FormControl, SwitchTargetAction } from '@/shared/switch-messages';
+import { captureRadio, applyRadio } from './radio-control';
 import { sensitiveElement, typingElement } from './text-target';
 export function controlElement(el:Element|undefined):el is HTMLSelectElement|HTMLInputElement {
-  return el instanceof HTMLSelectElement&&!el.multiple||el instanceof HTMLInputElement&&el.type==='checkbox';
+  return el instanceof HTMLSelectElement&&!el.multiple||el instanceof HTMLInputElement&&(el.type==='checkbox'||el.type==='radio');
 }
 export function captureControl(el:Element):FormControl|null {
   if(!controlElement(el)||!el.isConnected||el.disabled||sensitiveElement(el))return null;
+  if(el instanceof HTMLInputElement&&el.type==='radio')return captureRadio(el);
   if(el instanceof HTMLInputElement)return el.indeterminate||el.value.length>4000?null:{kind:'checkbox',checked:el.checked,signature:el.value};
   if(el.options.length===0||el.options.length>100)return null;
   const signature=JSON.stringify(Array.from(el.options,option=>[option.value,(option.getAttribute('label')??option.textContent),option.disabled,option.parentElement instanceof HTMLOptGroupElement&&option.parentElement.disabled]));
@@ -12,6 +14,7 @@ export function captureControl(el:Element):FormControl|null {
   return {kind:'select',selectedIndex:el.selectedIndex,signature,options:Array.from(el.options,option=>({label:(option.getAttribute('label')??option.textContent)||'이름 없는 선택 항목',disabled:option.disabled||option.parentElement instanceof HTMLOptGroupElement&&option.parentElement.disabled}))};
 }
 export function applyControl(el:Element,action:SwitchTargetAction):'done'|'refused' {
+  if(el instanceof HTMLInputElement&&el.type==='radio')return action.control?.kind==='radio'&&action.controlIndex===undefined?applyRadio(el,action.control,action.controlChecked):'refused';
   const current=captureControl(el);
   if(!current||!action.control||JSON.stringify(current)!==JSON.stringify(action.control))return 'refused';
   if(current.kind==='select'&&el instanceof HTMLSelectElement){
@@ -27,7 +30,7 @@ export function applyControl(el:Element,action:SwitchTargetAction):'done'|'refus
   el.dispatchEvent(new Event('input',{bubbles:true,composed:true}));
   el.dispatchEvent(new Event('change',{bubbles:true}));
   const after=captureControl(el);
-  return after&&(after.kind==='checkbox'?after.checked===action.controlChecked&&after.signature===(current.kind==='checkbox'?current.signature:''):after.selectedIndex===action.controlIndex&&after.signature===(current.kind==='select'?current.signature:''))?'done':'refused';
+  return after&&after.kind!=='radio'&&(after.kind==='checkbox'?after.checked===action.controlChecked&&after.signature===(current.kind==='checkbox'?current.signature:''):after.selectedIndex===action.controlIndex&&after.signature===(current.kind==='select'?current.signature:''))?'done':'refused';
 }
 export function readValidity(el:Element):string|null {
   if(!(typingElement(el)||controlElement(el))||!el.isConnected||el.disabled||sensitiveElement(el))return null;
