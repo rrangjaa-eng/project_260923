@@ -50,12 +50,15 @@
     }
   },
   "ci": {
-    "run": 36998991950,
+    "id": 36998991950,
     "number": 95,
-    "job": 110812099403,
     "head": "0422cdeaeba7c87aa144f4593360fbdb5b415c56",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "success",
+    "job": 110812099403,
+    "evidence": "ci95-final-results.json",
+    "unit_passed": 352,
+    "browser_passed": 369
   },
   "source_sha256": {
     "src/core/switch-order.ts": "6e27f8d0d34112a899f56c2da7f1b6b6adb088740f3378377f25b86edb38cecf",

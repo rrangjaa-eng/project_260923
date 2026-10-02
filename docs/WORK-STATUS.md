@@ -1,5 +1,18 @@
 # 작업 현황표
 
+## PR28 최종 전체 CI 성공 — 2026-10-02 20:47 KST
+
+[draft PR28](https://github.com/rrangjaa-eng/project_260923/pull/28), `codex-switch-multiple-controls`/`0422cdeaeba7c87aa144f4593360fbdb5b415c56`의 [CI95](https://github.com/rrangjaa-eng/project_260923/actions/runs/36998991950)가 workflow/job success로 종료했다. [원본 로그 증거](verification/ci95-final-results.json).
+
+| 항목 | 확인 결과 |
+|---|---|
+| 최종 전체CI |type/lint/build·unit352/352(38파일)·전체E2E369/369(39.9분) |
+| 로컬 기능/UI |새브라우저7/7(2.7분),UI101/101(4.0분,실패/스킵/불안정0) |
+| 검토/기반 |추가P1/P2 없음;PR27/a22532c 기준,테스트merge tree 동일 |
+| 저장/병합 |제품HEAD 고정,증거 `codex-pr28-verification-record`;PR27/28 draft·미병합,deploy/ZIP교체 없음 |
+
+일반 다중 선택의 Space 제안·명시 적용 증분을 완료했다. 실제PC 한국어 IME·운동 사용성·실사이트·프레임 안 multiple은 미검증이다. custom 위젯·사이트 임의 오류 원문·최근값 수집/PRIV-01 전체·native 연결은 남으며 이번 완료로 확대하지 않는다. 후속 작업은 최신 원격과 이 기록에서 이어간다. 아래는 당시 이력이다.
+
 ## draft PR28 게시 · 전체 CI 진행 — 2026-10-02 20:05 KST
 
 [draft PR28](https://github.com/rrangjaa-eng/project_260923/pull/28), `codex-switch-multiple-controls`/`0422cdeaeba7c87aa144f4593360fbdb5b415c56`를 게시했다. base는 미병합 PR27/`a22532cdf94f7f420bbb87e3e743adb9d267be98`, mergeable=true다. GitHub 테스트 merge `1e47bf8cbb6c6b6533955e9dd092e0ee96a6dd14`와 후보 tree `7729d74dac029855c4f3e0103e233cef90bd5471`이 같다.

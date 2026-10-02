@@ -21,6 +21,6 @@
 
 ## 검증 기록
 
-최종 type/lint/production build·unit352/352(38파일), 새 브라우저7/7(2.7분), 자동UI101/101(4.0분, 실패/스킵/불안정0)이 통과했다. 새 흐름의360/768/1280px 미리보기·버튼 크기·긴 라벨 overflow도 검사했다. 최종 독립 재검토의 추가P1/P2는 없었다. 최종 수치와 소스 해시는 `multiple-controls-results.json` 및 WORK-STATUS에 기록한다. 전체 CI는 새 draft PR 최종 HEAD에서 따로 확인하며 선행 PR27 CI94로 대체하지 않는다.
+최종 type/lint/production build·unit352/352(38파일), 새 브라우저7/7(2.7분), 자동UI101/101(4.0분, 실패/스킵/불안정0)이 통과했다. 새 흐름의360/768/1280px 미리보기·버튼 크기·긴 라벨 overflow도 검사했다. 최종 독립 재검토의 추가P1/P2는 없었다. 최종 수치와 소스 해시는 `multiple-controls-results.json` 및 WORK-STATUS에 기록한다. draft PR28 최종 HEAD `0422cdeaeba7c87aa144f4593360fbdb5b415c56`의 CI95도 workflow/job success로 종료했다. type/lint/production build·unit352/352(38파일)·전체브라우저369/369(39.9분). [원본 로그·HEAD·tree 증거](ci95-final-results.json). 제품 HEAD를 바꾸지 않는 `codex-pr28-verification-record` 문서 브랜치에 기록한다.
 
 새 실브라우저 검사는 최상위 HTTP 문서다. 실제 Windows 한국어 IME·운동 사용성·실사이트·프레임 안 multiple은 미검증이다. custom 위젯·임의 사이트 오류 원문·최근값 자동수집·native 전달은 이번 범위 밖이다. 기존 ZIP 및 별도 PR은 보존한다.
