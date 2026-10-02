@@ -96,5 +96,7 @@
       "exit": 0
     }
   },
-  "recorded_at": "2026-10-02T12:33:09.400238+09:00"
+  "recorded_at": "2026-10-02T12:33:09.400238+09:00",
+  "pull_request": "https://github.com/rrangjaa-eng/project_260923/pull/23",
+  "product_commit": "e10cec4f93b5887ed2eadaa3ff4889095b915fd4"
 }

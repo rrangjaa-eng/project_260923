@@ -28,3 +28,5 @@ PR22 브라우저 검사에서 일반 요청 대기 중 Space가 쉬기로 처�
 ## 남은 범위
 
 실제 Windows 한국어 IME, 실제 손 떨림/운동 사용성, 실제 사이트 검증은 미검증이다. 다음 클라우드 핵심 묶음은 Space 앞으로 이동/이동 불가 안내와 이동 요청 승인 경계 검토, 그 뒤 다중 스크롤 영역 선택 설계다. 사이트 임의 오류 원문·custom/radio/multiple 컨트롤·최근값/민감정보 자동수집·보호저장소를 무조건 확장하지 않는다. INPT-03 전체나 Phase3 완료로 표시하지 않는다.
+
+원격 인계: [draft PR23](https://github.com/rrangjaa-eng/project_260923/pull/23), base `codex-switch-navigation-guards`/53162c9, head `codex-switch-pending-stop`, 제품 `e10cec4f93b5887ed2eadaa3ff4889095b915fd4`. PR번호 기록용 문서 커밋 뒤 최종 HEAD의 전체 CI를 확인해야 한다. 제품/시험 소스 SHA256는 검증 기록과 일치한다.

@@ -11,7 +11,7 @@
 | PR20 | 243aa2c, [CI77](https://github.com/rrangjaa-eng/project_260923/actions/runs/36955570396) success: unit262/E2E341 | draft·미병합 |
 | PR21 | CI79 failure: unit272pass/E2E342pass·1fail. 안내 복원5cb98de, 기존복구6/6(1.6분) 재통과 | [CI81](https://github.com/rrangjaa-eng/project_260923/actions/runs/36959932418) 실행중 |
 | PR22 | [draft PR22](https://github.com/rrangjaa-eng/project_260923/pull/22), 제품9aa3b42→안내4fd1d5b→문서53162c9. 문서 충돌 없이 mergeable=true 확인 | [CI82](https://github.com/rrangjaa-eng/project_260923/actions/runs/36960602815) 대기중, PR merge 없음 |
-| 새 후속 | 검증 완료·커밋/별도 draft PR 생성 단계 | 생성 응답의 실제 번호로 기록 예정 |
+| 새 후속 | [draft PR23](https://github.com/rrangjaa-eng/project_260923/pull/23), codex-switch-pending-stop, 제품e10cec4 | 전체CI 별도 확인 필요·미병합 |
 
 [Space 정지 검증](verification/2026-10-02-pending-space-stop.md) · [구조화 결과](verification/pending-space-stop-results.json) · [CI79 원인·수정](verification/2026-10-02-ci79-notice.md). PR21/22의 같은 안내 수정은 이력을 보존한 cherry-pick이며 force-push·PR merge·deploy·ZIP교체 없음. 기존 늦은 이동 취소 기록은 이 문서 끝에 보존했다. 다음 후보는 앞으로 이동/이동 불가 안내·현재 명령 승인, 그 뒤 다중 스크롤 영역이다. native/C#·새민감수집·교차사이트요약은 확장하지 않는다.
 
