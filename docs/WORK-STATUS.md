@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## NAV-02 UI 시간 가정 수정 — 2026-10-03 00:37 KST
+
+첫 자동UI100/101에서 기존 팝업5회 클릭 테스트가 실패했다. 300ms 떨림 필터와 무간격5회 모두처리 가정의 충돌을 실제시각 기록으로 재현했다. 제품필터는 유지하고 테스트를350ms 간격의 의도적5회 선택·매 단계 상태 단언으로 수정했다. 빠른중복억제·pending 시작탭재연결 포함3/3(29초) 통과. [근거](verification/2026-10-03-nav02.md).
+
+PR30 제품소스는8ab3503과 동일하며 테스트/검증문서만 후속 수정한다. 새 최종HEAD의 전체CI와 자동UI를 종료까지 확인한다. 기존CI97을 새HEAD 검증으로 오인하지 않는다. 아래는 당시 기록이다.
+
 ## draft PR30 게시·최종 CI 진행 — 2026-10-03 00:35 KST
 
 [draft PR30](https://github.com/rrangjaa-eng/project_260923/pull/30), `codex-switch-nav02`/`8ab35039f673b2f77bd146b44fce54721ceaed0d`를 게시했다. base는 미병합 PR29/04373f8이며 mergeable=true다. GitHub test merge `f240833f00e657cd9c8710c6adb2fe33dc431e4a`와 후보 tree `1e909b17f881a8210a765e3bad8139661ece907b`이 같다.

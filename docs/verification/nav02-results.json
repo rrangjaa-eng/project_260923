@@ -1,12 +1,12 @@
 {
-  "checked_at": "2026-10-03T00:35:07+09:00",
+  "checked_at": "2026-10-03T00:40:57+09:00",
   "branch": "codex-switch-nav02",
-  "head": "8ab35039f673b2f77bd146b44fce54721ceaed0d",
+  "head": "af487cb92614f31c3af30b0517bc44f4977cfb8a",
   "base_pr": 29,
   "base_head": "04373f8aabf7d5baadc505132fea0ff7bc44b585",
   "pr": 30,
-  "test_merge": "f240833f00e657cd9c8710c6adb2fe33dc431e4a",
-  "candidate_and_test_merge_tree": "1e909b17f881a8210a765e3bad8139661ece907b",
+  "test_merge": "e48c5b77d4ac4eed7dbdd76f5318fe05601a3ab6",
+  "candidate_and_test_merge_tree": "7ec4f11327c13afaef8269288c3e8cbe41306d78",
   "local": {
     "typecheck": "passed",
     "lint": "passed",
@@ -27,15 +27,24 @@
       "status": "pending"
     },
     "ui": {
-      "status": "in_progress",
-      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-zMcDyj"
+      "status": "in_progress"
+    },
+    "ui_initial": {
+      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-zMcDyj",
+      "passed": 100,
+      "failed": 1,
+      "note": "기존 popup5회 무간격 시간 가정 실패; 필터 유지·입력 간격 수정"
+    },
+    "final_boundaries": {
+      "passed": 3,
+      "seconds": 29.0,
+      "note": "의도적5회·빠른중복억제·pending재연결 후효과0/unknown 차단"
     }
   },
   "ci": {
-    "number": 97,
-    "run": 37027763675,
-    "job": 110906648680,
-    "status": "in_progress",
+    "number": 98,
+    "run": 37028526772,
+    "status": "pending",
     "conclusion": null
   },
   "source_sha256": {
@@ -57,7 +66,8 @@
     "tests/unit/switch-frame-authorization.test.ts": "c93dd2ceb41c6f41226d3e11184ee6cc33c648c4d46f308a364e883145ab98e0",
     "tests/unit/switch-navigation.test.ts": "bcdc48c148fcc5af88fdb5387936df65951b7f8313552eb76e3f2fcb8d8e2c0a",
     "tests/unit/switch-phrase-relay.test.ts": "cedbfe9f49279d496bb82d0d89b4b1e2a2d4a18580ebf812037b08c525d386dd",
-    "tests/unit/switch-tab-lifecycle.test.ts": "fdbb7e8abc88ae14f6553c2af15c8d3d4f87871c78ebfa7c98caad6fd8a75e66"
+    "tests/unit/switch-tab-lifecycle.test.ts": "fdbb7e8abc88ae14f6553c2af15c8d3d4f87871c78ebfa7c98caad6fd8a75e66",
+    "tests/e2e/helper-toggle.e2e.ts": "d195dd0b68994e2e5243e59e6bd47fdcb360cfe4bb148acc62f32596793b026f"
   },
   "archived_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
   "unverified": [
@@ -66,5 +76,14 @@
     "실사이트",
     "native beforeunload/주소창/설치 UI",
     "모든 외부 탭·창 경합의 원자적 보장"
+  ],
+  "prior_ci": [
+    {
+      "number": 97,
+      "run": 37027763675,
+      "job": 110906648680,
+      "status": "in_progress",
+      "conclusion": null
+    }
   ]
 }
