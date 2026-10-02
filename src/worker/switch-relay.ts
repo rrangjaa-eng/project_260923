@@ -19,7 +19,7 @@ export function createSwitchRelay(writer: StorageWriter) {
   chrome.tabs.onActivated.addListener(({ tabId }) => {
     for (const id of frames.keys()) if (id !== tabId) { cancel(id); void chrome.tabs.sendMessage(id, { type: 'switch/pause' }).catch(() => undefined); }
   });
-  async function visibleReport(tabId: number, report: SwitchFrameReport): Promise<boolean> {
+  async function visibleReport(tabId: number, report: SwitchFrameReport, allowRefreshedReport=false): Promise<boolean> {
     const reports = frames.get(tabId);
     if (!reports || (report.frameId === 0) !== (report.path.length === 0)) return false;
     for (let depth = 0; depth < report.path.length; depth++) {
@@ -31,7 +31,8 @@ export function createSwitchRelay(writer: StorageWriter) {
         if (typeof response !== 'object' || response === null || !('result' in response) || response.result !== 'done') return false;
       } catch { return false; }
     }
-    return frames.get(tabId)?.get(report.frameId) === report;
+    const latest=frames.get(tabId)?.get(report.frameId);
+    return latest===report||allowRefreshedReport&&latest?.documentGeneration===report.documentGeneration&&JSON.stringify(latest.path)===JSON.stringify(report.path);
   }
   async function handle(raw: unknown, sender: chrome.runtime.MessageSender): Promise<unknown> {
     const parsed = SwitchMessage.safeParse(raw);
@@ -61,7 +62,24 @@ export function createSwitchRelay(writer: StorageWriter) {
       cancel(tabId);
       await chrome.tabs.sendMessage(tabId, message, { frameId: 0 }); return {};
     }
-    if (message.type === 'switch/action-check') return chrome.tabs.sendMessage(tabId, message, { frameId: 0 });
+    if (message.type === 'switch/action-check') {
+      if(frameId===0)return chrome.tabs.sendMessage(tabId,message,{frameId:0});
+      const report=frames.get(tabId)?.get(frameId);
+      if(!report)return {result:'refused'};
+      const cancellation=cancellations.get(tabId)??0;
+      cancellations.set(tabId,cancellation);
+      const current=()=>{
+        const child=frames.get(tabId)?.get(frameId);
+        return cancellations.get(tabId)===cancellation&&frames.get(tabId)?.get(0)?.documentGeneration===message.authorization.documentGeneration
+          &&child?.documentGeneration===report.documentGeneration&&JSON.stringify(child.path)===JSON.stringify(report.path);
+      };
+      if(!current()||!await visibleReport(tabId,report,true)||!current())return {result:'refused'};
+      const reply:unknown=await chrome.tabs.sendMessage(tabId,message,{frameId:0});
+      const latest=frames.get(tabId)?.get(frameId);
+      // 승인 응답이 지연되는 동안 부모가 이동하거나 문서/실행이 바뀔 수 있다.
+      if(!current()||!latest||!await visibleReport(tabId,latest,true)||!current())return {result:'refused'};
+      return reply;
+    }
     if (frameId !== 0) return { result: 'refused' };
     if (message.type === 'switch/cancel-peers') {
       cancel(tabId);

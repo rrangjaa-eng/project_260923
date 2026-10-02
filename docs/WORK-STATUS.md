@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## iframe 검증·승인 수정 체크포인트 — 2026-10-02 21:08 KST
+
+`codex-switch-frame-controls`는 PR28/0422cde 위의 후속이다. 환경 연결 알림 뒤21:06 KST에도 실제 명령과 테스트 실행을 확인했다. 정상 iframe 회귀12/12 통과 후, 승인 지연 중 iframe이 화면 밖으로 이동해도 적용되던4RED를 재현했다. worker 최종 child 승인 전후 가시성·문서·취소 재검사로4GREEN, 정상 report 갱신의2RED도 보완했다. 최종 unit364/364(39파일)·type/lint 통과. [계약·실패 재현](verification/2026-10-02-frame-controls.md).
+
+관련30건은 report 갱신 최종 보완 전 빌드로 실행 중이며, 최종 브라우저/전체CI는 아직 미확정이다. 제품 완료/실제PC 통과를 주장하지 않는다. 이 체크포인트를 원격에 저장한 뒤 검증을 계속한다. PR27/28 보존,merge/deploy·ZIP교체·새권한/수집/저장 없음. 아래는 당시 기록이다.
+
 ## PR28 최종 전체 CI 성공 — 2026-10-02 20:47 KST
 
 [draft PR28](https://github.com/rrangjaa-eng/project_260923/pull/28), `codex-switch-multiple-controls`/`0422cdeaeba7c87aa144f4593360fbdb5b415c56`의 [CI95](https://github.com/rrangjaa-eng/project_260923/actions/runs/36998991950)가 workflow/job success로 종료했다. [원본 로그 증거](verification/ci95-final-results.json).
