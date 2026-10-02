@@ -35,5 +35,37 @@
     "exit": 0,
     "command": "CI=true pnpm exec playwright test tests/e2e/switch-form-navigation.e2e.ts tests/e2e/switch-recovery.e2e.ts"
   },
-  "assertions_weakened": false
+  "assertions_weakened": false,
+  "related_terminal_ci": [
+    {
+      "run": 36960602815,
+      "job": 110693288602,
+      "unit_passed": 278,
+      "browser_passed": 343,
+      "browser_failed": 2,
+      "minutes_reported": 33.5,
+      "conclusion": "failure"
+    },
+    {
+      "run": 36960748657,
+      "job": 110693685504,
+      "unit_passed": 283,
+      "browser_passed": 345,
+      "browser_failed": 1,
+      "minutes_reported": 33.4,
+      "conclusion": "failure"
+    }
+  ],
+  "readiness_fix": {
+    "file_sha256": "bdfc84478a100caf97e3b3a5799bc1439aa75592ebc4920a5237f31674bce3b8",
+    "typecheck_exit": 0,
+    "lint_exit": 0,
+    "independent_repeats": 10,
+    "passed": 10,
+    "seconds_reported": 18.2,
+    "exit": 0,
+    "command": "CI=true pnpm exec playwright test tests/e2e/input-filter.e2e.ts --grep '움직임 줄이기' --repeat-each=10",
+    "expected_css": "0s",
+    "test_retries_added": false
+  }
 }

@@ -263,10 +263,5 @@ test('움직임 줄이기 설정이면 모드 표시 옮김 transition 시간이
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('http://practice.test/input.html');
 
-  const duration = await page.evaluate(() => {
-    const el = document.querySelector('tremor-helper-root')?.shadowRoot?.querySelector('.mode-indicator');
-    return el ? getComputedStyle(el).transitionDuration : null;
-  });
-
-  expect(duration).toBe('0s');
+  await expect(page.locator('tremor-helper-root').locator('.mode-indicator')).toHaveCSS('transition-duration', '0s');
 });
