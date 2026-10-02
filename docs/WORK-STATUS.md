@@ -6,19 +6,6 @@ PR20 CI77은 최종success(unit262/E2E341,31.6분). PR21 e736350의 CI79는 fail
 
 PR22 및 대기 중 Space 정지 후속은 보존 중이며 이 문구 수정을 순서대로 반영한다. merge/deploy·ZIP교체 없음. 아래 날짜별 대기 문구는 해당 시점 이력이다.
 
-## 대기 중 이동 취소 후속 — 2026-10-02 11:57 KST
-
-`codex-switch-navigation-guards`는 PR21/e736350 뒤의 별도 후속이다. 이전 PR20/21 HEAD는 유지한다. 탭 조회/ping/pause 응답 대기 중 쉬기·끄기·source탭제거 후 늦은 뒤로/탭활성화가 실행되는 경계를 worker6줄로 막았다. 독립 검토가 찾은 삭제된 취소카운터 P2도 RED→GREEN으로 수정했다.
-
-| 항목 | 실제 확인 | 남은 범위 |
-|---|---|---|
-| 단위 | 첫2RED/2GREEN, 탭제거 추가1RED/5GREEN, 최종신규6/6·전체278/278 | 일반 pending Space 정지는 별도 미지원 |
-| 실제 브라우저 | 첫1fail/2pass: 기존한글전체여정·탭제거pass, pending Space 쉬기 가정fail. 실제 초점이탈 쉬기로 좁힌 최종취소2/2pass22.6초 | 최초3개 전체통과로 표현하지 않음 |
-| 변경범위 | worker 취소검사6줄, UI/메시지/권한/의존성 불변 | 전달 전 모든지연·이미실행한이동 취소를 보장하지 않음 |
-| Git/CI | 후속 PR 미생성, 소스·증거 보존 준비 | PR20 CI77·PR21 CI79 전체검사 실행중 |
-
-[검증·다음 우선순위](verification/2026-10-02-navigation-cancel.md), [구조화 근거](verification/navigation-cancel-results.json). 다음 핵심은 **일반 실행 대기 중 Space 정지**, 이후 앞으로 이동/실패안내, 그 다음 다중스크롤영역 설계다. C#/native/USB·민감수집/교차사이트요약은 확장하지 않는다. 회사시스템 시험·merge/deploy·ZIP교체 없음.
-
 ## 재개·텍스트 재적용 확인 — 2026-10-02 11:40 KST
 
 PR19 뒤에 이미 보존된 `codex-form-controls-errors`/`243aa2c`를 발견해 중복 구현하지 않고 [draft PR20](https://github.com/rrangjaa-eng/project_260923/pull/20)으로 연결했다. PR20 base는 `codex-switch-form-navigation`/`930ab0f`이며 main은 변경하지 않았다. 이번 재개에서 PR20 소스의 타입·린트·단위262/262와 production 선택흐름6/6(3.8분, exit0)을 새로 확인했다. [CI77](https://github.com/rrangjaa-eng/project_260923/actions/runs/36955570396)은 실행 중이며 성공으로 계산하지 않는다. PR19 [CI76](https://github.com/rrangjaa-eng/project_260923/actions/runs/36948311828)은 단위251/브라우저335 success였고 아래 과거의 PR생성·CI대기 문구를 현재 상태로 사용하지 않는다.
@@ -202,3 +189,16 @@ PR16 source c608d00의 CI70는 E2E313건 단언 통과 뒤 20분 단계 timeout�
 ## 2026-10-02 01:12 KST: 만료 후 쉬기 복귀 경계
 
 전체CI69가 실행되는 동안 expiry 경계를 추가 점검했다. page.clock으로 실제연습화면에서 쉬기뒤61초를 앞당긴 다음 같은파일을고르면 flow.select가거절되나 UI의 executing이남아 Space종료메뉴로 돌아오지 못하는 RED1fail을 확인했다. 실패한선택도 적용0·새시작ready로돌아오도록 최소수정했다. 새시작Space는 재개만 하고 종료까지Space만으로가능한 실제회귀를 포함해 **최종관련UI7/7pass,1.4분,exit0**다. 최종type/lint도exit0. 이실제제품수정때문에 기존CI69를최종통과로사용하지 않고 새HEAD 전체CI를확인한다. 환경/권한변경이나 같은소스의 중복전체실행이아니다.
+
+## 대기 중 이동 취소 후속 — 2026-10-02 11:57 KST
+
+`codex-switch-navigation-guards`는 PR21/e736350 뒤의 별도 후속이다. 이전 PR20/21 HEAD는 유지한다. 탭 조회/ping/pause 응답 대기 중 쉬기·끄기·source탭제거 후 늦은 뒤로/탭활성화가 실행되는 경계를 worker6줄로 막았다. 독립 검토가 찾은 삭제된 취소카운터 P2도 RED→GREEN으로 수정했다.
+
+| 항목 | 실제 확인 | 남은 범위 |
+|---|---|---|
+| 단위 | 첫2RED/2GREEN, 탭제거 추가1RED/5GREEN, 최종신규6/6·전체278/278 | 일반 pending Space 정지는 별도 미지원 |
+| 실제 브라우저 | 첫1fail/2pass: 기존한글전체여정·탭제거pass, pending Space 쉬기 가정fail. 실제 초점이탈 쉬기로 좁힌 최종취소2/2pass22.6초 | 최초3개 전체통과로 표현하지 않음 |
+| 변경범위 | worker 취소검사6줄, UI/메시지/권한/의존성 불변 | 전달 전 모든지연·이미실행한이동 취소를 보장하지 않음 |
+| Git/CI | 후속 PR 미생성, 소스·증거 보존 준비 | PR20 CI77·PR21 CI79 전체검사 실행중 |
+
+[검증·다음 우선순위](verification/2026-10-02-navigation-cancel.md), [구조화 근거](verification/navigation-cancel-results.json). 다음 핵심은 **일반 실행 대기 중 Space 정지**, 이후 앞으로 이동/실패안내, 그 다음 다중스크롤영역 설계다. C#/native/USB·민감수집/교차사이트요약은 확장하지 않는다. 회사시스템 시험·merge/deploy·ZIP교체 없음.
