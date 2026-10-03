@@ -1,0 +1,172 @@
+{
+  "feature": "NAV-05 최상위 문서 번호 고정 설정",
+  "product_branch": "codex-switch-pin-settings",
+  "product_commit": "e590416bda80434390f1defbe8f3bb7aa2ab3ef2",
+  "implementation_commit": "dc753ba908175362b02a3d8f527d367d3fb841ed",
+  "base_commit": "3454494ac6a532a1b82b1c83b07383726a2b862a",
+  "pull_request": "https://github.com/rrangjaa-eng/project_260923/pull/35",
+  "draft": true,
+  "merged": false,
+  "local_checks": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "passed": 477,
+      "files": 47,
+      "failed": 0
+    },
+    "feature_browser": {
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "duration_reported": "6.5m",
+      "command": "CI=true pnpm test:e2e tests/e2e/switch-pin-settings.e2e.ts"
+    },
+    "regression_browser": {
+      "passed": 72,
+      "failed": 0,
+      "skipped": 0,
+      "duration_reported": "7.9m",
+      "command": "CI=true pnpm test:e2e tests/e2e/hints.e2e.ts tests/e2e/switch-navigation-cancel.e2e.ts tests/e2e/switch-form-navigation.e2e.ts tests/e2e/doc-editor.e2e.ts tests/e2e/editor-frames.e2e.ts"
+    },
+    "ui_review": {
+      "passed": 101,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "duration_reported": "4.0m",
+      "command": "ui-review",
+      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-neafNG"
+    }
+  },
+  "independent_review": {
+    "resolved_p2": 5,
+    "final_actionable_p1_p2": 0,
+    "kind": "read-only review, execution verified separately"
+  },
+  "security_review": {
+    "trusted_sender": "extension runtime id, frameId=0, sender HTTP(S) URL and current tab URL",
+    "authorization": "exact pending pin proposal, document and cancellation generation; two content checks around shared quota wait",
+    "write_boundary": "single storage writer, expected pins comparison, observed sync-change refusal, 8KB site limit; unknown after attempted write does not retry",
+    "privacy": "no input values in new pins; excludes editable composites and external editable labels",
+    "limitations": [
+      "Chrome sync is not a cross-device atomic compare-and-swap",
+      "No new permissions or dependencies"
+    ]
+  },
+  "design_review": {
+    "implementation": "existing Shadow DOM panel/tokens, cancel-first 1 second guard, full-name paged comparison",
+    "measured_feature_viewports": [
+      360,
+      768,
+      1280
+    ],
+    "long_name_viewport": 360,
+    "limits": "DOM checks on stated flows only; not a full WCAG or motor-usability certification"
+  },
+  "ci": {
+    "status": "completed",
+    "run_number": 107,
+    "run_id": 37116310333,
+    "job_id": 111183742731,
+    "url": "https://github.com/rrangjaa-eng/project_260923/actions/runs/37116310333",
+    "test_merge_commit": "0ed0026f0335299003a2abc21fc9a49d1c6e96fd",
+    "product_and_test_merge_tree": "4622c8a7ff5fad4cafacf259debe1a63dca152da",
+    "conclusion": "success",
+    "completed_at_utc": "2026-10-03T11:36:05Z",
+    "completed_at_kst": "2026-10-03 20:36:05 KST",
+    "unit": {
+      "passed": 477,
+      "total": 477,
+      "files": 47
+    },
+    "browser": {
+      "passed": 435,
+      "total": 435,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "elapsed_seconds": 4214.073,
+      "duration": "70m14.073s"
+    },
+    "evidence": "ci107-final-results.json"
+  },
+  "remaining": [
+    "iframe/custom/native composite pin settings",
+    "NAV-06 explicit double-click",
+    "real Windows Korean IME and motor usability",
+    "real work sites/native UI and two-PC sync"
+  ],
+  "preserved": {
+    "main": "9394b0146f9ba169f57e47ce3274bdff57b74dfe",
+    "pr31": "c0b277c38d36afeac0e751cb83d0d4b780b31498",
+    "pr32": "97a9a96c630834ae408d21bb0131cee8f31357a2",
+    "pr33": "cc95a59d19766104ff419f36627eee66e9afceea",
+    "pr34": "3454494ac6a532a1b82b1c83b07383726a2b862a",
+    "zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb"
+  },
+  "merge_deploy_zip_replace": false,
+  "superseded_pre_null_fix": {
+    "product_commit": "c349f36582a29a3be90416c9ec97e5fd0cafcb24",
+    "local_checks": {
+      "typecheck": "passed",
+      "lint": "passed",
+      "unit": {
+        "passed": 472,
+        "files": 47,
+        "failed": 0
+      },
+      "feature_browser": {
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0,
+        "duration_reported": "6.3m",
+        "command": "CI=true pnpm test:e2e tests/e2e/switch-pin-settings.e2e.ts",
+        "commit": "c349f36582a29a3be90416c9ec97e5fd0cafcb24"
+      },
+      "regression_browser": {
+        "passed": 72,
+        "failed": 0,
+        "skipped": 0,
+        "duration_reported": "7.9m",
+        "command": "CI=true pnpm test:e2e tests/e2e/hints.e2e.ts tests/e2e/switch-navigation-cancel.e2e.ts tests/e2e/switch-form-navigation.e2e.ts tests/e2e/doc-editor.e2e.ts tests/e2e/editor-frames.e2e.ts"
+      },
+      "ui_review": {
+        "passed": 101,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0,
+        "duration_reported": "3.8m",
+        "command": "ui-review",
+        "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-3vNCmH"
+      }
+    },
+    "ci": {
+      "status": "completed",
+      "run_number": 106,
+      "run_id": 37113432080,
+      "job_id": 111175617926,
+      "url": "https://github.com/rrangjaa-eng/project_260923/actions/runs/37113432080",
+      "test_merge_commit": "8dfb976aba6d6ab62dbef84a8a907449c88b72b8",
+      "product_and_test_merge_tree": "3f3b198e30db5a6d4c709b755e50aa601216b746",
+      "conclusion": "cancelled"
+    },
+    "verification_record_commit": "88f877a618c869ea5e3bf5c4549f3c89daa6fa89"
+  },
+  "malformed_original_fix": {
+    "source_commit": "e590416bda80434390f1defbe8f3bb7aa2ab3ef2",
+    "behavioral_red": 2,
+    "related_unit_passed": 47,
+    "focused_browser_passed": 1,
+    "focused_browser_duration": "19.1s",
+    "boundary": "Only an absent/undefined site entry initializes; null and malformed scalar originals are preserved without writes",
+    "independent_review": "No additional P1/P2; read-only review"
+  },
+  "recorded_at_kst": "2026-10-03 20:36 KST",
+  "local_log_sha256": {
+    "unit": "c78e6814857a6e05b31878a2065fffc9d860d8abbb0d73e95c30f14d3d6b232c",
+    "feature_browser": "5c415a227dc8c3b6bcfbcd1ff5e36b0b4de4ebd7d62c7539accb0096c6c9f8dc",
+    "regression_browser": "17ee1683f99c633087149b806c90c2c1666eaaf55248a0a419cfeb42e8b6c69b",
+    "ui_results": "0b5c24242488b13c5f06d85c253ee03175c45aa7ef671c858069832077da7745"
+  }
+}

@@ -70,7 +70,8 @@ async function fixture(readDraft?: () => Promise<{ text: string }>,helperPage=fa
   async function setEnabled(next: boolean) { enabled = next; controller.enabledChanged(); await vi.advanceTimersByTimeAsync(1); }
   async function begin() { listeners.forEach((listener) => listener({ type: 'switch/begin', url: location.href }, { id: 'unit-extension' }, () => undefined)); await vi.advanceTimersByTimeAsync(1); }
   async function capture() { if (view.state?.mode === 'paused' || view.state?.mode === 'ready') await press(); await choose('찾기'); await choose('문장'); }
-  return { setPins:(value:unknown[])=>{sitePins=value;storageListeners.forEach(listener=> { listener({[`site:${location.origin}`]:{newValue:{schemaVersion:1,data:{disabled:false,pins:value}}}},'sync'); });}, buttonFingerprint:buttonItem.fingerprint, requests, holdExecute:(reply:(raw:unknown)=>Promise<unknown>)=>{executeReply=reply;}, navigation, controller, field, button, setEnabled, press, choose, begin, capture, reportChange: () => { reportChange(); } };
+  const deliver=(raw:unknown)=>new Promise(resolve=>{listeners.forEach(listener=>listener(raw,{id:'unit-extension'},resolve));});
+  return { deliver, setPins:(value:unknown[])=>{sitePins=value;storageListeners.forEach(listener=> { listener({[`site:${location.origin}`]:{newValue:{schemaVersion:1,data:{disabled:false,pins:value}}}},'sync'); });}, buttonFingerprint:buttonItem.fingerprint, requests, holdExecute:(reply:(raw:unknown)=>Promise<unknown>)=>{executeReply=reply;}, navigation, controller, field, button, setEnabled, press, choose, begin, capture, reportChange: () => { reportChange(); } };
 }
 
 
@@ -209,4 +210,30 @@ it('changing saved pins during the target confirmation prevents the old button f
 it('refuses a null site original instead of presenting empty pin slots',async()=>{
  const f=await fixture(undefined,false,true);await f.setEnabled(true);await f.press();await f.choose('읽기·이동');
  chrome.storage.sync.get=()=>Promise.resolve({[`site:${location.origin}`]:null});await f.choose('번호 고정 설정');expect(view.notice).toContain('고정 설정을 읽지 못했어요');expect(view.state?.items.some(item=>item.id==='pin-slot:1')).toBe(false);
+});
+
+it('explicit doubleclick previews and cancels without effects, then delivers only dblclick after confirmation',async()=>{
+ const f=await fixture(undefined,false,true);let clicks=0,doubles=0;f.button.addEventListener('click',()=>clicks++);f.button.addEventListener('dblclick',()=>doubles++);
+ await f.setEnabled(true);await f.press();await f.choose('읽기·이동');await f.choose('더블클릭 · 제한');await f.choose('대상 · 열기');
+ expect(view.state?.mode).toBe('confirming');expect(view.text).toContain('열기');expect(view.notice).toContain('일반 클릭 없이');
+ await vi.advanceTimersByTimeAsync(1100);await f.choose('취소');expect([clicks,doubles]).toEqual([0,0]);
+ await f.choose('대상 · 열기');await vi.advanceTimersByTimeAsync(1100);await f.choose('확인 · 더블클릭 전달');expect([clicks,doubles]).toEqual([0,1]);expect(view.notice).toContain('사이트 결과를 확인');
+});
+
+async function doubleFixture(){const f=await fixture(undefined,false,true);await f.setEnabled(true);await f.press();await f.choose('읽기·이동');await f.choose('더블클릭 · 제한');await f.choose('대상 · 열기');await vi.advanceTimersByTimeAsync(1100);return f;}
+it('doubleclick approval cannot be substituted with an ordinary press',async()=>{
+ const f=await doubleFixture();let clicks=0,doubles=0;f.button.addEventListener('click',()=>clicks++);f.button.addEventListener('dblclick',()=>doubles++);
+ f.holdExecute(raw=>{const message=raw as {action:Record<string,unknown>};return f.deliver({...message,action:{...message.action,kind:'press'}});});
+ await f.choose('확인 · 더블클릭 전달');expect([clicks,doubles]).toEqual([0,0]);
+});
+it.each(['reinserted','identity','disabled','pause'])('doubleclick refuses late execution after %s',async boundary=>{
+ const f=await doubleFixture();let events=0;f.button.addEventListener('click',()=>events++);f.button.addEventListener('dblclick',()=>events++);
+ let release=()=>{};f.holdExecute(raw=>new Promise(resolve=>{release=()=>{void f.deliver(raw).then(resolve);};}));await f.choose('확인 · 더블클릭 전달');
+ if(boundary==='pause')f.controller.pause();else if(boundary==='identity')f.button.type='submit';else if(boundary==='disabled')f.button.disabled=true;else{f.button.remove();document.body.append(f.button);}
+ release();await vi.advanceTimersByTimeAsync(1);expect(events).toBe(0);
+});
+it('lost doubleclick acknowledgment never repeats delivery, even after explicit retry',async()=>{
+ const f=await doubleFixture();let doubles=0;f.button.addEventListener('dblclick',()=>doubles++);
+ f.holdExecute(async raw=>{await f.deliver(raw);return {result:'unknown'};});await f.choose('확인 · 더블클릭 전달');expect(doubles).toBe(1);expect(view.state?.mode).toBe('recovering');
+ await f.press();await f.choose('확인 · 더블클릭 전달');expect(doubles).toBe(1);
 });

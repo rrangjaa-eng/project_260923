@@ -124,3 +124,26 @@ it('metadata cannot read a control or contenteditable root through aria-labelled
     expect(JSON.stringify(reportSwitchItem(item,el))).not.toContain('private-value');
   }
 });
+
+it('explicit doubleClick dispatches only one bubbling detail-2 dblclick, without click, focus or press fallback', () => {
+  const f=fixture('button');f.el.setAttribute('type','button');
+  const events:{type:string;detail:number}[]=[];
+  const parent=document.createElement('div');document.body.append(parent);parent.append(f.el);
+  for(const type of ['pointerdown','mousedown','focus','click','dblclick'])parent.addEventListener(type,event=>{events.push({type,detail:(event as MouseEvent).detail});},{once:true,capture:true});
+  const action={...f.action,kind:'doubleClick' as SwitchTargetAction['kind'],confirmed:true,expectedIdentity:reportSwitchItem(f.collector.items()[0] as Item,f.el).identity};
+  expect(executeSwitchAction(f.collector,action,f.press).result).toBe('done');
+  expect(events).toEqual([{type:'dblclick',detail:2}]);expect(f.press).not.toHaveBeenCalled();
+});
+
+it('doubleClick refuses unconfirmed, frame, dangerous and non-native-button targets without any fallback',()=>{
+ for(const scenario of ['unconfirmed','frame','danger','link','submit','reset','editable','nested-input','disabled']){
+  const f=fixture(scenario==='link'?'a':'button');f.el.setAttribute('type',scenario==='submit'?'submit':scenario==='reset'?'reset':'button');
+  if(scenario==='danger')f.change({danger:true});
+  if(scenario==='editable')f.el.setAttribute('contenteditable','true');
+  if(scenario==='nested-input')f.el.append(document.createElement('input'));
+  if(scenario==='disabled')f.el.setAttribute('disabled','');
+  let effects=0;f.el.addEventListener('dblclick',()=>effects++);f.el.addEventListener('click',()=>effects++);
+  const action={...f.action,kind:'doubleClick' as SwitchTargetAction['kind'],confirmed:scenario!=='unconfirmed',target:{...f.action.target,frameId:scenario==='frame'?1:0},expectedIdentity:reportSwitchItem(f.collector.items()[0] as Item,f.el).identity};
+  expect(executeSwitchAction(f.collector,action,f.press).result).toBe('refused');expect(effects).toBe(0);expect(f.press).not.toHaveBeenCalled();
+ }
+});

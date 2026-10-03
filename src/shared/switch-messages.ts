@@ -17,7 +17,7 @@ export const FormControl = z.discriminatedUnion('kind', [
 export type FormControl = z.infer<typeof FormControl>;
 export const SwitchTargetAction = z.object({
   actionId: z.string().max(150), target: Target,
-  kind: z.enum(['capture', 'press', 'applyText', 'previewUndo', 'undoText', 'restoreText', 'search', 'captureControl', 'applyControl', 'readValidity']), text: z.string().max(4000).optional(), expectedValue: z.string().max(4000).optional(),
+  kind: z.enum(['capture', 'press', 'doubleClick', 'applyText', 'previewUndo', 'undoText', 'restoreText', 'search', 'captureControl', 'applyControl', 'readValidity']), text: z.string().max(4000).optional(), expectedValue: z.string().max(4000).optional(),
   undoToken: z.string().min(1).max(150).optional(), selection: TextSelection.optional(), control: FormControl.optional(), controlIndices:Indices.optional(), controlIndex:z.number().int().min(0).max(99).optional(), controlChecked:z.boolean().optional(),
   expectedIdentity: z.string(), confirmed: z.boolean().optional(),
   authorization: Authorization,
@@ -33,7 +33,7 @@ export const SwitchMessage = z.discriminatedUnion('type', [
   z.object({ type: z.literal('switch/list') }),
   z.object({ type: z.literal('switch/refresh') }),
   z.object({ type: z.literal('switch/frame-check'), childIndex: z.number().int().nonnegative(), documentGeneration: z.string().max(100) }),
-  z.object({ type: z.literal('switch/action-check'), authorization: Authorization, navigation: Navigation.optional(), pin: PinMutation.optional() }),
+  z.object({ type: z.literal('switch/action-check'), authorization: Authorization, navigation: Navigation.optional(), pin: PinMutation.optional(), doubleClick: SwitchTargetAction.optional() }),
   z.object({ type: z.literal('switch/execute'), action: SwitchTargetAction }),
   z.object({ type: z.literal('switch/key'), kind: z.enum(['keyDown', 'keyUp']), repeat: z.boolean(), isComposing: z.boolean(), modified: z.boolean() }),
   z.object({ type: z.literal('switch/pause'), invalidate: z.boolean().optional(), reason:z.literal('return-after-close').optional() }),
