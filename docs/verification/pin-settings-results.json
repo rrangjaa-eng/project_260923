@@ -1,0 +1,99 @@
+{
+  "feature": "NAV-05 최상위 문서 번호 고정 설정",
+  "product_branch": "codex-switch-pin-settings",
+  "product_commit": "c349f36582a29a3be90416c9ec97e5fd0cafcb24",
+  "implementation_commit": "dc753ba908175362b02a3d8f527d367d3fb841ed",
+  "base_commit": "3454494ac6a532a1b82b1c83b07383726a2b862a",
+  "pull_request": "https://github.com/rrangjaa-eng/project_260923/pull/35",
+  "draft": true,
+  "merged": false,
+  "local_checks": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "passed": 472,
+      "files": 47,
+      "failed": 0
+    },
+    "feature_browser": {
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "duration_reported": "6.3m",
+      "command": "CI=true pnpm test:e2e tests/e2e/switch-pin-settings.e2e.ts",
+      "commit": "c349f36582a29a3be90416c9ec97e5fd0cafcb24"
+    },
+    "regression_browser": {
+      "passed": 72,
+      "failed": 0,
+      "skipped": 0,
+      "duration_reported": "7.9m",
+      "command": "CI=true pnpm test:e2e tests/e2e/hints.e2e.ts tests/e2e/switch-navigation-cancel.e2e.ts tests/e2e/switch-form-navigation.e2e.ts tests/e2e/doc-editor.e2e.ts tests/e2e/editor-frames.e2e.ts"
+    },
+    "ui_review": {
+      "passed": 101,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "duration_reported": "3.8m",
+      "command": "ui-review",
+      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-3vNCmH"
+    }
+  },
+  "independent_review": {
+    "resolved_p2": 5,
+    "final_actionable_p1_p2": 0,
+    "kind": "read-only review, execution verified separately"
+  },
+  "security_review": {
+    "trusted_sender": "extension runtime id, frameId=0, sender HTTP(S) URL and current tab URL",
+    "authorization": "exact pending pin proposal, document and cancellation generation; two content checks around shared quota wait",
+    "write_boundary": "single storage writer, expected pins comparison, observed sync-change refusal, 8KB site limit; unknown after attempted write does not retry",
+    "privacy": "no input values in new pins; excludes editable composites and external editable labels",
+    "limitations": [
+      "Chrome sync is not a cross-device atomic compare-and-swap",
+      "No new permissions or dependencies"
+    ]
+  },
+  "design_review": {
+    "implementation": "existing Shadow DOM panel/tokens, cancel-first 1 second guard, full-name paged comparison",
+    "measured_feature_viewports": [
+      360,
+      768,
+      1280
+    ],
+    "long_name_viewport": 360,
+    "limits": "DOM checks on stated flows only; not a full WCAG or motor-usability certification"
+  },
+  "ci": {
+    "status": "running",
+    "run_number": 106,
+    "run_id": 37113432080,
+    "job_id": 111175617926,
+    "url": "https://github.com/rrangjaa-eng/project_260923/actions/runs/37113432080",
+    "test_merge_commit": "8dfb976aba6d6ab62dbef84a8a907449c88b72b8",
+    "product_and_test_merge_tree": "3f3b198e30db5a6d4c709b755e50aa601216b746"
+  },
+  "remaining": [
+    "iframe/custom/native composite pin settings",
+    "NAV-06 explicit double-click",
+    "real Windows Korean IME and motor usability",
+    "real work sites/native UI and two-PC sync"
+  ],
+  "preserved": {
+    "main": "9394b0146f9ba169f57e47ce3274bdff57b74dfe",
+    "pr31": "c0b277c38d36afeac0e751cb83d0d4b780b31498",
+    "pr32": "97a9a96c630834ae408d21bb0131cee8f31357a2",
+    "pr33": "cc95a59d19766104ff419f36627eee66e9afceea",
+    "pr34": "3454494ac6a532a1b82b1c83b07383726a2b862a",
+    "zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb"
+  },
+  "merge_deploy_zip_replace": false,
+  "recorded_at_kst": "2026-10-03 18:52 KST",
+  "local_log_sha256": {
+    "unit": "e903d0f26ace6eee3ca87544775450043f3b3dc1f48f7e09c2e2de8886b70155",
+    "feature_browser": "b141e864da48dc7d2c3bdf56c944296c339bec8fe173416f8d0f6af4c075f700",
+    "regression_browser": "2e20d25dea78507f53cb2e4742f1865fcbac5fef1950889ff54ec29b4550fd2d",
+    "ui_results": "a0e0020e272649227181984cf2252e6f89571a42c860e058fce5ee8edc5857d3"
+  }
+}

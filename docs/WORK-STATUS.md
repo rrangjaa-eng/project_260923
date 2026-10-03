@@ -1,5 +1,20 @@
 # 작업 현황표
 
+## PR35 로컬 검증 완료·CI106 진행 중 — 2026-10-03 18:52 KST
+
+[draft PR35](https://github.com/rrangjaa-eng/project_260923/pull/35), 제품 `codex-switch-pin-settings`/`c349f36582a29a3be90416c9ec97e5fd0cafcb24`. [계약·실패 재현](verification/2026-10-03-pin-settings.md), [구조화된 검증 결과](verification/pin-settings-results.json).
+
+| 항목 | 최종 로컬 근거 |
+|---|---|
+| 타입·린트·단위 | 통과, unit472/472(47파일) |
+| 새 번호 고정 기능 | Chromium14/14,6.3분 |
+| 기존 기능 회귀 | 72/72,7.9분 |
+| 자동UI | 101/101,3.8분, 실패/flaky/skip0 |
+| 독립 읽기 검토 | 5개P2 재현·보완, 최종 추가P1/P2 없음 |
+| 전체CI106 | 실행 중 — 아직 최종 성공으로 세지 않음 |
+
+PR31–35 draft·미병합, main9394b01와 기존 ZIP 보존. NAV-05 iframe/custom 고정·NAV-06 명시 더블클릭 및 실제 Windows IME/운동 사용성/실사이트·native UI/두 PC 검증은 남아 있다. 새 merge/deploy/ZIP교체 없음. 아래는 당시 기록이다.
+
 ## NAV-05 번호 고정 설정 구현·최종 검증 중 — 2026-10-03 18:30 KST
 
 PR34/3454494의 최종CI104(unit441/browser420) 성공을 기준으로 `codex-switch-pin-settings`를 분기했다. 최상위 HTTP(S) 문서의 일반 버튼·링크1–9 고정/교체/해제와 Space 고정 목록 실행을 연결했다. [범위·실패 재현·남은 항목](verification/2026-10-03-pin-settings.md).

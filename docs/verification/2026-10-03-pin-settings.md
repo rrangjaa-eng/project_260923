@@ -36,3 +36,16 @@
 ## unknown 응답 검사 수정
 
 선행 추가 Chromium13건은12pass/1fail(6.0분)이었다. 실패는 저장 acknowledgement를 유실시켰을 때 기존 엔진의 `recovering`을 `paused`로 예상한 테스트 가정이었다. 엔진의 unknown 상태 계약은 유지하고, `recovering`·결과 확인 안내·새 Space 뒤 재확인을 선택해도 storage 쓰기1회/사이트 클릭0회를 검증하도록 바꿨다. 제품 소스는 `dc753ba`와 동일하다. 최종 scroll 응답 지연 경계와 함께 재검증한다.
+
+## 최종 로컬 검증 — 2026-10-03 18:52 KST
+
+[draft PR35](https://github.com/rrangjaa-eng/project_260923/pull/35), 제품 `codex-switch-pin-settings`/`c349f36582a29a3be90416c9ec97e5fd0cafcb24`. 구현 소스는 dc753ba와 동일하며 unknown 검사 기대값/재확인 assertion과 문서만 후속 수정했다.
+
+- typecheck/lint·전체unit472/472(47파일) 통과.
+- 최종 기능 Chromium14/14(6.3분), 실패/skip0.
+- 기존 번호표·이동 취소·양식 이동·일반/프레임 편집기 회귀72/72(7.9분), 실패/skip0.
+- 자동UI101/101(3.8분), 실패/flaky/skip0. DOM 실측 범위와 실제 기기 한계를 구분한다.
+- 독립 최종 읽기 검토 추가 actionable P1/P2 없음. cso 검토에서 출처/문서/정확한 승인 제안·단일 저장자·quota/sync 변경·unknown 무재시도 경계를 확인했다. 입력값을 고정 설정에 새로 저장하지 않으며 외부 editable 라벨을 제외한다. 새 권한/의존성 없음.
+- 디자인은 기존 Shadow DOM 작업판과 토큰을 유지한다. 새 고정 미리보기의360/768/1280px 경계·표적56px 이상,360px 긴 이름 전체 페이지 읽기를 실제 DOM으로 확인했다. 전체 WCAG/운동 사용성 통과로 확대하지 않는다.
+
+[구조화된 결과](pin-settings-results.json). [CI106](https://github.com/rrangjaa-eng/project_260923/actions/runs/37113432080)은 전체 브라우저 단계 실행 중이며 아직 최종 성공이 아니다. GitHub 검사 커밋8dfb976과 제품 c349f36의 tree는 모두3f3b198e30db5a6d4c709b755e50aa601216b746이다. 제품HEAD를 고정한 별도 검증 기록 브랜치에서 CI 종료 결과를 추가한다.
