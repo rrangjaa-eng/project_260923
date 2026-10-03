@@ -44,7 +44,7 @@ async function fixture(readDraft?: () => Promise<{ text: string }>,helperPage=fa
         requests.push(raw);
         const message = raw as { type: string; documentGeneration?: string; items?: SwitchFrameReport['items']; text?: string };
         if (message.type === 'switch/report') { frames = [{ frameId: 0, documentGeneration: message.documentGeneration ?? '', path: [], items: message.items ?? [] }]; return { tabId: 1 }; }
-        if (message.type === 'switch/list') return listReply?listReply():{ tabId: 1, frames };
+        if (message.type === 'switch/list') return listReply?listReply():{ tabId: 1, frames, uncertainFrames:[] };
         if (message.type === 'switch/draft/read') return readDraft ? readDraft() : { text: storedDraft };
         if (message.type === 'switch/draft') { storedDraft = message.text ?? ''; return { ok: true }; }
         if(message.type==='switch/navigation'){ navigation.push(raw); const m=raw as {kind:string};return m.kind==='close-preview'?{result:'done',token:'preview',title:'돌아갈 곳'}:{result:'done'};}
@@ -303,4 +303,11 @@ it('a collector change while the final list reply is pending preserves the unava
 it('a changed remote frame report during final list lookup preserves the selected stored draft',async()=>{
  const f=await fixture();await f.setEnabled(true);await f.capture();await f.choose('양식 한 장 보기');await f.choose('문장');await f.choose('띄어쓰기');const pending=view.text;await f.choose('양식 목록');f.field.remove();await f.choose('양식 목록 새로 읽기');await f.choose('보관 문장');await f.choose('보관 1 · 문장');await f.choose('이 보관 문장 버리기');
  let release:(value:unknown)=>void=()=>{};f.holdList(()=>new Promise(resolve=>{release=resolve;}));await vi.advanceTimersByTimeAsync(1001);await f.choose('확인 · 이 보관 문장 버리기');const finalReply=release;void f.deliver({type:'switch/refresh',changed:true});finalReply({tabId:1,frames:[]});await vi.advanceTimersByTimeAsync(1);expect(view.text).toContain(pending);expect(view.notice).toContain('보존');
+});
+
+it.each([undefined,[0],['bad']])('unknown final list confidence %j preserves an unavailable draft',async uncertainFrames=>{
+ const f=await fixture();await f.setEnabled(true);await f.capture();await f.choose('양식 한 장 보기');await f.choose('문장');await f.choose('띄어쓰기');const pending=view.text;await f.choose('양식 목록');f.field.remove();await f.choose('양식 목록 새로 읽기');await f.choose('보관 문장');await f.choose('보관 1 · 문장');await f.choose('이 보관 문장 버리기');f.holdList(()=>Promise.resolve({tabId:1,frames:[],uncertainFrames}));await vi.advanceTimersByTimeAsync(1001);await f.choose('확인 · 이 보관 문장 버리기');expect(view.text).toContain(pending);expect(view.notice).toContain('보존');
+});
+it('an unrelated uncertain frame does not block explicit disposal of the current frame draft',async()=>{
+ const f=await fixture();await f.setEnabled(true);await f.capture();await f.choose('양식 한 장 보기');await f.choose('문장');await f.choose('띄어쓰기');await f.choose('양식 목록');f.field.remove();await f.choose('양식 목록 새로 읽기');await f.choose('보관 문장');await f.choose('보관 1 · 문장');await f.choose('이 보관 문장 버리기');f.holdList(()=>Promise.resolve({tabId:1,frames:[],uncertainFrames:[1]}));await vi.advanceTimersByTimeAsync(1001);await f.choose('확인 · 이 보관 문장 버리기');expect(view.text).toBe('가👍🏽나');expect(view.notice).toContain('버렸어요');
 });

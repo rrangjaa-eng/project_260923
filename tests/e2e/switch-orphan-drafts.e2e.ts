@@ -44,3 +44,19 @@ test('a cross-origin field returning during the final list reply keeps its store
  await serviceWorker.evaluate(()=>{const held=(globalThis as typeof globalThis&{orphanHeld:{active:boolean;releases:(()=>void)[]}}).orphanHeld;held.active=false;held.releases.splice(0).forEach(release=>{release();});});
  await expect(panel.locator('.switch-status')).toContainText('보존');await expect(panel.locator('.switch-draft')).toContainText(pending??'missing draft');await expect(input).toHaveValue('프레임 보존');
 });
+test('an unknown final iframe visibility reply cannot authorize discarding its restored field draft',async({context,serviceWorker,servePage})=>{
+ test.setTimeout(180000);servePage('http://practice.test/orphan-unknown.html','<iframe id="child" style="width:340px;height:220px" src="http://other.test/orphan-unknown-child.html"></iframe>');servePage('http://other.test/orphan-unknown-child.html','<input aria-label="자식 문장" value="알 수 없음 보존">');
+ const page=await context.newPage();await page.goto('http://practice.test/orphan-unknown.html');await startSwitch(page);await chooseSwitch(page,'글쓰기');await chooseSwitch(page,'양식 한 장 보기');await chooseSwitch(page,'자식 문장');await chooseSwitch(page,'띄어쓰기');const panel=page.locator('tremor-helper-root').locator('.switch-panel');const pending=await panel.locator('.switch-draft').textContent();await chooseSwitch(page,'양식 목록');const input=page.frameLocator('#child').locator('input');await input.evaluate(el=>{el.setAttribute('aria-label','새 이름');});await chooseSwitch(page,'양식 목록 새로 읽기');await chooseSwitch(page,'보관 문장');await chooseSwitch(page,'보관 1 · 자식 문장');await chooseSwitch(page,'이 보관 문장 버리기');
+ await serviceWorker.evaluate(()=>{
+  const send=chrome.tabs.sendMessage.bind(chrome.tabs);const probe={changedDelivered:0,uncertain:false};(globalThis as typeof globalThis&{orphanUnknown:typeof probe}).orphanUnknown=probe;
+  chrome.tabs.sendMessage=async(tabId,message,options)=>{
+   if(typeof message==='object'&&message!==null&&'type' in message){
+    if(message.type==='switch/frame-check'&&probe.uncertain)return {result:'unknown'};
+    if(message.type==='switch/refresh'&&'changed' in message&&message.changed===true){const reply=await send(tabId,message,options);probe.changedDelivered++;return reply;}
+   }
+   return send(tabId,message,options);
+  };
+ });
+ await input.evaluate(el=>{el.setAttribute('aria-label','자식 문장');});await expect.poll(()=>serviceWorker.evaluate(()=>(globalThis as typeof globalThis&{orphanUnknown:{changedDelivered:number}}).orphanUnknown.changedDelivered)).toBeGreaterThan(0);await page.waitForTimeout(400);
+ await serviceWorker.evaluate(()=>{(globalThis as typeof globalThis&{orphanUnknown:{uncertain:boolean}}).orphanUnknown.uncertain=true;});await page.waitForTimeout(1001);await chooseSwitch(page,'확인 · 이 보관 문장 버리기');await expect(panel.locator('.switch-draft')).toContainText(pending??'missing draft');await expect(panel.locator('.switch-status')).toContainText('보존');await expect(input).toHaveValue('알 수 없음 보존');
+});

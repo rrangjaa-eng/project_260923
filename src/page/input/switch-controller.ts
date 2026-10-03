@@ -67,6 +67,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   let stack:Menu[]=[];
   let targets:ScanTarget[]=[];
   let collectorRevision=0,collectorSignature='';
+  let uncertainTargetFrames:number[]|null=null;
   let selected:ScanTarget|null=null;
   let expectedValue='';
   let capturedSelection:TextSelection|undefined;
@@ -297,9 +298,10 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   async function refreshTargets(startedGeneration:number){
     await publish();
     if(!active(startedGeneration))return false;
-    const raw=await request({type:'switch/list'}) as {tabId:number;frames:SwitchFrameReport[]};
+    const raw=await request({type:'switch/list'}) as {tabId:number;frames:SwitchFrameReport[];uncertainFrames?:unknown};
     if(!active(startedGeneration))return false;
     if(!Array.isArray(raw.frames))throw new Error('대상 목록을 읽지 못했어요');
+    uncertainTargetFrames=Array.isArray(raw.uncertainFrames)&&raw.uncertainFrames.every((id:unknown)=>typeof id==='number'&&Number.isSafeInteger(id)&&id>=0)?raw.uncertainFrames as number[]:null;
     targets=snapshotTargets(raw.tabId,raw.frames);
     return true;
   }
@@ -625,6 +627,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       if(!orphanAuthorized(snapshot)||!active(startedGeneration))return 'refused';
       opts.collector.refresh();
       if(revision!==collectorRevision){orphanDiscard=false;notice='목록을 읽는 동안 입력칸이 바뀌었어요. 문장은 보존했어요. 양식 목록을 다시 읽으세요';orphanDialog();return 'refused';}
+      if(!uncertainTargetFrames||uncertainTargetFrames.includes(snapshot.target.target.frameId)){orphanDiscard=false;notice='입력칸의 상태를 확인하지 못했어요. 문장은 보존했어요. 양식 목록을 다시 읽으세요';orphanDialog();return 'refused';}
       formFields=formTargets(targets);
       if(!formDrafts.discardUnavailable(snapshot,formFields)){orphanDiscard=false;notice='입력칸이나 문장이 바뀌었어요. 문장은 보존했어요. 양식 목록을 다시 읽으세요';orphanDialog();return 'refused';}
       // The overview still owns a copy of the last field. Restore the original
