@@ -27,7 +27,8 @@
   "independent_review": {
     "model": "gpt-6.1-sol",
     "reasoning_effort": "high",
-    "unresolved_confirmed_p1_p2": 0
+    "unresolved_confirmed_p1_p2": 0,
+    "runtime_verification_note": "model·reasoning 표기는 당시 문서에 기록된 값이다. 이번 감사는 실제 호스팅 세션 적용값을 확인하지 못했으며, 이를 실측 적용 증거로 해석하지 않는다. 이후 기록은 요청값과 확인된 적용값을 구분한다."
   },
   "original_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
   "full_before_reading_source_sha256": {

@@ -1,5 +1,13 @@
 # 작업 현황표
 
+## 보고 원칙 강화·사실관계 감사 — 2026-10-04 00:10 KST
+
+새 기능 착수를 중지하고 루트 AGENTS에 설명 전 근거 확인·모르면 모름·거짓 보고 금지·불일치 즉시 정정 원칙을 추가한다. [기술 기록 감사](verification/2026-10-04-reporting-integrity-audit.md): AGENTS의 PR15 당시 현재상태 문구, PR21 동일CI86 성공/실행중 혼재, CI79 첫 수정과 PR34 최종 증거 연결, 모델 적용값 표기 한계를 대조했다. 원격 PR21 본문은 변경하지 않았다.
+
+**미해결 P2:** PR30 병합 후 리뷰의 제거/식별변경 필드 초안이 작업판 reload/close를 막는 문제를 현재 제품7eeda02에서 실제controller 임시검사4RED/깨끗한대조2GREEN으로 재현했다. [관측 근거](verification/reporting-integrity-observations.json). 기존 빈초안 제한과 별개다. 제품·정식 테스트 수정 없음, 새 제품 수정은 별도 결정이다. CI109453/453에 이 신규 부정 검사는 포함되지 않는다. 전체 과거 대화·당시 runtime·의도적 거짓 여부는 본 감사로 판정할 수 없다. 지침은 이 checkout 문서이며 main/다른환경 자동적용을 주장하지 않는다.
+
+PR37 최종CI109 성공·제품HEAD7eeda02와 증거8631236은 아래와 같다. 문서변경은 별도브랜치/commit/draftPR로 저장하며 merge/deploy/ZIP교체 없음.
+
 ## PR37 최종 CI109 성공 — 2026-10-04 00:03:59 KST
 
 [draft PR37](https://github.com/rrangjaa-eng/project_260923/pull/37), 제품 `codex-switch-site-off`/`7eeda02f547fbd50db6310a455686bb0b5ce76e4`. [CI109 원본 근거](verification/ci109-final-results.json): 타입·린트·unit505/505(49파일)·Chromium453/453, 실패/flaky/skip0. 브라우저74분28.766초, 테스트 merge와 제품 tree 일치. 로컬 회귀42/42·자동UI101/101과 독립 재검토를 포함한 [검증 결과](verification/site-off-results.json).

@@ -41,7 +41,8 @@
       "pending site-off authorization substituted for page press",
       "stale request pauses children before authorization"
     ],
-    "remainingActionableP1P2": 0
+    "remainingActionableP1P2": 0,
+    "scope": "SAFE-04 site-off 변경의 독립 검토 시점 결과"
   },
   "ci": {
     "run": 109,
@@ -70,5 +71,17 @@
     "재활성화는 기존 팝업",
     "실제 Windows IME·운동 사용성·실사이트·native UI·두 PC 동기화 미검증",
     "merge/deploy/ZIP 교체 없음"
-  ]
+  ],
+  "knownInheritedIssue": {
+    "review": "https://github.com/rrangjaa-eng/project_260923/pull/30#discussion_r4170786719",
+    "status": "unfixed",
+    "finding": "제거/identity 변경 필드의 접근 불가능한 초안이 작업판 reload/close를 차단",
+    "audit": "2026-10-04-reporting-integrity-audit.md",
+    "newProbe": {
+      "failed": 4,
+      "cleanControlsPassed": 2,
+      "environment": "happy-dom real controller"
+    },
+    "includedInCi109": false
+  }
 }

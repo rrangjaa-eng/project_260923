@@ -77,7 +77,8 @@
       "page visibility opacity/collapse",
       "long title overflow"
     ],
-    "remaining_p1_p2": 0
+    "remaining_p1_p2": 0,
+    "runtime_verification_note": "model·reasoning 표기는 당시 문서에 기록된 값이다. 이번 감사는 실제 호스팅 세션 적용값을 확인하지 못했으며, 이를 실측 적용 증거로 해석하지 않는다. 이후 기록은 요청값과 확인된 적용값을 구분한다."
   },
   "limitations": [
     "top-document native vertical scroll regions only",

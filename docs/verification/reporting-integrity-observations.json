@@ -1,0 +1,68 @@
+{
+  "checkedAt": "2026-10-04 00:10 KST",
+  "productCommit": "7eeda02f547fbd50db6310a455686bb0b5ce76e4",
+  "environment": "Vitest happy-dom, real controller with synthetic fixture",
+  "tests": {
+    "total": 6,
+    "failed": 4,
+    "passed": 2,
+    "exit": 1
+  },
+  "meaning": "4RED는 발견한 결함의 재현이며 수정 성공이 아니다. 2GREEN은 깨끗한 초안 대조군이다.",
+  "temporaryTestRemoved": true,
+  "productChanged": false,
+  "observations": [
+    {
+      "boundary": "remove",
+      "nav": "새로고침",
+      "notice": "적용하지 않은 글이나 선택이 있어요. 글쓰기에서 확인하세요",
+      "navigationRequests": 0,
+      "mode": "itemScan",
+      "visibleDraftLength": 0
+    },
+    {
+      "boundary": "remove",
+      "nav": "탭 닫기",
+      "notice": "적용하지 않은 글이나 선택이 있어요. 글쓰기에서 확인하세요",
+      "navigationRequests": 0,
+      "mode": "itemScan",
+      "visibleDraftLength": 0
+    },
+    {
+      "boundary": "identity",
+      "nav": "새로고침",
+      "notice": "적용하지 않은 글이나 선택이 있어요. 글쓰기에서 확인하세요",
+      "navigationRequests": 0,
+      "mode": "itemScan",
+      "visibleDraftLength": 0
+    },
+    {
+      "boundary": "identity",
+      "nav": "탭 닫기",
+      "notice": "적용하지 않은 글이나 선택이 있어요. 글쓰기에서 확인하세요",
+      "navigationRequests": 0,
+      "mode": "itemScan",
+      "visibleDraftLength": 0
+    },
+    {
+      "boundary": "clean",
+      "nav": "새로고침",
+      "notice": "",
+      "navigationRequests": 0,
+      "mode": "confirming",
+      "visibleDraftLength": 15
+    },
+    {
+      "boundary": "clean",
+      "nav": "탭 닫기",
+      "notice": "",
+      "navigationRequests": 1,
+      "mode": "confirming",
+      "visibleDraftLength": 12
+    }
+  ],
+  "limitations": [
+    "실제Chromium 추가재현은 하지 않음",
+    "당시 리뷰 인지 시점·의도는 미확인"
+  ]
+}
