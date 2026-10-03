@@ -4,7 +4,7 @@
 
 사용자가 “반영해”로 PR27–30의 main 통합을 승인했다. 네 HEAD·CI94/95/96/98 성공·리뷰와 충돌을 재확인했다. 스택 전체를 포함하는 PR30을 main 대상으로 merge commit 병합했고 GitHub가 PR27–29도 자동 merged 처리했다. 원격 main **9394b0146f9ba169f57e47ce3274bdff57b74dfe**. 네 HEAD가 모두 main 조상이며 tree **7ec4f11327c13afaef8269288c3e8cbe41306d78**은 CI98 검증 tree와 같다. [병합 증거](verification/pr27-30-merge-results.json).
 
-[병합 후 CI99](https://github.com/rrangjaa-eng/project_260923/actions/runs/37079609955), job111077008006은 진행 중이다. type/lint/unit 단계 성공, 전체 브라우저 결과는 아직 미확정이다. 종료까지 추적한다. [PR30](https://github.com/rrangjaa-eng/project_260923/pull/30). 다른 PR/브랜치 변경·강제 push·브랜치 삭제·배포·ZIP교체 없음. 실제 PC/IME/운동 사용성/실사이트는 여전히 미검증. 아래는 당시 기록이다.
+[병합 후 CI99](https://github.com/rrangjaa-eng/project_260923/actions/runs/37079609955), job111077008006은 진행 중이다. type/lint/unit 단계 성공, 전체 브라우저 결과는 아직 미확정이다. 종료까지 추적한다. 2026-10-03 09:00 KST 재확인: 환경·명령 차단 없음, 브라우저 단계 실행 중. [PR30](https://github.com/rrangjaa-eng/project_260923/pull/30). 다른 PR/브랜치 변경·강제 push·브랜치 삭제·배포·ZIP교체 없음. 실제 PC/IME/운동 사용성/실사이트는 여전히 미검증. 아래는 당시 기록이다.
 
 ## PR30 최종 전체 CI 성공 — 2026-10-03 01:36 KST
 
