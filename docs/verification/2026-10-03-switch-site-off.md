@@ -21,3 +21,9 @@
 새 브라우저 검사는 합성 practice.test/other.test만 사용한다. 출처 A/B, iframe 입력 반환, reload 유지, 팝업 재활성화, 지연 승인 중 pause/URL변경/설정변경/timeout, 저장 실패와 committed write 응답 유실을 검사한다. 360/768/1280px에서 작업판 가로 경계를 검사한다. 단위 검사는 quota 대기 후 취소, 손상된 scalar 원본, 핀 보존, exact-action 최종 실행 경계와 중복 요청을 포함한다.
 
 실제 Windows 한국어 IME·운동 사용성·실제 Chrome/Edge/Whale 프로필·실사이트·네이티브 UI·두 PC 동기화는 미검증이다. 회사 시스템을 테스트하지 않는다. 기존 PR31–36/main·배포 ZIP을 보존하고 merge/deploy/ZIP 교체를 하지 않는다.
+
+## 최종 로컬 검증 — 2026-10-03 22:53 KST
+
+[draft PR37](https://github.com/rrangjaa-eng/project_260923/pull/37), 제품 `codex-switch-site-off`/`7eeda02f547fbd50db6310a455686bb0b5ce76e4`. 타입·린트·unit505/505(49파일), 새 기능8건 포함 Chromium 회귀42/42(4.5분), 자동UI101/101(3.9분) 통과. 실패/flaky/skip0. 독립 재검토 추가P1/P2 없음. [구조화된 결과](site-off-results.json).
+
+[CI109](https://github.com/rrangjaa-eng/project_260923/actions/runs/37127421940)은 타입·린트·단위 단계 성공 후 전체 브라우저 검사 진행 중이다. checkout 예정 mergeff4ed7e6과 제품7eeda02의 treeefc5f2d214517508dadd919dfcd0eed205814b55 일치를 확인했다. 최종 CI 성공으로 세지 않는다. 제품 HEAD를 고정하고 별도 `codex-pr37-verification-record`에 결과를 기록한다.

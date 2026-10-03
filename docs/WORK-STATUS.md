@@ -1,5 +1,19 @@
 # 작업 현황표
 
+## PR37 로컬 검증 완료·CI109 진행 중 — 2026-10-03 22:53 KST
+
+[draft PR37](https://github.com/rrangjaa-eng/project_260923/pull/37), 제품 `codex-switch-site-off`/`7eeda02f547fbd50db6310a455686bb0b5ce76e4`. 승인된 SAFE-04 현재 사이트 끄기 구현. [계약과 경계 수정](verification/2026-10-03-switch-site-off.md), [검증 결과](verification/site-off-results.json).
+
+| 항목 | 결과 |
+|---|---|
+| 타입·린트·단위 | 통과, 505/505(49파일) |
+| 새 기능·기존 팝업/취소 회귀 | Chromium42/42, 4.5분 |
+| 자동UI | 101/101, 3.9분, 실패/flaky/skip0 |
+| 최종 독립 읽기 검토 | 추가 actionable P1/P2 없음 |
+| 전체 CI109 | 브라우저 단계 진행 중, 최종 성공 아님 |
+
+제품 HEAD 고정, 증거 `codex-pr37-verification-record`에 기록. main/PR31–36 원격HEAD·기존ZIP 보존. 재활성화는 기존 팝업이며 실제 PC/IME/운동 사용성/실사이트/native UI/두 PC 미검증. merge/deploy 없음. 아래는 당시 기록이다.
+
 ## SAFE-04 현재 사이트 끄기 구현·검증 중 — 2026-10-03 22:44 KST
 
 `codex-switch-site-off`에서 승인된 작업판 현재 사이트 끄기를 구현했다. 기존 사이트 저장 계약·핀·다른 출처·전체 설정을 보존하며 재활성화는 기존 팝업이다. [계약·RED/GREEN·한계](verification/2026-10-03-switch-site-off.md). 독립 검토의 최종 실행 종류 치환과 늦은 요청의 선행 자식 정지 2건을 RED로 재현하고 수정했다. 최종 독립 재검토 추가P1/P2 없음, 타입·린트·단위505/505(49파일) 통과. 새 브라우저 초기 7/7 통과 후 수정된 소스에서 추가 응답 유실 검사·기존 팝업/취소 회귀·전체 단위·자동UI를 진행한다. 최종 CI 성공 전이며 완료로 세지 않는다. main/PR31–36/ZIP 원본 보존을 확인했다. merge/deploy 없음.

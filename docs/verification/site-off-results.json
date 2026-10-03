@@ -1,0 +1,66 @@
+{
+  "recordedAt": "2026-10-03 22:53 KST",
+  "product": {
+    "branch": "codex-switch-site-off",
+    "commit": "7eeda02f547fbd50db6310a455686bb0b5ce76e4",
+    "pr": "https://github.com/rrangjaa-eng/project_260923/pull/37",
+    "base": "codex-switch-explicit-doubleclick",
+    "baseCommit": "26bd9912fb21041ec8fa3ecefd9fbbf570a8fa37",
+    "draft": true,
+    "merged": false
+  },
+  "local": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "passed": 505,
+      "files": 49,
+      "failed": 0
+    },
+    "browser": {
+      "passed": 42,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "duration": "4.5m",
+      "command": "CI=true pnpm test:e2e tests/e2e/switch-site-off.e2e.ts tests/e2e/site-toggle.e2e.ts tests/e2e/switch-pending.e2e.ts tests/e2e/switch-navigation-cancel.e2e.ts"
+    },
+    "uiReview": {
+      "status": "passed",
+      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-jPhSu8",
+      "passed": 101,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "durationMs": 234359.546
+    }
+  },
+  "review": {
+    "independentReadOnly": true,
+    "fixedRedGreen": [
+      "pending site-off authorization substituted for page press",
+      "stale request pauses children before authorization"
+    ],
+    "remainingActionableP1P2": 0
+  },
+  "ci": {
+    "run": 109,
+    "runId": 37127421940,
+    "jobId": 111215464586,
+    "url": "https://github.com/rrangjaa-eng/project_260923/actions/runs/37127421940",
+    "status": "in_progress",
+    "conclusion": null,
+    "testMerge": "ff4ed7e6cc00e848940dcaa3d8575d6aa5d74ae2",
+    "productAndMergeTree": "efc5f2d214517508dadd919dfcd0eed205814b55"
+  },
+  "preserved": {
+    "main": "9394b0146f9ba169f57e47ce3274bdff57b74dfe",
+    "releaseZip": "downloads/tremor-browser-helper-3ae6ad2.zip",
+    "sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb"
+  },
+  "limitations": [
+    "재활성화는 기존 팝업",
+    "실제 Windows IME·운동 사용성·실사이트·native UI·두 PC 동기화 미검증",
+    "merge/deploy/ZIP 교체 없음"
+  ]
+}
