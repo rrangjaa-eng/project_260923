@@ -1,0 +1,97 @@
+{
+  "product_commit": "fd6605316bdca87e9cc844abc80b3532c63018e5",
+  "product_fix_commit": "b7f940146b589382f39437cc03afa66731ecb142",
+  "base_commit": "f4fc5672468fa28c961e6d08b9f290666c152db2",
+  "pr": "https://github.com/rrangjaa-eng/project_260923/pull/39",
+  "observed_at": "2026-10-03T16:03:37.692577+00:00",
+  "scope": "로컬 검증. 원격 CI112 최종 결과와 구분",
+  "typecheck": "success",
+  "lint": "success",
+  "unit": {
+    "passed": 554,
+    "failed": 0,
+    "files": 50,
+    "seconds": 16.66,
+    "command": "pnpm test:unit",
+    "log": "/tmp/orphan-release-unit.log"
+  },
+  "targeted_unit": {
+    "passed": 77,
+    "failed": 0,
+    "log": "/tmp/orphan-remote-green.log"
+  },
+  "browser_runs": [
+    {
+      "passed": 49,
+      "failed": 0,
+      "scope": "기존 양식/doc-editor/editor-frames와 첫 보관 흐름; 마지막 지연·원격 guard 전",
+      "minutes": 8.7,
+      "log": "/tmp/orphan-browser.log"
+    },
+    {
+      "passed": 3,
+      "failed": 0,
+      "scope": "360/768/1280/1440px; 마지막 지연·원격 guard 전",
+      "minutes": 1.9,
+      "log": "/tmp/orphan-final-browser.log"
+    },
+    {
+      "passed": 4,
+      "failed": 0,
+      "scope": "최종 새 보관 흐름; cross-origin held reply 중 필드 재등장 포함",
+      "minutes": 2.4,
+      "log": "/tmp/orphan-reviewed-browser.log"
+    }
+  ],
+  "ui": {
+    "passed": 101,
+    "failed": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "seconds": 299.039783,
+    "scope": "마지막 원격 changed guard 전. UI 구조/토큰 변경 없음. 이후 새 흐름4건 재검사",
+    "path": "/workspace/.cloud-onboarding/ui-review-runs/run-UlqEQx/results.json"
+  },
+  "independent_review": {
+    "status": "completed",
+    "additional_actionable_p1_p2": 0,
+    "scope": "변경된 초안 저장/선택삭제/collector 및 relay 변경. 실제 도착하지 않은 메시지의 분산 원자성은 보장하지 않음",
+    "finding_ids": [
+      "PR30:4170786719",
+      "local-delayed-list",
+      "remote-delayed-list"
+    ],
+    "assertions_weakened": false
+  },
+  "completion_checker": {
+    "passed": 33,
+    "failed": 0,
+    "actual_pending_probe_exit_code": 1,
+    "actual_probe_seconds": 0.205,
+    "actual_probe_reasons": [
+      "제품·시험·설정의 미커밋 변경",
+      "PR30 미해결 리뷰"
+    ]
+  },
+  "ci": {
+    "run_id": 37135241591,
+    "run_number": 112,
+    "job_id": 111238339065,
+    "status": "in_progress",
+    "conclusion": null,
+    "url": "https://github.com/rrangjaa-eng/project_260923/actions/runs/37135241591"
+  },
+  "unverified": [
+    "Windows 한국어 IME",
+    "실제 사용자 운동 사용성",
+    "실사이트",
+    "분산 DOM 원자성",
+    "실제 호스팅 모델/추론 적용 및 자동 훅 연결"
+  ],
+  "preserved": {
+    "main": "9394b0146f9ba169f57e47ce3274bdff57b74dfe",
+    "zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
+    "merge": false,
+    "deploy": false
+  }
+}
