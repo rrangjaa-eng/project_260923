@@ -437,7 +437,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(id.startsWith('target:'))return chooseTarget(Number(id.split(':')[1]),startedGeneration);
     if(id.startsWith('page:')){const parts=id.split(':');pageMenu(Number(parts[1]),parts[2]==='input');return;}
     if(id.startsWith('refresh:')){if(await refreshTargets(startedGeneration))pageMenu(0,id.endsWith('input'));return;}
-    const needsFinishedComposition=id==='ascii'||id.startsWith('ascii-')||['edit:space','edit:left','edit:right','edit:undo'].includes(id)||/^phrase:\d+$/.test(id);
+    const needsFinishedComposition=id==='ascii'||id.startsWith('ascii-')||['edit:space','edit:left','edit:right','edit:undo','apply','search','phrase:save'].includes(id)||/^phrase:\d+$/.test(id);
     if(needsFinishedComposition&&(initial!==null||medial!==null)){notice='한글 조합을 마치거나 취소하세요';return 'refused';}
     if(id==='ascii'){
       const chars=Array.from('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.-_?&=%+#@~');

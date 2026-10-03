@@ -34,10 +34,11 @@ async function fixture(readDraft?: () => Promise<{ text: string }>,helperPage=fa
   const pipeline: InputPipeline = { setSwitchHandler: (handler) => { consume = handler; }, setSwitchExclusive: () => undefined,
     onKey: () => undefined, onPress: () => undefined, setModal: () => undefined };
   type Listener = (message: unknown, sender: chrome.runtime.MessageSender, response: (value?: unknown) => void) => boolean | undefined;
-  const listeners: Listener[] = []; let frames: SwitchFrameReport[] = []; let storedDraft = ''; const navigation: unknown[]=[];let executeReply:((raw:unknown)=>Promise<unknown>)|undefined;
+  const listeners: Listener[] = []; let frames: SwitchFrameReport[] = []; let storedDraft = ''; const navigation: unknown[]=[];const requests: unknown[]=[];let executeReply:((raw:unknown)=>Promise<unknown>)|undefined;
   vi.stubGlobal('chrome', {
     runtime: { id: 'unit-extension', onMessage: { addListener: (listener: Listener) => { listeners.push(listener); }, removeListener: (listener: Listener) => { const at = listeners.indexOf(listener); if (at >= 0) listeners.splice(at, 1); } },
       sendMessage: async (raw: unknown) => {
+        requests.push(raw);
         const message = raw as { type: string; documentGeneration?: string; items?: SwitchFrameReport['items']; text?: string };
         if (message.type === 'switch/report') { frames = [{ frameId: 0, documentGeneration: message.documentGeneration ?? '', path: [], items: message.items ?? [] }]; return { tabId: 1 }; }
         if (message.type === 'switch/list') return { tabId: 1, frames };
@@ -66,7 +67,7 @@ async function fixture(readDraft?: () => Promise<{ text: string }>,helperPage=fa
   async function setEnabled(next: boolean) { enabled = next; controller.enabledChanged(); await vi.advanceTimersByTimeAsync(1); }
   async function begin() { listeners.forEach((listener) => listener({ type: 'switch/begin', url: location.href }, { id: 'unit-extension' }, () => undefined)); await vi.advanceTimersByTimeAsync(1); }
   async function capture() { if (view.state?.mode === 'paused' || view.state?.mode === 'ready') await press(); await choose('찾기'); await choose('문장'); }
-  return { holdExecute:(reply:(raw:unknown)=>Promise<unknown>)=>{executeReply=reply;}, navigation, controller, field, setEnabled, press, choose, begin, capture, reportChange: () => { reportChange(); } };
+  return { requests, holdExecute:(reply:(raw:unknown)=>Promise<unknown>)=>{executeReply=reply;}, navigation, controller, field, setEnabled, press, choose, begin, capture, reportChange: () => { reportChange(); } };
 }
 
 
@@ -138,4 +139,23 @@ it('unfinished Hangul blocks reload even before any character is committed',asyn
 
 it('a dirty field retained behind the form list blocks reload after leaving the form',async()=>{
  const f=await fixture();await f.setEnabled(true);await f.capture();await f.choose('양식 한 장 보기');await f.choose('문장');await f.choose('문구');await f.choose('라');await f.choose('다음 칸');await f.choose('원래 화면으로');await f.choose('상위로');await f.choose('읽기·이동');await f.choose('새로고침');expect(view.notice).toContain('적용하지 않은');expect(f.navigation).toEqual([]);
+});
+
+
+it.each(['입력칸에 적용','검색','문구 저장'].flatMap(label=>['complete','cancel'].map(resolution=>({label,resolution}))))('unfinished Hangul blocks external commit through $label until $resolution',async({label,resolution})=>{
+ const f=await fixture();await f.setEnabled(true);await f.capture();
+ await f.choose('영문·숫자 쓰기');await f.choose('a b c d e f');await f.choose('a');
+ await f.choose('한글 쓰기');await f.choose('ㄱ ㄲ ㄴ ㄷ ㄸ ㄹ');await f.choose('ㄱ');if(resolution==='complete'){await f.choose('ㅏ ㅐ ㅑ ㅒ ㅓ ㅔ');await f.choose('ㅏ');}
+ for(let i=0;i<6&&!view.state?.items.some(item=>item.label==='입력칸에 적용');i++)await f.choose('상위로');
+ if(label==='문구 저장')await f.choose('문구');
+ const before={text:view.text,selection:view.selection};f.requests.length=0;await f.choose(label);
+ expect(f.requests).toEqual([]);expect(f.field.value).toBe('가👍🏽나');
+ expect({text:view.text,selection:view.selection}).toEqual(before);expect(view.notice).toContain('한글 조합을 마치거나 취소');
+ if(label==='문구 저장')await f.choose('상위로');
+ if(resolution==='complete'){await f.choose('한글 쓰기');await f.choose('없음 ㄱ ㄲ ㄳ ㄴ ㄵ');await f.choose('없음');}
+ else{await f.choose('수정');await f.choose('조합 한 단계 취소');}
+ const expected=resolution==='complete'?'가a가나':'가a나';expect(view.text).toBe(expected);
+ if(label==='문구 저장')await f.choose('문구');f.requests.length=0;await f.choose(label);
+ if(label==='문구 저장')expect(f.requests).toContainEqual(expect.objectContaining({type:'switch/phrase',text:expected}));
+ else expect(f.field.value).toBe(expected);
 });

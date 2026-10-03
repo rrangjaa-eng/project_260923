@@ -78,7 +78,13 @@ test('cached cursor, undo and partial Hangul survive field moves; externally cha
   await expect(panel.locator('.switch-draft')).toContainText('[ㄱ]');await chooseSwitch(page,'다음 칸');await chooseSwitch(page,'이전 칸');await expect(panel.locator('.switch-draft')).toContainText('[ㄱ]');
   await chooseSwitch(page,'쉬기');await page.keyboard.press('Space');await page.waitForTimeout(125);await expect(panel.locator('.switch-draft')).toContainText('[ㄱ]');
   await chooseSwitch(page,'다음 칸');await page.locator('#first').evaluate((el)=>{(el as HTMLInputElement).value='사이트 변경';});await chooseSwitch(page,'이전 칸');
+  const pending=await panel.locator('.switch-draft').textContent();
+  await chooseSwitch(page,'입력칸에 적용');await expect(panel.locator('.switch-status')).toContainText('한글 조합을 마치거나 취소하세요');
+  expect(await panel.locator('.switch-draft').textContent()).toBe(pending);await expect(page.locator('#first')).toHaveValue('사이트 변경');
+  expect(await page.evaluate(() => [(window as Window & { inputs?: number }).inputs, (window as Window & { changes?: number }).changes])).toEqual([0,0]);
+  await chooseSwitch(page,'수정');await chooseSwitch(page,'조합 한 단계 취소');await expect(panel.locator('.switch-draft')).toHaveText('처음');
   await chooseSwitch(page,'입력칸에 적용');await expect(panel.locator('.switch-status')).toContainText('바뀌었어요');await expect(page.locator('#first')).toHaveValue('사이트 변경');
+  expect(await page.evaluate(() => [(window as Window & { inputs?: number }).inputs, (window as Window & { changes?: number }).changes])).toEqual([0,0]);
 });
 test('late selected-field capture after blur cannot change the overview or apply any input', async ({ context, serviceWorker, servePage }) => {
   test.setTimeout(90000);servePage('http://practice.test/form-late.html',form);const page=await context.newPage();await page.goto('http://practice.test/form-late.html');await startSwitch(page);await chooseSwitch(page,'글쓰기');await chooseSwitch(page,'양식 한 장 보기');
