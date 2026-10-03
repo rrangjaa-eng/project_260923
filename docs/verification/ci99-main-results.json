@@ -1,0 +1,37 @@
+{
+  "checked_at": "2026-10-03T09:44:45+09:00",
+  "run": {
+    "id": 37079609955,
+    "number": 99,
+    "event": "push",
+    "head": "9394b0146f9ba169f57e47ce3274bdff57b74dfe",
+    "status": "completed",
+    "conclusion": "success",
+    "started_at": "2026-10-02T23:52:39Z",
+    "completed_at": "2026-10-03T00:43:16Z"
+  },
+  "job": 111077008006,
+  "unit": {
+    "passed": 397,
+    "files": 42
+  },
+  "browser": {
+    "passed": 403,
+    "minutes_reported": 49.8
+  },
+  "tree": "7ec4f11327c13afaef8269288c3e8cbe41306d78",
+  "integrated_prs": [
+    27,
+    28,
+    29,
+    30
+  ],
+  "log_evidence": [
+    "2026-10-02T23:53:07.1184358Z  Test Files  42 passed (42)",
+    "2026-10-02T23:53:07.1185216Z       Tests  397 passed (397)",
+    "2026-10-02T23:53:27.8677538Z [success] Built extension in 465 ms",
+    "2026-10-02T23:53:28.8234075Z Running 403 tests using 1 worker",
+    "2026-10-03T00:43:13.3864348Z   403 passed (49.8m)"
+  ],
+  "note": "사용자 승인된 PR27–30 main 통합 후 push CI의 terminal success. 모든 PR head를 보존한 merge commit이며 branch 삭제/force push/배포/ZIP교체 없음. 실제 Windows IME/운동 사용성/실사이트/native UI 미검증."
+}

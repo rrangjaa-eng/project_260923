@@ -1,5 +1,21 @@
 # 작업 현황표
 
+## PR27–30 main 통합·병합 후 CI99 성공 — 2026-10-03 09:44 KST
+
+사용자 승인된 PR27–30의 main 반영과 병합 후 검증을 완료했다. 원격 main **9394b0146f9ba169f57e47ce3274bdff57b74dfe**이며 GitHub에서 네 PR 모두 merged다. PR27–30을 main 대상으로 맞춘 뒤 전체 스택을 포함하는 PR30에 expected head를 지정해 merge commit으로 통합했다. 다른 PR/브랜치 변경·force push·브랜치 삭제 없이 네 원래 HEAD를 모두 main 조상으로 보존했다.
+
+| 항목 | 확정 결과 |
+|---|---|
+| 병합 후 CI99 | workflow/job success, 2026-10-03 09:43:16 KST 종료 |
+| 타입·린트·빌드 | 성공 |
+| 단위 / 전체 브라우저 | 397/397(42파일) / 403/403(49.8분) |
+| 동일성 | main tree 7ec4f11327c13afaef8269288c3e8cbe41306d78 = CI98 검증 tree |
+| 보존 | 원래 기능 브랜치·기존 ZIP 유지, 배포·설치 ZIP 교체 없음 |
+
+[CI99](https://github.com/rrangjaa-eng/project_260923/actions/runs/37079609955) · [원본 로그 증거](verification/ci99-main-results.json) · [병합 증거](verification/pr27-30-merge-results.json) · [PR30](https://github.com/rrangjaa-eng/project_260923/pull/30).
+
+실제 Windows IME·운동 사용성·실사이트·native UI는 미검증이며 별도 [PC 인계](verification/2026-10-01-single-switch-pc-check.md)를 유지한다. 병합 뒤 회귀 실패는 관찰되지 않아 제품 추가 수정은 없었다. 이 후속 증거는 codex-pr27-30-merge-record에 저장하며 main 제품 SHA를 바꾸지 않는다. 아래는 당시 기록이다.
+
 ## PR27–30 main 반영·병합 후 CI99 진행 — 2026-10-03 08:54 KST
 
 사용자가 “반영해”로 PR27–30의 main 통합을 승인했다. 네 HEAD·CI94/95/96/98 성공·리뷰와 충돌을 재확인했다. 스택 전체를 포함하는 PR30을 main 대상으로 merge commit 병합했고 GitHub가 PR27–29도 자동 merged 처리했다. 원격 main **9394b0146f9ba169f57e47ce3274bdff57b74dfe**. 네 HEAD가 모두 main 조상이며 tree **7ec4f11327c13afaef8269288c3e8cbe41306d78**은 CI98 검증 tree와 같다. [병합 증거](verification/pr27-30-merge-results.json).

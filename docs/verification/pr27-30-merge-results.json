@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-03T09:00:51+09:00",
+  "checked_at": "2026-10-03T09:44:45+09:00",
   "authorization": "사용자: 검증된 PR27–30 변경을 main에 반영해",
   "method": "PR27–30 base main·ready, PR30 expected head 고정 merge commit; GitHub가 포함 PR27–29 자동 merged 처리",
   "previous_main": "a0738fb832bd04abdb5397c09bbef3f38279e86c",
@@ -26,14 +26,20 @@
     "number": 99,
     "run": 37079609955,
     "job": 111077008006,
-    "status": "in_progress",
-    "conclusion": null,
-    "current_step": "Run pnpm test:e2e",
+    "status": "completed",
+    "conclusion": "success",
     "completed_steps": [
       "typecheck",
       "lint",
-      "test:unit"
-    ]
+      "test:unit",
+      "production build",
+      "test:e2e"
+    ],
+    "unit_passed": 397,
+    "unit_files": 42,
+    "browser_passed": 403,
+    "browser_minutes": 49.8,
+    "evidence": "ci99-main-results.json"
   },
   "archived_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
   "scope": "다른 PR/브랜치 변경·force push·브랜치 삭제·배포·ZIP교체 없음",
