@@ -1,0 +1,45 @@
+{
+  "checked_at": "2026-10-03T07:38:01.749500+00:00",
+  "pr": 34,
+  "branch": "codex-switch-applied-undo",
+  "head": "3454494ac6a532a1b82b1c83b07383726a2b862a",
+  "base": "cc95a59d19766104ff419f36627eee66e9afceea",
+  "test_merge": "b41e5231b69cf6bf0bca51d26f22f51efc5d3348",
+  "candidate_and_test_merge_tree": "1bbf55c504004eb7ecf8c08654f379245fd9d525",
+  "local": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "passed": 441,
+      "files": 43
+    },
+    "feature_browser": {
+      "passed": 10,
+      "minutes": 4.7,
+      "production": true,
+      "failures": 0,
+      "skipped": 0
+    },
+    "regressions": "running",
+    "ui_review": "pending"
+  },
+  "independent_review": {
+    "initial_finding": "P2: same node removal/reinsert or ancestor removal/rescue retained undo capability",
+    "reproduction": "2 RED; observer installed before original apply, ancestor removal history and takeRecords fix",
+    "final": "No additional actionable P1/P2"
+  },
+  "ci": {
+    "run": 37106687759,
+    "number": 104,
+    "job": 111156490983,
+    "status": "in_progress",
+    "conclusion": null
+  },
+  "unverified": [
+    "actual Windows Korean IME",
+    "motor usability",
+    "real sites",
+    "native browser UI"
+  ],
+  "preserved_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb"
+}
