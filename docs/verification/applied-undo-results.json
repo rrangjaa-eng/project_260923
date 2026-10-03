@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-03T07:38:01.749500+00:00",
+  "checked_at": "2026-10-03T07:51:25.419953+00:00",
   "pr": 34,
   "branch": "codex-switch-applied-undo",
   "head": "3454494ac6a532a1b82b1c83b07383726a2b862a",
@@ -20,8 +20,37 @@
       "failures": 0,
       "skipped": 0
     },
-    "regressions": "running",
-    "ui_review": "pending"
+    "regressions": {
+      "passed": 48,
+      "minutes": 8.4,
+      "production": true,
+      "files": [
+        "switch-reapply.e2e.ts",
+        "switch-form-navigation.e2e.ts",
+        "doc-editor.e2e.ts",
+        "editor-frames.e2e.ts"
+      ],
+      "failures": 0,
+      "skipped": 0
+    },
+    "ui_review": {
+      "passed": 101,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "minutes": 5.0,
+      "stats": {
+        "startTime": "2026-10-03T07:45:48.968Z",
+        "duration": 299754.918,
+        "expected": 101,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "results_sha256": "99d2b311a1c56631149a28c9f22f3530ae0f9b636afc62f1444386eaf6270c50",
+      "local_report": "/workspace/.cloud-onboarding/ui-review-runs/run-CmSTv8/html/index.html",
+      "scope": "Existing UI tests only; new undo confirmation DOM measurements at 360/768/1280 widths are covered by feature_browser."
+    }
   },
   "independent_review": {
     "initial_finding": "P2: same node removal/reinsert or ancestor removal/rescue retained undo capability",
@@ -41,5 +70,46 @@
     "real sites",
     "native browser UI"
   ],
-  "preserved_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb"
+  "preserved_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
+  "red_green_evidence": {
+    "applied-undo-red": {
+      "log_sha256": "00cb04cf0a73db5a3b3fd161ad93a35bb55d4bd79d2c6b77a490e56d2486fd42",
+      "excerpts": [
+        " FAIL  tests/unit/switch-controller-navigation.test.ts > explicit applied-value undo confirms, cancels without effects and restores the original field once",
+        "AssertionError: expected '입력칸에 적용' to be '적용한 값 되돌리기' // Object.is equality",
+        "Expected: \"적용한 값 되돌리기\"",
+        "Received: \"입력칸에 적용\"",
+        " Test Files  1 failed (1)",
+        "      Tests  1 failed | 24 passed (25)"
+      ]
+    },
+    "applied-undo-removal-red": {
+      "log_sha256": "2cb72722f4ef3269ac14da4d4198fd380886ae41fd8fc15bcd8318d9f420b6c7",
+      "excerpts": [
+        " FAIL  tests/unit/applied-text-undo.test.ts > rejects changed reattached before undo without further input/change events",
+        " FAIL  tests/unit/applied-text-undo.test.ts > rejects changed rescued before undo without further input/change events",
+        "AssertionError: expected 'done' to be 'refused' // Object.is equality",
+        "Expected: \"refused\"",
+        "Received: \"done\"",
+        " Test Files  1 failed (1)",
+        "      Tests  2 failed | 17 passed (19)"
+      ]
+    },
+    "applied-undo-removal-green": {
+      "log_sha256": "273af0aa66ca2430c7927c18425dd5dc32a05643a0e7eeb2dc411acee395a41c",
+      "excerpts": [
+        " Test Files  2 passed (2)",
+        "      Tests  52 passed (52)"
+      ]
+    }
+  },
+  "source_sha256": {
+    "src/page/input/applied-text-undo.ts": "fdd935d372e6fdeed4d86ccb4c228374de64c1be15fe2a7401c2f2d6fabdc0ae",
+    "src/page/input/switch-actions.ts": "a13ce62a17aec4db1eea2051d2873d8542aeb9a838d9a7cba9313f2ae9f76ba9",
+    "src/page/input/switch-controller.ts": "4f3b49dc34e0783de19996111f639ec18f9aee2a15db0bab851cb58e11dccb5c",
+    "src/shared/switch-messages.ts": "b62d76c6afb5a6d5e6c4e8d8ec0d73a7b040b781f193de814b1faa597e38ec42",
+    "tests/unit/applied-text-undo.test.ts": "26afdd2be6a05d4b6a72959b76747148be90c5ac4a6b94c7f535266ca7bfbb52",
+    "tests/unit/switch-controller-navigation.test.ts": "36a888af10b468cbefc079a2eb36b8b724a5e74ffa98de6c8794a0738867ef5a",
+    "tests/e2e/switch-applied-undo.e2e.ts": "9ffe37a4e14d3b90c9eb5c81cc45f919481fd7f7040567f9ada1b7881174c678"
+  }
 }

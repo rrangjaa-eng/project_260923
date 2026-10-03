@@ -4,7 +4,7 @@
 
 PR33/cc95a59의 최종CI103 unit412/browser410 성공을 기준으로 `codex-switch-applied-undo`에서 NAV-04의 현재칸 마지막 성공 적용1회 되돌리기를 구현했다. [계약·실패 재현·완료 기준](verification/2026-10-03-applied-undo.md). 명시 비교/취소/1초 보호 확인, 노드·문서/프레임·현재값·민감성 재검증, pending/unknown·재실행 차단을 적용한다. 권한·영속 저장 확대 없음.
 
-독립 검토에서 같은 노드 제거/재삽입 P2를 찾아2RED→제거 이력 보호→관련52GREEN을 확인했다. 선행 Chromium8/8(3.8분)은 그 보완 전 빌드다. 최종 type/lint·전체unit441/441(43파일) 통과, 독립 재검토 추가P1/P2 없음. 최종 Chromium10/10(4.7분) 통과. [draft PR34](https://github.com/rrangjaa-eng/project_260923/pull/34), 제품 HEAD `3454494ac6a532a1b82b1c83b07383726a2b862a`. 기존 회귀 실행 중·UI 대기·[CI104](https://github.com/rrangjaa-eng/project_260923/actions/runs/37106687759) 브라우저 단계 실행 중이다. [구조화된 검증 기록](verification/applied-undo-results.json). 제품 HEAD를 고정하고 이 증거는 `codex-pr34-verification-record`에 별도 저장한다. PR31–33/main/ZIP 보존, 새 main 병합·배포 없음. 아래는 당시 기록이다.
+독립 검토에서 같은 노드 제거/재삽입 P2를 찾아2RED→제거 이력 보호→관련52GREEN을 확인했다. 선행 Chromium8/8(3.8분)은 그 보완 전 빌드다. 최종 type/lint·전체unit441/441(43파일) 통과, 독립 재검토 추가P1/P2 없음. 최종 Chromium10/10(4.7분) 통과. [draft PR34](https://github.com/rrangjaa-eng/project_260923/pull/34), 제품 HEAD `3454494ac6a532a1b82b1c83b07383726a2b862a`. 기존 편집기/양식/재적용 회귀48/48(8.4분) 통과·자동UI101/101(5.0분, 실패/스킵/불안정0) 통과·[CI104](https://github.com/rrangjaa-eng/project_260923/actions/runs/37106687759) 브라우저 단계 실행 중이다. [구조화된 검증 기록](verification/applied-undo-results.json). 제품 HEAD를 고정하고 이 증거는 `codex-pr34-verification-record`에 별도 저장한다. PR31–33/main/ZIP 보존, 새 main 병합·배포 없음. 아래는 당시 기록이다.
 
 ## 다음 후속: 미완성 한글의 외부 적용 보호 — 2026-10-03 14:00 KST
 
