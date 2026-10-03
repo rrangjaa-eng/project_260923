@@ -1,5 +1,9 @@
 # 작업 현황표
 
+## NAV-06 범위 검토·동작 계약 결정 필요 — 2026-10-03 20:42 KST
+
+[지원 범위·완료 기준·정확한 질문](verification/2026-10-03-nav06-scope-review.md)을 문서 전용 `codex-nav06-scope-review`에 기록했다. 실제 Chromium probe에서 일반 더블클릭은 click2회+dblclick1회, synthetic dblclick-only는 click0회+dblclick1회임을 확인했다. 기존 NAV-06 문서는 어느 방식을 제공할지 정하지 않는다. 추천은 명시 선택/확인 후 dblclick-only1회, 일반 클릭 fallback 없음이며 일반 더블클릭과의 호환성을 보장하지 않는다. 이 제한된 동작 계약에 대한 결정이 필요하다. 제품 소스 수정·새 PR·새CI는 시작하지 않았다. PR35 최종CI 성공은 아래와 같고 main/PR31–35/ZIP 보존, merge/deploy 없음.
+
 ## PR35 최종 CI107 성공 — 2026-10-03 20:36:05 KST
 
 [draft PR35](https://github.com/rrangjaa-eng/project_260923/pull/35)의 제품 `codex-switch-pin-settings`/`e590416bda80434390f1defbe8f3bb7aa2ab3ef2` 검증을 완료했다. [CI107 원본 근거](verification/ci107-final-results.json): type/lint·unit477/477(47파일)·Chromium435/435, 실패/flaky/skip0. 브라우저70분14.073초. 테스트 merge와 제품 tree 일치. 로컬 기능15/15·회귀72/72·자동UI101/101도 최종 소스에서 통과했다. [전체 결과](verification/pin-settings-results.json).
