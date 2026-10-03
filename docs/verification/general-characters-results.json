@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-03T11:52:45+09:00",
+  "checked_at": "2026-10-03T12:15:08+09:00",
   "pr": 31,
   "branch": "codex-switch-general-characters",
   "head": "c0b277c38d36afeac0e751cb83d0d4b780b31498",
@@ -48,7 +48,13 @@
     "run": 37091022015,
     "job": 111111205876,
     "status": "in_progress",
-    "conclusion": null
+    "conclusion": null,
+    "current_step": "Run pnpm test:e2e",
+    "completed_steps": [
+      "typecheck",
+      "lint",
+      "test:unit"
+    ]
   },
   "unverified": [
     "실제 Windows IME",
@@ -58,5 +64,6 @@
     "native UI"
   ],
   "test_merge": "61fd9787290f6f297c617cf730fe782709fbe530",
-  "candidate_and_test_merge_tree": "25ae638e4cc21d1f9719c277bb3ed45e0ea3c825"
+  "candidate_and_test_merge_tree": "25ae638e4cc21d1f9719c277bb3ed45e0ea3c825",
+  "environment": "명령/승인 차단 없음; 로컬 검사 종료, 전체 GitHub 브라우저 CI 실행 중"
 }
