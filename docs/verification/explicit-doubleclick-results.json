@@ -1,0 +1,116 @@
+{
+  "feature": "NAV-06 제한 dblclick-only",
+  "product_branch": "codex-switch-explicit-doubleclick",
+  "product_commit": "26bd9912fb21041ec8fa3ecefd9fbbf570a8fa37",
+  "base_commit": "e590416bda80434390f1defbe8f3bb7aa2ab3ef2",
+  "pull_request": "https://github.com/rrangjaa-eng/project_260923/pull/36",
+  "draft": true,
+  "merged": false,
+  "local_checks": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "passed": 486,
+      "files": 47,
+      "failed": 0
+    },
+    "feature_browser": {
+      "passed": 9,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "duration_reported": "3.1m",
+      "command": "CI=true pnpm test:e2e tests/e2e/switch-doubleclick.e2e.ts"
+    },
+    "preview_browser": {
+      "passed": 1,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "duration_reported": "27.7s",
+      "command": "CI=true pnpm test:e2e tests/e2e/switch-doubleclick-preview.e2e.ts"
+    },
+    "regression_browser": {
+      "status": "completed",
+      "command": "CI=true pnpm test:e2e tests/e2e/input-filter.e2e.ts tests/e2e/switch-actions.e2e.ts tests/e2e/switch-pin-settings.e2e.ts tests/e2e/switch-navigation-cancel.e2e.ts",
+      "passed": 43,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "duration_reported": "8.5m"
+    },
+    "ui_review": {
+      "status": "completed",
+      "command": "ui-review",
+      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-Ikjecb",
+      "passed": 101,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "duration_reported": "3.9m",
+      "duration_ms": 233253.893
+    }
+  },
+  "independent_review": {
+    "resolved_p2": 1,
+    "final_actionable_p1_p2": 0,
+    "kind": "read-only review; execution verified separately",
+    "resolved": "double-confirm capability could be substituted with press; behavioral RED click1 then bidirectional exact proposal binding GREEN"
+  },
+  "security_review": {
+    "authorization": "exact canonical action including kind, target, identity, actionId, confirmed and authorization; pending command binding in action-check and execute",
+    "lifecycle": "DOM node and removal history, identity/eligibility/viewport, cancellation generation and final content revalidation",
+    "replay": "existing document action gate; unknown discards capability and blocks further delivery",
+    "new_permissions_dependencies_storage": false
+  },
+  "design_review": {
+    "measured_widths": [
+      360,
+      768,
+      1280
+    ],
+    "height": 800,
+    "minimum_target_height": 56,
+    "checks": [
+      "cancel-first confirmation and 1 second protection",
+      "full name paged preview including ending at 360px",
+      "panel remains in viewport",
+      "existing panel/tokens preserved"
+    ],
+    "limit": "Not a full WCAG or real-user motor-usability certification"
+  },
+  "ci": {
+    "status": "in_progress",
+    "run_number": 108,
+    "run_id": 37121613912,
+    "job_id": 111198662065,
+    "url": "https://github.com/rrangjaa-eng/project_260923/actions/runs/37121613912",
+    "test_merge_commit": "4741959a6c7f854b077141afef215cd6284b2a21",
+    "product_and_test_merge_tree": "583d3b7d19aac6c2c9468cc91667dcc2ffbc5807"
+  },
+  "limits": [
+    "Only explicit top-level ordinary button[type=button] targets, with confirmation",
+    "Synthetic dblclick only; no preceding clicks, focus, automatic fallback or retry",
+    "Delivery done does not guarantee site effect or absence of arbitrary JavaScript side effects",
+    "General double-click sequence, trusted native input, iframe/custom targets not supported",
+    "Real Windows Korean IME, motor usability, real sites, native UI and two-PC sync unverified"
+  ],
+  "merge_deploy_zip_replace": false,
+  "recorded_at_kst": "2026-10-03 21:15 KST",
+  "local_log_sha256": {
+    "unit": "00e97c6d212a8ff9c7412d0bb2b13088f5f165408e6f1827f60ccafd41185098",
+    "feature_browser": "b33b9e7514eb8ab7894227a9b8deab158860b97f6b2c28c1f8a424f4544feb38",
+    "preview_browser": "b37ed16a3d2c3cad56a04d8b36f4070c4cf9cb52f59af579cd749fe7f13e8193",
+    "regression_browser": "7a0de3215b9201826140ea9fc93af01fbe99b4b07b847262514be317d7087df6",
+    "ui_results": "63c14261a4046570b484d2333a7549e3f8e6541282d4b93199da91ed5e020fd9"
+  },
+  "preserved": {
+    "main": "9394b0146f9ba169f57e47ce3274bdff57b74dfe",
+    "pr31": "c0b277c38d36afeac0e751cb83d0d4b780b31498",
+    "pr32": "97a9a96c630834ae408d21bb0131cee8f31357a2",
+    "pr33": "cc95a59d19766104ff419f36627eee66e9afceea",
+    "pr34": "3454494ac6a532a1b82b1c83b07383726a2b862a",
+    "pr35": "e590416bda80434390f1defbe8f3bb7aa2ab3ef2",
+    "zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb"
+  }
+}

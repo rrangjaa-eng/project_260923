@@ -31,3 +31,9 @@
 ## draft 게시 전 검증 — 2026-10-03 21:01 KST
 
 타입·린트·전체unit486/486(47파일) 통과. 새 기능/경계 실제 Chromium9/9(3.1분), 긴 이름·1초 보호·360/768/1280px·표적56px 검사1/1(27.7초) 통과. 첫 기능 검사에서 실패 없음. 관련 기존 회귀·자동UI·전체CI는 다음 단계이며 아직 최종 성공으로 세지 않는다.
+
+## 최종 로컬 검증 완료 — 2026-10-03 21:15 KST
+
+[draft PR36](https://github.com/rrangjaa-eng/project_260923/pull/36), 제품 `codex-switch-explicit-doubleclick`/`26bd9912fb21041ec8fa3ecefd9fbbf570a8fa37`. 타입·린트·전체unit486/486(47파일), 실제 Chromium기능9/9(3.1분)·이름/화면1/1(27.7초), 기존 클릭/떨림/핀/이동취소 회귀43/43(8.5분), 자동UI101/101(3.9분) 통과. 실패/flaky/skip0. [구조화된 결과](explicit-doubleclick-results.json).
+
+[CI108](https://github.com/rrangjaa-eng/project_260923/actions/runs/37121613912)은 전체 브라우저 검사 진행 중이며 최종 성공으로 세지 않는다. 테스트 merge4741959와 제품26bd991의 tree583d3b7d19aac6c2c9468cc91667dcc2ffbc5807 일치를 확인했다. 제품HEAD를 고정한 `codex-pr36-verification-record`에 결과를 기록한다. main/PR31–35 원격 HEAD와 기존 ZIP hash 불변을 재확인했다. 실제 PC/사용자/실사이트·native/두 PC의 한계는 유지한다.

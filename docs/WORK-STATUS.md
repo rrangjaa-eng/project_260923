@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## PR36 로컬 검증 완료·CI108 진행 중 — 2026-10-03 21:15 KST
+
+[draft PR36](https://github.com/rrangjaa-eng/project_260923/pull/36), 제품 `codex-switch-explicit-doubleclick`/`26bd9912fb21041ec8fa3ecefd9fbbf570a8fa37`. 승인된 dblclick-only1회·click0·명시 선택/확인·취소/대상변경/지연승인/중복 차단 구현. [계약과 RED/GREEN](verification/2026-10-03-explicit-doubleclick.md), [실행 결과](verification/explicit-doubleclick-results.json).
+
+타입·린트·unit486/486(47파일), 새 Chromium9/9+긴 이름/화면1/1, 기존회귀43/43, 자동UI101/101(실패/flaky/skip0) 통과. 독립 읽기 재검토 추가P1/P2 없음. CI108은 브라우저 단계 진행 중으로 최종 완료와 구분한다. 제품HEAD를 고정하고 `codex-pr36-verification-record`에 증거를 저장한다. main/PR31–35 원격HEAD·ZIP hash 유지, merge/deploy 없음. 아래는 당시 상태다.
+
 ## NAV-06 제한 더블클릭 구현·검증 중 — 2026-10-03 20:59 KST
 
 사용자가 추천 dblclick-only 계약을 승인했다. `codex-switch-explicit-doubleclick`에서 최상위 일반 버튼 직접 선택·전체 이름 확인·취소 우선1초 보호 후 dblclick1회만 전달한다. click/focus/fallback 없음. [승인 범위·실패 재현·한계](verification/2026-10-03-explicit-doubleclick.md). 단위486/486(47파일)·타입·린트 통과, 실제 Chromium 기능/경계9/9(3.1분)·긴 이름/화면1/1(27.7초) 통과. 기존 회귀·자동UI·전체CI는 진행 예정. 독립 검토의 승인 종류 교체P2를 실제RED로 재현하고 정확한 제안 역방향 binding으로 보완했다. 추가 actionable P1/P2 없음.
