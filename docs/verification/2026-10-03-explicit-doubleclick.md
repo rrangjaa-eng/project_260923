@@ -37,3 +37,11 @@
 [draft PR36](https://github.com/rrangjaa-eng/project_260923/pull/36), 제품 `codex-switch-explicit-doubleclick`/`26bd9912fb21041ec8fa3ecefd9fbbf570a8fa37`. 타입·린트·전체unit486/486(47파일), 실제 Chromium기능9/9(3.1분)·이름/화면1/1(27.7초), 기존 클릭/떨림/핀/이동취소 회귀43/43(8.5분), 자동UI101/101(3.9분) 통과. 실패/flaky/skip0. [구조화된 결과](explicit-doubleclick-results.json).
 
 [CI108](https://github.com/rrangjaa-eng/project_260923/actions/runs/37121613912)은 전체 브라우저 검사 진행 중이며 최종 성공으로 세지 않는다. 테스트 merge4741959와 제품26bd991의 tree583d3b7d19aac6c2c9468cc91667dcc2ffbc5807 일치를 확인했다. 제품HEAD를 고정한 `codex-pr36-verification-record`에 결과를 기록한다. main/PR31–35 원격 HEAD와 기존 ZIP hash 불변을 재확인했다. 실제 PC/사용자/실사이트·native/두 PC의 한계는 유지한다.
+
+## 최종 CI108 성공 — 2026-10-03 22:17:36 KST
+
+[CI108](https://github.com/rrangjaa-eng/project_260923/actions/runs/37121613912)과 check job111198662065 모두 completed/success다. 원본 로그에서 타입·린트, unit486/486(47파일), Chromium445/445(실패/flaky/skip0)를 확인했다. Running~통과 로그 간73분18.514초다. 실패 시에만 실행하는 artifact 업로드 단계의 skipped는 테스트 생략이 아니다.
+
+checkout4741959a6c7f854b077141afef215cd6284b2a21과 제품26bd9912fb21041ec8fa3ecefd9fbbf570a8fa37의 tree583d3b7d19aac6c2c9468cc91667dcc2ffbc5807이 같다. [최종 CI 근거](ci108-final-results.json), [전체 검증 결과](explicit-doubleclick-results.json). 제품 소스는 바꾸지 않고 `codex-pr36-verification-record`에 결과를 저장한다.
+
+원격 main/PR31–35 HEAD와 기존 ZIP SHA256 불변을 재확인했다. PR31–36은 모두 draft·미병합이며 merge/deploy/ZIP 교체 없음. 위 진행 중 표기는 당시 상태이며 이 결과로 갱신한다. 지원 범위와 실제 PC/사용자/사이트 검증 한계는 그대로다.

@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## PR36 최종 CI108 성공 — 2026-10-03 22:17:36 KST
+
+[draft PR36](https://github.com/rrangjaa-eng/project_260923/pull/36)의 승인된 NAV-06 제한 구현과 검증을 완료했다. 제품 `codex-switch-explicit-doubleclick`/`26bd9912fb21041ec8fa3ecefd9fbbf570a8fa37`. [최종 CI 원본 근거](verification/ci108-final-results.json): 타입·린트·unit486/486(47파일)·Chromium445/445, 실패/flaky/skip0. 브라우저 실행 시작~통과73분18.514초, 테스트 merge와 제품 tree 일치. [전체 결과](verification/explicit-doubleclick-results.json).
+
+로컬 새 기능9/9+이름/화면1/1·기존회귀43/43·자동UI101/101도 통과했다. 독립 검토 P2 승인 종류 교체를 RED→GREEN으로 보완했고 최종 추가P1/P2 없음. 증거는 `codex-pr36-verification-record`에 보존한다. 원격 main/PR31–35 HEAD·기존 ZIP hash 불변, PR31–36 draft·미병합을 재확인했다. 새merge/deploy/ZIP교체 없음. 일반 두 click 시퀀스·iframe/custom 대상과 실제 Windows IME/운동 사용성/실사이트/native UI/두 PC 검증은 범위 밖 또는 미검증이다. 아래는 당시 기록이다.
+
 ## PR36 로컬 검증 완료·CI108 진행 중 — 2026-10-03 21:15 KST
 
 [draft PR36](https://github.com/rrangjaa-eng/project_260923/pull/36), 제품 `codex-switch-explicit-doubleclick`/`26bd9912fb21041ec8fa3ecefd9fbbf570a8fa37`. 승인된 dblclick-only1회·click0·명시 선택/확인·취소/대상변경/지연승인/중복 차단 구현. [계약과 RED/GREEN](verification/2026-10-03-explicit-doubleclick.md), [실행 결과](verification/explicit-doubleclick-results.json).
