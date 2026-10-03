@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## PR33 테스트 보완·CI103 시작 — 2026-10-03 15:07 KST
+
+제품 브랜치 `codex-switch-compose-commit`/`cc95a59d19766104ff419f36627eee66e9afceea`를 push했다. CI102의 양식 검사 가정 충돌을6줄의 테스트 보완으로 해결했고 src는9e7e1c3과 동일하다. 기존 충돌 단언을 유지하며 조합 차단·초안/사이트 값 보존·이벤트0을 추가했다. 독립 재검토 추가P1/P2 없음. 최종 type/lint·해당 Chromium1/1(1.9분) 통과.
+
+[CI103](https://github.com/rrangjaa-eng/project_260923/actions/runs/37101988570)이 진행 중이다. test merge201edb5와 후보 treef07a401 동일. [수치·이전 실패·소스 해시](verification/compose-commit-results.json). CI102를 성공으로 덮지 않는다. PR31·32·main·ZIP 보존. 새 병합·배포 없음. 아래는 당시 기록이다.
+
 ## PR33 CI102 기존 양식 검사 충돌 확인 — 2026-10-03 15:03 KST
 
 CI102는 unit412 통과, browser409통과/1실패(58.3분)로 종료했다. [실패 근거](verification/ci102-failure-results.json). 기존 양식 검사가 미완성 한글 상태에서 적용 요청을 보내 외부값 변경 안내를 기대했으나 새 guard가 조합 완료/취소 안내로 먼저 차단했다. 제품 보호를 유지하고 조합 차단·보존을 검사한 뒤 명시 취소 후 외부값 충돌도 검증하도록 테스트를 보완한다. 실패를 지우거나 재실행만으로 넘기지 않는다. 새 최종HEAD 전체CI 성공 전 완료로 세지 않는다. PR31·32·main과 ZIP 보존.

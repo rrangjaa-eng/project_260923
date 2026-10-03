@@ -1,12 +1,12 @@
 {
-  "checked_at": "2026-10-03T14:09:47+09:00",
+  "checked_at": "2026-10-03T15:08:30+09:00",
   "pr": 33,
   "branch": "codex-switch-compose-commit",
-  "head": "9e7e1c37bbbed964e2d3a494c7cc72af79094d20",
+  "head": "cc95a59d19766104ff419f36627eee66e9afceea",
   "base_pr": 32,
   "base_head": "97a9a96c630834ae408d21bb0131cee8f31357a2",
-  "test_merge": "ac7d99a98c28e04abc44712fcaa9acf5dd830225",
-  "candidate_and_test_merge_tree": "92cfe7a8cd181399d46700c305e71d0a8a7ba258",
+  "test_merge": "201edb53a3e5947f431ae63b599f9c1fe886319d",
+  "candidate_and_test_merge_tree": "f07a4010a0953594bdfc43ccdd91ae4041de6412",
   "local": {
     "typecheck": "passed",
     "lint": "passed",
@@ -32,7 +32,13 @@
       "flaky": 0,
       "minutes": 3.8,
       "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-NPUeRs"
-    }
+    },
+    "form_conflict_regression": {
+      "status": "passed",
+      "passed": 1,
+      "minutes": 1.9
+    },
+    "source_equivalence": "cc95a59 is test-only; src identical to 9e7e1c3. Earlier local unit412/browser3/editor38/UI101 remain source evidence. Final type/lint and revised form test passed; new full CI103 pending."
   },
   "red_green": {
     "failed_before_guard": 3,
@@ -41,6 +47,26 @@
   },
   "independent_review": "추가 actionable P1/P2 없음; 읽기 검토",
   "ci": {
+    "number": 103,
+    "run": 37101988570,
+    "job": 111143181521,
+    "status": "in_progress",
+    "conclusion": null
+  },
+  "source_sha256": {
+    "src/page/input/switch-controller.ts": "3d895812fda904b29891ca29e5d33573e09be1b7e1dd1ab6d44880475d6f6670",
+    "tests/unit/switch-controller-navigation.test.ts": "9a41da409ddec576771082335269cf6b9a023bfe3f008dcfc26dab0ce2301397",
+    "tests/e2e/switch-compose-commit.e2e.ts": "8e52857dbbb495f0456ceb657c6c6630786508ae4e17d072f298360c6e676afa",
+    "tests/e2e/switch-form-navigation.e2e.ts": "531b73b99a610da29d5c5526d937af0456d7082c85079c5c88276641c0bab4af"
+  },
+  "archived_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
+  "unverified": [
+    "실제 Windows IME",
+    "운동 사용성",
+    "실사이트",
+    "native UI"
+  ],
+  "previous_ci": {
     "number": 102,
     "run": 37098520790,
     "job": 111133266498,
@@ -50,17 +76,5 @@
     "browser_passed": 409,
     "browser_failed": 1,
     "evidence": "ci102-failure-results.json"
-  },
-  "source_sha256": {
-    "src/page/input/switch-controller.ts": "3d895812fda904b29891ca29e5d33573e09be1b7e1dd1ab6d44880475d6f6670",
-    "tests/unit/switch-controller-navigation.test.ts": "9a41da409ddec576771082335269cf6b9a023bfe3f008dcfc26dab0ce2301397",
-    "tests/e2e/switch-compose-commit.e2e.ts": "8e52857dbbb495f0456ceb657c6c6630786508ae4e17d072f298360c6e676afa"
-  },
-  "archived_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
-  "unverified": [
-    "실제 Windows IME",
-    "운동 사용성",
-    "실사이트",
-    "native UI"
-  ]
+  }
 }

@@ -23,3 +23,10 @@
 NAV-04의 적용 후 실제 필드 되돌리기는 현재 초안 undo와 다르며 미구현이다. 구현 전 되돌릴 스냅샷의 수명, 사이트가 값을 다시 바꿨을 때 거절, 양식/프레임 경계를 별도 범위로 정해야 한다. 기존 “문장 버리기”가 원래 값으로 되돌리는 동작이라는 뜻은 아니다.
 
 custom/ARIA 위젯·contenteditable 직접 삽입은 대상 계약/fixture 없이 모든 사이트 지원으로 넓히지 않는다. 임의 사이트 오류 원문, 최근값 자동 수집/PRIV-01 전체, native/Windows 연결은 별도 개인정보·권한/제품 결정이 필요하다. 실제 Windows IME·운동 사용성·실사이트·native UI는 미검증이다. 원래 장기 로드맵의 모든 체크박스가 완료됐다는 뜻이 아니다.
+
+
+## CI102에서 드러난 기존 검사 가정 보완
+
+CI102는 unit412 통과·전체 browser409통과/1실패(58.3분)로 종료했다. 기존 `cached cursor, undo and partial Hangul survive field moves; externally changed value refuses apply` 검사가 미완성 [ㄱ] 상태에서 적용 요청을 보내 “바뀌었어요”를 기대했다. 새 조합 guard가 먼저 “한글 조합을 마치거나 취소하세요”를 반환했다. [실패 기록](ci102-failure-results.json).
+
+제품 guard를 변경하지 않고 기존 테스트에 조합 차단·초안/사이트 값 보존·input/change0을 추가했다. 이어 명시 조합 취소 후 기존 외부값 충돌 안내·값 보존도 유지하고 이벤트0까지 확인한다. 독립 재검토 추가P1/P2 없음, 기존 단언 약화 없음. 최종 type/lint 및 해당 Chromium1/1(1.9분) 통과. 새 제품브랜치 HEAD `cc95a59d19766104ff419f36627eee66e9afceea`는 테스트6줄만 추가하며 src는 9e7e1c3과 동일하다. 기존 로컬412/3/38/UI101 결과와 구분해서 최종HEAD의 CI103을 확인한다. CI103은 현재 진행 중이다.
