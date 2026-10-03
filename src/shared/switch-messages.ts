@@ -16,8 +16,8 @@ export const FormControl = z.discriminatedUnion('kind', [
 export type FormControl = z.infer<typeof FormControl>;
 export const SwitchTargetAction = z.object({
   actionId: z.string().max(150), target: Target,
-  kind: z.enum(['capture', 'press', 'applyText', 'restoreText', 'search', 'captureControl', 'applyControl', 'readValidity']), text: z.string().max(4000).optional(), expectedValue: z.string().max(4000).optional(),
-  selection: TextSelection.optional(), control: FormControl.optional(), controlIndices:Indices.optional(), controlIndex:z.number().int().min(0).max(99).optional(), controlChecked:z.boolean().optional(),
+  kind: z.enum(['capture', 'press', 'applyText', 'previewUndo', 'undoText', 'restoreText', 'search', 'captureControl', 'applyControl', 'readValidity']), text: z.string().max(4000).optional(), expectedValue: z.string().max(4000).optional(),
+  undoToken: z.string().min(1).max(150).optional(), selection: TextSelection.optional(), control: FormControl.optional(), controlIndices:Indices.optional(), controlIndex:z.number().int().min(0).max(99).optional(), controlChecked:z.boolean().optional(),
   expectedIdentity: z.string(), confirmed: z.boolean().optional(),
   authorization: Authorization,
 }).strict();
