@@ -67,8 +67,8 @@ test('lost pin write acknowledgment stays unknown and never replays the save',as
   const set=chrome.storage.sync.set.bind(chrome.storage.sync),state=globalThis as typeof globalThis&{pinWrites?:number};state.pinWrites=0;
   chrome.storage.sync.set=async(items)=>{await set(items);if('site:http://practice.test' in items){state.pinWrites=(state.pinWrites??0)+1;throw new Error('lost acknowledgment');}};
  });
- await chooseSwitch(page,'확인 · 번호 고정');await expect(panel(page)).toHaveAttribute('data-mode','paused');await expect(panel(page)).toContainText('실행 결과를 확인하세요');
+ await chooseSwitch(page,'확인 · 번호 고정');await expect(panel(page)).toHaveAttribute('data-mode','recovering');await expect(panel(page)).toContainText('실행 결과를 확인하세요');
  expect(await serviceWorker.evaluate(async()=>(await chrome.storage.sync.get('site:http://practice.test'))['site:http://practice.test'])).toMatchObject({data:{pins:[{number:1}]}});
- await page.keyboard.press('Space');await page.waitForTimeout(300);await expect(panel(page).locator('[data-item-id="pin-commit"]')).toHaveCount(0);
+ await page.keyboard.press('Space');await page.waitForTimeout(125);await chooseSwitch(page,'확인 · 번호 고정');await expect(panel(page)).toContainText('다시 확인');
  expect(await serviceWorker.evaluate(()=>(globalThis as typeof globalThis&{pinWrites?:number}).pinWrites)).toBe(1);expect(await page.evaluate(()=>(window as Window&{clicks?:number}).clicks)).toBe(0);
 });
