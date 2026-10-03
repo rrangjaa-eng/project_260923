@@ -106,6 +106,26 @@ it.each([false,true])('unfinished Hangul blocks ASCII without moving the draft c
  await f.choose(label);await f.choose('a b c d e f');await f.choose('a');expect(view.text).toBe('가가a나');expect(f.field.value).toBe('가👍🏽나');
 });
 
+it.each(['띄어쓰기','라','앞 글자','뒤 글자','입력 되돌리기'])('unfinished Hangul preserves the draft position when selecting %s',async label=>{
+ const f=await fixture();await f.setEnabled(true);await f.capture();
+ await f.choose('영문·숫자 쓰기');await f.choose('a b c d e f');await f.choose('a');
+ await f.choose('한글 쓰기');await f.choose('ㄱ ㄲ ㄴ ㄷ ㄸ ㄹ');await f.choose('ㄱ');await f.choose('ㅏ ㅐ ㅑ ㅒ ㅓ ㅔ');await f.choose('ㅏ');
+ for(let i=0;i<6&&!view.state?.items.some(item=>item.label==='띄어쓰기');i++)await f.choose('상위로');
+ if(label==='라')await f.choose('문구');else if(label!=='띄어쓰기')await f.choose('수정');
+ const before={text:view.text,selection:view.selection};await f.choose(label);
+ expect({text:view.text,selection:view.selection}).toEqual(before);expect(view.notice).toContain('한글 조합을 마치거나 취소');expect(f.field.value).toBe('가👍🏽나');
+ for(let i=0;i<3&&!view.state?.items.some(item=>item.label==='한글 쓰기');i++)await f.choose('상위로');
+ await f.choose('한글 쓰기');await f.choose('없음 ㄱ ㄲ ㄳ ㄴ ㄵ');await f.choose('없음');expect(view.text).toBe('가a가나');
+ if(label==='라')await f.choose('문구');else if(label!=='띄어쓰기')await f.choose('수정');
+ await f.choose(label);
+ if(label==='띄어쓰기')expect(view.text).toBe('가a가 나');
+ if(label==='라')expect(view.text).toBe('가a가라나');
+ if(label==='입력 되돌리기')expect(view.text).toBe('가a나');
+ if(label==='앞 글자')expect(view.selection).toMatchObject({start:2,end:2});
+ if(label==='뒤 글자')expect(view.selection).toMatchObject({start:4,end:4});
+ expect(f.field.value).toBe('가👍🏽나');
+});
+
 it.each(['unknown','timeout'])('late %s after pause and resume still blocks destructive navigation',async result=>{
  const f=await fixture();await f.setEnabled(true);await f.capture();let release:(value:unknown)=>void=()=>{};f.holdExecute(()=>new Promise(resolve=>{release=resolve;}));await f.choose('입력칸에 적용');f.controller.pause();await f.press();
  if(result==='unknown')release({result:'unknown'});else await vi.advanceTimersByTimeAsync(3100);
