@@ -43,7 +43,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   const inFlight=new Set<unknown>();
   const request=async(message:unknown):Promise<unknown>=>{
     const type=(message as {type?:string}).type;
-    const tracked=['switch/execute','switch/navigation','switch/phrase','switch/phrase/update','switch/pin/update','switch/draft'].includes(type??'');
+    const tracked=['switch/execute','switch/navigation','switch/phrase','switch/phrase/update','switch/pin/update','switch/site-off','switch/draft'].includes(type??'');
     if(tracked)inFlight.add(message);
     try{
       const result=await (opts.transport?.request??requestMessage)(message);
@@ -453,6 +453,14 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   async function handleCommand(id:string,startedGeneration:number):Promise<PageResult['result']|undefined>{
     if(id==='up'){if(state.resumeMode==='confirming')confirmAction=null;if(formActive&&stack.length===1){stashField();showForm();}else up();return;}
     if(id==='pause'){pause();return;}
+    if(id==='site-off'){
+      stopScroll();forgetDouble();forgetPin();forgetPinRun();forgetApplied();
+      notice='이 사이트에서 끄는 중이에요';render();
+      let result:PageResult={result:'unknown'};
+      try{result=resultOf(await request({type:'switch/site-off',origin:location.origin,authorization:authorization()}));}catch{ /* 응답 유실은 재시도하지 않는다. */ }
+      if(active(startedGeneration))pause(result.result==='done'?'이 사이트에서 껐어요. 다시 켜기는 확장 아이콘에서 하세요':result.result==='unknown'?'끄기 결과를 확인하지 못했어요. 확장 아이콘에서 확인하세요':'이 사이트에서 끄지 못했어요. 확장 아이콘에서 확인하세요');
+      return result.result;
+    }
     if(id==='helper-off'){
       pause('도우미를 끄는 중이에요');
       try {
@@ -518,7 +526,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       if(group===0||group===1){stack.push(current);if(await refreshTargets(startedGeneration))pageMenu(0,group===0);}
       if(group===2){scrollRegion=scrollRegions?.page()??null;readingMenu();}
       if(group===3){if(selected||draft.text||initial!==null)editor();else menu([command('choose-input','입력칸 선택'),command('draft:new','새 문장'),command('form-open','양식 한 장 보기'),...(formRecovery?[command('form-recover','양식 작성 문장 복구')]:[])],'글쓰기');}
-      if(group===4)menu([command('helper-off','도우미 끄기 · 페이지 입력 돌려주기'),command('speed','순환 속도'),command('protection','입력 간격 보호'),command('pause','쉬기'),command('pointer','마우스 조작으로 전환 · 스페이스바 작업판 종료')],'조절·쉬기');
+      if(group===4)menu([command('helper-off','도우미 끄기 · 페이지 입력 돌려주기'),...(/^https?:$/.test(location.protocol)?[command('site-off','이 사이트에서 끄기 · 다시 켜기는 확장 아이콘')]:[]),command('speed','순환 속도'),command('protection','입력 간격 보호'),command('pause','쉬기'),command('pointer','마우스 조작으로 전환 · 스페이스바 작업판 종료')],'조절·쉬기');
       return;
     }
     if(id==='double-open'){
@@ -782,10 +790,11 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       const nav=message.navigation;
       const guarded=nav?.kind==='reload'||nav?.kind==='close';
       const navigationMatches=!nav||state.pendingAction?.itemId===(nav.kind==='activate'?`tab:${String(nav.tabId)}`:guarded?`nav:${nav.kind}-confirm`:`nav:${nav.kind}`);
+      const siteOffMatches=state.pendingAction?.itemId==='site-off'?message.siteOff===location.origin&&!message.navigation&&!message.pin&&!message.doubleClick:message.siteOff===undefined;
       const doubleValid=state.pendingAction?.itemId==='double-confirm'?!!message.doubleClick&&doubleMatches(message.doubleClick):!message.doubleClick;
       const pinMatches=!message.pin||pinRevision===pinSnapshotRevision&&state.pendingAction?.itemId==='pin-commit'&&pinMutation!==null&&JSON.stringify(message.pin)===JSON.stringify(pinMutation)&&(!pinMutation.fingerprint||!!pinCapture?.valid());
       const clean=!guarded||(!unapplied()&&!unresolvedWork&&inFlight.size===1&&navigationConfirmation?.kind===nav.kind&&(nav.kind!=='close'||navigationConfirmation.token===nav.token));
-      sendResponse({result:doubleValid&&pinMatches&&(!pinRunCapture||pinRunCapture.valid())&&clean&&navigationMatches&&top&&exclusive()&&state.mode==='executing'&&state.pendingAction!==null&&message.authorization.documentGeneration===generation&&message.authorization.modeGeneration===state.modeGeneration&&message.authorization.pendingActionId===state.pendingAction.actionId?'done':'refused'});return undefined;
+      sendResponse({result:siteOffMatches&&doubleValid&&pinMatches&&(!pinRunCapture||pinRunCapture.valid())&&clean&&navigationMatches&&top&&exclusive()&&state.mode==='executing'&&state.pendingAction!==null&&message.authorization.documentGeneration===generation&&message.authorization.modeGeneration===state.modeGeneration&&message.authorization.pendingActionId===state.pendingAction.actionId?'done':'refused'});return undefined;
     }
     if(message.type==='switch/frame-check'){
       sendResponse({result:exclusive()&&message.documentGeneration===generation&&visibleSwitchChild(message.childIndex)?'done':'refused'});return undefined;
@@ -798,7 +807,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(message.type==='switch/execute'){
       const action=message.action;
       if(!exclusive()||!gate.accept(action.actionId,action.target.documentGeneration)){sendResponse({result:'refused'});return undefined;}
-      const authorized=()=>exclusive()&&(state.pendingAction?.itemId==='double-confirm'||action.kind==='doubleClick'?top&&doubleMatches(action):true)&&(!pinRunCapture||pinRunCapture.valid())&&state.mode==='executing'&&state.pendingAction!==null&&action.authorization.documentGeneration===generation&&action.authorization.modeGeneration===state.modeGeneration&&action.authorization.pendingActionId===state.pendingAction.actionId;
+      const authorized=()=>exclusive()&&state.pendingAction?.itemId!=='site-off'&&(state.pendingAction?.itemId==='double-confirm'||action.kind==='doubleClick'?top&&doubleMatches(action):true)&&(!pinRunCapture||pinRunCapture.valid())&&state.mode==='executing'&&state.pendingAction!==null&&action.authorization.documentGeneration===generation&&action.authorization.modeGeneration===state.modeGeneration&&action.authorization.pendingActionId===state.pendingAction.actionId;
       if(!top){
         const localGeneration=state.modeGeneration;
         void request({type:'switch/action-check',authorization:action.authorization}).then((raw)=>{

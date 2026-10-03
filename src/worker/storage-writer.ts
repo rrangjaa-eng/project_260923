@@ -33,7 +33,7 @@ export type RecordPressResult = { ok: true } | { ok: false; reason: 'origin-mism
 
 export type SetSiteDisabledResult =
   | { ok: true }
-  | { ok: false; reason: 'invalid-site' | 'item-too-large' | 'write-failed' };
+  | { ok: false; reason: 'invalid-site' | 'item-too-large' | 'write-failed' | 'superseded' | 'unknown' };
 
 // 사이트별 자주 누른 기록 상한(D-18 성격 — 무한정 커지지 않게, T-01-18).
 const MAX_PRESS_ENTRIES = 200;
@@ -55,7 +55,7 @@ export interface StorageWriter {
   // 읽기만 한다(쓰기는 실패했을 때 notice 기록, migrated일 때 변환된 값 쓰기 뿐).
   checkSettings(): Promise<void>;
   recordPress(requestOrigin: string, senderOrigin: string, fingerprint: Fingerprint): Promise<RecordPressResult>;
-  setSiteDisabled(origin: string, disabled: boolean): Promise<SetSiteDisabledResult>;
+  setSiteDisabled(origin: string, disabled: boolean, authorized?: () => Promise<boolean>): Promise<SetSiteDisabledResult>;
 }
 
 type SyncSetResult = { ok: true } | { ok: false; reason: 'item-too-large'; key: string };
@@ -383,7 +383,26 @@ export function createStorageWriter(): StorageWriter {
       });
     },
 
-    setSiteDisabled(origin, disabled) {
+    setSiteDisabled(origin, disabled, authorized) {
+      if(authorized)return enqueue(async()=>{
+        const key=siteKey(origin);let changed=false,writing=false;const unchanged=()=>!changed;
+        const onChange=(changes:Record<string,chrome.storage.StorageChange>,area:string)=>{if(area==='sync'&&key in changes)changed=true;};
+        chrome.storage.onChanged.addListener(onChange);
+        try{
+          const url=new URL(origin);
+          if(!['http:','https:'].includes(url.protocol)||url.origin!==origin)return {ok:false,reason:'invalid-site'};
+          const read=async()=>{const stored=await chrome.storage.sync.get(key);return SiteEntryV1.safeParse(stored[key]===undefined?{schemaVersion:1,data:{disabled:false,pins:[]}}:stored[key]);};
+          const first=await read();if(!first.success)return {ok:false,reason:'invalid-site'};
+          if(!await authorized()||!unchanged())return {ok:false,reason:'superseded'};
+          await waitForSyncWriteSlot();
+          const latest=await read();if(!latest.success)return {ok:false,reason:'invalid-site'};
+          const next={...latest.data,data:{...latest.data.data,disabled}};
+          if(syncItemBytes(key,next)>SYNC_ITEM_LIMIT)return {ok:false,reason:'item-too-large'};
+          if(!await authorized()||!unchanged())return {ok:false,reason:'superseded'};
+          writing=true;await chrome.storage.sync.set({[key]:next});return {ok:true};
+        }catch{return {ok:false,reason:writing?'unknown':'write-failed'};}
+        finally{chrome.storage.onChanged.removeListener(onChange);}
+      });
       const key = siteKey(origin);
       return new Promise((resolve) => {
         let state = siteWriteQueues.get(key);

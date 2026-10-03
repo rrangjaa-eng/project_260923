@@ -7,10 +7,11 @@ export function createSwitchRelay(writer: StorageWriter,send:typeof chrome.tabs.
   const closePreviews=new Map<number,{token:string;sourceUrl:string;windowId:number;documentGeneration:string;targetId:number;targetUrl:string;targetTitle:string;targetDocument:string;targetLocation:number}>();
   const locationChanges=new Map<number,number>();
   const cancellations = new Map<number, number>();
+  const siteOffActions=new Map<number,{documentGeneration:string;seen:Set<string>}>();
   const navigationActions=new Map<number,{documentGeneration:string;seen:Set<string>}>();
   const cancel = (id: number) => { closePreviews.delete(id); cancellations.set(id, (cancellations.get(id) ?? 0) + 1); };
   chrome.tabs.onDetached.addListener(id=>{locationChanges.set(id,(locationChanges.get(id)??0)+1);cancel(id);});
-  chrome.tabs.onRemoved.addListener((id) => { frames.delete(id); locationChanges.delete(id); closePreviews.delete(id); cancellations.delete(id); navigationActions.delete(id); void writer.writeSwitchData(`switchDraft:${String(id)}`, '', 'session'); });
+  chrome.tabs.onRemoved.addListener((id) => { frames.delete(id); locationChanges.delete(id); closePreviews.delete(id); cancellations.delete(id); navigationActions.delete(id); siteOffActions.delete(id); void writer.writeSwitchData(`switchDraft:${String(id)}`, '', 'session'); });
   chrome.tabs.onUpdated.addListener((id, change) => {
     if (change.status === 'loading') {
       cancel(id);
@@ -100,6 +101,31 @@ export function createSwitchRelay(writer: StorageWriter,send:typeof chrome.tabs.
     if (message.type === 'switch/draft/read') {
       const stored=await chrome.storage.session.get(`switchDraft:${String(tabId)}`);
       return {text:stored[`switchDraft:${String(tabId)}`]};
+    }
+    if(message.type==='switch/site-off'){
+      const source=sender.url,report=frames.get(tabId)?.get(0);
+      if(!source||!report||report.documentGeneration!==message.authorization.documentGeneration)return {result:'refused'};
+      try{const url=new URL(source);if(!['http:','https:'].includes(url.protocol)||url.origin!==message.origin)return {result:'refused'};}catch{return {result:'refused'};}
+      let cancellation=cancellations.get(tabId)??0;
+      const current=()=>frames.get(tabId)?.get(0)?.documentGeneration===report.documentGeneration&&(cancellations.get(tabId)??0)===cancellation;
+      const authorized=async()=>{
+        if(!current())return false;
+        try{
+          if((await chrome.tabs.get(tabId)).url!==source||!current())return false;
+          const reply:unknown=await send(tabId,{type:'switch/action-check',authorization:message.authorization,siteOff:message.origin},{frameId:0});
+          return current()&&(await chrome.tabs.get(tabId)).url===source&&current()&&typeof reply==='object'&&reply!==null&&'result' in reply&&reply.result==='done';
+        }catch{return false;}
+      };
+      if(!await authorized())return {result:'refused'};
+      const prior=siteOffActions.get(tabId);
+      const consumed=prior?.documentGeneration===report.documentGeneration?prior:{documentGeneration:report.documentGeneration,seen:new Set<string>()};
+      const actionKey=JSON.stringify([message.authorization.modeGeneration,message.authorization.pendingActionId]);
+      if(consumed.seen.has(actionKey))return {result:'refused'};
+      consumed.seen.add(actionKey);siteOffActions.set(tabId,consumed);
+      cancel(tabId);cancellation=cancellations.get(tabId)??0;
+      await Promise.all(Array.from(frames.get(tabId)?.keys()??[]).filter(id=>id!==0).map(id=>send(tabId,{type:'switch/pause'},{frameId:id}).catch(()=>undefined)));
+      const result=await writer.setSiteDisabled(message.origin,true,authorized);
+      return {result:result.ok?'done':result.reason==='unknown'?'unknown':'refused'};
     }
     if(message.type==='switch/pin/update'){
       const source=sender.url,report=frames.get(tabId)?.get(0),cancellation=cancellations.get(tabId)??0;
@@ -224,5 +250,5 @@ export function createSwitchRelay(writer: StorageWriter,send:typeof chrome.tabs.
     }
     return undefined;
   }
-  return { handle,disconnect:(id:number)=>{cancel(id);frames.delete(id);navigationActions.delete(id);} };
+  return { handle,disconnect:(id:number)=>{cancel(id);frames.delete(id);navigationActions.delete(id); siteOffActions.delete(id);} };
 }
