@@ -1,5 +1,21 @@
 # 작업 현황표
 
+## SAFE-04 현재 사이트 끄기 구현·검증 중 — 2026-10-03 22:44 KST
+
+`codex-switch-site-off`에서 승인된 작업판 현재 사이트 끄기를 구현했다. 기존 사이트 저장 계약·핀·다른 출처·전체 설정을 보존하며 재활성화는 기존 팝업이다. [계약·RED/GREEN·한계](verification/2026-10-03-switch-site-off.md). 독립 검토의 최종 실행 종류 치환과 늦은 요청의 선행 자식 정지 2건을 RED로 재현하고 수정했다. 최종 독립 재검토 추가P1/P2 없음, 타입·린트·단위505/505(49파일) 통과. 새 브라우저 초기 7/7 통과 후 수정된 소스에서 추가 응답 유실 검사·기존 팝업/취소 회귀·전체 단위·자동UI를 진행한다. 최종 CI 성공 전이며 완료로 세지 않는다. main/PR31–36/ZIP 원본 보존을 확인했다. merge/deploy 없음.
+
+## PR36 최종 CI108 성공 — 2026-10-03 22:17:36 KST
+
+[draft PR36](https://github.com/rrangjaa-eng/project_260923/pull/36)의 승인된 NAV-06 제한 구현과 검증을 완료했다. 제품 `codex-switch-explicit-doubleclick`/`26bd9912fb21041ec8fa3ecefd9fbbf570a8fa37`. [최종 CI 원본 근거](verification/ci108-final-results.json): 타입·린트·unit486/486(47파일)·Chromium445/445, 실패/flaky/skip0. 브라우저 실행 시작~통과73분18.514초, 테스트 merge와 제품 tree 일치. [전체 결과](verification/explicit-doubleclick-results.json).
+
+로컬 새 기능9/9+이름/화면1/1·기존회귀43/43·자동UI101/101도 통과했다. 독립 검토 P2 승인 종류 교체를 RED→GREEN으로 보완했고 최종 추가P1/P2 없음. 증거는 `codex-pr36-verification-record`에 보존한다. 원격 main/PR31–35 HEAD·기존 ZIP hash 불변, PR31–36 draft·미병합을 재확인했다. 새merge/deploy/ZIP교체 없음. 일반 두 click 시퀀스·iframe/custom 대상과 실제 Windows IME/운동 사용성/실사이트/native UI/두 PC 검증은 범위 밖 또는 미검증이다. 아래는 당시 기록이다.
+
+## PR36 로컬 검증 완료·CI108 진행 중 — 2026-10-03 21:15 KST
+
+[draft PR36](https://github.com/rrangjaa-eng/project_260923/pull/36), 제품 `codex-switch-explicit-doubleclick`/`26bd9912fb21041ec8fa3ecefd9fbbf570a8fa37`. 승인된 dblclick-only1회·click0·명시 선택/확인·취소/대상변경/지연승인/중복 차단 구현. [계약과 RED/GREEN](verification/2026-10-03-explicit-doubleclick.md), [실행 결과](verification/explicit-doubleclick-results.json).
+
+타입·린트·unit486/486(47파일), 새 Chromium9/9+긴 이름/화면1/1, 기존회귀43/43, 자동UI101/101(실패/flaky/skip0) 통과. 독립 읽기 재검토 추가P1/P2 없음. CI108은 브라우저 단계 진행 중으로 최종 완료와 구분한다. 제품HEAD를 고정하고 `codex-pr36-verification-record`에 증거를 저장한다. main/PR31–35 원격HEAD·ZIP hash 유지, merge/deploy 없음. 아래는 당시 상태다.
+
 ## NAV-06 제한 더블클릭 구현·검증 중 — 2026-10-03 20:59 KST
 
 사용자가 추천 dblclick-only 계약을 승인했다. `codex-switch-explicit-doubleclick`에서 최상위 일반 버튼 직접 선택·전체 이름 확인·취소 우선1초 보호 후 dblclick1회만 전달한다. click/focus/fallback 없음. [승인 범위·실패 재현·한계](verification/2026-10-03-explicit-doubleclick.md). 단위486/486(47파일)·타입·린트 통과, 실제 Chromium 기능/경계9/9(3.1분)·긴 이름/화면1/1(27.7초) 통과. 기존 회귀·자동UI·전체CI는 진행 예정. 독립 검토의 승인 종류 교체P2를 실제RED로 재현하고 정확한 제안 역방향 binding으로 보완했다. 추가 actionable P1/P2 없음.

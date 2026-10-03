@@ -48,7 +48,7 @@ async function fixture(readDraft?: () => Promise<{ text: string }>,helperPage=fa
         if (message.type === 'switch/draft/read') return readDraft ? readDraft() : { text: storedDraft };
         if (message.type === 'switch/draft') { storedDraft = message.text ?? ''; return { ok: true }; }
         if(message.type==='switch/navigation'){ navigation.push(raw); const m=raw as {kind:string};return m.kind==='close-preview'?{result:'done',token:'preview',title:'돌아갈 곳'}:{result:'done'};}
-        if (message.type === 'switch/execute'&&executeReply)return executeReply(raw);
+        if ((message.type === 'switch/execute'||message.type==='switch/site-off')&&executeReply)return executeReply(raw);
         if (message.type === 'switch/execute') return new Promise((resolve) => { listeners.forEach((listener) => listener(raw, { id: 'unit-extension' }, resolve)); });
         return { ok: true };
       } },
@@ -236,4 +236,28 @@ it('lost doubleclick acknowledgment never repeats delivery, even after explicit 
  const f=await doubleFixture();let doubles=0;f.button.addEventListener('dblclick',()=>doubles++);
  f.holdExecute(async raw=>{await f.deliver(raw);return {result:'unknown'};});await f.choose('확인 · 더블클릭 전달');expect(doubles).toBe(1);expect(view.state?.mode).toBe('recovering');
  await f.press();await f.choose('확인 · 더블클릭 전달');expect(doubles).toBe(1);
+});
+
+it('site-off authorizes only its exact origin and stops scanning while saving',async()=>{
+ const f=await fixture();await f.setEnabled(true);await f.press();await f.choose('조절·쉬기');let release:(value:unknown)=>void=()=>{};f.holdExecute(()=>new Promise(resolve=>{release=resolve;}));
+ await f.choose('이 사이트에서 끄기 · 다시 켜기는 확장 아이콘');expect(view.state?.mode).toBe('executing');
+ const request=f.requests.find((raw)=>typeof raw==='object'&&raw!==null&&'type' in raw&&raw.type==='switch/site-off') as {authorization:unknown;origin:string};expect(request.origin).toBe(location.origin);
+ const check={type:'switch/action-check',authorization:request.authorization};
+ expect(await f.deliver({...check,siteOff:location.origin})).toEqual({result:'done'});
+ expect(await f.deliver(check)).toEqual({result:'refused'});expect(await f.deliver({...check,siteOff:'https://wrong.test'})).toEqual({result:'refused'});
+ expect(await f.deliver({...check,siteOff:location.origin,navigation:{kind:'reload'}})).toEqual({result:'refused'});
+ await f.press();expect(view.state?.mode).toBe('paused');expect(await f.deliver({...check,siteOff:location.origin})).toEqual({result:'refused'});
+ release({result:'refused'});await vi.advanceTimersByTimeAsync(1);expect(view.state?.mode).toBe('paused');
+});
+it('site-off timeout pauses without claiming it was disabled or replaying',async()=>{
+ const f=await fixture();await f.setEnabled(true);await f.press();await f.choose('조절·쉬기');f.holdExecute(()=>new Promise(()=>{}));await f.choose('이 사이트에서 끄기 · 다시 켜기는 확장 아이콘');await vi.advanceTimersByTimeAsync(3100);
+ expect(view.state?.mode).toBe('paused');expect(view.notice).toContain('결과를 확인하지 못했어요');
+ expect(f.requests.filter(raw=>typeof raw==='object'&&raw!==null&&'type' in raw&&raw.type==='switch/site-off')).toHaveLength(1);
+});
+it('site-off authorization cannot be substituted for a final page press',async()=>{
+ const f=await fixture(undefined,false,true);await f.setEnabled(true);await f.press();await f.choose('조절·쉬기');f.holdExecute(()=>new Promise(()=>{}));await f.choose('이 사이트에서 끄기 · 다시 켜기는 확장 아이콘');
+ const request=f.requests.find((raw)=>typeof raw==='object'&&raw!==null&&'type' in raw&&raw.type==='switch/site-off') as {authorization:{documentGeneration:string}};
+ const report=f.requests.find(raw=>typeof raw==='object'&&raw!==null&&'type' in raw&&raw.type==='switch/report') as {items:{itemId:string;identity:string}[]};
+ const target=report.items.find(item=>item.itemId==='pin-button');expect(target).toBeDefined();let clicks=0;f.button.addEventListener('click',()=>{clicks++;});
+ expect(await f.deliver({type:'switch/execute',action:{actionId:'substituted',target:{tabId:1,frameId:0,documentGeneration:request.authorization.documentGeneration,itemId:'pin-button'},kind:'press',expectedIdentity:target?.identity,confirmed:true,authorization:request.authorization}})).toEqual({result:'refused'});expect(clicks).toBe(0);
 });
