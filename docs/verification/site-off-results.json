@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-10-03 22:53 KST",
+  "recordedAt": "2026-10-04 00:03:59 KST",
   "product": {
     "branch": "codex-switch-site-off",
     "commit": "7eeda02f547fbd50db6310a455686bb0b5ce76e4",
@@ -48,10 +48,18 @@
     "runId": 37127421940,
     "jobId": 111215464586,
     "url": "https://github.com/rrangjaa-eng/project_260923/actions/runs/37127421940",
-    "status": "in_progress",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "success",
     "testMerge": "ff4ed7e6cc00e848940dcaa3d8575d6aa5d74ae2",
-    "productAndMergeTree": "efc5f2d214517508dadd919dfcd0eed205814b55"
+    "productAndMergeTree": "efc5f2d214517508dadd919dfcd0eed205814b55",
+    "completedAtKst": "2026-10-04 00:03:59 KST",
+    "unitPassed": 505,
+    "browserPassed": 453,
+    "browserFailed": 0,
+    "browserFlaky": 0,
+    "browserSkipped": 0,
+    "elapsedSecondsFromLog": 4468.766,
+    "evidence": "ci109-final-results.json"
   },
   "preserved": {
     "main": "9394b0146f9ba169f57e47ce3274bdff57b74dfe",

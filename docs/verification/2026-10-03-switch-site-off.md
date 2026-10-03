@@ -27,3 +27,9 @@
 [draft PR37](https://github.com/rrangjaa-eng/project_260923/pull/37), 제품 `codex-switch-site-off`/`7eeda02f547fbd50db6310a455686bb0b5ce76e4`. 타입·린트·unit505/505(49파일), 새 기능8건 포함 Chromium 회귀42/42(4.5분), 자동UI101/101(3.9분) 통과. 실패/flaky/skip0. 독립 재검토 추가P1/P2 없음. [구조화된 결과](site-off-results.json).
 
 [CI109](https://github.com/rrangjaa-eng/project_260923/actions/runs/37127421940)은 타입·린트·단위 단계 성공 후 전체 브라우저 검사 진행 중이다. checkout 예정 mergeff4ed7e6과 제품7eeda02의 treeefc5f2d214517508dadd919dfcd0eed205814b55 일치를 확인했다. 최종 CI 성공으로 세지 않는다. 제품 HEAD를 고정하고 별도 `codex-pr37-verification-record`에 결과를 기록한다.
+
+## 최종 CI109 성공 — 2026-10-04 00:03:59 KST
+
+[CI109](https://github.com/rrangjaa-eng/project_260923/actions/runs/37127421940) workflow/job111215464586 모두 completed/success. 원본 로그에서 타입·린트·unit505/505(49파일)·Chromium453/453, 실패/flaky/skip0을 확인했다. 브라우저 Running~통과 구간은74분28.766초다. [최종 CI 근거](ci109-final-results.json). checkoutff4ed7e6과 제품7eeda02의 treeefc5f2d214517508dadd919dfcd0eed205814b55 일치. 위 진행 중 표기는 당시 기록이며 이 결과로 갱신한다.
+
+SAFE-04 증분의 자동 검증 결과이며, 제품 전체에 결함이 없다는 보장은 아니다. 별도 보고 사실관계 감사와 PR30 후속 리뷰 조사는 진행 중이다. 실제 PC/IME/운동 사용성/실사이트/native UI/두 PC 한계는 유지한다. 제품HEAD·main·기존PR·ZIP 변경 및 merge/deploy 없음.

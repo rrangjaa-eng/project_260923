@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## PR37 최종 CI109 성공 — 2026-10-04 00:03:59 KST
+
+[draft PR37](https://github.com/rrangjaa-eng/project_260923/pull/37), 제품 `codex-switch-site-off`/`7eeda02f547fbd50db6310a455686bb0b5ce76e4`. [CI109 원본 근거](verification/ci109-final-results.json): 타입·린트·unit505/505(49파일)·Chromium453/453, 실패/flaky/skip0. 브라우저74분28.766초, 테스트 merge와 제품 tree 일치. 로컬 회귀42/42·자동UI101/101과 독립 재검토를 포함한 [검증 결과](verification/site-off-results.json).
+
+새 기능은 중지하고 보고 원칙·사실관계 감사 지시를 우선 수행한다. 별도 PR30 후속 리뷰 조사는 진행 중이며, 위 CI 통과를 제품 무결함 또는 그 리뷰 해결로 확대하지 않는다. PR37 draft·미병합, 재활성화는 기존 팝업, 실제 PC/IME/운동 사용성/실사이트/native UI/두 PC 미검증. merge/deploy/ZIP 교체 없음. 아래는 당시 기록이다.
+
 ## PR37 로컬 검증 완료·CI109 진행 중 — 2026-10-03 22:53 KST
 
 [draft PR37](https://github.com/rrangjaa-eng/project_260923/pull/37), 제품 `codex-switch-site-off`/`7eeda02f547fbd50db6310a455686bb0b5ce76e4`. 승인된 SAFE-04 현재 사이트 끄기 구현. [계약과 경계 수정](verification/2026-10-03-switch-site-off.md), [검증 결과](verification/site-off-results.json).
