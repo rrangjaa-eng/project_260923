@@ -1,0 +1,45 @@
+{
+  "product_commit": "62577af2db1216bc25371dee39d94b6267a80a8c",
+  "product_fix_commit": "9eb8999b47ca39b71ab0553279e67bd4bedceaa0",
+  "observed_at": "2026-10-03T16:29:18.537019+00:00",
+  "scope": "PR39 후속3결함 로컬검사. 최종전체CI113은 별도",
+  "typecheck": "success",
+  "lint": "success",
+  "unit": {
+    "passed": 585,
+    "failed": 0,
+    "files": 50,
+    "seconds": 25.3
+  },
+  "browser": {
+    "passed": 5,
+    "failed": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "minutes": 2.8,
+    "scope": "보관초안5개 Chromium. 연결단절 전 실제 종료코드0 확인; 복구 후 /tmp로그 소실"
+  },
+  "completion_checker": {
+    "passed": 57,
+    "failed": 0,
+    "new_red_cases": 16
+  },
+  "independent_review": {
+    "status": "completed",
+    "additional_actionable_p1_p2": 0,
+    "assertions_weakened": false
+  },
+  "environment_recovery": {
+    "commands_verified_after_reconnect": true,
+    "uncommitted_changes_preserved": true,
+    "earlier_tmp_browser_log_available": false
+  },
+  "unverified": [
+    "최종 전체CI113",
+    "실제 Windows 한국어 IME",
+    "운동 사용성",
+    "실사이트",
+    "분산 DOM 원자성"
+  ],
+  "zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb"
+}

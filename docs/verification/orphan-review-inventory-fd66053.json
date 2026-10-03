@@ -1,0 +1,50 @@
+{
+  "observed_at": "2026-10-03T16:07:18.714373+00:00",
+  "scope": "과거 fd66053 조회/검토. 이후3결함이 발견되어 최종완료 근거가 아님",
+  "tested_commit": "fd6605316bdca87e9cc844abc80b3532c63018e5",
+  "github_query_scope": "PR15–39의 issue comments / inline review comments / review submissions를 연결 도구로 조회",
+  "inventory": [
+    {
+      "pr_range": "15–25",
+      "comments": 0
+    },
+    {
+      "pr_range": "26–29",
+      "review_summary_comments": "각1",
+      "inline_findings": 0
+    },
+    {
+      "pr": 30,
+      "inline_findings": [
+        {
+          "id": 4170786719,
+          "url": "https://github.com/rrangjaa-eng/project_260923/pull/30#discussion_r4170786719",
+          "classification": "actionable",
+          "resolution": "PR39 구현 및 로컬 회귀 검증; 최종 CI112 확인 중",
+          "github_thread_resolution": "미변경"
+        }
+      ]
+    },
+    {
+      "pr_range": "31–39",
+      "comments": 0
+    }
+  ],
+  "independent_review": {
+    "status": "completed",
+    "code_reviewed": "보관 초안 데이터/revision/명시 삭제/workspace 복귀/collector signature/relay changed",
+    "findings_fixed": [
+      "top 지연 목록 응답 중 재등장",
+      "iframe 보고 변경 중 지연 목록 응답",
+      "docs CSS의 CI 재사용 허용 문제"
+    ],
+    "assertion_review": "새 재등장 시험의 보존 문장/사이트 원값 단언 유지; 메뉴 경로만 명시 새로읽기로 변경",
+    "remaining_actionable_p1_p2_in_scope": 0
+  },
+  "limits": [
+    "댓글 없음은 자동검토 통과가 아님",
+    "GitHub 스레드를 resolved 처리하거나 타인에게 새 댓글을 보내지 않음",
+    "조회 시점 이후의 새 리뷰는 최종 보고 직전 다시 확인",
+    "현재 범위의 분류이며 모든 프로젝트 결함이나 미도착 메시지 안전성을 보장하지 않음"
+  ]
+}
