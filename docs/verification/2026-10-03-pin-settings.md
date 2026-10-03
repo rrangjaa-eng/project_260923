@@ -42,3 +42,17 @@
 CI106 대기 중 자체 점검에서 `stored[key] ?? default`가 손상된 `null`도 신규 사이트로 초기화하는 결함을 발견했다. writer가 실제 done을 반환하며 원본을 덮어쓰고, UI가 빈 슬롯을 보여 주는2RED를 확인했다. 두 곳 모두 `undefined`(키 없음)일 때만 기본값을 만들도록 변경했다. null/false/0/빈문자 원본 보존·쓰기0·빈슬롯 미표시를 검사한다. 관련47/47, 전체unit477/477(47파일), type/lint와 실제 Chromium null설정 거절1/1(19.1초) 통과. 독립 재검토 추가P1/P2 없음.
 
 c349f36의 로컬14/72/UI101 결과와 CI106은 앞선 소스의 기록이다. 새 HEAD에서 최종 기능15건·기존 회귀·UI·전체CI를 재실행하고 최종 결과를 별도 검증 기록에 남긴다. 원본 보존 계약을 맞추는2줄 보완이며 새 권한/저장항목/정책을 추가하지 않는다.
+
+## e590416 최종 로컬 검증 — 2026-10-03 19:44 KST
+
+[draft PR35](https://github.com/rrangjaa-eng/project_260923/pull/35), 제품 `codex-switch-pin-settings`/`e590416bda80434390f1defbe8f3bb7aa2ab3ef2`. null 원본 보존 보완을 포함한 최종 로컬 결과다.
+
+- typecheck/lint·전체unit477/477(47파일) 통과.
+- 최종 기능 Chromium15/15(6.5분), 실패/skip0.
+- 기존 번호표·이동 취소·양식 이동·일반/프레임 편집기 회귀72/72(7.9분), 실패/skip0.
+- 자동UI101/101(4.0분), 실패/flaky/skip0.
+- 독립 검토의5개P2와 자체 null 원본 보존2RED를 보완했다. 마지막 두 읽기 경로까지 독립 재검토에서 추가 actionable P1/P2 없음. 읽기 검토와 실행 검증은 구분한다.
+- cso: 최상위 sender·정확한 제안·문서/취소 세대·단일 저장자·quota/관찰한 sync 변경·손상 원본 보존·unknown 무재시도를 확인했다. 새 권한/의존성·입력값 수집은 추가하지 않는다.
+- design-review: 기존 Shadow DOM 작업판/토큰, 취소 우선·1초 보호, 전체 이름 페이지 읽기를 유지한다. 고정 미리보기의360/768/1280px 경계·표적56px 이상과360px 긴 이름 읽기를 실제 DOM으로 확인했다. 전체 WCAG/운동 사용성 통과로 확대하지 않는다.
+
+[구조화된 결과](pin-settings-results.json). [CI107](https://github.com/rrangjaa-eng/project_260923/actions/runs/37116310333)은 전체 브라우저 단계 실행 중이며 아직 최종 성공이 아니다. 검사 커밋0ed0026과 제품e590416의 tree는 모두4622c8a7ff5fad4cafacf259debe1a63dca152da다. CI106은 새 HEAD 푸시로cancelled이며 이전 c349f36 결과와 구분했다. 옛 검증 기록88f877a를 보존하고 새 제품 기준의 `codex-pr35-final-verification-record`에서 최종CI를 이어 기록한다.

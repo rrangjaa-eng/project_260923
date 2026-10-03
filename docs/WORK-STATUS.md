@@ -1,5 +1,20 @@
 # 작업 현황표
 
+## PR35 최신 로컬 검증 완료·CI107 진행 중 — 2026-10-03 19:44 KST
+
+[draft PR35](https://github.com/rrangjaa-eng/project_260923/pull/35), 제품 `codex-switch-pin-settings`/`e590416bda80434390f1defbe8f3bb7aa2ab3ef2`. [계약·실패 재현](verification/2026-10-03-pin-settings.md), [최신 구조화된 결과](verification/pin-settings-results.json).
+
+| 항목 | e590416 기준 결과 |
+|---|---|
+| 타입·린트·단위 | 통과, unit477/477(47파일) |
+| 새 번호 고정 기능 | Chromium15/15,6.5분 |
+| 기존 기능 회귀 | 72/72,7.9분 |
+| 자동UI | 101/101,4.0분, 실패/flaky/skip0 |
+| 최종 독립 읽기 검토 | 추가 actionable P1/P2 없음 |
+| 전체CI107 | 실행 중 — 아직 최종 성공으로 세지 않음 |
+
+null 원본 보존 보완 전 c349f36/CI106(cancelled)과 구분한다. 제품HEAD를 고정하고 `codex-pr35-final-verification-record`에 결과를 기록한다. PR31–35 draft·미병합, main9394b01·기존 ZIP 보존. NAV-05 iframe/custom 고정·NAV-06 명시 더블클릭과 실제 Windows IME/운동 사용성/실사이트·native UI/두 PC 검증은 남아 있다. 새 merge/deploy/ZIP교체 없음. 아래는 당시 기록이다.
+
 ## PR35 null 원본 보존 보완·새 HEAD 재검증 — 2026-10-03 19:24 KST
 
 [draft PR35](https://github.com/rrangjaa-eng/project_260923/pull/35)의 최종 점검에서 null 원본을 신규 설정으로 취급하는2RED를 재현했다. UI와 writer를 `undefined`일 때만 초기화하도록 보완했다. 관련47/47·전체unit477/477(47파일)·type/lint·Chromium null설정 거절1/1(19.1초) 통과, 독립 재검토 추가P1/P2 없음.
