@@ -1,0 +1,44 @@
+{
+  "checked_at": "2026-10-03T11:47:52+09:00",
+  "pr": 31,
+  "branch": "codex-switch-general-characters",
+  "head": "c0b277c38d36afeac0e751cb83d0d4b780b31498",
+  "base": "9394b0146f9ba169f57e47ce3274bdff57b74dfe",
+  "local": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "passed": 401,
+      "files": 42
+    },
+    "preliminary_browser": {
+      "passed": 3,
+      "minutes": 2.4,
+      "note": "최종 조합 guard 전"
+    },
+    "final_browser": {
+      "status": "in_progress",
+      "expected": 42
+    },
+    "ui": {
+      "status": "pending"
+    }
+  },
+  "independent_review": "P2 조합 순서 재현/수정 후 추가 actionable P1/P2 없음; 읽기 검토",
+  "source_sha256": {
+    "src/page/input/switch-controller.ts": "b79296e83c798e425ec85eeccd09d1a74c3c13d9a157254ead0423f05bf641b3",
+    "tests/unit/switch-controller-navigation.test.ts": "dacd93924e923587d8a892c3f662107ae0c90e9e85611b93218b6c0f91952704",
+    "tests/e2e/switch-general-characters.e2e.ts": "cd60756ddd42f7033b3768618fd9bf4cd83a318c6cc34cb43ca7da39c7e01189"
+  },
+  "archived_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
+  "ci": {
+    "status": "pending"
+  },
+  "unverified": [
+    "실제 Windows IME",
+    "운동 사용성",
+    "실사이트",
+    "contenteditable 직접 삽입",
+    "native UI"
+  ]
+}

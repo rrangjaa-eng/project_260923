@@ -1,5 +1,9 @@
 # 작업 현황표
 
+## draft PR31 게시·최종 검증 진행 — 2026-10-03 11:47 KST
+
+[draft PR31](https://github.com/rrangjaa-eng/project_260923/pull/31), `codex-switch-general-characters`/`c0b277c38d36afeac0e751cb83d0d4b780b31498`를 push했다. base는 main9394b01. 타입·린트·unit401/401(42파일) 통과. 최종 브라우저42건과 자동UI·전체CI를 종료까지 확인한다. [수치·소스 해시](verification/general-characters-results.json). 독립 재검토 추가P1/P2 없음. 후속 증거는 codex-pr31-verification-record에 저장한다. 새 PR 병합·배포·ZIP교체 없음.
+
 ## 일반 입력칸 영문·숫자 후속 구현 — 2026-10-03 11:44 KST
 
 최신 main **9394b0146f9ba169f57e47ce3274bdff57b74dfe**, PR27–30 merged·CI99 unit397/browser403 success에서 `codex-switch-general-characters`를 분기했다. 아래 오래된 draft/미병합 기록은 당시 상태다. [병합 최종 증거](https://github.com/rrangjaa-eng/project_260923/blob/cce7caa/docs/verification/ci99-main-results.json).
