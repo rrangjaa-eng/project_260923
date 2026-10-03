@@ -1,5 +1,20 @@
 # 작업 현황표
 
+## PR39 추가 결함 보완·새 CI 준비 — 2026-10-04 01:25 KST
+
+[draft PR39](https://github.com/rrangjaa-eng/project_260923/pull/39), `codex-form-orphan-drafts`. 이전 HEAD `fd6605316bdca87e9cc844abc80b3532c63018e5`의 CI112(run37135241591)는 01:25 KST 조회에서 진행 중이며 아래 새 수정의 통과 근거가 아니다. 새 수정 커밋·CI는 push 뒤 PR의 실제 HEAD/run에서 확인한다.
+
+| 항목 | 현재 확인한 상태 |
+|---|---|
+| iframe 최종 조회 불명 | 실제 Chromium 1RED 뒤 선택 프레임 unknown/예외/신뢰도 누락이면 초안 보존; 새 흐름5/5 exit0 |
+| 보고 검사 우회 | rename 원래 경로와 원본 JSON SHA·결과·리뷰 처분 직접 대조; 신규14RED+내부상태2RED 뒤 자체57/57 |
+| 복구 후 최종 로컬 검사 | 타입·린트 exit0, 전체 단위585/585(50파일,25.30초), diff 검사 exit0 |
+| 독립 검토 | 추가 actionable P1/P2 미발견; 기존 보존/사이트값 assertion 유지 |
+| 실행 환경 | 연결 단절 후 실제 명령 실행 복구·9파일 수정 보존 확인. 이전 /tmp 브라우저 로그 소실;5/5 종료 코드는 단절 전 도구 응답에서 확인 |
+| 원격 최종 검증 | 새 HEAD push·전체 CI 대기. 이전 CI112 성공 여부와 별개 |
+
+이하 내용은 당시 기록이다. 실제 Windows 한국어 IME·운동 사용성·실사이트는 미검증이며 merge/deploy/ZIP 교체 없음.
+
 ## PR30 초안 결함 수정·보고 검사 로컬 검증 — 2026-10-04 00:58 KST
 
 현재 `codex-form-orphan-drafts`, PR38 `f4fc567`에서 이어졌다. 제품 수정 커밋 `b7f940146b589382f39437cc03afa66731ecb142`. [보관 문장 계약과 검증](verification/2026-10-04-form-orphan-drafts.md), [지침 적용 점검](verification/2026-10-04-workflow-compliance.md), [보고 근거 검사](verification/completion-evidence-check.md). 제품 수정과 보고 검사·지침을 별도 커밋으로 나누고 하나의 후속 draft PR에서 전체 CI를 실행한다. 이 기록 시점에는 후속 PR·원격 CI가 아직 생성되지 않았으며 이후 결과는 해당 PR 본문의 불변 증거 링크를 확인한다.

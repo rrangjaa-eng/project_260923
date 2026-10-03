@@ -22,6 +22,8 @@ function fixture() {
   git('init', '-q'); git('config', 'user.name', 'Evidence Fixture'); git('config', 'user.email', 'fixture@example.invalid');
   git('add', '.'); git('commit', '-qm', 'fixture');
   const head = git('rev-parse', 'HEAD');
+  write('docs/local.json', {product_commit:head,unit:{passed:1,failed:0}});
+  write('docs/reviews.json', {tested_commit:head,status:'classified',findings:[]});
   const report = {
     schemaVersion: 1, productCommit: head, observedAt: new Date().toISOString(), scope: 'fixture bounded change', requiredChecks: ['unit'],
     checks: [{ name: 'unit', status: 'completed', conclusion: 'success', testedCommit: head, evidence: 'docs/local.json' }],
@@ -129,5 +131,73 @@ it('rejects committed product CSS under docs even with reuse requested', () => {
 });
 it('rejects untracked executable evidence under docs', () => {
   const f = fixture(); writeFileSync(join(f.directory, 'docs/check.ts'), 'export const changed = true;');
+  expect(f.run().status).toBe(1);
+});
+
+it('rejects old evidence after a source file is renamed into a documentation extension', () => {
+  const f = fixture(); f.git('mv', 'src/page.ts', 'docs/page.md'); f.git('commit', '-qm', 'rename source');
+  f.report.productCommit = f.git('rev-parse', 'HEAD');
+  const result = f.run('--reuse-docs-only'); expect(result.status).toBe(1); expect(result.stderr).toContain('CI HEAD 불일치');
+});
+it('rejects a staged product CSS rename into a documentation extension', () => {
+  const f = fixture(); writeFileSync(join(f.directory, 'docs/tokens.css'), ':root { --accent: red; }');
+  f.git('add', 'docs/tokens.css'); f.git('commit', '-qm', 'product CSS'); const head = f.git('rev-parse', 'HEAD');
+  f.report.productCommit = head; f.ci.product_commit = head; f.report.reviewInventory.testedCommit = head;
+  const check = f.report.checks[0]; if (!check) throw new Error('fixture missing check'); check.testedCommit = head;
+  f.git('mv', 'docs/tokens.css', 'docs/foo.md');
+  const result = f.run(); expect(result.status).toBe(1); expect(result.stderr).toContain('미커밋 변경');
+});
+it.each(['failure', 'stale', 'unparseable'])('rejects contradictory unit evidence: %s', state => {
+  const f = fixture();
+  f.write('docs/local.json', state === 'unparseable' ? 'unit passed' : {product_commit: state === 'stale' ? 'a'.repeat(40) : f.head, unit:{passed:1,failed:state === 'failure' ? 1 : 0}});
+  expect(f.run().status).toBe(1);
+});
+it.each(['typecheck','lint','browser','ui'])('rejects failed original %s evidence despite a successful report', name => {
+  const f = fixture();const check = f.report.checks[0]; if (!check) throw new Error('fixture missing check');
+  check.name = name; f.report.requiredChecks = [name];
+  f.write('docs/local.json', {product_commit:f.head,[name]:name === 'typecheck'||name === 'lint' ? 'failure' : {passed:1,failed:1,flaky:0,skipped:0}});
+  expect(f.run().status).toBe(1);
+});
+it.each(['stale','unclassified','missing'])('rejects contradictory review inventory evidence: %s', state => {
+  const f = fixture();f.write('docs/reviews.json', state === 'missing' ? {findings:[]} : {tested_commit:state === 'stale' ? 'a'.repeat(40) : f.head,status:state === 'unclassified' ? 'unclassified' : 'classified',findings:[]});
+  expect(f.run().status).toBe(1);
+});
+it('rejects an unresolved original review omitted from the completion report', () => {
+  const f = fixture();f.write('docs/reviews.json', {tested_commit:f.head,status:'classified',findings:[{id:'P2-1',classification:'actionable',status:'unresolved'}]});
+  expect(f.run().status).toBe(1);
+});
+it('rejects a separate finding evidence whose disposition contradicts the report', () => {
+  const f = fixture();const finding={id:'P2-1',classification:'actionable',status:'resolved'};
+  f.report.reviewInventory.findings.push({...finding,evidence:'docs/finding.json'});
+  f.write('docs/reviews.json',{tested_commit:f.head,status:'classified',findings:[finding]});
+  f.write('docs/finding.json',{tested_commit:f.head,status:'classified',findings:[{...finding,status:'unresolved'}]});
+  expect(f.run().status).toBe(1);
+});
+it.each(['typecheck','lint','browser','ui'])('accepts parsed successful original %s evidence', name => {
+  const f = fixture();const check = f.report.checks[0]; if (!check) throw new Error('fixture missing check');
+  check.name=name;f.report.requiredChecks=[name];
+  f.write('docs/local.json',{product_commit:f.head,[name]:name==='typecheck'||name==='lint'?'success':{passed:1,failed:0,total:1,flaky:0,skipped:0}});
+  expect(f.run().status).toBe(0);
+});
+it('accepts a classified resolved finding matched in its separate original evidence', () => {
+  const f = fixture();const finding={id:'P2-1',classification:'actionable',status:'resolved'};
+  f.report.reviewInventory.findings.push({...finding,evidence:'docs/finding.json'});
+  const inventory={tested_commit:f.head,status:'classified',findings:[finding]};
+  f.write('docs/reviews.json',inventory);f.write('docs/finding.json',inventory);
+  expect(f.run().status).toBe(0);
+});
+it.each(['stale','missing'])('rejects a separate original finding with %s authority', state => {
+  const f = fixture();const finding={id:'P2-1',classification:'actionable',status:'resolved'};
+  f.report.reviewInventory.findings.push({...finding,evidence:'docs/finding.json'});
+  f.write('docs/reviews.json',{tested_commit:f.head,status:'classified',findings:[finding]});
+  f.write('docs/finding.json',{tested_commit:state==='stale'?'a'.repeat(40):f.head,status:'classified',findings:state==='missing'?[]:[finding]});
+  expect(f.run().status).toBe(1);
+});
+it('rejects a still-pending original check whose counters already show passes', () => {
+  const f=fixture();f.write('docs/local.json',{product_commit:f.head,status:'in_progress',unit:{passed:1,failed:0}});
+  expect(f.run().status).toBe(1);
+});
+it.each([['status','in_progress'],['conclusion','failure']])('rejects contradictory nested result %s=%s', (key,value) => {
+  const f=fixture();f.write('docs/local.json',{product_commit:f.head,unit:{passed:1,failed:0,[key]:value}});
   expect(f.run().status).toBe(1);
 });

@@ -27,7 +27,7 @@
   "reviewInventory": {
     "status": "classified",
     "testedCommit": "실제 검토 대상 40자 SHA",
-    "evidence": "docs/verification/기존-검토-기록.md",
+    "evidence": "docs/verification/기존-리뷰-목록.json",
     "findings": [
       {
         "id": "실제 리뷰 링크나 안정적인 식별자",
@@ -43,6 +43,24 @@
 
 위 예시는 필수 검사 다섯 개 중 하나만 넣었으므로 그대로는 거절된다. 실제 필요한 모든 검사 항목을 넣는다. 리뷰가 없다고 실제 확인한 경우에만 `findings: []`를 쓴다. 비결함으로 분류한 리뷰는 `classification: "non-actionable"`, `status: "resolved"`와 판단 근거를 기록한다. 알려진 미해결 결함은 제한 문구만 붙여 해결된 것으로 표시하지 않는다.
 
+검사 이름은 `typecheck`, `lint`, `unit`, `browser`, `ui`만 지원한다. 각 `evidence`는 해석 가능한 원본 JSON이어야 하고 `product_commit`이 해당 `testedCommit`과 정확히 같아야 한다. 원본의 해당 이름 필드를 직접 읽는다. `typecheck`·`lint`는 `"success"`, `unit`은 `{ "passed": 1, "failed": 0 }`, `browser`·`ui`는 `{ "passed": 1, "failed": 0, "flaky": 0, "skipped": 0 }` 형태다. 수치는 실제 결과로 바꾸고 `total`이 있으면 합계도 일치해야 한다. `failed` 대신 `total`로 실패 수를 확정할 수 있지만 둘 다 없는 수치는 불명으로 거절한다. 원본에 `status`·`conclusion`이 있으면 각각 `completed`·`success`여야 한다. CI JSON을 unit/browser/typecheck/lint 근거로 그대로 재사용할 수 있다. `browser_runs`만 있거나 텍스트 요약만 있는 과거 근거는 추측하지 않으며 해당 실행 결과를 구분한 정형 필드가 필요하다.
+
+리뷰 목록·개별 finding 근거는 다음 필드가 있는 원본 JSON을 쓴다. 다른 설명·링크·관측 시각 필드는 함께 보존할 수 있다. 목록의 모든 finding ID·분류·처분은 보고서와 정확히 같아야 하며, 개별 근거에도 같은 SHA와 해당 ID의 같은 분류·처분이 있어야 한다. 원본의 미해결 finding을 보고에서 빼거나 해결됐다고 바꾸면 거절한다.
+
+```json
+{
+  "tested_commit": "실제 검토 대상 40자 SHA",
+  "status": "classified",
+  "findings": [
+    { "id": "실제 finding ID", "classification": "actionable", "status": "resolved" }
+  ]
+}
+```
+
+기존 근거 JSON에 필요한 정형 필드가 없으면 해석 불가로 거절한다. 원래 실행·검토 기록과 직접 대조해 필드를 연결해야 하며, 새 성공 기록을 만들어 채워서는 안 된다. 이 대조 역시 기록을 검사할 뿐 원격 실행이나 리뷰 조회를 대신 수행하지 않는다.
+
+`status`·`conclusion`이 unit/browser/ui 수치 객체 안에 있어도 같은 완료·성공 조건으로 대조한다. 성공 수치와 함께 기록된 진행 중·실패 결과를 무시하지 않는다.
+
 ```bash
 node --experimental-strip-types scripts/check-completion-evidence.ts docs/verification/완료-보고.json
 ```
@@ -50,6 +68,8 @@ node --experimental-strip-types scripts/check-completion-evidence.ts docs/verifi
 exit0은 입력 기록 정합성 통과, exit1은 완료 근거로 사용할 수 없음이다. pending/failure/unknown, 누락된 필수 검사, 미분류·미해결 리뷰, 다른 HEAD, 제품·시험·설정의 미커밋 변경, 읽을 수 없는 증거, CI 시험 실패/flaky/skip·합계 모순, 잘못된 시각과 run URL을 거절한다. 증거 경로는 저장소 내부 상대 경로다. CI의 실패 산출물 업로드 단계가 skipped인 것과 브라우저 시험 skip 수는 구분한다.
 
 ## 기존 근거 재사용
+
+Git diff/status의 rename 판정을 끄고 삭제된 원래 경로와 추가된 새 경로를 각각 검사한다. 제품 파일을 `docs/*.md`로 이동해도 삭제된 제품 경로 때문에 재사용을 거절한다. 작업 트리의 staged rename도 같은 방식으로 거절한다.
 
 현재 HEAD가 문서만 바뀐 커밋인 경우에는 다음 옵션으로 과거 CI·검토를 재사용할 수 있다. 도구가 실제 Git diff를 읽어 `docs/` 안의 문서·증거 확장자(md/json/png/jpg/jpeg/webp/svg/txt), 루트 `README.md`, `AGENTS.md` 이외의 변경이 없는지 확인한다. 제품에서 실제 사용하는 `docs/design/tokens.css`나 docs 안의 실행 스크립트는 문서 변경으로 취급하지 않는다. 보고의 `productCommit`은 여전히 현재 HEAD여야 하고 각 근거의 `testedCommit`은 원래 검사 SHA를 유지한다. 새 제품·시험·설정·스크립트 변경에는 재사용을 허용하지 않는다. 이 엄격한 조건 밖에서 같은 소스라고 추측해 SHA를 바꾸지 않는다. 허용한 문서 파일을 제품이나 시험이 새로 소비하도록 바꾸는 경우에는 이 목록을 다시 검토해야 한다.
 
@@ -67,3 +87,5 @@ pnpm exec eslint scripts/check-completion-evidence.ts tests/unit/completion-evid
 ```
 
 단위 검사는 임시 Git 저장소와 실제 CLI를 사용한다. 현재 프로젝트를 checkout·commit·push하지 않으며 임시 저장소를 검사 뒤 삭제한다. 전체 제품 CI의 대체 검사가 아니다.
+
+PR39 후속 검증 — 2026-10-04 01:25 KST: rename·원본 근거 모순 신규14RED 및 내부 status/conclusion 신규2RED를 확인한 뒤 검사 자체57/57, 린트·타입 exit0을 확인했다. 복구 후 프로젝트 전체 단위585/585에도 포함된다. 기존 assertion을 제거·완화하지 않았다. 이 결과는 기록 대조기의 제한된 계약을 확인하며 실제 실행의 진실성이나 리뷰 목록의 완전성을 자동 증명하지 않는다.

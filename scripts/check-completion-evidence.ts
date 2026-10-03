@@ -6,10 +6,14 @@ import { z } from 'zod';
 // 보고 기록의 정합성만 검사한다. 실제 실행·리뷰 완전성·지침 준수의 증명이 아니다.
 const commit = z.string().regex(/^[a-f0-9]{40}$/);
 const text = z.string().trim().min(1);
-const check = z.object({ name: text, status: text, conclusion: text, testedCommit: commit, evidence: text }).strict();
+const checkName = z.enum(['typecheck', 'lint', 'unit', 'browser', 'ui']);
+const check = z.object({ name: checkName, status: text, conclusion: text, testedCommit: commit, evidence: text }).strict();
+const findingSchema = z.object({ id: text, classification: text, status: text });
+const reviewSchema = z.object({ tested_commit: commit, status: text, findings: z.array(findingSchema) });
+const countsSchema = z.object({ passed: z.number().int().positive(), failed: z.number().int().nonnegative().optional(), total: z.number().int().positive().optional(), flaky: z.number().int().nonnegative().optional(), skipped: z.number().int().nonnegative().optional(), status: text.optional(), conclusion: text.optional() });
 const reportSchema = z.object({
   schemaVersion: z.literal(1), productCommit: commit, observedAt: z.iso.datetime({ offset: true }), scope: text,
-  requiredChecks: z.array(text).min(1), checks: z.array(check).min(1),
+  requiredChecks: z.array(checkName).min(1), checks: z.array(check).min(1),
   reviewInventory: z.object({
     status: text, testedCommit: commit, evidence: text,
     findings: z.array(z.object({ id: text, classification: text, status: text, evidence: text }).strict()),
@@ -44,18 +48,18 @@ function main() {
     if (!content.trim()) throw new Error('비어 있는 증거입니다');
     return content;
   };
-  const evidence = (path: string) => { try { readEvidence(path); } catch { errors.push(`증거를 읽을 수 없음: ${path}`); } };
+  const evidence = (path: string): unknown => { try { return JSON.parse(readEvidence(path)) as unknown; } catch { errors.push(`증거를 읽을 수 없음 또는 JSON 해석 불가: ${path}`); return undefined; } };
   const report = reportSchema.parse(JSON.parse(readEvidence(file)) as unknown);
   if (report.productCommit !== head) errors.push('보고 대상 HEAD가 현재 Git HEAD와 다릅니다');
-  const dirty = execFileSync('git', ['status', '--porcelain=v1', '--untracked-files=all'], { cwd: root, encoding: 'utf8' })
-    .split('\n').filter(Boolean).map(line => line.slice(3)).filter(path => !docsOnly(path));
+  const dirty = execFileSync('git', ['status', '--porcelain=v1', '-z', '--no-renames', '--untracked-files=all'], { cwd: root, encoding: 'utf8' })
+    .split('\0').filter(Boolean).map(line => line.slice(3)).filter(path => !docsOnly(path));
   if (dirty.length) errors.push('제품·시험·설정의 미커밋 변경이 있습니다');
   const reused = new Set<string>();
   const bound = (tested: string) => {
     if (tested === head) return true;
     if (option !== '--reuse-docs-only') return false;
     try {
-      const paths = execFileSync('git', ['diff', '--name-only', tested, head], { cwd: root, encoding: 'utf8' }).trim().split('\n').filter(Boolean);
+      const paths = execFileSync('git', ['diff', '--no-renames', '--name-only', '-z', tested, head], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean);
       if (!paths.every(docsOnly)) return false;
       reused.add(tested); return true;
     } catch { return false; }
@@ -66,16 +70,43 @@ function main() {
   for (const entry of report.checks) {
     if (entry.status !== 'completed' || entry.conclusion !== 'success') errors.push(`검사 완료·성공 아님: ${entry.name}`);
     if (!bound(entry.testedCommit)) errors.push(`검사 HEAD 불일치: ${entry.name}`);
-    evidence(entry.evidence);
+    const parsed = z.looseObject({ product_commit: commit }).safeParse(evidence(entry.evidence));
+    if (!parsed.success) { errors.push(`검사 원본 근거 형식 불명: ${entry.name}`); continue; }
+    const original = parsed.data;
+    if (original.product_commit !== entry.testedCommit) errors.push(`검사 원본 SHA 충돌: ${entry.name}`);
+    if (original.status !== undefined && original.status !== 'completed' || original.conclusion !== undefined && original.conclusion !== 'success') errors.push(`검사 원본 완료·성공 아님: ${entry.name}`);
+    const result = original[entry.name];
+    if (entry.name === 'typecheck' || entry.name === 'lint') {
+      if (result !== 'success') errors.push(`검사 원본 결과 실패·불명: ${entry.name}`);
+    } else {
+      const counts = countsSchema.safeParse(result);
+      if (!counts.success) { errors.push(`검사 원본 수치 불명: ${entry.name}`); continue; }
+      const value = counts.data;
+      if (value.status !== undefined && value.status !== 'completed' || value.conclusion !== undefined && value.conclusion !== 'success') errors.push(`검사 원본 내부 완료·성공 아님: ${entry.name}`);
+      const failed = value.failed ?? (value.total === undefined ? undefined : value.total - value.passed - (value.skipped ?? 0));
+      if (failed !== 0 || (value.flaky ?? 0) !== 0 || (value.skipped ?? 0) !== 0
+          || entry.name !== 'unit' && (value.flaky === undefined || value.skipped === undefined)
+          || value.total !== undefined && value.total !== value.passed + failed + (value.skipped ?? 0)) errors.push(`검사 원본 실패·불명·수치 충돌: ${entry.name}`);
+    }
   }
   const reviews = report.reviewInventory;
   if (reviews.status !== 'classified') errors.push('리뷰 목록이 미분류 또는 불명입니다');
   if (!bound(reviews.testedCommit)) errors.push('리뷰 HEAD 불일치');
-  evidence(reviews.evidence);
+  const inventory = reviewSchema.safeParse(evidence(reviews.evidence));
+  const disposition = (finding: z.infer<typeof findingSchema>) => JSON.stringify([finding.id, finding.classification, finding.status]);
+  if (!inventory.success) errors.push('리뷰 원본 형식 불명');
+  else {
+    if (inventory.data.tested_commit !== reviews.testedCommit || inventory.data.status !== 'classified') errors.push('리뷰 원본 SHA·분류 충돌');
+    const original = inventory.data.findings.map(disposition).sort(), declared = reviews.findings.map(disposition).sort();
+    if (JSON.stringify(original) !== JSON.stringify(declared)) errors.push('리뷰 원본 목록·처분 충돌');
+  }
   if (new Set(reviews.findings.map(entry => entry.id)).size !== reviews.findings.length) errors.push('리뷰 ID가 중복됐습니다');
   for (const finding of reviews.findings) {
     if (!['actionable', 'non-actionable'].includes(finding.classification) || finding.status !== 'resolved') errors.push(`미분류·미해결 리뷰: ${finding.id}`);
-    evidence(finding.evidence);
+    const original = reviewSchema.safeParse(evidence(finding.evidence));
+    if (!original.success || original.data.tested_commit !== reviews.testedCommit || original.data.status !== 'classified'
+        || original.data.findings.filter(entry => entry.id === finding.id).length !== 1
+        || !original.data.findings.some(entry => disposition(entry) === disposition(finding))) errors.push(`리뷰 개별 원본 SHA·처분 충돌: ${finding.id}`);
   }
   const ci = ciSchema.parse(JSON.parse(readEvidence(report.ciEvidence)) as unknown);
   if (ci.status !== 'completed' || ci.conclusion !== 'success') errors.push('CI 완료·성공 아님');
