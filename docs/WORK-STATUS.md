@@ -1,5 +1,13 @@
 # 작업 현황표
 
+## 일반 입력칸 영문·숫자 후속 구현 — 2026-10-03 11:44 KST
+
+최신 main **9394b0146f9ba169f57e47ce3274bdff57b74dfe**, PR27–30 merged·CI99 unit397/browser403 success에서 `codex-switch-general-characters`를 분기했다. 아래 오래된 draft/미병합 기록은 당시 상태다. [병합 최종 증거](https://github.com/rrangjaa-eng/project_260923/blob/cce7caa/docs/verification/ci99-main-results.json).
+
+다음 작은 범위로 일반 글쓰기/양식에 기존 영문·숫자 문자 선택을 연결했다. 적용 전 DOM 불변·양식 초안 보존·민감칸 차단을 유지한다. 독립 검토에서 미완성 한글과 ASCII의 순서 문제를 찾아2RED→guard→관련13GREEN으로 보완했다. [선택 이유·동작 계약·실패 기록](verification/2026-10-03-general-characters.md).
+
+선행 browser3/3(2.4분)은 guard 전 결과로 구분한다. 최종 브라우저/기존 편집기 회귀·자동UI·전체CI는 진행 중이며 완료로 세지 않는다. 새 권한·수집/저장·회사 사이트 접근·main 병합·배포·ZIP교체 없음.
+
 ## NAV-02 UI 시간 가정 수정 — 2026-10-03 00:37 KST
 
 첫 자동UI100/101에서 기존 팝업5회 클릭 테스트가 실패했다. 300ms 떨림 필터와 무간격5회 모두처리 가정의 충돌을 실제시각 기록으로 재현했다. 제품필터는 유지하고 테스트를350ms 간격의 의도적5회 선택·매 단계 상태 단언으로 수정했다. 빠른중복억제·pending 시작탭재연결 포함3/3(29초) 통과. [근거](verification/2026-10-03-nav02.md).

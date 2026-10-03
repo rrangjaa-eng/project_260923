@@ -255,10 +255,10 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   function editor(){
     if(formActive){
       formOverview=false;stack=[formMenu()];
-      menu([command('hangul:initial','한글 쓰기'),...(opts.helperPage?[command('ascii','영문·주소 쓰기')]:[]),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('compare','현재 값과 비교'),command('validity','입력 오류 읽기'),...(formIndex!==null&&formIndex>0?[command('form-prev','이전 칸')]:[]),...(formIndex!==null&&formIndex<formFields.length-1?[command('form-next','다음 칸')]:[]),command('form-list','양식 목록'),command('form-exit','원래 화면으로')],'글쓰기','composing',false);return;
+      menu([command('hangul:initial','한글 쓰기'),command('ascii',opts.helperPage?'영문·주소 쓰기':'영문·숫자 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('compare','현재 값과 비교'),command('validity','입력 오류 읽기'),...(formIndex!==null&&formIndex>0?[command('form-prev','이전 칸')]:[]),...(formIndex!==null&&formIndex<formFields.length-1?[command('form-next','다음 칸')]:[]),command('form-list','양식 목록'),command('form-exit','원래 화면으로')],'글쓰기','composing',false);return;
     }
     stack=[{title:'스페이스바 작업판',items:groups(),mode:'groupScan'}];
-    menu([command('hangul:initial','한글 쓰기'),...(opts.helperPage?[command('ascii','영문·주소 쓰기')]:[]),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('compare','현재 값과 비교'),command('validity','입력 오류 읽기'),command('search','검색'),command('form-open','양식 한 장 보기'),...(formRecovery?[command('form-recover','양식 작성 문장 복구')]:[]),command('restore','원래 입력칸으로')],'글쓰기','composing',false);
+    menu([command('hangul:initial','한글 쓰기'),command('ascii',opts.helperPage?'영문·주소 쓰기':'영문·숫자 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('compare','현재 값과 비교'),command('validity','입력 오류 읽기'),command('search','검색'),command('form-open','양식 한 장 보기'),...(formRecovery?[command('form-recover','양식 작성 문장 복구')]:[]),command('restore','원래 입력칸으로')],'글쓰기','composing',false);
   }
   function characterGroups(stage:'initial'|'medial'|'final'){
     const chars=stage==='initial'?INITIALS:stage==='medial'?MEDIALS:FINALS;
@@ -437,12 +437,13 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(id.startsWith('target:'))return chooseTarget(Number(id.split(':')[1]),startedGeneration);
     if(id.startsWith('page:')){const parts=id.split(':');pageMenu(Number(parts[1]),parts[2]==='input');return;}
     if(id.startsWith('refresh:')){if(await refreshTargets(startedGeneration))pageMenu(0,id.endsWith('input'));return;}
+    if((id==='ascii'||id.startsWith('ascii-'))&&(initial!==null||medial!==null)){notice='한글 조합을 마치거나 취소하세요';return 'refused';}
     if(id==='ascii'){
       const chars=Array.from('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.-_?&=%+#@~');
       menu(Array.from({length:Math.ceil(chars.length/6)},(_,i)=>command(`ascii-group:${String(i)}`,chars.slice(i*6,i*6+6).join(' '))),'영문·숫자·주소 기호','composing');return;
     }
     if(id.startsWith('ascii-group:')){const chars=Array.from('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.-_?&=%+#@~');const start=Number(id.slice(12))*6;menu(chars.slice(start,start+6).map((ch,i)=>command(`ascii-char:${String(start+i)}`,ch)),'문자 선택','composing');return;}
-    if(id.startsWith('ascii-char:')){const ch=Array.from('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.-_?&=%+#@~')[Number(id.slice(11))];if(opts.helperPage&&ch){draft=editDraft(draft,{type:'insert',text:ch});editor();await saveDraft();}return;}
+    if(id.startsWith('ascii-char:')){const ch=Array.from('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.-_?&=%+#@~')[Number(id.slice(11))];if(ch){draft=editDraft(draft,{type:'insert',text:ch});editor();await saveDraft();}return;}
     if(id==='draft:new'){draft=createDraft();initial=null;medial=null;preservedDraft=true;editor();await saveDraft();return;}
     if(id.startsWith('hangul:')){characterGroups(medial!==null?'final':initial!==null?'medial':'initial');return;}
     if(id.startsWith('chars:')){const [,stage,page]=id.split(':');const chars=stage==='initial'?INITIALS:stage==='medial'?MEDIALS:FINALS;
