@@ -28,3 +28,7 @@ CI103 전체410건은58.4분이었다. 새10개 실제 Space 브라우저 회귀
 정상 복원·미리보기·취소·단발 이벤트·선택 복원, 외부값/identity/민감성/쓰기 상태/노드/문서/프레임 변경 거절, pending 정지·늦은 응답·unknown 재실행 금지, 지원 iframe·원래 다른 필드 불변을 단위와 Chromium으로 확인한다. 독립 검토·최종 타입/린트/빌드/단위·전체 브라우저 CI가 모두 통과해야 이 증분을 완료로 기록한다.
 
 스냅샷은 장기 기록이 아니며 칸 이동 뒤 복원이나 여러 단계 redo를 제공하지 않는다. 원 로드맵의 전체 명령판 단축키 요구를 완료한 것으로 확대하지 않는다. 실제 Windows IME·운동 사용성·실사이트·native UI는 미검증이다. 다음 범위를 고를 때는 NAV-05/06 등 원 요구의 실제 구현과 다시 대조하고, 최근값 수집/민감정보 정책/native 연결은 별도 결정 없이 확대하지 않는다.
+
+## 후속 최종 증거 연결 — 2026-10-04 00:02 KST
+
+위 진행/대기 표기는 당시 체크포인트다. 제품 `3454494ac6a532a1b82b1c83b07383726a2b862a`의 [CI104](https://github.com/rrangjaa-eng/project_260923/actions/runs/37106687759)는 completed/success이며 unit441/441·Chromium420/420이다. 별도 검증 브랜치에 저장된 [최종 근거 dd485e6](https://github.com/rrangjaa-eng/project_260923/blob/dd485e6ff0fc4c7efc3f458f05fdde4d2888e827/docs/verification/ci104-final-results.json)를 연결한다. 이번 감사에서 원격 job 성공과 보존된 기록을 대조했다. 이는 새 실행 결과나 실제 PC 검증을 뜻하지 않는다.

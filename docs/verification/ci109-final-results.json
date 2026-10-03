@@ -1,0 +1,37 @@
+{
+  "run_number": 109,
+  "run_id": 37127421940,
+  "job_id": 111215464586,
+  "url": "https://github.com/rrangjaa-eng/project_260923/actions/runs/37127421940",
+  "status": "completed",
+  "conclusion": "success",
+  "product_commit": "7eeda02f547fbd50db6310a455686bb0b5ce76e4",
+  "test_merge_commit": "ff4ed7e6cc00e848940dcaa3d8575d6aa5d74ae2",
+  "product_and_test_merge_tree": "efc5f2d214517508dadd919dfcd0eed205814b55",
+  "completed_at_utc": "2026-10-03T15:03:59Z",
+  "completed_at_kst": "2026-10-04 00:03:59 KST",
+  "typecheck": "success",
+  "lint": "success",
+  "unit": {
+    "passed": 505,
+    "files": 49,
+    "failed": 0
+  },
+  "browser": {
+    "passed": 453,
+    "total": 453,
+    "failed": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "elapsed_seconds_from_log": 4468.766,
+    "reported_duration": "1.2h"
+  },
+  "log_evidence": [
+    "2026-10-03T13:48:22.5546323Z HEAD is now at ff4ed7e Merge 7eeda02f547fbd50db6310a455686bb0b5ce76e4 into 26bd9912fb21041ec8fa3ecefd9fbbf570a8fa37",
+    "2026-10-03T13:49:01.2966961Z  Test Files  49 passed (49)",
+    "2026-10-03T13:49:01.2969011Z       Tests  505 passed (505)",
+    "2026-10-03T13:49:27.5445710Z Running 453 tests using 1 worker",
+    "2026-10-03T15:03:56.3107220Z   453 passed (1.2h)"
+  ],
+  "note": "실패 시에만 업로드하는 artifact 단계 skipped는 테스트 생략이 아니다. 실제 PC/IME/사용성/실사이트 검증과 구분한다."
+}

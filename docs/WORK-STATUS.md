@@ -1,5 +1,35 @@
 # 작업 현황표
 
+## 보고 원칙 강화·사실관계 감사 — 2026-10-04 00:10 KST
+
+[draft PR38](https://github.com/rrangjaa-eng/project_260923/pull/38)을 `codex-reporting-integrity-audit`에서 생성했고 지침·감사 변경 `89a3d35b55e9b8723bda0089d686715cd28efa17`을 일반 push했다(2026-10-04 00:14 KST). 타입·린트·JSON4개 파싱·문서 diff 검사 통과. PR37 대비 AGENTS/문서/JSON만 바뀌며 main은 미병합이다. PR38 자체 새 CI 완료를 주장하지 않는다.
+
+새 기능 착수를 중지하고 루트 AGENTS에 설명 전 근거 확인·모르면 모름·거짓 보고 금지·불일치 즉시 정정 원칙을 추가한다. [기술 기록 감사](verification/2026-10-04-reporting-integrity-audit.md): AGENTS의 PR15 당시 현재상태 문구, PR21 동일CI86 성공/실행중 혼재, CI79 첫 수정과 PR34 최종 증거 연결, 모델 적용값 표기 한계를 대조했다. 원격 PR21 본문은 변경하지 않았다.
+
+**미해결 P2:** PR30 병합 후 리뷰의 제거/식별변경 필드 초안이 작업판 reload/close를 막는 문제를 현재 제품7eeda02에서 실제controller 임시검사4RED/깨끗한대조2GREEN으로 재현했다. [관측 근거](verification/reporting-integrity-observations.json). 기존 빈초안 제한과 별개다. 제품·정식 테스트 수정 없음, 새 제품 수정은 별도 결정이다. CI109453/453에 이 신규 부정 검사는 포함되지 않는다. 전체 과거 대화·당시 runtime·의도적 거짓 여부는 본 감사로 판정할 수 없다. 지침은 이 checkout 문서이며 main/다른환경 자동적용을 주장하지 않는다.
+
+PR37 최종CI109 성공·제품HEAD7eeda02와 증거8631236은 아래와 같다. 문서변경은 별도브랜치/commit/draftPR로 저장하며 merge/deploy/ZIP교체 없음.
+
+## PR37 최종 CI109 성공 — 2026-10-04 00:03:59 KST
+
+[draft PR37](https://github.com/rrangjaa-eng/project_260923/pull/37), 제품 `codex-switch-site-off`/`7eeda02f547fbd50db6310a455686bb0b5ce76e4`. [CI109 원본 근거](verification/ci109-final-results.json): 타입·린트·unit505/505(49파일)·Chromium453/453, 실패/flaky/skip0. 브라우저74분28.766초, 테스트 merge와 제품 tree 일치. 로컬 회귀42/42·자동UI101/101과 독립 재검토를 포함한 [검증 결과](verification/site-off-results.json).
+
+새 기능은 중지하고 보고 원칙·사실관계 감사 지시를 우선 수행한다. 별도 PR30 후속 리뷰 조사는 진행 중이며, 위 CI 통과를 제품 무결함 또는 그 리뷰 해결로 확대하지 않는다. PR37 draft·미병합, 재활성화는 기존 팝업, 실제 PC/IME/운동 사용성/실사이트/native UI/두 PC 미검증. merge/deploy/ZIP 교체 없음. 아래는 당시 기록이다.
+
+## PR37 로컬 검증 완료·CI109 진행 중 — 2026-10-03 22:53 KST
+
+[draft PR37](https://github.com/rrangjaa-eng/project_260923/pull/37), 제품 `codex-switch-site-off`/`7eeda02f547fbd50db6310a455686bb0b5ce76e4`. 승인된 SAFE-04 현재 사이트 끄기 구현. [계약과 경계 수정](verification/2026-10-03-switch-site-off.md), [검증 결과](verification/site-off-results.json).
+
+| 항목 | 결과 |
+|---|---|
+| 타입·린트·단위 | 통과, 505/505(49파일) |
+| 새 기능·기존 팝업/취소 회귀 | Chromium42/42, 4.5분 |
+| 자동UI | 101/101, 3.9분, 실패/flaky/skip0 |
+| 최종 독립 읽기 검토 | 추가 actionable P1/P2 없음 |
+| 전체 CI109 | 브라우저 단계 진행 중, 최종 성공 아님 |
+
+제품 HEAD 고정, 증거 `codex-pr37-verification-record`에 기록. main/PR31–36 원격HEAD·기존ZIP 보존. 재활성화는 기존 팝업이며 실제 PC/IME/운동 사용성/실사이트/native UI/두 PC 미검증. merge/deploy 없음. 아래는 당시 기록이다.
+
 ## SAFE-04 현재 사이트 끄기 구현·검증 중 — 2026-10-03 22:44 KST
 
 `codex-switch-site-off`에서 승인된 작업판 현재 사이트 끄기를 구현했다. 기존 사이트 저장 계약·핀·다른 출처·전체 설정을 보존하며 재활성화는 기존 팝업이다. [계약·RED/GREEN·한계](verification/2026-10-03-switch-site-off.md). 독립 검토의 최종 실행 종류 치환과 늦은 요청의 선행 자식 정지 2건을 RED로 재현하고 수정했다. 최종 독립 재검토 추가P1/P2 없음, 타입·린트·단위505/505(49파일) 통과. 새 브라우저 초기 7/7 통과 후 수정된 소스에서 추가 응답 유실 검사·기존 팝업/취소 회귀·전체 단위·자동UI를 진행한다. 최종 CI 성공 전이며 완료로 세지 않는다. main/PR31–36/ZIP 원본 보존을 확인했다. merge/deploy 없음.
