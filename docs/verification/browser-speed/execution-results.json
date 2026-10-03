@@ -1,0 +1,55 @@
+{
+  "observed_at": "2026-10-03T18:30:32.897714+00:00",
+  "product_commit": "62577af2db1216bc25371dee39d94b6267a80a8c",
+  "pnpm": "10.33.0",
+  "phase_terminal_evidence": {
+    "quick": {
+      "exit_code": 0,
+      "summary": "1 passed (1.1m)",
+      "command": "CI=true SPEED_PHASE=quick SPEED_RESULTS=/tmp/speed-quick-valid.jsonl pnpm exec playwright test --config docs/verification/browser-speed/playwright.config.ts"
+    },
+    "journeys": {
+      "exit_code": 0,
+      "summary": "1 passed (11.0m)",
+      "command": "CI=true SPEED_PHASE=journeys SPEED_RESULTS=/tmp/speed-journeys.jsonl pnpm exec playwright test --config docs/verification/browser-speed/playwright.config.ts"
+    },
+    "loaded": {
+      "exit_code": 0,
+      "summary": "1 passed (1.1m)",
+      "command": "CI=true SPEED_PHASE=loaded SPEED_RESULTS=/tmp/speed-loaded.jsonl pnpm exec playwright test --config docs/verification/browser-speed/playwright.config.ts"
+    },
+    "fast": {
+      "exit_code": 0,
+      "summary": "1 passed (2.8m)",
+      "command": "CI=true SPEED_PHASE=fast SPEED_RESULTS=/tmp/speed-fast.jsonl pnpm exec playwright test --config docs/verification/browser-speed/playwright.config.ts"
+    },
+    "controls": {
+      "exit_code": 0,
+      "summary": "1 passed (1.1m)",
+      "command": "CI=true SPEED_PHASE=controls SPEED_RESULTS=/tmp/speed-controls.jsonl pnpm exec playwright test --config docs/verification/browser-speed/playwright.config.ts"
+    },
+    "reuse": {
+      "exit_code": 0,
+      "summary": "1 passed (1.9m)",
+      "command": "CI=true SPEED_PHASE=reuse SPEED_RESULTS=/tmp/speed-reuse.jsonl pnpm exec playwright test --config docs/verification/browser-speed/playwright.config.ts"
+    },
+    "baseline": {
+      "exit_code": 0,
+      "summary": "1 passed (17.4s)",
+      "command": "CI=true SPEED_PHASE=baseline SPEED_RESULTS=/tmp/speed-baseline.jsonl pnpm exec playwright test --config docs/verification/browser-speed/playwright.config.ts"
+    }
+  },
+  "final_typecheck": {
+    "exit_code": 0,
+    "command": "pnpm typecheck"
+  },
+  "final_lint": {
+    "exit_code": 0,
+    "command": "pnpm lint"
+  },
+  "source_integrity": {
+    "command": "git diff --quiet 62577af -- src tests package.json pnpm-lock.yaml playwright.config.ts",
+    "exit_code": 0
+  },
+  "existing_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb"
+}

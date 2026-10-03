@@ -1,5 +1,15 @@
 # 작업 현황표
 
+## 실제 Chromium 속도 측정 완료 — 2026-10-04 03:30 KST
+
+측정 전용 `codex-browser-speed-benchmark`. 제품은 PR39 `62577af2db1216bc25371dee39d94b6267a80a8c`와 동일하며 main·기존 ZIP의 속도는 측정하지 않았다. [결과·조건·범위·개선 후보](verification/browser-speed/RESULTS.md), [원본69개/제외12개](verification/browser-speed/raw-results.json), [실행 근거](verification/browser-speed/execution-results.json)를 보존한다.
+
+기본 순환1.5초/보호0.3초, 준비된 paused 작업판에서 각3회: 클릭10.92초/4Space, 스크롤7.79초/3Space, 탭전환20.11초/4Space, 새탭18.72초/3Space, `가a1` 새작성·적용86.59초/18Space, 고정번호 재사용30.85초/5Space. 클릭 입력수신 이후 실제click 이벤트는 중앙8.2ms로, 전체선택대기와 구분한다. 빠른0.8초/0.1초 설정의 클릭6.01초·새작성47.40초, 저장문구 재사용35.83초. 준비 후 합성부하 클릭11.00초·스크롤7.86초.
+
+사이트 처리보다 순환 메뉴 경로가 주된 병목이다. 고정번호는 읽기·이동 메뉴의 뒤쪽에 있어 접근 대기만 첫표본18.5초였다. 정지 keydown→상태변경 중앙1.4ms이며 준비경로11.25초와 혼동하지 않는다. 직접 조작은 pointer모드의 자동화 참고치일 뿐 사람/WindowsIME 타이핑 수치가 아니다. 저장문구 적용171.4ms 지연표본도 포함하며 원인은 확정하지 않았다.
+
+7개 소규모 브라우저 실행 exit0, 최종type/lint exit0. 전체CI 재실행·제품최적화·merge/deploy·ZIP교체 없음. 실제장애사용자 속도·피로·실제IME·실사이트/네트워크·픽셀paint는 미검증이다. 이하 기록은 당시 상태다.
+
 ## PR39 최종 CI113 성공·보고 검사 통과 — 2026-10-04 02:47:26 KST
 
 추가 독립 재검토도 제품 `62577af`에서 이전3개 P2 수정 반영과 추가 확정 P1/P2 미발견으로 종료했다. rename old/new 경로·원본 JSON SHA/status/리뷰 대조·iframe unknown 초안 보존을 읽기로 확인했으며 로컬 재실행은 하지 않았다. 제품 변경·전체CI 재실행 없이 현상 유지한다.

@@ -1,0 +1,562 @@
+{
+  "product_commit": "62577af2db1216bc25371dee39d94b6267a80a8c",
+  "valid_samples": 69,
+  "excluded_samples": 12,
+  "rows": [
+    {
+      "phase": "baseline",
+      "loaded": false,
+      "workload": "click",
+      "total_ms": {
+        "n": 5,
+        "median": 42.946,
+        "minimum": 40.075,
+        "maximum": 52.447
+      },
+      "spaces": [],
+      "release_to_action_ms": null,
+      "release_to_ui_dom_ms": null,
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": null
+    },
+    {
+      "phase": "baseline",
+      "loaded": false,
+      "workload": "scroll",
+      "total_ms": {
+        "n": 5,
+        "median": 114.45,
+        "minimum": 112.456,
+        "maximum": 125.811
+      },
+      "spaces": [],
+      "release_to_action_ms": null,
+      "release_to_ui_dom_ms": null,
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": null
+    },
+    {
+      "phase": "baseline",
+      "loaded": false,
+      "workload": "write",
+      "total_ms": {
+        "n": 5,
+        "median": 124.164,
+        "minimum": 115.19,
+        "maximum": 130.131
+      },
+      "spaces": [],
+      "release_to_action_ms": null,
+      "release_to_ui_dom_ms": null,
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": null
+    },
+    {
+      "phase": "baseline",
+      "loaded": true,
+      "workload": "click",
+      "total_ms": {
+        "n": 5,
+        "median": 47.053,
+        "minimum": 35.829,
+        "maximum": 64.543
+      },
+      "spaces": [],
+      "release_to_action_ms": null,
+      "release_to_ui_dom_ms": null,
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": null
+    },
+    {
+      "phase": "baseline",
+      "loaded": true,
+      "workload": "scroll",
+      "total_ms": {
+        "n": 5,
+        "median": 122.54,
+        "minimum": 108.835,
+        "maximum": 127.044
+      },
+      "spaces": [],
+      "release_to_action_ms": null,
+      "release_to_ui_dom_ms": null,
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": null
+    },
+    {
+      "phase": "baseline",
+      "loaded": true,
+      "workload": "write",
+      "total_ms": {
+        "n": 5,
+        "median": 129.752,
+        "minimum": 121.499,
+        "maximum": 148.172
+      },
+      "spaces": [],
+      "release_to_action_ms": null,
+      "release_to_ui_dom_ms": null,
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": null
+    },
+    {
+      "phase": "controls",
+      "loaded": false,
+      "workload": "cancel",
+      "total_ms": {
+        "n": 3,
+        "median": 9393.684,
+        "minimum": 9391.273,
+        "maximum": 9411.338
+      },
+      "spaces": [
+        4
+      ],
+      "release_to_action_ms": null,
+      "release_to_ui_dom_ms": {
+        "n": 12,
+        "median": 1.05,
+        "minimum": 0.6,
+        "maximum": 2.9
+      },
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": {
+        "n": 3,
+        "median": 298.79,
+        "minimum": 258.346,
+        "maximum": 303.289
+      }
+    },
+    {
+      "phase": "controls",
+      "loaded": false,
+      "workload": "stop",
+      "total_ms": {
+        "n": 3,
+        "median": 11248.491,
+        "minimum": 11067.74,
+        "maximum": 11364.342
+      },
+      "spaces": [
+        4
+      ],
+      "release_to_action_ms": null,
+      "release_to_ui_dom_ms": {
+        "n": 9,
+        "median": 0.8,
+        "minimum": 0.5,
+        "maximum": 4.4
+      },
+      "stop_down_to_ui_ms": {
+        "n": 3,
+        "median": 1.4,
+        "minimum": 1.0,
+        "maximum": 1.7
+      },
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": {
+        "n": 3,
+        "median": 194.591,
+        "minimum": 174.455,
+        "maximum": 201.158
+      }
+    },
+    {
+      "phase": "fast",
+      "loaded": false,
+      "workload": "click",
+      "total_ms": {
+        "n": 3,
+        "median": 6007.76,
+        "minimum": 5985.824,
+        "maximum": 6026.187
+      },
+      "spaces": [
+        4
+      ],
+      "release_to_action_ms": {
+        "n": 3,
+        "median": 9.6,
+        "minimum": 7.3,
+        "maximum": 9.6
+      },
+      "release_to_ui_dom_ms": {
+        "n": 12,
+        "median": 1.2,
+        "minimum": 0.5,
+        "maximum": 3.1
+      },
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": {
+        "n": 3,
+        "median": 295.124,
+        "minimum": 279.001,
+        "maximum": 308.676
+      }
+    },
+    {
+      "phase": "fast",
+      "loaded": false,
+      "workload": "write",
+      "total_ms": {
+        "n": 3,
+        "median": 47403.408,
+        "minimum": 47064.182,
+        "maximum": 47623.282
+      },
+      "spaces": [
+        18
+      ],
+      "release_to_action_ms": {
+        "n": 3,
+        "median": 8.9,
+        "minimum": 6.4,
+        "maximum": 9.6
+      },
+      "release_to_ui_dom_ms": {
+        "n": 54,
+        "median": 1.4,
+        "minimum": 0.6,
+        "maximum": 3.6
+      },
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": {
+        "n": 3,
+        "median": 296.45,
+        "minimum": 238.499,
+        "maximum": 320.638
+      }
+    },
+    {
+      "phase": "journeys",
+      "loaded": false,
+      "workload": "newtab",
+      "total_ms": {
+        "n": 3,
+        "median": 18719.157,
+        "minimum": 18648.884,
+        "maximum": 19026.358
+      },
+      "spaces": [
+        3
+      ],
+      "release_to_action_ms": null,
+      "release_to_ui_dom_ms": {
+        "n": 9,
+        "median": 0.9,
+        "minimum": 0.7,
+        "maximum": 7.8
+      },
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": {
+        "n": 3,
+        "median": 328.421,
+        "minimum": 298.902,
+        "maximum": 336.557
+      }
+    },
+    {
+      "phase": "journeys",
+      "loaded": false,
+      "workload": "pin",
+      "total_ms": {
+        "n": 3,
+        "median": 30851.572,
+        "minimum": 30549.852,
+        "maximum": 31125.334
+      },
+      "spaces": [
+        5
+      ],
+      "release_to_action_ms": {
+        "n": 3,
+        "median": 10.7,
+        "minimum": 10,
+        "maximum": 14.1
+      },
+      "release_to_ui_dom_ms": {
+        "n": 15,
+        "median": 1.2,
+        "minimum": 0.6,
+        "maximum": 2.4
+      },
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": {
+        "n": 3,
+        "median": 38711.663,
+        "minimum": 38279.104,
+        "maximum": 38802.467
+      },
+      "pin_setup_spaces": [
+        7
+      ],
+      "page_ready_ms": {
+        "n": 3,
+        "median": 291.934,
+        "minimum": 288.585,
+        "maximum": 307.512
+      }
+    },
+    {
+      "phase": "journeys",
+      "loaded": false,
+      "workload": "tab",
+      "total_ms": {
+        "n": 3,
+        "median": 20110.975,
+        "minimum": 20105.963,
+        "maximum": 20208.651
+      },
+      "spaces": [
+        4
+      ],
+      "release_to_action_ms": null,
+      "release_to_ui_dom_ms": {
+        "n": 12,
+        "median": 0.8,
+        "minimum": 0.6,
+        "maximum": 6.1
+      },
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": {
+        "n": 3,
+        "median": 300.996,
+        "minimum": 289.304,
+        "maximum": 310.269
+      }
+    },
+    {
+      "phase": "journeys",
+      "loaded": false,
+      "workload": "write",
+      "total_ms": {
+        "n": 3,
+        "median": 86590.124,
+        "minimum": 86415.018,
+        "maximum": 86971.066
+      },
+      "spaces": [
+        18
+      ],
+      "release_to_action_ms": {
+        "n": 3,
+        "median": 8.8,
+        "minimum": 6.7,
+        "maximum": 9.3
+      },
+      "release_to_ui_dom_ms": {
+        "n": 54,
+        "median": 1.45,
+        "minimum": 0.8,
+        "maximum": 7.8
+      },
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": {
+        "n": 3,
+        "median": 309.575,
+        "minimum": 307.476,
+        "maximum": 529.055
+      }
+    },
+    {
+      "phase": "loaded",
+      "loaded": true,
+      "workload": "click",
+      "total_ms": {
+        "n": 3,
+        "median": 10997.473,
+        "minimum": 10868.654,
+        "maximum": 11000.522
+      },
+      "spaces": [
+        4
+      ],
+      "release_to_action_ms": {
+        "n": 3,
+        "median": 10.8,
+        "minimum": 9.7,
+        "maximum": 11.8
+      },
+      "release_to_ui_dom_ms": {
+        "n": 12,
+        "median": 1.35,
+        "minimum": 0.8,
+        "maximum": 10.1
+      },
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": {
+        "n": 3,
+        "median": 652.89,
+        "minimum": 447.953,
+        "maximum": 1121.167
+      }
+    },
+    {
+      "phase": "loaded",
+      "loaded": true,
+      "workload": "scroll",
+      "total_ms": {
+        "n": 3,
+        "median": 7862.286,
+        "minimum": 7797.135,
+        "maximum": 7912.703
+      },
+      "spaces": [
+        3
+      ],
+      "release_to_action_ms": {
+        "n": 3,
+        "median": 2.5,
+        "minimum": 2.5,
+        "maximum": 3
+      },
+      "release_to_ui_dom_ms": {
+        "n": 9,
+        "median": 2.0,
+        "minimum": 1.0,
+        "maximum": 5.6
+      },
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": {
+        "n": 3,
+        "median": 323.171,
+        "minimum": 241.337,
+        "maximum": 531.127
+      }
+    },
+    {
+      "phase": "quick",
+      "loaded": false,
+      "workload": "click",
+      "total_ms": {
+        "n": 3,
+        "median": 10924.637,
+        "minimum": 10907.616,
+        "maximum": 11023.422
+      },
+      "spaces": [
+        4
+      ],
+      "release_to_action_ms": {
+        "n": 3,
+        "median": 8.2,
+        "minimum": 7.6,
+        "maximum": 9.3
+      },
+      "release_to_ui_dom_ms": {
+        "n": 12,
+        "median": 1.45,
+        "minimum": 0.7,
+        "maximum": 3.0
+      },
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": {
+        "n": 3,
+        "median": 288.422,
+        "minimum": 286.737,
+        "maximum": 424.445
+      }
+    },
+    {
+      "phase": "quick",
+      "loaded": false,
+      "workload": "scroll",
+      "total_ms": {
+        "n": 3,
+        "median": 7785.198,
+        "minimum": 7779.878,
+        "maximum": 7822.168
+      },
+      "spaces": [
+        3
+      ],
+      "release_to_action_ms": {
+        "n": 3,
+        "median": 2.8,
+        "minimum": 2.2,
+        "maximum": 5
+      },
+      "release_to_ui_dom_ms": {
+        "n": 9,
+        "median": 1.8,
+        "minimum": 0.6,
+        "maximum": 7.5
+      },
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": {
+        "n": 3,
+        "median": 260.725,
+        "minimum": 223.425,
+        "maximum": 327.638
+      }
+    },
+    {
+      "phase": "reuse",
+      "loaded": false,
+      "workload": "phrase",
+      "total_ms": {
+        "n": 3,
+        "median": 35829.066,
+        "minimum": 35710.455,
+        "maximum": 35971.296
+      },
+      "spaces": [
+        7
+      ],
+      "release_to_action_ms": {
+        "n": 3,
+        "median": 11.9,
+        "minimum": 7.8,
+        "maximum": 171.4
+      },
+      "release_to_ui_dom_ms": {
+        "n": 21,
+        "median": 1.5,
+        "minimum": 0.7,
+        "maximum": 47.4
+      },
+      "stop_down_to_ui_ms": null,
+      "pin_setup_ms": null,
+      "pin_setup_spaces": null,
+      "page_ready_ms": {
+        "n": 3,
+        "median": 350.956,
+        "minimum": 223.11,
+        "maximum": 581.426
+      }
+    }
+  ]
+}
