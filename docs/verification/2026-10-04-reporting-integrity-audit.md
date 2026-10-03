@@ -44,3 +44,6 @@ CI79·81·82·84의 failure와 CI86·87·88의 success를 GitHub에서 재조회
 
 
 재현 순서: 양식 첫 칸에 띄어쓰기로 미적용 초안 작성 → 목록 복귀 → 첫 필드 제거 또는 라벨/보고 identity 변경 → 연결된 필드만 collector에 보고 → 양식 목록 새로 읽기 → 남은 다음 칸 명시 적용 → 원래 화면 복귀 → 새로고침/탭 닫기. 원인 위치는 `src/core/form-navigation.ts`의 FormDrafts, `switch-controller.ts`의 form-refresh와 unapplied 검사다. 임시 검사 코드는 보존하지 않았으므로 공개 근거는 이 절차·현재 소스·관측 JSON이며, 원본 임시 로그는 실행 환경에만 남아 있다.
+
+
+저장 확인 — 2026-10-04 00:14 KST: [draft PR38](https://github.com/rrangjaa-eng/project_260923/pull/38), 브랜치 `codex-reporting-integrity-audit`, 지침·감사 commit `89a3d35b55e9b8723bda0089d686715cd28efa17` 일반 push 완료. 타입·린트·JSON4개 파싱·diff 검사 통과. AGENTS SHA256은 변경 전 `36edcd2da9afec7a1de1abd17dccc409b40ad90152308792407cf3878e719d66`, 변경 후 `52bbc323e3198fccf103a31200a13a980fc03c613a036ff286fe48dd76a0676c`. `CLAUDE.md` SHA256 `49c43c1854536e266a8d81d96b296d3eca1d37e6ba203fa914eb0f8082768d05` 불변. 이 후속 저장 메모는 문서만 바꾸며 PR38 자체 CI 완료를 뜻하지 않는다.
