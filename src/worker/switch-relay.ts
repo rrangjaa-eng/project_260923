@@ -101,6 +101,20 @@ export function createSwitchRelay(writer: StorageWriter,send:typeof chrome.tabs.
       const stored=await chrome.storage.session.get(`switchDraft:${String(tabId)}`);
       return {text:stored[`switchDraft:${String(tabId)}`]};
     }
+    if(message.type==='switch/pin/update'){
+      const source=sender.url,report=frames.get(tabId)?.get(0),cancellation=cancellations.get(tabId)??0;
+      if(!source||!report||report.documentGeneration!==message.authorization.documentGeneration)return {result:'refused'};
+      let origin:string;try{const url=new URL(source);if(!['http:','https:'].includes(url.protocol))return {result:'refused'};origin=url.origin;}catch{return {result:'refused'};}
+      const current=()=>frames.get(tabId)?.get(0)?.documentGeneration===report.documentGeneration&&(cancellations.get(tabId)??0)===cancellation;
+      return writer.changePins(origin,message.mutation,async()=>{
+        if(!current())return false;
+        try{
+          if((await chrome.tabs.get(tabId)).url!==source||!current())return false;
+          const reply:unknown=await send(tabId,{type:'switch/action-check',authorization:message.authorization,pin:message.mutation},{frameId:0});
+          return current()&&typeof reply==='object'&&reply!==null&&'result' in reply&&reply.result==='done';
+        }catch{return false;}
+      });
+    }
     if (message.type === 'switch/phrase' || message.type === 'switch/phrase/update') {
       return writer.changeSwitchPhrases(message.type === 'switch/phrase' ? { kind: 'add', text: message.text } : message.mutation, async () => {
         const report = frames.get(tabId)?.get(0);

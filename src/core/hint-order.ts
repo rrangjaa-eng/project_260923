@@ -1,4 +1,5 @@
 import { isSameElement } from './fingerprint';
+import { uniquePinnedTarget } from './pin-settings';
 import type { Fingerprint } from './fingerprint';
 import type { Rect } from './grid-index';
 
@@ -51,8 +52,8 @@ export function orderHints(opts: {
     if (pinnedByNumber.has(pin.number)) {
       continue;
     }
-    const match = items.find((item) => !usedItemIds.has(item.id) && isSameElement(item.fingerprint, pin.fingerprint));
-    if (match) {
+    const match = uniquePinnedTarget(items, pin.fingerprint);
+    if (match && !usedItemIds.has(match.id)) {
       pinnedByNumber.set(pin.number, match.id);
       usedItemIds.add(match.id);
     }
