@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-03T14:04:02+09:00",
+  "checked_at": "2026-10-03T14:09:47+09:00",
   "pr": 33,
   "branch": "codex-switch-compose-commit",
   "head": "9e7e1c37bbbed964e2d3a494c7cc72af79094d20",
@@ -20,10 +20,18 @@
       "minutes": 2.8
     },
     "editor_regression": {
-      "status": "in_progress"
+      "status": "passed",
+      "passed": 38,
+      "minutes": 1.4
     },
     "ui": {
-      "status": "pending"
+      "status": "passed",
+      "passed": 101,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "minutes": 3.8,
+      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-NPUeRs"
     }
   },
   "red_green": {
