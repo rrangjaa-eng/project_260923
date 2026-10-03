@@ -1,0 +1,54 @@
+{
+  "checked_at": "2026-10-03T14:04:02+09:00",
+  "pr": 33,
+  "branch": "codex-switch-compose-commit",
+  "head": "9e7e1c37bbbed964e2d3a494c7cc72af79094d20",
+  "base_pr": 32,
+  "base_head": "97a9a96c630834ae408d21bb0131cee8f31357a2",
+  "test_merge": "ac7d99a98c28e04abc44712fcaa9acf5dd830225",
+  "candidate_and_test_merge_tree": "92cfe7a8cd181399d46700c305e71d0a8a7ba258",
+  "local": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "passed": 412,
+      "files": 42
+    },
+    "browser": {
+      "status": "passed",
+      "passed": 3,
+      "minutes": 2.8
+    },
+    "editor_regression": {
+      "status": "in_progress"
+    },
+    "ui": {
+      "status": "pending"
+    }
+  },
+  "red_green": {
+    "failed_before_guard": 3,
+    "related_passed_after_guard": 21,
+    "final_added_cases": 6
+  },
+  "independent_review": "추가 actionable P1/P2 없음; 읽기 검토",
+  "ci": {
+    "number": 102,
+    "run": 37098520790,
+    "job": 111133266498,
+    "status": "in_progress",
+    "conclusion": null
+  },
+  "source_sha256": {
+    "src/page/input/switch-controller.ts": "3d895812fda904b29891ca29e5d33573e09be1b7e1dd1ab6d44880475d6f6670",
+    "tests/unit/switch-controller-navigation.test.ts": "9a41da409ddec576771082335269cf6b9a023bfe3f008dcfc26dab0ce2301397",
+    "tests/e2e/switch-compose-commit.e2e.ts": "8e52857dbbb495f0456ceb657c6c6630786508ae4e17d072f298360c6e676afa"
+  },
+  "archived_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
+  "unverified": [
+    "실제 Windows IME",
+    "운동 사용성",
+    "실사이트",
+    "native UI"
+  ]
+}
