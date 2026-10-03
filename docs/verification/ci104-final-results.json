@@ -1,0 +1,37 @@
+{
+  "checked_at": "2026-10-03T08:39:23.981Z",
+  "run": {
+    "id": 37106687759,
+    "number": 104,
+    "event": "pull_request",
+    "head": "3454494ac6a532a1b82b1c83b07383726a2b862a",
+    "status": "completed",
+    "conclusion": "success",
+    "started_at": "2026-10-03T07:32:32Z",
+    "completed_at": "2026-10-03T08:37:34Z"
+  },
+  "job": 111156490983,
+  "pr": 34,
+  "unit": {
+    "passed": 441,
+    "files": 43
+  },
+  "browser": {
+    "passed": 420,
+    "total": 420,
+    "duration_reported": "1.1h",
+    "elapsed_seconds_from_log": 3824.787337
+  },
+  "base": "cc95a59d19766104ff419f36627eee66e9afceea",
+  "test_merge": "b41e5231b69cf6bf0bca51d26f22f51efc5d3348",
+  "candidate_and_test_merge_tree": "1bbf55c504004eb7ecf8c08654f379245fd9d525",
+  "log_evidence": [
+    "2026-10-03T07:32:41.2552469Z HEAD is now at b41e523 Merge 3454494ac6a532a1b82b1c83b07383726a2b862a into cc95a59d19766104ff419f36627eee66e9afceea",
+    "2026-10-03T07:33:18.4036496Z  Test Files  43 passed (43)",
+    "2026-10-03T07:33:18.4039355Z       Tests  441 passed (441)",
+    "2026-10-03T07:33:44.0980905Z [success] Built extension in 779 ms",
+    "2026-10-03T07:33:45.7783419Z Running 420 tests using 1 worker",
+    "2026-10-03T08:37:30.5656784Z   420 passed (1.1h)"
+  ],
+  "note": "최종 제품 HEAD 전체 CI 성공. 로그 구간 기준 브라우저 약63분45초, Playwright 요약 표시는1.1h. 실제 Windows IME·운동 사용성·실사이트·native UI 미검증. PR34 draft·미병합, 새 main 병합·배포·ZIP교체 없음."
+}

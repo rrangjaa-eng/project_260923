@@ -1,10 +1,18 @@
 # 작업 현황표
 
-## NAV-04 PR34 최종 검증 중 — 2026-10-03 16:38 KST
+## NAV-04 현재칸 적용 되돌리기 PR34 검증 완료 — 2026-10-03 17:40 KST
 
-PR33/cc95a59의 최종CI103 unit412/browser410 성공을 기준으로 `codex-switch-applied-undo`에서 NAV-04의 현재칸 마지막 성공 적용1회 되돌리기를 구현했다. [계약·실패 재현·완료 기준](verification/2026-10-03-applied-undo.md). 명시 비교/취소/1초 보호 확인, 노드·문서/프레임·현재값·민감성 재검증, pending/unknown·재실행 차단을 적용한다. 권한·영속 저장 확대 없음.
+[draft PR34](https://github.com/rrangjaa-eng/project_260923/pull/34)의 현재 지원 input/textarea 마지막 적용1회 되돌리기를 구현·독립 검토·최종CI 검증했다. 원래 초안 되돌리기와 별도이며 현재/복원값 비교·취소 우선·1초 보호 확인 뒤 실제 필드와 초안·선택 범위를 함께 복원한다. 외부값·노드/문서/프레임 변경·민감성·pending/unknown·중복 실행을 재검증한다. 새 권한·의존성·영속 undo 저장 없음. [계약·실패 재현·후속 요구 대조](verification/2026-10-03-applied-undo.md).
 
-독립 검토에서 같은 노드 제거/재삽입 P2를 찾아2RED→제거 이력 보호→관련52GREEN을 확인했다. 선행 Chromium8/8(3.8분)은 그 보완 전 빌드다. 최종 type/lint·전체unit441/441(43파일) 통과, 독립 재검토 추가P1/P2 없음. 최종 Chromium10/10(4.7분) 통과. [draft PR34](https://github.com/rrangjaa-eng/project_260923/pull/34), 제품 HEAD `3454494ac6a532a1b82b1c83b07383726a2b862a`. 기존 편집기/양식/재적용 회귀48/48(8.4분) 통과·자동UI101/101(5.0분, 실패/스킵/불안정0) 통과·[CI104](https://github.com/rrangjaa-eng/project_260923/actions/runs/37106687759) 브라우저 단계 실행 중이다. [구조화된 검증 기록](verification/applied-undo-results.json). 제품 HEAD를 고정하고 이 증거는 `codex-pr34-verification-record`에 별도 저장한다. PR31–33/main/ZIP 보존, 새 main 병합·배포 없음. 아래는 당시 기록이다.
+| 항목 | 최종 증거 |
+|---|---|
+| 제품 | `codex-switch-applied-undo` / `3454494ac6a532a1b82b1c83b07383726a2b862a`, base PR33 `cc95a59d19766104ff419f36627eee66e9afceea` |
+| 독립 검토 | 제거/재삽입 P2를2RED로 재현·보완, 최종 추가 actionable P1/P2 없음 |
+| 로컬 | type/lint·unit441/441(43파일), 최종 기능10/10(4.7분), 편집기/양식/재적용48/48(8.4분), 자동UI101/101(5.0분, 실패/스킵/불안정0) |
+| 전체 CI104 | [run37106687759](https://github.com/rrangjaa-eng/project_260923/actions/runs/37106687759), job111156490983 **success**, unit441/441·browser420/420·type/lint/build 통과. 종료2026-10-03 17:37:34 KST |
+| 증거 | `codex-pr34-verification-record` 문서 브랜치의 [최종 CI 로그 근거](verification/ci104-final-results.json), [소스 해시·실행별 결과](verification/applied-undo-results.json) |
+
+PR31–33 HEAD와 main `9394b0146f9ba169f57e47ce3274bdff57b74dfe`, 기존 ZIP SHA256 `bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb`를 원격/파일에서 재확인했다. PR34 draft·미병합이며 새 main 병합·배포·ZIP교체 없음. 실제 Windows IME·운동 사용성·실사이트·native UI는 미검증이다. NAV-05 번호 고정 설정과 NAV-06 명시 더블클릭은 기존 읽기/억제 경로만으로 완료로 세지 않으며 후속 범위다. 아래는 당시 기록이다.
 
 ## 다음 후속: 미완성 한글의 외부 적용 보호 — 2026-10-03 14:00 KST
 
