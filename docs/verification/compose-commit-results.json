@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-03T15:08:30+09:00",
+  "checked_at": "2026-10-03T16:08:21+09:00",
   "pr": 33,
   "branch": "codex-switch-compose-commit",
   "head": "cc95a59d19766104ff419f36627eee66e9afceea",
@@ -38,7 +38,7 @@
       "passed": 1,
       "minutes": 1.9
     },
-    "source_equivalence": "cc95a59 is test-only; src identical to 9e7e1c3. Earlier local unit412/browser3/editor38/UI101 remain source evidence. Final type/lint and revised form test passed; new full CI103 pending."
+    "source_equivalence": "cc95a59 is test-only; src identical to 9e7e1c3. Earlier local unit412/browser3/editor38/UI101 remain source evidence. Final type/lint and revised form test passed; new full CI103 passed: unit412/browser410."
   },
   "red_green": {
     "failed_before_guard": 3,
@@ -50,8 +50,13 @@
     "number": 103,
     "run": 37101988570,
     "job": 111143181521,
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "success",
+    "unit_passed": 412,
+    "browser_passed": 410,
+    "browser_minutes": 58.4,
+    "completed_at": "2026-10-03T16:06:31+09:00",
+    "evidence": "ci103-final-results.json"
   },
   "source_sha256": {
     "src/page/input/switch-controller.ts": "3d895812fda904b29891ca29e5d33573e09be1b7e1dd1ab6d44880475d6f6670",

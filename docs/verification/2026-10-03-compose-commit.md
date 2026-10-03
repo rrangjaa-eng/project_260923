@@ -16,7 +16,7 @@
 
 실제 controller를 사용하는 단위 검사에서 `가a나 [ㄱㅏ]` 상태로 세 명령을 선택하자 partial `가a나`의 applyText/search/switch/phrase 요청이 발생하는 **3RED**를 확인했다. 공통 guard 추가 뒤 관련 **21/21 GREEN**. 초성만 남은 상태에서 명시 취소 후 정상 실행하는 세 경우를 더해 최종 type/lint·unit **412/412(42파일)** 통과했다.
 
-새 Chromium 검사는 실제 필드·input 이벤트·form submit·local 문구 저장소를 함께 관찰한다. 조합 중 세 명령의 부작용0과 초안 보존, 완료 뒤 완성된 문장의 명시 적용·저장·검색을 확인한다. 새 검사1건과 PR32 회귀2건 **3/3(2.8분)** 통과, 독립 읽기 검토 추가P1/P2 없음. 기존 편집기38/38(1.4분), 자동UI101/101(3.8분, 실패/스킵/불안정0)도 통과했다. draft PR33/9e7e1c3의 CI102는 진행 중이며 전체 원격 검사 완료로 세지 않는다.
+새 Chromium 검사는 실제 필드·input 이벤트·form submit·local 문구 저장소를 함께 관찰한다. 조합 중 세 명령의 부작용0과 초안 보존, 완료 뒤 완성된 문장의 명시 적용·저장·검색을 확인한다. 새 검사1건과 PR32 회귀2건 **3/3(2.8분)** 통과, 독립 읽기 검토 추가P1/P2 없음. 기존 편집기38/38(1.4분), 자동UI101/101(3.8분, 실패/스킵/불안정0)도 통과했다. CI102의 실패와 최종 HEAD 후속 검사는 아래에 구분한다.
 
 ## 다음 잔여 범위
 
@@ -29,4 +29,4 @@ custom/ARIA 위젯·contenteditable 직접 삽입은 대상 계약/fixture 없�
 
 CI102는 unit412 통과·전체 browser409통과/1실패(58.3분)로 종료했다. 기존 `cached cursor, undo and partial Hangul survive field moves; externally changed value refuses apply` 검사가 미완성 [ㄱ] 상태에서 적용 요청을 보내 “바뀌었어요”를 기대했다. 새 조합 guard가 먼저 “한글 조합을 마치거나 취소하세요”를 반환했다. [실패 기록](ci102-failure-results.json).
 
-제품 guard를 변경하지 않고 기존 테스트에 조합 차단·초안/사이트 값 보존·input/change0을 추가했다. 이어 명시 조합 취소 후 기존 외부값 충돌 안내·값 보존도 유지하고 이벤트0까지 확인한다. 독립 재검토 추가P1/P2 없음, 기존 단언 약화 없음. 최종 type/lint 및 해당 Chromium1/1(1.9분) 통과. 새 제품브랜치 HEAD `cc95a59d19766104ff419f36627eee66e9afceea`는 테스트6줄만 추가하며 src는 9e7e1c3과 동일하다. 기존 로컬412/3/38/UI101 결과와 구분해서 최종HEAD의 CI103을 확인한다. CI103은 현재 진행 중이다.
+제품 guard를 변경하지 않고 기존 테스트에 조합 차단·초안/사이트 값 보존·input/change0을 추가했다. 이어 명시 조합 취소 후 기존 외부값 충돌 안내·값 보존도 유지하고 이벤트0까지 확인한다. 독립 재검토 추가P1/P2 없음, 기존 단언 약화 없음. 최종 type/lint 및 해당 Chromium1/1(1.9분) 통과. 새 제품브랜치 HEAD `cc95a59d19766104ff419f36627eee66e9afceea`는 테스트6줄만 추가하며 src는 9e7e1c3과 동일하다. 기존 로컬412/3/38/UI101 결과와 구분해서 최종HEAD의 CI103을 확인한다. CI103은 2026-10-03 16:06:31 KST success로 종료했다. 최종 HEAD type/lint/build·unit412/412(42파일)·전체 Chromium410/410(58.4분) 통과를 실제 로그로 확인했다. [최종 CI 증거](ci103-final-results.json). test merge201edb5와 후보 treef07a401 동일.

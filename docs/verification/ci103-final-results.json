@@ -1,0 +1,36 @@
+{
+  "checked_at": "2026-10-03T07:08:20.136Z",
+  "run": {
+    "id": 37101988570,
+    "number": 103,
+    "event": "pull_request",
+    "head": "cc95a59d19766104ff419f36627eee66e9afceea",
+    "status": "completed",
+    "conclusion": "success",
+    "started_at": "2026-10-03T06:06:57Z",
+    "completed_at": "2026-10-03T07:06:31Z"
+  },
+  "job": 111143181521,
+  "pr": 33,
+  "unit": {
+    "passed": 412,
+    "files": 42
+  },
+  "browser": {
+    "passed": 410,
+    "minutes_reported": 58.4
+  },
+  "base": "97a9a96c630834ae408d21bb0131cee8f31357a2",
+  "test_merge": "201edb53a3e5947f431ae63b599f9c1fe886319d",
+  "candidate_and_test_merge_tree": "f07a4010a0953594bdfc43ccdd91ae4041de6412",
+  "log_evidence": [
+    "2026-10-03T06:07:04.8840049Z HEAD is now at 201edb5 Merge cc95a59d19766104ff419f36627eee66e9afceea into 97a9a96c630834ae408d21bb0131cee8f31357a2",
+    "2026-10-03T06:07:40.3537781Z  Test Files  42 passed (42)",
+    "2026-10-03T06:07:40.3539764Z       Tests  412 passed (412)",
+    "2026-10-03T06:08:03.8184200Z [success] Built extension in 763 ms",
+    "2026-10-03T06:08:05.4347860Z Running 410 tests using 1 worker",
+    "2026-10-03T07:06:28.2032552Z   410 passed (58.4m)"
+  ],
+  "previous_failure": "ci102-failure-results.json",
+  "note": "CI102의 미완성 조합/외부값 충돌 검사 가정 보완 후 최종 HEAD 전체 성공. 제품 src는 9e7e1c3과 동일. 실제 Windows IME·운동 사용성·실사이트·native UI 미검증. PR31–33 draft·미병합, 새 main 병합·배포·ZIP교체 없음."
+}

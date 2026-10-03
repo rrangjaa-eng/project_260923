@@ -1,5 +1,13 @@
 # 작업 현황표
 
+## PR33 최종 CI103 성공 — 2026-10-03 16:07 KST
+
+[draft PR33](https://github.com/rrangjaa-eng/project_260923/pull/33), 제품 `codex-switch-compose-commit`/`cc95a59d19766104ff419f36627eee66e9afceea`의 [CI103](https://github.com/rrangjaa-eng/project_260923/actions/runs/37101988570)이16:06:31 KST success로 종료했다. type/lint/build·unit **412/412(42파일)**·전체 browser **410/410(58.4분)** 통과. [최종 실제 로그·커밋 증거](verification/ci103-final-results.json).
+
+CI102의409통과/1실패는 기존 검사 가정 충돌로 [기록을 보존](verification/ci102-failure-results.json)했고, 테스트6줄 보완으로 조합 차단과 명시 취소 후 외부값 충돌을 모두 검증한다. 제품 src는9e7e1c3과 동일하다. 로컬 관련3/3·보완한 양식1/1·편집기38/38·UI101/101, 독립 검토 추가P1/P2 없음. [전체 수치·소스 해시](verification/compose-commit-results.json).
+
+다음 잔여 후보는 NAV-04 실제 입력칸 적용 되돌리기이며, 스냅샷 수명·사이트 외부 변경·양식/프레임 경계 계약을 분리해 정해야 한다. 임의 오류 원문·최근값 자동수집/민감정보 전체·native 연결은 별도 결정이 필요하다. 실제PC IME·운동 사용성·실사이트는 미검증이다. PR31·32·main9394b01·기존ZIP 보존, PR31–33 draft·미병합. 새 main 병합·배포·ZIP교체 없음. 아래는 당시 기록이다.
+
 ## PR33 테스트 보완·CI103 시작 — 2026-10-03 15:07 KST
 
 제품 브랜치 `codex-switch-compose-commit`/`cc95a59d19766104ff419f36627eee66e9afceea`를 push했다. CI102의 양식 검사 가정 충돌을6줄의 테스트 보완으로 해결했고 src는9e7e1c3과 동일하다. 기존 충돌 단언을 유지하며 조합 차단·초안/사이트 값 보존·이벤트0을 추가했다. 독립 재검토 추가P1/P2 없음. 최종 type/lint·해당 Chromium1/1(1.9분) 통과.
