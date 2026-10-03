@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## PR31 최종 로컬 검증 완료·CI100 진행 — 2026-10-03 11:52 KST
+
+[draft PR31](https://github.com/rrangjaa-eng/project_260923/pull/31)의 제품 HEAD `c0b277c38d36afeac0e751cb83d0d4b780b31498`를 고정했다. 최종 type/lint·unit401/401(42파일)·새 문자4건 및 기존 편집기/프레임 회귀42/42(4.4분)·자동UI101/101(3.9분, 실패/스킵/불안정0)이 통과했다. 독립 재검토 추가P1/P2 없음. [수치와 소스 해시](verification/general-characters-results.json).
+
+[CI100](https://github.com/rrangjaa-eng/project_260923/actions/runs/37091022015), job111111205876은 type/lint/unit 단계 성공, 전체 브라우저 실행 중이다. test merge61fd978와 후보 tree25ae638 동일. 종료까지 추적한다. 실제 PC/IME·운동 사용성·실사이트는 미검증이다. main 병합·배포·ZIP교체 없음. 아래는 당시 기록이다.
+
 ## draft PR31 게시·최종 검증 진행 — 2026-10-03 11:47 KST
 
 [draft PR31](https://github.com/rrangjaa-eng/project_260923/pull/31), `codex-switch-general-characters`/`c0b277c38d36afeac0e751cb83d0d4b780b31498`를 push했다. base는 main9394b01. 타입·린트·unit401/401(42파일) 통과. 최종 브라우저42건과 자동UI·전체CI를 종료까지 확인한다. [수치·소스 해시](verification/general-characters-results.json). 독립 재검토 추가P1/P2 없음. 후속 증거는 codex-pr31-verification-record에 저장한다. 새 PR 병합·배포·ZIP교체 없음.

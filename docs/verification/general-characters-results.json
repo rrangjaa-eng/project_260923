@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-03T11:48:37+09:00",
+  "checked_at": "2026-10-03T11:52:45+09:00",
   "pr": 31,
   "branch": "codex-switch-general-characters",
   "head": "c0b277c38d36afeac0e751cb83d0d4b780b31498",
@@ -27,7 +27,13 @@
       ]
     },
     "ui": {
-      "status": "in_progress"
+      "status": "passed",
+      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-AAoLS0",
+      "passed": 101,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "minutes": 3.9
     }
   },
   "independent_review": "P2 조합 순서 재현/수정 후 추가 actionable P1/P2 없음; 읽기 검토",
