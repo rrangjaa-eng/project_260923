@@ -1,0 +1,37 @@
+{
+  "checked_at": "2026-10-03T06:03:46.342Z",
+  "run": {
+    "id": 37098520790,
+    "number": 102,
+    "head": "9e7e1c37bbbed964e2d3a494c7cc72af79094d20",
+    "status": "completed",
+    "conclusion": "failure",
+    "completed_at": "2026-10-03T06:01:54Z"
+  },
+  "job": 111133266498,
+  "unit": {
+    "passed": 412,
+    "files": 42
+  },
+  "browser": {
+    "passed": 409,
+    "failed": 1,
+    "minutes": 58.3
+  },
+  "failure": {
+    "test": "tests/e2e/switch-form-navigation.e2e.ts:68 cached cursor, undo and partial Hangul survive field moves; externally changed value refuses apply",
+    "expected": "바뀌었어요",
+    "actual": "한글 조합을 마치거나 취소하세요",
+    "reason": "기존 검사는 미완성 조합 상태로 적용 요청이 전달될 것을 가정했다. 새 guard가 먼저 거절한다. 조합 차단·보존 검사 뒤 명시 취소하고 기존 외부 변경 충돌 검사를 유지한다."
+  },
+  "log_evidence": [
+    "2026-10-03T05:02:32.2148140Z HEAD is now at ac7d99a Merge 9e7e1c37bbbed964e2d3a494c7cc72af79094d20 into 97a9a96c630834ae408d21bb0131cee8f31357a2",
+    "2026-10-03T05:03:00.3941279Z  Test Files  42 passed (42)",
+    "2026-10-03T05:03:00.3942705Z       Tests  412 passed (412)",
+    "2026-10-03T06:01:50.0883392Z     Error: expect(locator).toContainText(expected) failed",
+    "2026-10-03T06:01:50.0884450Z     Expected substring: \"바뀌었어요\"",
+    "2026-10-03T06:01:50.0884894Z     Received string:    \"한글 조합을 마치거나 취소하세요\"",
+    "2026-10-03T06:01:50.0900166Z   1 failed",
+    "2026-10-03T06:01:50.0901499Z   409 passed (58.3m)"
+  ]
+}

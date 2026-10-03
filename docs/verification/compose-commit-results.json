@@ -44,8 +44,12 @@
     "number": 102,
     "run": 37098520790,
     "job": 111133266498,
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "unit_passed": 412,
+    "browser_passed": 409,
+    "browser_failed": 1,
+    "evidence": "ci102-failure-results.json"
   },
   "source_sha256": {
     "src/page/input/switch-controller.ts": "3d895812fda904b29891ca29e5d33573e09be1b7e1dd1ab6d44880475d6f6670",
