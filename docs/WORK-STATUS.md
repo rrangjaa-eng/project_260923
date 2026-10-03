@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## PR32 최종 CI101 성공 — 2026-10-03 13:52 KST
+
+[draft PR32](https://github.com/rrangjaa-eng/project_260923/pull/32)의 제품 HEAD `97a9a96c630834ae408d21bb0131cee8f31357a2`를 유지하고 전체 검증을 완료했다. [CI101](https://github.com/rrangjaa-eng/project_260923/actions/runs/37094682964)은 13:51:44 KST success로 종료했다. type/lint/build·unit **406/406(42파일)**·전체 browser **409/409(57.2분)** 통과. [실제 로그·커밋 증거](verification/ci101-final-results.json).
+
+로컬 관련 browser6/6·기존 편집기38/38·자동UI101/101(실패/스킵/불안정0) 통과, 독립 검토 추가P1/P2 없음. [전체 결과·소스 해시](verification/compose-insertion-results.json). 제품 브랜치 `codex-switch-compose-insertion`, 증거 브랜치 `codex-pr32-verification-record`. PR31/c0b277c와 main9394b01 보존, PR31·32 draft·미병합. 새 병합·배포·ZIP교체 없음. 실제 Windows IME·운동 사용성·실사이트·native UI는 미검증이다. 아래는 당시 기록이다.
+
 ## PR32 최종 로컬 검증 완료·CI101 진행 — 2026-10-03 13:01 KST
 
 [draft PR32](https://github.com/rrangjaa-eng/project_260923/pull/32), 제품 HEAD `97a9a96c630834ae408d21bb0131cee8f31357a2`를 고정했다. type/lint·unit406/406(42파일)·관련 browser6/6(4.5분)·기존 편집기/프레임38/38(1.2분)·자동UI101/101(3.9분, 실패/스킵/불안정0)이 통과했다. 독립 검토 추가P1/P2 없음. [결과·소스 해시](verification/compose-insertion-results.json).

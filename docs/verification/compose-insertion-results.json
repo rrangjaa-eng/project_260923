@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-03T13:01:18+09:00",
+  "checked_at": "2026-10-03T13:52:30+09:00",
   "pr": 32,
   "branch": "codex-switch-compose-insertion",
   "head": "97a9a96c630834ae408d21bb0131cee8f31357a2",
@@ -40,9 +40,14 @@
   "ci": {
     "number": 101,
     "run": 37094682964,
-    "status": "in_progress",
-    "conclusion": null,
-    "job": 111122082125
+    "status": "completed",
+    "conclusion": "success",
+    "job": 111122082125,
+    "unit_passed": 406,
+    "browser_passed": 409,
+    "browser_minutes": 57.2,
+    "completed_at": "2026-10-03T13:51:44+09:00",
+    "evidence": "ci101-final-results.json"
   },
   "source_sha256": {
     "src/page/input/switch-controller.ts": "b4b6a161531dc5bce5fdbc1da5ee1099a2e6f8d159fea3408e5947bf5f6f810c",

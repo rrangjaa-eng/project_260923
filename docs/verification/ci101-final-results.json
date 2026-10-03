@@ -1,0 +1,35 @@
+{
+  "checked_at": "2026-10-03T13:52:30+09:00",
+  "run": {
+    "id": 37094682964,
+    "number": 101,
+    "event": "pull_request",
+    "head": "97a9a96c630834ae408d21bb0131cee8f31357a2",
+    "status": "completed",
+    "conclusion": "success",
+    "started_at": "2026-10-03T03:53:21Z",
+    "completed_at": "2026-10-03T04:51:44Z"
+  },
+  "job": 111122082125,
+  "unit": {
+    "passed": 406,
+    "files": 42
+  },
+  "browser": {
+    "passed": 409,
+    "minutes_reported": 57.2
+  },
+  "pr": 32,
+  "base": "c0b277c38d36afeac0e751cb83d0d4b780b31498",
+  "test_merge": "dbe53d2ff0ccd2a5c60210be0629942289414b2b",
+  "candidate_and_test_merge_tree": "c1b3c0a5cc21a04b60d69ba23407dd444a41dae6",
+  "log_evidence": [
+    "2026-10-03T03:53:29.9899409Z HEAD is now at dbe53d2 Merge 97a9a96c630834ae408d21bb0131cee8f31357a2 into c0b277c38d36afeac0e751cb83d0d4b780b31498",
+    "2026-10-03T03:54:06.7132147Z  Test Files  42 passed (42)",
+    "2026-10-03T03:54:06.7134256Z       Tests  406 passed (406)",
+    "2026-10-03T03:54:31.6814786Z [success] Built extension in 766 ms",
+    "2026-10-03T03:54:33.3045536Z Running 409 tests using 1 worker",
+    "2026-10-03T04:51:40.3016531Z   409 passed (57.2m)"
+  ],
+  "note": "workflow/job terminal success. 미완성 한글 중 공백·문구·커서·undo 보호의 합성 Chromium 검증. 실제 Windows IME/운동 사용성/실사이트/native UI 미검증. PR31·32 draft·미병합; 배포/ZIP교체 없음."
+}
