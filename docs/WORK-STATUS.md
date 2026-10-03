@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## draft PR32 게시·최종 검증 진행 — 2026-10-03 12:54 KST
+
+[draft PR32](https://github.com/rrangjaa-eng/project_260923/pull/32), `codex-switch-compose-insertion`/`97a9a96c630834ae408d21bb0131cee8f31357a2`를 push했다. 기준은 미병합 PR31/c0b277c이며 PR31·main HEAD를 보존한다. [CI101](https://github.com/rrangjaa-eng/project_260923/actions/runs/37094682964)이 실행 중이다.
+
+타입·린트·unit406/406(42파일)·독립 검토 추가P1/P2 없음. 관련 브라우저/기존 편집기 회귀·자동UI·전체CI는 종료까지 확인한다. [수치·해시](verification/compose-insertion-results.json), [재현·범위](verification/2026-10-03-compose-insertion.md). 증거는 codex-pr32-verification-record에 저장하며 main 병합·배포·ZIP교체 없음.
+
 ## 다음 후속: 미완성 한글 편집 보호 — 2026-10-03 12:51 KST
 
 PR31/c0b277c는 CI100 unit401/browser407·UI101 성공으로 완료했으며 draft·미병합이다. [최종 증거](https://github.com/rrangjaa-eng/project_260923/blob/7bc06ff/docs/verification/ci100-final-results.json). 사용자의 계속 진행 요청에 따라 PR31 HEAD를 보존하고 `codex-switch-compose-insertion`에서 다음 작은 결함을 재현·수정 중이다.

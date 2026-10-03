@@ -1,0 +1,49 @@
+{
+  "checked_at": "2026-10-03T12:54:29+09:00",
+  "pr": 32,
+  "branch": "codex-switch-compose-insertion",
+  "head": "97a9a96c630834ae408d21bb0131cee8f31357a2",
+  "base_pr": 31,
+  "base_head": "c0b277c38d36afeac0e751cb83d0d4b780b31498",
+  "local": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "passed": 406,
+      "files": 42
+    },
+    "browser": {
+      "status": "in_progress",
+      "expected": 6
+    },
+    "editor_regression": {
+      "status": "pending"
+    },
+    "ui": {
+      "status": "pending"
+    }
+  },
+  "red_green": {
+    "failed_before_guard": 5,
+    "related_passed_after_guard": 18
+  },
+  "independent_review": "추가 actionable P1/P2 없음; 읽기 검토",
+  "ci": {
+    "number": 101,
+    "run": 37094682964,
+    "status": "in_progress",
+    "conclusion": null
+  },
+  "source_sha256": {
+    "src/page/input/switch-controller.ts": "b4b6a161531dc5bce5fdbc1da5ee1099a2e6f8d159fea3408e5947bf5f6f810c",
+    "tests/unit/switch-controller-navigation.test.ts": "30a3b145e066e8b743fc71320e8ebf6001f08e7483361a28cd79ae2721d23dc5",
+    "tests/e2e/switch-compose-insertion.e2e.ts": "8d41345100cb2c6402555616e40c3ea2cd7a1fea6e4ee03812d5438dbfdaf6ab"
+  },
+  "archived_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
+  "unverified": [
+    "실제 Windows IME",
+    "운동 사용성",
+    "실사이트",
+    "native UI"
+  ]
+}
