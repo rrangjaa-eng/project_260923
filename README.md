@@ -1,6 +1,6 @@
 # 손 떨림 브라우저 도우미
 
-Space 스캔으로 일반 웹 페이지의 활동을 선택하는 Chromium 확장 프로그램이다. PR15–25는 PR26으로, PR27–30은 [PR30](https://github.com/rrangjaa-eng/project_260923/pull/30)으로 main에 병합됐다(`9394b01`). 병합 후 [CI99](https://github.com/rrangjaa-eng/project_260923/actions/runs/37079609955)는 단위397/브라우저403을 통과했다. 현재 후속 `codex-switch-general-characters`는 일반 글쓰기·양식에서도 Space로 영문·숫자·주소 기호를 만드는 작은 개선이며 아직 병합·배포하지 않았다.
+Space 스캔으로 일반 웹 페이지의 활동을 선택하는 Chromium 확장 프로그램이다. PR15–25는 [PR26](https://github.com/rrangjaa-eng/project_260923/pull/26)으로 통합됐으며, 일반 라디오·다중 선택·iframe 검증·새 탭/새로고침/탭 닫기 후속 PR27–30도 2026-10-03 08:52 KST에 병합됐다. 이 상태는 GitHub PR 기록으로 2026-10-04 KST에 다시 확인했다. 이후 기능과 수정은 별도 draft PR에서 검증 중이며, 정확한 브랜치·SHA·완료/진행 상태는 [작업 현황](docs/WORK-STATUS.md)의 맨 위 기록과 해당 PR을 대조한다.
 
 지원하는 흐름은 페이지 항목 선택, 읽기와 세로 스크롤 영역 선택, 검색, 한글 조합·문구 관리, 양식 필드 이동과 초안 보존·명시 적용, 일반 단일/다중 select·checkbox와 라디오 명시 선택, 오류 안내, 변경된 값 재적용 확인, 뒤로·앞으로 이동, 실행 대기 정지다. main에는 Space 도우미 시작 탭(한글·영문·주소 입력), 초안 보호 새로고침, 돌아갈 탭 미리보기와 명시 확인 후 닫기가 추가됐다. [NAV-02 동작 계약과 검증](docs/verification/2026-10-03-nav02.md). 일반 입력칸의 문자 선택은 [후속 동작 계약과 검증](docs/verification/2026-10-03-general-characters.md)을 따른다. 파일 전달 연습은 가짜 데이터만 사용하는 확장 내부 연습이다.
 

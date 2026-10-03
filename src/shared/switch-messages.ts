@@ -31,7 +31,7 @@ export const SwitchMessage = z.discriminatedUnion('type', [
   z.object({ type: z.literal('switch/begin'), url: z.string().max(10000) }).strict(),
   z.object({ type: z.literal('switch/report'), documentGeneration: z.string().max(100), path: z.array(z.number().int().nonnegative()), items: z.array(SwitchReportItem).max(5000) }),
   z.object({ type: z.literal('switch/list') }),
-  z.object({ type: z.literal('switch/refresh') }),
+  z.object({ type: z.literal('switch/refresh'), changed: z.boolean().optional() }),
   z.object({ type: z.literal('switch/frame-check'), childIndex: z.number().int().nonnegative(), documentGeneration: z.string().max(100) }),
   z.object({ type: z.literal('switch/action-check'), authorization: Authorization, navigation: Navigation.optional(), pin: PinMutation.optional(), doubleClick: SwitchTargetAction.optional(), siteOff: z.string().max(10000).optional() }),
   z.object({ type: z.literal('switch/execute'), action: SwitchTargetAction }),

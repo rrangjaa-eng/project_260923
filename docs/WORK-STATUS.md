@@ -1,5 +1,38 @@
 # 작업 현황표
 
+## PR39 추가 결함 보완·새 CI 준비 — 2026-10-04 01:25 KST
+
+[draft PR39](https://github.com/rrangjaa-eng/project_260923/pull/39), `codex-form-orphan-drafts`. 이전 HEAD `fd6605316bdca87e9cc844abc80b3532c63018e5`의 CI112(run37135241591)는 01:25 KST 조회에서 진행 중이며 아래 새 수정의 통과 근거가 아니다. 새 수정 커밋·CI는 push 뒤 PR의 실제 HEAD/run에서 확인한다.
+
+| 항목 | 현재 확인한 상태 |
+|---|---|
+| iframe 최종 조회 불명 | 실제 Chromium 1RED 뒤 선택 프레임 unknown/예외/신뢰도 누락이면 초안 보존; 새 흐름5/5 exit0 |
+| 보고 검사 우회 | rename 원래 경로와 원본 JSON SHA·결과·리뷰 처분 직접 대조; 신규14RED+내부상태2RED 뒤 자체57/57 |
+| 복구 후 최종 로컬 검사 | 타입·린트 exit0, 전체 단위585/585(50파일,25.30초), diff 검사 exit0 |
+| 독립 검토 | 추가 actionable P1/P2 미발견; 기존 보존/사이트값 assertion 유지 |
+| 실행 환경 | 연결 단절 후 실제 명령 실행 복구·9파일 수정 보존 확인. 이전 /tmp 브라우저 로그 소실;5/5 종료 코드는 단절 전 도구 응답에서 확인 |
+| 원격 최종 검증 | 새 HEAD push·전체 CI 대기. 이전 CI112 성공 여부와 별개 |
+
+이하 내용은 당시 기록이다. 실제 Windows 한국어 IME·운동 사용성·실사이트는 미검증이며 merge/deploy/ZIP 교체 없음.
+
+## PR30 초안 결함 수정·보고 검사 로컬 검증 — 2026-10-04 00:58 KST
+
+현재 `codex-form-orphan-drafts`, PR38 `f4fc567`에서 이어졌다. 제품 수정 커밋 `b7f940146b589382f39437cc03afa66731ecb142`. [보관 문장 계약과 검증](verification/2026-10-04-form-orphan-drafts.md), [지침 적용 점검](verification/2026-10-04-workflow-compliance.md), [보고 근거 검사](verification/completion-evidence-check.md). 제품 수정과 보고 검사·지침을 별도 커밋으로 나누고 하나의 후속 draft PR에서 전체 CI를 실행한다. 이 기록 시점에는 후속 PR·원격 CI가 아직 생성되지 않았으며 이후 결과는 해당 PR 본문의 불변 증거 링크를 확인한다.
+
+| 항목 | 실제 결과 |
+|---|---|
+| 최종 타입·린트·전체 단위 | exit0, 554/554(50파일, 보고 검사33 포함) |
+| 보관 초안·relay 경계 | 77/77, top 지연목록/원격알림/동일보고·위조발신자 포함 |
+| Chromium | 기존 양식·doc-editor/editor-frames·첫 보관 흐름49/49(8.7분), 원격 guard 뒤 최종 새 흐름4/4(2.4분) |
+| UI | 101/101(5.0분), 실패/flaky/skip0. 마지막 원격 guard 전 실행이며 새 흐름4건은 그 뒤 실행 |
+| 독립 검토 | 현재 변경 범위 추가 actionable P1/P2 없음. 새 시험의 보존/사이트값 assertion 유지 확인 |
+| 실제 완료 보고 차단 | 미커밋 제품+미해결 리뷰 입력에 exit1, 1회0.205초 |
+| 원격 상태 문구 정정 | PR15 병합 상태, PR21/22 최종CI 성공과 과거CI82 실패를 실제GitHub 기록에 맞게 정정 |
+
+PR30의 사라진 필드 초안은 자동 삭제 없이 읽기→취소 우선 확인→선택 항목만 버리기로 처리한다. 다른 초안은 보존한다. top이 최종 확인 전에 관측한 보고 변경을 보호하며 분산 DOM 원자성은 보장하지 않는다. 지침의 존재만으로 실제 준수를 주장하지 않으며 검토 중 종료 코드 확인을 빠뜨린 린트 보고도 철회·재검증한 사실을 기록했다.
+
+이하 구간은 해당 시점의 과거 기록이다. PR37 CI109 성공은 이번 새 코드의 전체 CI를 대신하지 않는다. main/다른 checkout에는 아직 미반영, 실제 PC/IME·운동 사용성·실사이트 미검증, merge/deploy/ZIP 교체 없음.
+
 ## 보고 원칙 강화·사실관계 감사 — 2026-10-04 00:10 KST
 
 [draft PR38](https://github.com/rrangjaa-eng/project_260923/pull/38)을 `codex-reporting-integrity-audit`에서 생성했고 지침·감사 변경 `89a3d35b55e9b8723bda0089d686715cd28efa17`을 일반 push했다(2026-10-04 00:14 KST). 타입·린트·JSON4개 파싱·문서 diff 검사 통과. PR37 대비 AGENTS/문서/JSON만 바뀌며 main은 미병합이다. PR38 자체 새 CI 완료를 주장하지 않는다.
