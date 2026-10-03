@@ -42,3 +42,6 @@ it('rechecks cancellation after waiting for the shared sync quota slot',async()=
 it('disabled sites and oversized proposals preserve the existing setting',async()=>{
  const disabled={schemaVersion:1,data:{disabled:true,pins:[]}};const f=fixture(disabled);expect(await f.writer.changePins('https://example.test',mutation,()=>Promise.resolve(true))).toEqual({result:'refused'});expect(f.value()).toEqual(disabled);f.external({schemaVersion:1,data:{disabled:false,pins:[]}});expect(await f.writer.changePins('https://example.test',{...mutation,fingerprint:{...fp,buttonText:'x'.repeat(1001)}},()=>Promise.resolve(true))).toEqual({result:'refused'});expect(f.writes).toEqual([]);
 });
+it.each([null,false,0,''])('preserves a malformed scalar site original %j instead of initializing it',async original=>{
+ const f=fixture(original);expect(await f.writer.changePins('https://example.test',mutation,()=>Promise.resolve(true))).toEqual({result:'refused'});expect(f.value()).toBe(original);expect(f.writes).toEqual([]);
+});

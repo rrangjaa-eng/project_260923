@@ -72,3 +72,10 @@ test('lost pin write acknowledgment stays unknown and never replays the save',as
  await page.keyboard.press('Space');await page.waitForTimeout(125);await chooseSwitch(page,'확인 · 번호 고정');await expect(panel(page)).toContainText('다시 확인');
  expect(await serviceWorker.evaluate(()=>(globalThis as typeof globalThis&{pinWrites?:number}).pinWrites)).toBe(1);expect(await page.evaluate(()=>(window as Window&{clicks?:number}).clicks)).toBe(0);
 });
+
+test('a null site setting is preserved and cannot be mistaken for empty pin slots',async({context,serviceWorker})=>{
+ test.setTimeout(60000);const page=await context.newPage();await page.goto('http://practice.test/pins');await startSwitch(page);await chooseSwitch(page,'읽기·이동');
+ await serviceWorker.evaluate(async()=>chrome.storage.sync.set({'site:http://practice.test':null}));await chooseSwitch(page,'번호 고정 설정');
+ await expect(panel(page)).toContainText('고정 설정을 읽지 못했어요');await expect(panel(page).locator('[data-item-id="pin-slot:1"]')).toHaveCount(0);
+ expect(await serviceWorker.evaluate(async()=>(await chrome.storage.sync.get('site:http://practice.test'))['site:http://practice.test'])).toBeNull();expect(await page.evaluate(()=>(window as Window&{clicks?:number}).clicks)).toBe(0);
+});

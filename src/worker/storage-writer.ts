@@ -226,7 +226,7 @@ export function createStorageWriter(): StorageWriter {
         chrome.storage.onChanged.addListener(onChange);
         try{
           const url=new URL(origin);if(!['http:','https:'].includes(url.protocol)||url.origin!==origin)return {result:'refused' as const};
-          const read=async()=>{const stored=await chrome.storage.sync.get(key);return SiteEntryV1.safeParse(stored[key]??{schemaVersion:1,data:{disabled:false,pins:[]}});};
+          const read=async()=>{const stored=await chrome.storage.sync.get(key);return SiteEntryV1.safeParse(stored[key]===undefined?{schemaVersion:1,data:{disabled:false,pins:[]}}:stored[key]);};
           const first=await read();if(!first.success||first.data.data.disabled||!changedPins(first.data.data.pins,raw)||!await authorized())return {result:'refused' as const};
           await waitForSyncWriteSlot();
           const latest=await read();if(!latest.success||latest.data.data.disabled)return {result:'refused' as const};

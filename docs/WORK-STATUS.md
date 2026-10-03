@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## PR35 null 원본 보존 보완·새 HEAD 재검증 — 2026-10-03 19:24 KST
+
+[draft PR35](https://github.com/rrangjaa-eng/project_260923/pull/35)의 최종 점검에서 null 원본을 신규 설정으로 취급하는2RED를 재현했다. UI와 writer를 `undefined`일 때만 초기화하도록 보완했다. 관련47/47·전체unit477/477(47파일)·type/lint·Chromium null설정 거절1/1(19.1초) 통과, 독립 재검토 추가P1/P2 없음.
+
+앞선 c349f36의 로컬14/72/UI101과 CI106을 새 소스 검증으로 오인하지 않는다. 새 HEAD의 기능15건·회귀·자동UI·전체CI를 종료까지 확인한다. [계약·원인·실패 재현](verification/2026-10-03-pin-settings.md). PR31–34/main/ZIP 보존, 새 merge/deploy 없음. 아래는 당시 기록이다.
+
 ## NAV-05 번호 고정 설정 구현·최종 검증 중 — 2026-10-03 18:30 KST
 
 PR34/3454494의 최종CI104(unit441/browser420) 성공을 기준으로 `codex-switch-pin-settings`를 분기했다. 최상위 HTTP(S) 문서의 일반 버튼·링크1–9 고정/교체/해제와 Space 고정 목록 실행을 연결했다. [범위·실패 재현·남은 항목](verification/2026-10-03-pin-settings.md).

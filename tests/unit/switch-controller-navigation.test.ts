@@ -206,3 +206,7 @@ it('pin confirmation exposes the ending of long target names through preview pag
 it('changing saved pins during the target confirmation prevents the old button from running',async()=>{
  const f=await fixture(undefined,false,true);f.setPins([{number:1,fingerprint:f.buttonFingerprint}]);let clicks=0;f.button.addEventListener('click',()=>clicks++);await f.setEnabled(true);await f.press();await f.choose('읽기·이동');await f.choose('고정 번호');await f.choose('1번 · 열기');f.setPins([]);await vi.advanceTimersByTimeAsync(1000);await f.choose('열기');expect(clicks).toBe(0);expect(view.notice).toContain('바뀌');
 });
+it('refuses a null site original instead of presenting empty pin slots',async()=>{
+ const f=await fixture(undefined,false,true);await f.setEnabled(true);await f.press();await f.choose('읽기·이동');
+ chrome.storage.sync.get=()=>Promise.resolve({[`site:${location.origin}`]:null});await f.choose('번호 고정 설정');expect(view.notice).toContain('고정 설정을 읽지 못했어요');expect(view.state?.items.some(item=>item.id==='pin-slot:1')).toBe(false);
+});

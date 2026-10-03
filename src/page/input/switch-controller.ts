@@ -100,7 +100,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(opts.helperPage||!['http:','https:'].includes(location.protocol))return null;
     const revision=pinRevision,key=siteKey(location.origin),stored=await chrome.storage.sync.get(key);
     if(revision!==pinRevision)return null;
-    const parsed=SiteEntryV1.safeParse(stored[key]??{schemaVersion:1,data:{disabled:false,pins:[]}});
+    const parsed=SiteEntryV1.safeParse(stored[key]===undefined?{schemaVersion:1,data:{disabled:false,pins:[]}}:stored[key]);
     if(!parsed.success||parsed.data.data.disabled)return null;
     const pins=PinList.safeParse(parsed.data.data.pins);return pins.success?{pins:pins.data,revision}:null;
   }
