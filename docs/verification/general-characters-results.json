@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-03T11:47:52+09:00",
+  "checked_at": "2026-10-03T11:48:37+09:00",
   "pr": 31,
   "branch": "codex-switch-general-characters",
   "head": "c0b277c38d36afeac0e751cb83d0d4b780b31498",
@@ -17,11 +17,17 @@
       "note": "최종 조합 guard 전"
     },
     "final_browser": {
-      "status": "in_progress",
-      "expected": 42
+      "status": "passed",
+      "passed": 42,
+      "minutes": 4.4,
+      "files": [
+        "switch-general-characters.e2e.ts",
+        "doc-editor.e2e.ts",
+        "editor-frames.e2e.ts"
+      ]
     },
     "ui": {
-      "status": "pending"
+      "status": "in_progress"
     }
   },
   "independent_review": "P2 조합 순서 재현/수정 후 추가 actionable P1/P2 없음; 읽기 검토",
@@ -32,7 +38,11 @@
   },
   "archived_zip_sha256": "bf84ada9a8b1f211b6d43318c02da1fd53b4482aafa41f648b4c9aef1eec2bdb",
   "ci": {
-    "status": "pending"
+    "number": 100,
+    "run": 37091022015,
+    "job": 111111205876,
+    "status": "in_progress",
+    "conclusion": null
   },
   "unverified": [
     "실제 Windows IME",
@@ -40,5 +50,7 @@
     "실사이트",
     "contenteditable 직접 삽입",
     "native UI"
-  ]
+  ],
+  "test_merge": "61fd9787290f6f297c617cf730fe782709fbe530",
+  "candidate_and_test_merge_tree": "25ae638e4cc21d1f9719c277bb3ed45e0ea3c825"
 }
