@@ -1,5 +1,19 @@
 # 작업 현황표
 
+## PR31 일반 영문·숫자 작성·최종 CI100 성공 — 2026-10-03 12:44 KST
+
+일반 글쓰기/양식에 기존 Space 문자 선택을 연결하는 작은 구현을 완료했다. 미완성 한글과 영문 입력의 순서 문제도 독립 검토에서 찾아 재현·보완했다. [draft PR31](https://github.com/rrangjaa-eng/project_260923/pull/31), 제품 `codex-switch-general-characters`/`c0b277c38d36afeac0e751cb83d0d4b780b31498`의 [CI100](https://github.com/rrangjaa-eng/project_260923/actions/runs/37091022015)은 workflow/job success로 종료했다.
+
+| 항목 | 확정 결과 |
+|---|---|
+| 최종 전체 CI | type/lint/build·unit401/401(42파일)·브라우저407/407(53.8분) |
+| 최종 로컬 | 관련 브라우저42/42(새4+기존 편집기/프레임38), 자동UI101/101(실패/스킵/불안정0) |
+| 정책·보호 | 문자 선택은 초안만 수정, 명시 적용·양식 초안·민감칸 보호 유지; 한글 조합 중 ASCII 거절·보존 |
+| 검토 | 일반/양식2RED, 조합2RED→GREEN; 독립 재검토 추가 actionable P1/P2 없음 |
+| 원격 상태 | PR31 draft·미병합, main9394b01 유지; 증거 codex-pr31-verification-record |
+
+[CI 원본 로그](verification/ci100-final-results.json) · [로컬 수치·소스 해시](verification/general-characters-results.json) · [동작 계약·실패 이력](verification/2026-10-03-general-characters.md). 실제 Windows IME·운동 사용성·실사이트·contenteditable 직접 삽입/native UI는 미검증이다. 새 권한·수집/저장·외부 전송 확대·회사 접근·병합·배포·ZIP교체 없음. 아래는 당시 기록이다.
+
 ## PR31 최종 로컬 검증 완료·CI100 진행 — 2026-10-03 11:52 KST
 
 [draft PR31](https://github.com/rrangjaa-eng/project_260923/pull/31)의 제품 HEAD `c0b277c38d36afeac0e751cb83d0d4b780b31498`를 고정했다. 최종 type/lint·unit401/401(42파일)·새 문자4건 및 기존 편집기/프레임 회귀42/42(4.4분)·자동UI101/101(3.9분, 실패/스킵/불안정0)이 통과했다. 독립 재검토 추가P1/P2 없음. [수치와 소스 해시](verification/general-characters-results.json).

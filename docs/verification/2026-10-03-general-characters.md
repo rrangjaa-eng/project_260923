@@ -23,7 +23,7 @@
 - 테스트 counter의 Window 타입 선언 오류를 수정했다. 제품 타입/권한 우회는 없다.
 - 조합 guard 전 선행 browser3/3(2.4분): 선택 교체/되돌리기·양식 email/tel 초안·민감 타입 변경 거절. 최종 소스 검증과 구분한다.
 - 최종 타입·린트·전체 단위401/401(42파일) 통과. 새 브라우저4건+기존 doc-editor/editor-frames 회귀42/42(4.4분) 통과. 360/768/1280px 문자 목록 DOM 포함. 독립 재검토 추가 actionable P1/P2 없음.
-- draft PR31/c0b277c, 최종 자동UI101/101(3.9분, 실패/스킵/불안정0) 통과. CI100은 진행 중이다. test merge61fd978와 후보 tree25ae638은 같다. 종료 결과를 별도로 기록한다.
+- draft PR31/c0b277c, 최종 자동UI101/101(3.9분, 실패/스킵/불안정0) 통과. [CI100](https://github.com/rrangjaa-eng/project_260923/actions/runs/37091022015)은 2026-10-03 12:42:17 KST workflow/job success로 종료했다. type/lint/build·unit401/401(42파일)·전체 브라우저407/407(53.8분). test merge61fd978와 후보 tree25ae638은 같다. [원본 로그 증거](ci100-final-results.json).
 
 ## 디자인·보안 검토 범위
 

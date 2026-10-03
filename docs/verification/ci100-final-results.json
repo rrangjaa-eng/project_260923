@@ -1,0 +1,35 @@
+{
+  "checked_at": "2026-10-03T12:44:15+09:00",
+  "run": {
+    "id": 37091022015,
+    "number": 100,
+    "event": "pull_request",
+    "head": "c0b277c38d36afeac0e751cb83d0d4b780b31498",
+    "status": "completed",
+    "conclusion": "success",
+    "started_at": "2026-10-03T02:47:37Z",
+    "completed_at": "2026-10-03T03:42:17Z"
+  },
+  "job": 111111205876,
+  "unit": {
+    "passed": 401,
+    "files": 42
+  },
+  "browser": {
+    "passed": 407,
+    "minutes_reported": 53.8
+  },
+  "pr": 31,
+  "base": "9394b0146f9ba169f57e47ce3274bdff57b74dfe",
+  "test_merge": "61fd9787290f6f297c617cf730fe782709fbe530",
+  "candidate_and_test_merge_tree": "25ae638e4cc21d1f9719c277bb3ed45e0ea3c825",
+  "log_evidence": [
+    "2026-10-03T02:47:46.0622473Z HEAD is now at 61fd978 Merge c0b277c38d36afeac0e751cb83d0d4b780b31498 into 9394b0146f9ba169f57e47ce3274bdff57b74dfe",
+    "2026-10-03T02:48:09.2981126Z  Test Files  42 passed (42)",
+    "2026-10-03T02:48:09.2982184Z       Tests  401 passed (401)",
+    "2026-10-03T02:48:30.1254567Z [success] Built extension in 482 ms",
+    "2026-10-03T02:48:31.2030649Z Running 407 tests using 1 worker",
+    "2026-10-03T03:42:14.0387310Z   407 passed (53.8m)"
+  ],
+  "note": "workflow/job terminal success. 일반 입력칸 Space 영문·숫자 선택 및 미완성 한글 보호의 합성 Chromium 검증. 실제 Windows IME/운동 사용성/실사이트/native UI 미검증. PR31 draft·미병합; 배포/ZIP교체 없음."
+}
