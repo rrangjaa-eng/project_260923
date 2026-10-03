@@ -24,20 +24,25 @@ export function createSwitchRelay(writer: StorageWriter,send:typeof chrome.tabs.
   chrome.tabs.onActivated.addListener(({ tabId }) => {
     for (const id of frames.keys()) if (id !== tabId) { cancel(id); void send(id, { type: 'switch/pause' }).catch(() => undefined); }
   });
-  async function visibleReport(tabId: number, report: SwitchFrameReport, allowRefreshedReport=false): Promise<boolean> {
+  async function visibleReport(tabId: number, report: SwitchFrameReport, allowRefreshedReport=false,onUncertain?:()=>void): Promise<boolean> {
     const reports = frames.get(tabId);
-    if (!reports || (report.frameId === 0) !== (report.path.length === 0)) return false;
+    if (!reports || (report.frameId === 0) !== (report.path.length === 0)) {onUncertain?.();return false;}
     for (let depth = 0; depth < report.path.length; depth++) {
       const prefix = JSON.stringify(report.path.slice(0, depth));
       const parent = Array.from(reports.values()).find((entry) => JSON.stringify(entry.path) === prefix);
-      if (!parent) return false;
+      if (!parent) {onUncertain?.();return false;}
       try {
         const response: unknown = await send(tabId, { type: 'switch/frame-check', childIndex: report.path[depth], documentGeneration: parent.documentGeneration }, { frameId: parent.frameId });
-        if (typeof response !== 'object' || response === null || !('result' in response) || response.result !== 'done') return false;
-      } catch { return false; }
+        if (typeof response !== 'object' || response === null || !('result' in response) || response.result !== 'done') {
+          if(typeof response!=='object'||response===null||!('result' in response)||response.result!=='refused')onUncertain?.();
+          return false;
+        }
+      } catch {onUncertain?.();return false;}
     }
     const latest=frames.get(tabId)?.get(report.frameId);
-    return latest===report||allowRefreshedReport&&latest?.documentGeneration===report.documentGeneration&&JSON.stringify(latest.path)===JSON.stringify(report.path);
+    const matches=latest===report||allowRefreshedReport&&latest?.documentGeneration===report.documentGeneration&&JSON.stringify(latest.path)===JSON.stringify(report.path);
+    if(!matches)onUncertain?.();
+    return matches;
   }
   async function handle(raw: unknown, sender: chrome.runtime.MessageSender): Promise<unknown> {
     const parsed = SwitchMessage.safeParse(raw);
@@ -96,8 +101,9 @@ export function createSwitchRelay(writer: StorageWriter,send:typeof chrome.tabs.
     if (message.type === 'switch/refresh' || message.type === 'switch/frame-check') return { result: 'refused' };
     if (message.type === 'switch/list') {
       const reports = Array.from(frames.get(tabId)?.values() ?? []);
-      const visible = await Promise.all(reports.map(async (report) => await visibleReport(tabId, report) ? report : null));
-      return { tabId, frames: visible.filter((report) => report !== null) };
+      const uncertainFrames=new Set<number>();
+      const visible = await Promise.all(reports.map(async (report) => await visibleReport(tabId, report,false,()=>{uncertainFrames.add(report.frameId);}) ? report : null));
+      return { tabId, frames: visible.filter((report) => report !== null),uncertainFrames:[...uncertainFrames] };
     }
     if (message.type === 'switch/draft') return writer.writeSwitchData(`switchDraft:${String(tabId)}`, message.text, 'session');
     if (message.type === 'switch/draft/read') {

@@ -1,5 +1,20 @@
 # 작업 현황표
 
+## PR39 추가 결함 보완·새 CI 준비 — 2026-10-04 01:25 KST
+
+[draft PR39](https://github.com/rrangjaa-eng/project_260923/pull/39), `codex-form-orphan-drafts`. 이전 HEAD `fd6605316bdca87e9cc844abc80b3532c63018e5`의 CI112(run37135241591)는 01:25 KST 조회에서 진행 중이며 아래 새 수정의 통과 근거가 아니다. 새 수정 커밋·CI는 push 뒤 PR의 실제 HEAD/run에서 확인한다.
+
+| 항목 | 현재 확인한 상태 |
+|---|---|
+| iframe 최종 조회 불명 | 실제 Chromium 1RED 뒤 선택 프레임 unknown/예외/신뢰도 누락이면 초안 보존; 새 흐름5/5 exit0 |
+| 보고 검사 우회 | rename 원래 경로와 원본 JSON SHA·결과·리뷰 처분 직접 대조; 신규14RED+내부상태2RED 뒤 자체57/57 |
+| 복구 후 최종 로컬 검사 | 타입·린트 exit0, 전체 단위585/585(50파일,25.30초), diff 검사 exit0 |
+| 독립 검토 | 추가 actionable P1/P2 미발견; 기존 보존/사이트값 assertion 유지 |
+| 실행 환경 | 연결 단절 후 실제 명령 실행 복구·9파일 수정 보존 확인. 이전 /tmp 브라우저 로그 소실;5/5 종료 코드는 단절 전 도구 응답에서 확인 |
+| 원격 최종 검증 | 새 HEAD push·전체 CI 대기. 이전 CI112 성공 여부와 별개 |
+
+이하 내용은 당시 기록이다. 실제 Windows 한국어 IME·운동 사용성·실사이트는 미검증이며 merge/deploy/ZIP 교체 없음.
+
 ## PR39 push·draft PR 생성 — 2026-10-04 01:00 KST
 
 [draft PR39](https://github.com/rrangjaa-eng/project_260923/pull/39), `codex-form-orphan-drafts`/`fd6605316bdca87e9cc844abc80b3532c63018e5`를 일반 push했다. PR38 위 제품 수정 `b7f9401`과 보고 검사/지침 `fd66053` 두 커밋이다. 최신 로컬 전체단위554/554·새 Chromium4/4·독립검토 결과는 아래와 같다. 이 기록 시점 최종 원격 CI는 아직 확인 중이며 성공으로 계산하지 않는다. 이 증거 브랜치는 제품 HEAD를 바꾸지 않는다. merge/deploy/ZIP교체 없음.
