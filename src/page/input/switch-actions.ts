@@ -1,11 +1,12 @@
+import { applyWithUndo, appliedTextUndo, clearAppliedText } from './applied-text-undo';
 import { buildFrameReport, contentBoxOf, type Collector, type Item } from '@/page/collector/collector';
 import type { SwitchReportItem, SwitchTargetAction, TextSelection } from '@/shared/switch-messages';
 import type { FormControl } from '@/shared/switch-messages';
 import { captureControl, applyControl, controlElement, readValidity } from './form-control';
 import { synthesizePress } from '@/page/click/press';
-import { applyDraft, captureTextTarget, sensitiveElement, typingElement, restoreTextTarget, fieldLabel } from './text-target';
+import { captureTextTarget, sensitiveElement, typingElement, restoreTextTarget, fieldLabel } from './text-target';
 
-export interface SwitchPageResult { result: 'done' | 'refused' | 'unknown'; value?: string; selection?: TextSelection; control?: FormControl; validation?: string }
+export interface SwitchPageResult { result: 'done' | 'refused' | 'unknown'; value?: string; selection?: TextSelection; control?: FormControl; validation?: string; undoToken?: string; appliedValue?: string }
 
 export function reportSwitchItem(item: Item, el: Element | undefined): SwitchReportItem {
   const textField=typingElement(el)||controlElement(el)||el instanceof HTMLSelectElement||el instanceof HTMLInputElement&&el.type==='password';
@@ -57,12 +58,15 @@ export function executeSwitchAction(
   action: SwitchTargetAction,
   press: (el: Element) => void = synthesizePress,
 ): SwitchPageResult {
+  if (['applyText','applyControl','press','search'].includes(action.kind)) clearAppliedText(collector);
+  const refused = (): SwitchPageResult => { if (action.kind === 'previewUndo' || action.kind === 'undoText') clearAppliedText(collector); return { result: 'refused' }; };
   collector.refresh();
   const item = collector.items().find((entry) => entry.id === action.target.itemId);
   const el = collector.get(action.target.itemId);
-  if (!item || !el || !activeElement(el) || sensitiveElement(el)) return { result: 'refused' };
+  if (!item || !el || !activeElement(el) || sensitiveElement(el)) return refused();
   const current = reportSwitchItem(item, el);
-  if (current.identity !== action.expectedIdentity) return { result: 'refused' };
+  if (current.identity !== action.expectedIdentity) return refused();
+  if (action.kind === 'previewUndo' || action.kind === 'undoText') return appliedTextUndo(collector, action);
   if (action.kind === 'captureControl') {
     const control = captureControl(el); return control ? {result:'done',control} : {result:'refused'};
   }
@@ -79,7 +83,7 @@ export function executeSwitchAction(
     return snapshot ? { result: 'done', ...snapshot } : { result: 'refused' };
   }
   if (action.kind === 'applyText' && typeof action.expectedValue === 'string' && typeof action.text === 'string') {
-    return { result: applyDraft(collector, action.target.itemId, action.expectedValue, action.text, action.selection) };
+    return applyWithUndo(collector, action);
   }
   if (action.kind === 'restoreText' && typeof action.expectedValue === 'string') {
     return { result: restoreTextTarget(collector, action.target.itemId, action.expectedValue, action.selection) };

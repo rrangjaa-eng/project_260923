@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## NAV-04 현재칸 적용 되돌리기 구현·검증 중 — 2026-10-03 16:30 KST
+
+PR33/cc95a59의 최종CI103 unit412/browser410 성공을 기준으로 `codex-switch-applied-undo`에서 NAV-04의 현재칸 마지막 성공 적용1회 되돌리기를 구현했다. [계약·실패 재현·완료 기준](verification/2026-10-03-applied-undo.md). 명시 비교/취소/1초 보호 확인, 노드·문서/프레임·현재값·민감성 재검증, pending/unknown·재실행 차단을 적용한다. 권한·영속 저장 확대 없음.
+
+독립 검토에서 같은 노드 제거/재삽입 P2를 찾아2RED→제거 이력 보호→관련52GREEN을 확인했다. 선행 Chromium8/8(3.8분)은 그 보완 전 빌드다. 최종 type/lint·전체unit441/441(43파일) 통과, 독립 재검토 추가P1/P2 없음. 최종 Chromium10건·기존 회귀·UI·전체CI는 진행/대기 중이다. PR31–33/main/ZIP 보존, 새 main 병합·배포 없음. 아래는 당시 기록이다.
+
 ## 다음 후속: 미완성 한글의 외부 적용 보호 — 2026-10-03 14:00 KST
 
 PR32/97a9a96은 CI101 unit406/browser409·UI101 성공으로 완료했고 draft·미병합이다. [최종 증거](https://github.com/rrangjaa-eng/project_260923/blob/75eadfd7c273b1758cc05fe5133c797b7d7e236f/docs/verification/ci101-final-results.json). 사용자 계속 진행 요청에 따라 해당 HEAD에서 `codex-switch-compose-commit`을 분기했다.

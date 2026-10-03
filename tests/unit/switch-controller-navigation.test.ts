@@ -159,3 +159,33 @@ it.each(['입력칸에 적용','검색','문구 저장'].flatMap(label=>['comple
  if(label==='문구 저장')expect(f.requests).toContainEqual(expect.objectContaining({type:'switch/phrase',text:expected}));
  else expect(f.field.value).toBe(expected);
 });
+
+it('explicit applied-value undo confirms, cancels without effects and restores the original field once',async()=>{
+ const f=await fixture();await f.setEnabled(true);await f.capture();await f.choose('영문·숫자 쓰기');await f.choose('a b c d e f');await f.choose('a');await f.choose('입력칸에 적용');expect(f.field.value).toBe('가a나');
+ await f.choose('적용한 값 되돌리기');expect(view.state?.mode).toBe('confirming');await vi.advanceTimersByTimeAsync(1001);await f.choose('취소');expect(f.field.value).toBe('가a나');expect(view.text).toBe('가a나');
+ await f.choose('적용한 값 되돌리기');await vi.advanceTimersByTimeAsync(1001);await f.choose('확인 · 적용한 값 되돌리기');expect(f.field.value).toBe('가👍🏽나');expect(view.text).toBe('가👍🏽나');expect(f.field.selectionStart).toBe(1);expect(f.field.selectionEnd).toBe(5);
+ await f.choose('적용한 값 되돌리기');expect(view.state?.mode).not.toBe('confirming');expect(f.field.value).toBe('가👍🏽나');
+});
+
+async function appliedFixture(){const f=await fixture();await f.setEnabled(true);await f.capture();await f.choose('문구');await f.choose('라');await f.choose('입력칸에 적용');expect(f.field.value).toBe('가라나');return f;}
+it.each(['before-preview','after-preview'])('applied undo rejects an external value change %s',async timing=>{
+ const f=await appliedFixture();if(timing==='after-preview')await f.choose('적용한 값 되돌리기');f.field.value='사이트 값';
+ if(timing==='before-preview')await f.choose('적용한 값 되돌리기');else{await vi.advanceTimersByTimeAsync(1001);await f.choose('확인 · 적용한 값 되돌리기');}
+ expect(f.field.value).toBe('사이트 값');expect(view.state?.mode).not.toBe('confirming');expect(view.text).toBe('가라나');
+});
+it('unapplied text prevents applied undo without sending a target request',async()=>{
+ const f=await appliedFixture();await f.choose('띄어쓰기');f.requests.length=0;await f.choose('적용한 값 되돌리기');expect(f.requests).toEqual([]);expect(view.notice).toContain('작성 중');expect(f.field.value).toBe('가라나');
+});
+it('rest discards the applied undo capability without changing the draft',async()=>{
+ const f=await appliedFixture();f.controller.pause();await f.press();await f.choose('적용한 값 되돌리기');expect(view.state?.mode).not.toBe('confirming');expect(f.field.value).toBe('가라나');expect(view.text).toBe('가라나');
+});
+it('leaving a form field discards undo and preserves all values',async()=>{
+ const f=await fixture();await f.setEnabled(true);await f.capture();await f.choose('양식 한 장 보기');await f.choose('문장');await f.choose('문구');await f.choose('라');await f.choose('입력칸에 적용');await f.choose('다음 칸');await f.choose('이전 칸');await f.choose('적용한 값 되돌리기');expect(view.state?.mode).not.toBe('confirming');expect(f.field.value).toBe('가라나');
+});
+it('early confirmation input is ignored and unknown undo cannot be replayed',async()=>{
+ const f=await appliedFixture();await f.choose('적용한 값 되돌리기');f.requests.length=0;await f.press();expect(view.state?.mode).toBe('confirming');expect(f.requests).toEqual([]);
+ await vi.advanceTimersByTimeAsync(1001);f.holdExecute(()=>Promise.resolve({result:'unknown'}));await f.choose('확인 · 적용한 값 되돌리기');expect(view.state?.mode).toBe('paused');expect(f.field.value).toBe('가라나');await f.press();await f.choose('적용한 값 되돌리기');expect(view.state?.mode).not.toBe('confirming');
+});
+it('rest during pending undo prevents a late reply from rewriting the draft',async()=>{
+ const f=await appliedFixture();await f.choose('적용한 값 되돌리기');await vi.advanceTimersByTimeAsync(1001);let release:(raw:unknown)=>void=()=>{};f.holdExecute(()=>new Promise(resolve=>{release=resolve;}));await f.choose('확인 · 적용한 값 되돌리기');f.controller.pause();release({result:'done',value:'가👍🏽나'});await vi.advanceTimersByTimeAsync(1);expect(view.state?.mode).toBe('paused');expect(view.text).toBe('가라나');expect(f.field.value).toBe('가라나');
+});

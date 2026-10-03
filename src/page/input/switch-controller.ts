@@ -1,3 +1,4 @@
+import { clearAppliedText } from './applied-text-undo';
 import { createSwitchState, reduceSwitch, type SwitchEvent, type SwitchItem, type SwitchAction, type SwitchTarget } from '@/core/switch-engine';
 import { defaultSwitchSettings, SwitchSettings, SWITCH_SETTINGS_KEY } from '@/core/switch-settings';
 import { snapshotTargets, type ScanTarget } from '@/core/switch-order';
@@ -27,7 +28,7 @@ async function requestMessage(message: unknown):Promise<unknown>{
   try{return await Promise.race([chrome.runtime.sendMessage(message),new Promise((_,reject)=>{timeout=setTimeout(()=> { reject(new Error('response-timeout')); },3000);})]);}
   finally{if(timeout)clearTimeout(timeout);}
 }
-type PageResult={result:'done'|'refused'|'unknown';value?:string;selection?:TextSelection;control?:FormControl;validation?:string};
+type PageResult={result:'done'|'refused'|'unknown';value?:string;selection?:TextSelection;control?:FormControl;validation?:string;undoToken?:string;appliedValue?:string};
 function resultOf(raw:unknown):PageResult{
   if(typeof raw==='object'&&raw!==null&&'result' in raw&&['done','refused','unknown'].includes(String(raw.result)))return raw as PageResult;
   return {result:'unknown'};
@@ -87,6 +88,21 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   let confirmOpenedAt=0;
   let reapply:{target:ScanTarget;value:string;text:string;selection:TextSelection}|null=null;
   let reapplyPage=0;
+  let lastApplied:{target:ScanTarget;token:string;after:string}|null=null;
+  let undoConfirmation:{target:ScanTarget;token:string;before:string;after:string}|null=null;
+  let undoPage=0;
+  function forgetApplied(){lastApplied=null;undoConfirmation=null;clearAppliedText(opts.collector);}
+  function appliedUndoBlocked(){
+    if(!lastApplied||selected!==lastApplied.target){notice='이 입력칸에서 방금 적용한 값이 없어요';return true;}
+    if(initial!==null||medial!==null||draft.text!==lastApplied.after){notice='적용 후 작성 중인 문장을 먼저 확인하세요';return true;}
+    if(inFlight.size>0||unresolvedWork){notice='이전 실행 결과를 확인하세요. 되돌리지 않았어요';return true;}
+    return false;
+  }
+  function undoPages(){return undoConfirmation?phrasePreviewPages(undoConfirmation.after,undoConfirmation.before).map(page=>page.replace(/^기존 문구/,'현재 입력값').replace(/^바꿀 문장/,'되돌릴 값')):[];}
+  function appliedUndoDialog(push=true){
+    if(!undoConfirmation)return;
+    menu([command('undo-cancel','취소'),...(undoPage>0?[command('undo-prev','이전 비교 읽기')]:[]),...(undoPage<undoPages().length-1?[command('undo-next','다음 비교 읽기')]:[]),command('undo-confirm','확인 · 적용한 값 되돌리기')],'적용 전 값으로 되돌릴까요?','confirming',push,false);
+  }
   let phraseSnapshot:string[]=[];
   let phraseIndex:number|null=null;
   let phraseChange:Exclude<PhraseMutation,{kind:'add'}>|null=null;
@@ -109,7 +125,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     const highlighted=title.startsWith('세로 스크롤 영역')&&scrollChoice?.startsWith('scroll-region:')?scrollChoices[Number(scrollChoice.split(':')[1])]:title.startsWith('읽기·이동')?scrollRegion:null;
     const rect=highlighted&&scrollRegions?.rect(highlighted);
     if(rect&&!['paused','ready','recovering'].includes(state.mode))showRing(rect);else hideRing();
-    const preview=navigationConfirmation?navigationConfirmation.title:reapply?reapplyPages()[reapplyPage]??'':phraseChange?phrasePreviewPages(phraseChange.expected[phraseChange.index]??'',phraseChange.kind==='replace'?phraseChange.text:undefined)[phrasePreviewIndex]??'':null;
+    const preview=undoConfirmation?undoPages()[undoPage]??'':navigationConfirmation?navigationConfirmation.title:reapply?reapplyPages()[reapplyPage]??'':phraseChange?phrasePreviewPages(phraseChange.expected[phraseChange.index]??'',phraseChange.kind==='replace'?phraseChange.text:undefined)[phrasePreviewIndex]??'':null;
     const context=formActive&&formIndex!==null?`양식 ${String(formIndex+1)}/${String(formFields.length)} · ${shortLabel(formFields[formIndex]?.label??'입력칸')} · `:'';
     panel.render(state,context+title,selectedControl?controlPreview():formActive&&formOverview?'':preview??draft.text+(initial!==null?` [${INITIALS[initial] ?? ""}${medial!==null?(MEDIALS[medial] ?? ""):""}]`:''),[notice,unknownNotice].filter(Boolean).join(' · '),preview===null&&!selectedControl?draftSelection(draft):undefined);
   }
@@ -123,7 +139,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     }
     const previousMode=state.mode;
     const output=reduceSwitch(state,event);state=output.state;
-    if(previousMode!=='paused'&&state.mode==='paused'){clearRadioCapture(document);clearMultipleCapture(document);}
+    if(previousMode!=='paused'&&state.mode==='paused'){forgetApplied();clearRadioCapture(document);clearMultipleCapture(document);}
     if(previousMode!=='paused'&&state.mode==='paused'&&(selectedControl?.kind==='radio'||selectedControl?.kind==='multiple')){
       selectedControl=null;formIndex=null;selected=null;formOverview=true;stack=[];current=formMenu();title=current.title;
       state.items=current.items;state.resumeMode='itemScan';state.scanIndex=0;pendingControlIndices=undefined;pendingControlChecked=undefined;
@@ -145,12 +161,13 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     current={title:heading,items:[...(includeUp?[command('up','상위로')]:[]),...items,command('pause','쉬기')],mode};title=heading;
     dispatch({type:'setItems',now:now(),items:current.items,mode});
   }
-  function root(){navigationConfirmation=null;scrollRegion=null;scrollChoices=[];reapply=null;phraseChange=null;if(formActive){stashField();showForm();return;}stack=[];title='스페이스바 작업판';current={title,items:groups(),mode:'groupScan'};
+  function root(){undoConfirmation=null;navigationConfirmation=null;scrollRegion=null;scrollChoices=[];reapply=null;phraseChange=null;if(formActive){stashField();showForm();return;}stack=[];title='스페이스바 작업판';current={title,items:groups(),mode:'groupScan'};
     dispatch({type:'setItems',now:now(),items:current.items,mode:'groupScan'});
   }
-  function up(){navigationConfirmation=null;reapply=null;phraseChange=null;const previous=stack.pop();if(!previous){root();return;}current=previous;title=previous.title;
+  function up(){undoConfirmation=null;navigationConfirmation=null;reapply=null;phraseChange=null;const previous=stack.pop();if(!previous){root();return;}current=previous;title=previous.title;
     dispatch({type:'setItems',now:now(),items:previous.items,mode:previous.mode});}
   function pause(reason=''){
+    forgetApplied();
     navigationConfirmation=null;
     clearRadioCapture(document);clearMultipleCapture(document);
     reapply=null;phraseChange=null;
@@ -255,10 +272,10 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
   function editor(){
     if(formActive){
       formOverview=false;stack=[formMenu()];
-      menu([command('hangul:initial','한글 쓰기'),command('ascii',opts.helperPage?'영문·주소 쓰기':'영문·숫자 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('compare','현재 값과 비교'),command('validity','입력 오류 읽기'),...(formIndex!==null&&formIndex>0?[command('form-prev','이전 칸')]:[]),...(formIndex!==null&&formIndex<formFields.length-1?[command('form-next','다음 칸')]:[]),command('form-list','양식 목록'),command('form-exit','원래 화면으로')],'글쓰기','composing',false);return;
+      menu([command('hangul:initial','한글 쓰기'),command('ascii',opts.helperPage?'영문·주소 쓰기':'영문·숫자 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('applied-undo','적용한 값 되돌리기'),command('compare','현재 값과 비교'),command('validity','입력 오류 읽기'),...(formIndex!==null&&formIndex>0?[command('form-prev','이전 칸')]:[]),...(formIndex!==null&&formIndex<formFields.length-1?[command('form-next','다음 칸')]:[]),command('form-list','양식 목록'),command('form-exit','원래 화면으로')],'글쓰기','composing',false);return;
     }
     stack=[{title:'스페이스바 작업판',items:groups(),mode:'groupScan'}];
-    menu([command('hangul:initial','한글 쓰기'),command('ascii',opts.helperPage?'영문·주소 쓰기':'영문·숫자 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('compare','현재 값과 비교'),command('validity','입력 오류 읽기'),command('search','검색'),command('form-open','양식 한 장 보기'),...(formRecovery?[command('form-recover','양식 작성 문장 복구')]:[]),command('restore','원래 입력칸으로')],'글쓰기','composing',false);
+    menu([command('hangul:initial','한글 쓰기'),command('ascii',opts.helperPage?'영문·주소 쓰기':'영문·숫자 쓰기'),command('edit:space','띄어쓰기'),command('edit:menu','수정'),command('phrases','문구'),command('apply','입력칸에 적용'),command('applied-undo','적용한 값 되돌리기'),command('compare','현재 값과 비교'),command('validity','입력 오류 읽기'),command('search','검색'),command('form-open','양식 한 장 보기'),...(formRecovery?[command('form-recover','양식 작성 문장 복구')]:[]),command('restore','원래 입력칸으로')],'글쓰기','composing',false);
   }
   function characterGroups(stage:'initial'|'medial'|'final'){
     const chars=stage==='initial'?INITIALS:stage==='medial'?MEDIALS:FINALS;
@@ -280,22 +297,26 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     return {title:formFields.length?'양식 한 장 보기':'지원하는 입력칸이 없어요',items,mode:'itemScan'};
   }
   function showForm(page=0){
+    forgetApplied();
     selectedControl=null;controlPreviewIndex=0;pendingControlIndex=undefined;pendingControlIndices=undefined;pendingControlChecked=undefined;formIndex=null;selected=null;formOverview=true;stack=[];current=formMenu(page);title=current.title;
     dispatch({type:'setItems',now:now(),items:current.items,mode:current.mode});
   }
   async function openForm(startedGeneration:number){
+    forgetApplied();
     if(!await refreshTargets(startedGeneration))return;
     formOrigin={...structuredClone(workspace()),selected,preservedDraft,current,stack:[...stack]};
     formActive=true;formRecovering=false;formIndex=null;selected=null;
     formFields=formTargets(targets);showForm();
   }
   function exitForm(){
+    forgetApplied();
     stashField();selectedControl=null;const origin=formOrigin;formActive=false;formRecovering=false;formOverview=false;formOrigin=null;formIndex=null;
     if(!origin){root();return;}
     loadWorkspace(origin);selected=origin.selected;preservedDraft=origin.preservedDraft;current=origin.current;stack=origin.stack;title=current.title;
     dispatch({type:'setItems',now:now(),items:current.items,mode:current.mode});
   }
   async function chooseField(index:number,startedGeneration:number):Promise<PageResult['result']|undefined>{
+    forgetApplied();
     const field=formFields[index];if(!formActive||!field)return;
     stashField();
     if(field.controlKind){
@@ -348,6 +369,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(selectedControl)menu(controlChoices(),selectedControl.kind==='multiple'?'여러 항목 고르기':selectedControl.kind==='select'?'선택 목록':selectedControl.kind==='radio'?'하나만 고르는 항목':'체크 항목','itemScan',false);
   }
   async function chooseTarget(index:number,startedGeneration:number):Promise<PageResult['result']|undefined>{
+    forgetApplied();
     const target=targets[index];if(!target||target.sensitive){notice='민감칸은 단일 스위치 입력을 지원하지 않아요';return;}
     if(target.controlKind){
       formOrigin={...structuredClone(workspace()),selected,preservedDraft,current,stack:[...stack]};
@@ -493,6 +515,25 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
       if(result.result!=='done'){notice='입력칸이 바뀌었어요. 초안을 보존했으니 다시 선택하세요';preservedDraft=true;selected=null;}
       return result.result;
     }
+    if(id==='applied-undo'){
+      if(appliedUndoBlocked()||!lastApplied)return 'refused';
+      const entry=lastApplied;
+      const result=await targetRequest('previewUndo',entry.target.target,{undoToken:entry.token,expectedIdentity:entry.target.identity});
+      if(!active(startedGeneration))return result.result;
+      if(result.result!=='done'||typeof result.value!=='string'||result.value.length>4000||result.appliedValue!==entry.after){forgetApplied();notice='입력칸이 바뀌었어요. 되돌리지 않았어요';return result.result==='done'?'refused':result.result;}
+      undoConfirmation={...entry,before:result.value};undoPage=0;confirmOpenedAt=now();appliedUndoDialog();return;
+    }
+    if(id==='undo-prev'||id==='undo-next'){if(undoConfirmation){undoPage=Math.max(0,Math.min(undoPages().length-1,undoPage+(id==='undo-next'?1:-1)));appliedUndoDialog(false);}return;}
+    if(id==='undo-cancel'){undoConfirmation=null;editor();return;}
+    if(id==='undo-confirm'){
+      const proposal=undoConfirmation;if(!proposal||appliedUndoBlocked())return 'refused';
+      undoConfirmation=null;lastApplied=null;
+      const result=await targetRequest('undoText',proposal.target.target,{undoToken:proposal.token,expectedIdentity:proposal.target.identity,confirmed:true});
+      if(!active(startedGeneration))return result.result;
+      if(result.result!=='done'||result.value!==proposal.before){notice='입력칸을 다시 확인하세요. 자동으로 다시 되돌리지 않아요';editor();if(result.result==='unknown'||result.result==='done')pause(notice);return result.result==='done'?'unknown':result.result;}
+      const selection=TextSelection.safeParse(result.selection);
+      draft=createDraft(proposal.before,selection.success?selection.data:undefined);expectedValue=proposal.before;capturedSelection=selection.success?selection.data:undefined;stashField();notice='적용 전 값으로 되돌렸어요';editor();await saveDraft();return;
+    }
     if(id==='compare'){
       if(!selected){notice='입력칸을 먼저 선택하세요';return;}
       if(initial!==null||medial!==null){notice='한글 조합을 마친 뒤 비교하세요';return;}
@@ -506,7 +547,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     if(id==='reapply-prev'||id==='reapply-next'){if(reapply){reapplyPage=Math.max(0,Math.min(reapplyPages().length-1,reapplyPage+(id==='reapply-next'?1:-1)));reapplyConfirmation(false);}return;}
     if(id==='reapply-cancel'){reapply=null;editor();return;}
     if(id==='reapply-commit'){
-      const proposal=reapply;reapply=null;if(!proposal)return;
+      const proposal=reapply;reapply=null;if(!proposal)return;forgetApplied();
       const result=await targetRequest('applyText',proposal.target.target,{text:proposal.text,expectedValue:proposal.value,selection:proposal.selection,expectedIdentity:proposal.target.identity});
       if(!active(startedGeneration))return result.result;
       editor();
@@ -515,14 +556,15 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
         if(result.result==='unknown'){selected=null;preservedDraft=true;pause('실행 결과를 확인하세요. 자동 재시도하지 않아요');}
         return result.result;
       }
-      expectedValue=proposal.text;capturedSelection=proposal.selection;stashField();notice='입력했어요';return;
+      expectedValue=proposal.text;capturedSelection=proposal.selection;if(typeof result.undoToken==='string')lastApplied={target:proposal.target,token:result.undoToken,after:proposal.text};stashField();notice='입력했어요';return;
     }
     if(id==='apply'||id==='search'){
+      forgetApplied();
       if(!selected){notice='입력칸을 먼저 선택하세요';return;}
       const result=await targetRequest('applyText',selected.target,{text:draft.text,expectedValue,selection:draftSelection(draft),expectedIdentity:selected.identity});
       if(!active(startedGeneration))return result.result;
       if(result.result!=='done'){notice='입력칸이 바뀌었어요. 작성 문장은 보존했어요. 현재 값과 비교하세요';preservedDraft=true;if(result.result==='unknown'){selected=null;notice='실행 결과를 확인하세요. 자동 재시도하지 않아요';}return result.result;}
-      expectedValue=draft.text;capturedSelection=draftSelection(draft);notice='입력했어요';
+      expectedValue=draft.text;capturedSelection=draftSelection(draft);if(id==='apply'&&typeof result.undoToken==='string')lastApplied={target:selected,token:result.undoToken,after:draft.text};notice='입력했어요';
       if(id==='search'){await saveDraft();if(!active(startedGeneration))return;const result=await targetRequest('search',selected.target,{expectedValue});if(!active(startedGeneration))return;if(result.result!=='done')notice='이 입력칸의 검색 동작을 지원하지 않아요';return result.result;}return;
     }
     if(id==='scroll-regions'||id==='scroll-refresh'){scrollChoices=scrollRegions?.discover()??[];scrollPage=0;regionMenu(id==='scroll-regions');return;}
@@ -666,7 +708,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     }
   });
   frameObserver.observe(document,{subtree:true,childList:true,attributes:true,attributeFilter:['src','srcdoc','hidden','inert','style','class']});
-  opts.signal.addEventListener('abort',()=>{disposed=true;clearRadioCapture(document);clearMultipleCapture(document);stopScroll();scrollRegions?.destroy();hideRing();clearInterval(timer);frameObserver.disconnect();panel?.destroy();unsubscribe();chrome.storage.onChanged.removeListener(storageHandler);});
+  opts.signal.addEventListener('abort',()=>{disposed=true;forgetApplied();clearRadioCapture(document);clearMultipleCapture(document);stopScroll();scrollRegions?.destroy();hideRing();clearInterval(timer);frameObserver.disconnect();panel?.destroy();unsubscribe();chrome.storage.onChanged.removeListener(storageHandler);});
   return {exclusive,pause,
     enabledChanged:()=>{invalidate('조작을 쉬고 있어요. 스페이스바로 다시 선택하세요');panel?.destroy();panel=null;if(exclusive()){opts.onExclusive();render();void publish().catch(()=>undefined);}},
     connectionLost:()=>{if(exclusive())invalidate('연결이 바뀌었어요. 실행 결과를 확인하고 다시 선택하세요');}};
