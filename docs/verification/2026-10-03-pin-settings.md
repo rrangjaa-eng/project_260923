@@ -56,3 +56,11 @@ c349f36의 로컬14/72/UI101 결과와 CI106은 앞선 소스의 기록이다. �
 - design-review: 기존 Shadow DOM 작업판/토큰, 취소 우선·1초 보호, 전체 이름 페이지 읽기를 유지한다. 고정 미리보기의360/768/1280px 경계·표적56px 이상과360px 긴 이름 읽기를 실제 DOM으로 확인했다. 전체 WCAG/운동 사용성 통과로 확대하지 않는다.
 
 [구조화된 결과](pin-settings-results.json). [CI107](https://github.com/rrangjaa-eng/project_260923/actions/runs/37116310333)은 전체 브라우저 단계 실행 중이며 아직 최종 성공이 아니다. 검사 커밋0ed0026과 제품e590416의 tree는 모두4622c8a7ff5fad4cafacf259debe1a63dca152da다. CI106은 새 HEAD 푸시로cancelled이며 이전 c349f36 결과와 구분했다. 옛 검증 기록88f877a를 보존하고 새 제품 기준의 `codex-pr35-final-verification-record`에서 최종CI를 이어 기록한다.
+
+## 최종 CI107 성공 — 2026-10-03 20:36:05 KST
+
+[CI107](https://github.com/rrangjaa-eng/project_260923/actions/runs/37116310333)과 check job111183742731 모두 completed/success다. 원본 로그에서 typecheck/lint, unit477/477(47파일), 실제 Chromium435/435(실패/flaky/skip0)를 확인했다. 브라우저 실행 시작~통과 로그 간70분14.073초다. 실패 시에만 실행하는 artifact 업로드 단계의 skipped는 테스트 생략이 아니다.
+
+checkout 로그는 `0ed0026f0335299003a2abc21fc9a49d1c6e96fd`이며 제품 `e590416bda80434390f1defbe8f3bb7aa2ab3ef2`와 tree `4622c8a7ff5fad4cafacf259debe1a63dca152da`가 같다. [최종 CI 근거](ci107-final-results.json), [전체 검증 결과](pin-settings-results.json). 제품 소스는 바꾸지 않고 `codex-pr35-final-verification-record`에 검증 기록을 저장한다.
+
+원격 main/PR31–34 HEAD와 기존 ZIP SHA256이 이전 값과 같음을 다시 확인했다. PR31–35는 모두 draft·미병합이며 merge/deploy/ZIP 교체 없음. 위 진행 중 표기는 당시 기록이며 이 최종 결과로 갱신한다. 실제 PC·사용자·실사이트 및 남은 기능 검증 범위는 그대로다.

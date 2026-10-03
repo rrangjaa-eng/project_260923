@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## PR35 최종 CI107 성공 — 2026-10-03 20:36:05 KST
+
+[draft PR35](https://github.com/rrangjaa-eng/project_260923/pull/35)의 제품 `codex-switch-pin-settings`/`e590416bda80434390f1defbe8f3bb7aa2ab3ef2` 검증을 완료했다. [CI107 원본 근거](verification/ci107-final-results.json): type/lint·unit477/477(47파일)·Chromium435/435, 실패/flaky/skip0. 브라우저70분14.073초. 테스트 merge와 제품 tree 일치. 로컬 기능15/15·회귀72/72·자동UI101/101도 최종 소스에서 통과했다. [전체 결과](verification/pin-settings-results.json).
+
+검증 기록은 `codex-pr35-final-verification-record`에 보존한다. 원격 main/PR31–34 HEAD·기존 ZIP hash 불변을 재확인했고 PR31–35는 draft·미병합이다. merge/deploy/ZIP 교체 없음. NAV-05 iframe/custom 고정·NAV-06 명시 더블클릭, 실제 Windows IME/운동 사용성/실사이트/native UI/두 PC 검증은 남아 있다. 아래 진행 상태는 당시 기록이다.
+
 ## PR35 최신 로컬 검증 완료·CI107 진행 중 — 2026-10-03 19:44 KST
 
 [draft PR35](https://github.com/rrangjaa-eng/project_260923/pull/35), 제품 `codex-switch-pin-settings`/`e590416bda80434390f1defbe8f3bb7aa2ab3ef2`. [계약·실패 재현](verification/2026-10-03-pin-settings.md), [최신 구조화된 결과](verification/pin-settings-results.json).

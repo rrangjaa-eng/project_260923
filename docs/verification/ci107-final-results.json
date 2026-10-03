@@ -1,0 +1,118 @@
+{
+  "run_number": 107,
+  "run_id": 37116310333,
+  "job_id": 111183742731,
+  "url": "https://github.com/rrangjaa-eng/project_260923/actions/runs/37116310333",
+  "status": "completed",
+  "conclusion": "success",
+  "product_commit": "e590416bda80434390f1defbe8f3bb7aa2ab3ef2",
+  "test_merge_commit": "0ed0026f0335299003a2abc21fc9a49d1c6e96fd",
+  "product_and_test_merge_tree": "4622c8a7ff5fad4cafacf259debe1a63dca152da",
+  "completed_at_utc": "2026-10-03T11:36:05Z",
+  "completed_at_kst": "2026-10-03 20:36:05 KST",
+  "typecheck": "passed",
+  "lint": "passed",
+  "unit": {
+    "passed": 477,
+    "total": 477,
+    "files": 47
+  },
+  "browser": {
+    "passed": 435,
+    "total": 435,
+    "failed": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "elapsed_seconds": 4214.073,
+    "duration": "70m14.073s"
+  },
+  "log_evidence": [
+    "2026-10-03T10:24:45.3106863Z HEAD is now at 0ed0026 Merge e590416bda80434390f1defbe8f3bb7aa2ab3ef2 into 3454494ac6a532a1b82b1c83b07383726a2b862a",
+    "2026-10-03T10:25:24.3780270Z  Test Files  47 passed (47)",
+    "2026-10-03T10:25:24.3782043Z       Tests  477 passed (477)",
+    "2026-10-03T10:25:49.0160160Z Running 435 tests using 1 worker",
+    "2026-10-03T11:36:03.0887765Z   435 passed (1.2h)"
+  ],
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/checkout@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run pnpm/action-setup@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/setup-node@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run pnpm install --frozen-lockfile",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run pnpm typecheck",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run pnpm lint",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run pnpm test:unit",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run pnpm exec playwright install --with-deps chromium",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run pnpm test:e2e",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/upload-artifact@v4",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Post Run actions/setup-node@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run pnpm/action-setup@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/checkout@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "preservation": "Remote main/PR31–34 heads and existing ZIP SHA256 rechecked unchanged; PR31–35 draft and unmerged.",
+  "limits": [
+    "Real Windows Korean IME, motor usability, real sites, native UI and two-PC sync remain unverified.",
+    "No merge, deployment or ZIP replacement."
+  ]
+}

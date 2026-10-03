@@ -65,13 +65,31 @@
     "limits": "DOM checks on stated flows only; not a full WCAG or motor-usability certification"
   },
   "ci": {
-    "status": "in_progress",
+    "status": "completed",
     "run_number": 107,
     "run_id": 37116310333,
     "job_id": 111183742731,
     "url": "https://github.com/rrangjaa-eng/project_260923/actions/runs/37116310333",
     "test_merge_commit": "0ed0026f0335299003a2abc21fc9a49d1c6e96fd",
-    "product_and_test_merge_tree": "4622c8a7ff5fad4cafacf259debe1a63dca152da"
+    "product_and_test_merge_tree": "4622c8a7ff5fad4cafacf259debe1a63dca152da",
+    "conclusion": "success",
+    "completed_at_utc": "2026-10-03T11:36:05Z",
+    "completed_at_kst": "2026-10-03 20:36:05 KST",
+    "unit": {
+      "passed": 477,
+      "total": 477,
+      "files": 47
+    },
+    "browser": {
+      "passed": 435,
+      "total": 435,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "elapsed_seconds": 4214.073,
+      "duration": "70m14.073s"
+    },
+    "evidence": "ci107-final-results.json"
   },
   "remaining": [
     "iframe/custom/native composite pin settings",
@@ -144,7 +162,7 @@
     "boundary": "Only an absent/undefined site entry initializes; null and malformed scalar originals are preserved without writes",
     "independent_review": "No additional P1/P2; read-only review"
   },
-  "recorded_at_kst": "2026-10-03 19:44 KST",
+  "recorded_at_kst": "2026-10-03 20:36 KST",
   "local_log_sha256": {
     "unit": "c78e6814857a6e05b31878a2065fffc9d860d8abbb0d73e95c30f14d3d6b232c",
     "feature_browser": "5c415a227dc8c3b6bcfbcd1ff5e36b0b4de4ebd7d62c7539accb0096c6c9f8dc",
