@@ -54,9 +54,11 @@ export function createSwitchRelay(writer: StorageWriter,send:typeof chrome.tabs.
       for(const [id,report] of reports){
         if(id!==frameId&&JSON.stringify(report.path)===JSON.stringify(message.path)){reports.delete(id);replaced=true;}
       }
-      reports.set(frameId, { frameId, documentGeneration: message.documentGeneration, path: message.path, items: message.items }); frames.set(tabId, reports);
+      const report={frameId,documentGeneration:message.documentGeneration,path:message.path,items:message.items};
+      const changed=JSON.stringify(old)!==JSON.stringify(report);
+      reports.set(frameId,report); frames.set(tabId,reports);
       if (replaced) void send(tabId, { type: 'switch/pause', invalidate: true }, { frameId: 0 }).catch(() => undefined);
-      void send(tabId, { type: 'switch/refresh' }, { frameId: 0 }).catch(() => undefined);
+      void send(tabId, { type: 'switch/refresh', changed }, { frameId: 0 }).catch(() => undefined);
       return { tabId, frameId };
     }
     if (message.type === 'switch/key') {

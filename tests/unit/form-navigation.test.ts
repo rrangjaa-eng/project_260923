@@ -21,3 +21,21 @@ it('same item id in a new document or changed identity cannot reuse old field da
   expect(drafts.get(field('first', 'first', { identity: 'changed' }))).toBeNull();
   const newDocument = field('first'); newDocument.target.documentGeneration = 'new'; expect(drafts.get(newDocument)).toBeNull();
 });
+
+it('unavailable dirty drafts remain readable and require an unchanged revision and missing live identity to discard', () => {
+  const drafts = new FormDrafts();
+  const pending = { draft: createDraft('보존'), initial: 0, medial: null, expectedValue: '' };
+  drafts.set(field('first'), pending); drafts.set(field('clean'), {...pending, initial:null, expectedValue:'보존'});
+  expect(drafts.unavailable([field('first')])).toEqual([]);
+  const saved = drafts.unavailable([field('first','새 이름',{identity:'new'})])[0];
+  if(!saved)throw new Error('missing stored draft');
+  expect(saved.draft).toEqual(pending);
+  expect(drafts.discardUnavailable(saved, [field('first')])).toBe(false);
+  drafts.set(field('first'), {...pending, medial:0});
+  expect(drafts.discardUnavailable(saved, [])).toBe(false);
+  const latest = drafts.unavailable([])[0];
+  if(!latest)throw new Error('missing latest draft');
+  expect(drafts.discardUnavailable(latest, [])).toBe(true);
+  expect(drafts.discardUnavailable(latest, [])).toBe(false);
+  expect(drafts.hasUnapplied()).toBe(false);
+});
