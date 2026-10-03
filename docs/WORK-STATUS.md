@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## 다음 후속: 미완성 한글 편집 보호 — 2026-10-03 12:51 KST
+
+PR31/c0b277c는 CI100 unit401/browser407·UI101 성공으로 완료했으며 draft·미병합이다. [최종 증거](https://github.com/rrangjaa-eng/project_260923/blob/7bc06ff/docs/verification/ci100-final-results.json). 사용자의 계속 진행 요청에 따라 PR31 HEAD를 보존하고 `codex-switch-compose-insertion`에서 다음 작은 결함을 재현·수정 중이다.
+
+미완성 한글 조합 중 띄어쓰기·문구 삽입·앞/뒤 이동·되돌리기가 조합 위치를 바꾸는5RED를 확인했다. 기존 ASCII와 동일한 공통 guard로 보완한 뒤 관련18/18, 전체 unit406/406(42파일)·type/lint가 통과했다. [이유·범위·완료 기준](verification/2026-10-03-compose-insertion.md). 실제 Chromium과 독립 검토·자동UI·전체CI는 진행/대기 중이다. main 병합·권한/저장 확대·회사 접근·배포·ZIP교체 없음.
+
 ## 일반 입력칸 영문·숫자 후속 구현 — 2026-10-03 11:44 KST
 
 최신 main **9394b0146f9ba169f57e47ce3274bdff57b74dfe**, PR27–30 merged·CI99 unit397/browser403 success에서 `codex-switch-general-characters`를 분기했다. 아래 오래된 draft/미병합 기록은 당시 상태다. [병합 최종 증거](https://github.com/rrangjaa-eng/project_260923/blob/cce7caa/docs/verification/ci99-main-results.json).
