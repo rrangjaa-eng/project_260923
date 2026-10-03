@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## NAV-06 제한 더블클릭 구현·검증 중 — 2026-10-03 20:59 KST
+
+사용자가 추천 dblclick-only 계약을 승인했다. `codex-switch-explicit-doubleclick`에서 최상위 일반 버튼 직접 선택·전체 이름 확인·취소 우선1초 보호 후 dblclick1회만 전달한다. click/focus/fallback 없음. [승인 범위·실패 재현·한계](verification/2026-10-03-explicit-doubleclick.md). 단위486/486(47파일)·타입·린트 통과, 실제 Chromium 기능/경계9/9(3.1분)·긴 이름/화면1/1(27.7초) 통과. 기존 회귀·자동UI·전체CI는 진행 예정. 독립 검토의 승인 종류 교체P2를 실제RED로 재현하고 정확한 제안 역방향 binding으로 보완했다. 추가 actionable P1/P2 없음.
+
+기존 main/PR31–35/ZIP 보존, 새merge/deploy 없음. 아래 NAV06 결정 대기는 승인 전 당시 기록이다.
+
 ## NAV-06 범위 검토·동작 계약 결정 필요 — 2026-10-03 20:42 KST
 
 [지원 범위·완료 기준·정확한 질문](verification/2026-10-03-nav06-scope-review.md)을 문서 전용 `codex-nav06-scope-review`에 기록했다. 실제 Chromium probe에서 일반 더블클릭은 click2회+dblclick1회, synthetic dblclick-only는 click0회+dblclick1회임을 확인했다. 기존 NAV-06 문서는 어느 방식을 제공할지 정하지 않는다. 추천은 명시 선택/확인 후 dblclick-only1회, 일반 클릭 fallback 없음이며 일반 더블클릭과의 호환성을 보장하지 않는다. 이 제한된 동작 계약에 대한 결정이 필요하다. 제품 소스 수정·새 PR·새CI는 시작하지 않았다. PR35 최종CI 성공은 아래와 같고 main/PR31–35/ZIP 보존, merge/deploy 없음.

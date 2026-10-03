@@ -128,13 +128,16 @@ export function createSwitchRelay(writer: StorageWriter,send:typeof chrome.tabs.
     }
     if (message.type === 'switch/execute') {
       const action = message.action;
+      if(action.kind==='doubleClick'&&(action.target.frameId!==0||!action.confirmed))return {result:'refused'};
+      const cancellation=cancellations.get(tabId)??0;
       const report = frames.get(tabId)?.get(action.target.frameId);
       if (action.target.tabId !== tabId || !report || report.documentGeneration !== action.target.documentGeneration
           || !report.items.some((item) => item.itemId === action.target.itemId && !item.sensitive && item.identity === action.expectedIdentity)
           || !await visibleReport(tabId, report)) return { result: 'refused' };
       try {
-        const authorization: unknown = await send(tabId, { type: 'switch/action-check', authorization: action.authorization }, { frameId: 0 });
+        const authorization: unknown = await send(tabId, { type: 'switch/action-check', authorization: action.authorization, ...(action.kind==='doubleClick'?{doubleClick:action}:{}) }, { frameId: 0 });
         if (typeof authorization !== 'object' || authorization === null || !('result' in authorization) || authorization.result !== 'done') return { result: 'refused' };
+        if(action.kind==='doubleClick'&&((cancellations.get(tabId)??0)!==cancellation||frames.get(tabId)?.get(0)?.documentGeneration!==report.documentGeneration))return {result:'refused'};
         return await send(tabId, message, { frameId: action.target.frameId });
       }
       catch { return { result: 'unknown' }; }

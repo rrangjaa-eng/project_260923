@@ -1,3 +1,4 @@
+import { pinEligible } from './native-target';
 import { applyWithUndo, appliedTextUndo, clearAppliedText } from './applied-text-undo';
 import { buildFrameReport, contentBoxOf, type Collector, type Item } from '@/page/collector/collector';
 import type { SwitchReportItem, SwitchTargetAction, TextSelection } from '@/shared/switch-messages';
@@ -58,7 +59,7 @@ export function executeSwitchAction(
   action: SwitchTargetAction,
   press: (el: Element) => void = synthesizePress,
 ): SwitchPageResult {
-  if (['applyText','applyControl','press','search'].includes(action.kind)) clearAppliedText(collector);
+  if (['applyText','applyControl','press','doubleClick','search'].includes(action.kind)) clearAppliedText(collector);
   const refused = (): SwitchPageResult => { if (action.kind === 'previewUndo' || action.kind === 'undoText') clearAppliedText(collector); return { result: 'refused' }; };
   collector.refresh();
   const item = collector.items().find((entry) => entry.id === action.target.itemId);
@@ -87,6 +88,12 @@ export function executeSwitchAction(
   }
   if (action.kind === 'restoreText' && typeof action.expectedValue === 'string') {
     return { result: restoreTextTarget(collector, action.target.itemId, action.expectedValue, action.selection) };
+  }
+  if (action.kind === 'doubleClick') {
+    if (!action.confirmed || action.target.frameId !== 0 || current.danger || !(el instanceof HTMLButtonElement) || !pinEligible(el)) return refused();
+    // NAV-06 limited contract: no click sequence, focus or fallback. Done means delivery only.
+    el.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true, composed: true, view: window, button: 0, detail: 2 }));
+    return { result: 'done' };
   }
   if (action.kind === 'press' && !typingElement(el) && !el.matches('input[type=file],input[type=checkbox],input[type=radio],select,input[type=date],input[type=color],input[type=time]')) {
     if ((current.danger || !['a', 'link'].includes(current.kind)) && !action.confirmed) return { result: 'refused' };
