@@ -369,3 +369,11 @@ describe('placeLabels', () => {
     }
   });
 });
+
+it('ambiguous fixed fingerprints do not pin the first DOM candidate',()=>{
+ const common=fp({buttonText:'열기',aria:'열기'});
+ const items:HintItem[]=[{id:'first',rect:{x:100,y:0,w:5,h:5},fingerprint:{...common,domPath:'body/button[1]'}},{id:'second',rect:{x:10,y:0,w:5,h:5},fingerprint:{...common,domPath:'body/button[2]'}}];
+ const result=orderHints({items,pins:[{number:9,fingerprint:common}],presses:[],cursor:{x:0,y:0}});
+ expect(result.flat().some(entry=>entry.number===9)).toBe(false);
+ expect(result[0]?.map(entry=>entry.itemId)).toEqual(['second','first']);
+});

@@ -1,6 +1,7 @@
 import { isSameElement } from '@/core/fingerprint';
 import { HELPER_SAFETY_OFF_KEY } from '@/core/helper-safety';
 import { changedPhrases } from '@/core/switch-phrases';
+import { changedPins } from '@/core/pin-settings';
 import {
   CURRENT_SCHEMA_VERSION,
   MIGRATION_NOTICE_KEY,
@@ -44,6 +45,7 @@ const SYNC_WRITE_WINDOW_MS = 60_000;
 const SYNC_WRITE_LIMIT = 100;
 
 export interface StorageWriter {
+  changePins(origin:string,raw:unknown,authorized:()=>Promise<boolean>):Promise<{result:'done'|'refused'|'unknown'}>;
   changeSwitchPhrases(raw: unknown, authorized: () => Promise<boolean>): Promise<{ ok: boolean }>;
   writeSwitchData(key: string, value: unknown, area: 'local' | 'session'): Promise<{ ok: boolean }>;
   setEnabled(enabled: boolean): Promise<SetEnabledResult>;
@@ -216,6 +218,26 @@ export function createStorageWriter(): StorageWriter {
   }
 
   return {
+    changePins(origin,raw,authorized){
+      return enqueue(async()=>{
+        let writing=false,changed=false;
+        const key=siteKey(origin),unchanged=()=>!changed;
+        const onChange=(changes:Record<string,chrome.storage.StorageChange>,area:string)=>{if(area==='sync'&&key in changes)changed=true;};
+        chrome.storage.onChanged.addListener(onChange);
+        try{
+          const url=new URL(origin);if(!['http:','https:'].includes(url.protocol)||url.origin!==origin)return {result:'refused' as const};
+          const read=async()=>{const stored=await chrome.storage.sync.get(key);return SiteEntryV1.safeParse(stored[key]===undefined?{schemaVersion:1,data:{disabled:false,pins:[]}}:stored[key]);};
+          const first=await read();if(!first.success||first.data.data.disabled||!changedPins(first.data.data.pins,raw)||!await authorized())return {result:'refused' as const};
+          await waitForSyncWriteSlot();
+          const latest=await read();if(!latest.success||latest.data.data.disabled)return {result:'refused' as const};
+          const pins=changedPins(latest.data.data.pins,raw);if(!pins)return {result:'refused' as const};
+          const next={...latest.data,data:{...latest.data.data,pins}};
+          if(syncItemBytes(key,next)>SYNC_ITEM_LIMIT||!await authorized()||!unchanged())return {result:'refused' as const};
+          writing=true;await chrome.storage.sync.set({[key]:next});return {result:'done' as const};
+        }catch{return {result:writing?'unknown' as const:'refused' as const};}
+        finally{chrome.storage.onChanged.removeListener(onChange);}
+      });
+    },
     changeSwitchPhrases(raw, authorized) {
       return enqueue(async () => {
         const stored = await chrome.storage.local.get('switchPhrases');

@@ -1,5 +1,24 @@
 # 작업 현황표
 
+## PR35 null 원본 보존 보완·새 HEAD 재검증 — 2026-10-03 19:24 KST
+
+[draft PR35](https://github.com/rrangjaa-eng/project_260923/pull/35)의 최종 점검에서 null 원본을 신규 설정으로 취급하는2RED를 재현했다. UI와 writer를 `undefined`일 때만 초기화하도록 보완했다. 관련47/47·전체unit477/477(47파일)·type/lint·Chromium null설정 거절1/1(19.1초) 통과, 독립 재검토 추가P1/P2 없음.
+
+앞선 c349f36의 로컬14/72/UI101과 CI106을 새 소스 검증으로 오인하지 않는다. 새 HEAD의 기능15건·회귀·자동UI·전체CI를 종료까지 확인한다. [계약·원인·실패 재현](verification/2026-10-03-pin-settings.md). PR31–34/main/ZIP 보존, 새 merge/deploy 없음. 아래는 당시 기록이다.
+
+## NAV-05 번호 고정 설정 구현·최종 검증 중 — 2026-10-03 18:30 KST
+
+PR34/3454494의 최종CI104(unit441/browser420) 성공을 기준으로 `codex-switch-pin-settings`를 분기했다. 최상위 HTTP(S) 문서의 일반 버튼·링크1–9 고정/교체/해제와 Space 고정 목록 실행을 연결했다. [범위·실패 재현·남은 항목](verification/2026-10-03-pin-settings.md).
+
+| 항목 | 실제 근거 |
+|---|---|
+| 최종 소스 검사 | type/lint·전체unit472/472(47파일) 통과 |
+| 독립 검토 | 5개 P2의 실패 재현/보완, 추가 actionable P1/P2 없음 |
+| 선행 브라우저 | 8/8(4.0분), 최종승인 지연 DOM 경합1RED→1GREEN(24.4초) |
+| 진행 중 | 추가 경계 포함 Chromium·기존 번호표/이동/편집기 회귀·자동UI·전체CI |
+
+대상 무효화/scroll/resize 취소 전파·외부 편집 라벨 제외까지 보완했다. 위 선행 브라우저 결과는 마지막 viewport/외부 라벨 보완 전으로 구분한다. 검사 진행 상태를 명시한 draft PR을 만들며 최종 완료는 전체CI 종료 후 확정한다. PR31–34/main/기존 ZIP 보존, 새 merge/deploy/ZIP 교체 없음. 남은 범위는 iframe/custom 고정, NAV-06 명시 더블클릭, 실제 Windows IME/운동 사용성/실사이트·두 PC 검증이다. 아래는 당시 기록이다.
+
 ## NAV-04 현재칸 적용 되돌리기 구현·검증 중 — 2026-10-03 16:30 KST
 
 PR33/cc95a59의 최종CI103 unit412/browser410 성공을 기준으로 `codex-switch-applied-undo`에서 NAV-04의 현재칸 마지막 성공 적용1회 되돌리기를 구현했다. [계약·실패 재현·완료 기준](verification/2026-10-03-applied-undo.md). 명시 비교/취소/1초 보호 확인, 노드·문서/프레임·현재값·민감성 재검증, pending/unknown·재실행 차단을 적용한다. 권한·영속 저장 확대 없음.
