@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## PR32 최종 로컬 검증 완료·CI101 진행 — 2026-10-03 13:01 KST
+
+[draft PR32](https://github.com/rrangjaa-eng/project_260923/pull/32), 제품 HEAD `97a9a96c630834ae408d21bb0131cee8f31357a2`를 고정했다. type/lint·unit406/406(42파일)·관련 browser6/6(4.5분)·기존 편집기/프레임38/38(1.2분)·자동UI101/101(3.9분, 실패/스킵/불안정0)이 통과했다. 독립 검토 추가P1/P2 없음. [결과·소스 해시](verification/compose-insertion-results.json).
+
+[CI101](https://github.com/rrangjaa-eng/project_260923/actions/runs/37094682964), job111122082125은 type/lint/unit 단계 성공, 전체 브라우저 실행 중이다. test merge dbe53d2와 후보 tree c1b3c0a 동일. PR31/c0b277c와 main9394b01을 보존한다. 새 병합·배포·ZIP교체 없음. 아래는 당시 기록이다.
+
 ## draft PR32 게시·최종 검증 진행 — 2026-10-03 12:54 KST
 
 [draft PR32](https://github.com/rrangjaa-eng/project_260923/pull/32), `codex-switch-compose-insertion`/`97a9a96c630834ae408d21bb0131cee8f31357a2`를 push했다. 기준은 미병합 PR31/c0b277c이며 PR31·main HEAD를 보존한다. [CI101](https://github.com/rrangjaa-eng/project_260923/actions/runs/37094682964)이 실행 중이다.

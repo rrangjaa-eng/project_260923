@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-03T12:54:29+09:00",
+  "checked_at": "2026-10-03T13:01:18+09:00",
   "pr": 32,
   "branch": "codex-switch-compose-insertion",
   "head": "97a9a96c630834ae408d21bb0131cee8f31357a2",
@@ -13,14 +13,23 @@
       "files": 42
     },
     "browser": {
-      "status": "in_progress",
-      "expected": 6
+      "status": "passed",
+      "passed": 6,
+      "minutes": 4.5
     },
     "editor_regression": {
-      "status": "pending"
+      "status": "passed",
+      "passed": 38,
+      "minutes": 1.2
     },
     "ui": {
-      "status": "pending"
+      "status": "passed",
+      "passed": 101,
+      "failed": 0,
+      "skipped": 0,
+      "flaky": 0,
+      "minutes": 3.9,
+      "directory": "/workspace/.cloud-onboarding/ui-review-runs/run-wdrpMF"
     }
   },
   "red_green": {
@@ -32,7 +41,8 @@
     "number": 101,
     "run": 37094682964,
     "status": "in_progress",
-    "conclusion": null
+    "conclusion": null,
+    "job": 111122082125
   },
   "source_sha256": {
     "src/page/input/switch-controller.ts": "b4b6a161531dc5bce5fdbc1da5ee1099a2e6f8d159fea3408e5947bf5f6f810c",
@@ -45,5 +55,7 @@
     "운동 사용성",
     "실사이트",
     "native UI"
-  ]
+  ],
+  "test_merge": "dbe53d2ff0ccd2a5c60210be0629942289414b2b",
+  "candidate_and_test_merge_tree": "c1b3c0a5cc21a04b60d69ba23407dd444a41dae6"
 }
