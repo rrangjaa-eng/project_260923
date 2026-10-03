@@ -1,8 +1,8 @@
 {
-  "observed_at": "2026-10-03T16:29:18.537019+00:00",
+  "observed_at": "2026-10-03T17:46:50.466008+00:00",
   "tested_commit": "62577af2db1216bc25371dee39d94b6267a80a8c",
   "status": "classified",
-  "scope": "PR39 변경 범위와 PR30 초안결함. 코드/관련검사 처분이며 전체CI113은별도",
+  "scope": "PR39 변경 범위 및 PR30 초안 결함. 로컬 회귀·CI113 최종 성공과 함께 처분 확인",
   "findings": [
     {
       "id": "PR30:4170786719",
@@ -41,9 +41,25 @@
     "local": "docs/verification/orphan-followup-local-results.json"
   },
   "github_review_refresh": {
-    "pr": 39,
-    "comments": 0,
-    "note": "조회 시점 댓글 없음은 자동검토 승인 아님. 이전PR15–38 조회는 이전원본에보존"
+    "observed_at": "2026-10-03T17:46:50.466008+00:00",
+    "prs": [
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39
+    ],
+    "pr30_actionable_ids": [
+      4170786719
+    ],
+    "pr31_through_39_comments": 0,
+    "new_actionable_findings": 0,
+    "note": "원격 스레드 resolved 처리는 하지 않았다. 댓글 없음은 자동검토 승인과 다르다."
   },
   "independent_review": {
     "additional_actionable_p1_p2": 0,

@@ -47,3 +47,7 @@ PR30 후속 [리뷰](https://github.com/rrangjaa-eng/project_260923/pull/30#disc
 이 결함 때문에 CI112의 이전 HEAD 결과를 후속 수정 검증으로 재사용하지 않는다. 기존 제품 테스트 단언을 약화하지 않았고, 기존 목록 응답 단언에는 새 불명 프레임 배열의 기대값만 추가했다. 새 Chromium 부정 시험은 실패했던 초안 표시·보존 안내·사이트 원값 단언을 그대로 유지한다. 후속 최종 결과는 아래에 추가한다.
 
 후속 로컬 검증 — 2026-10-04 01:25 KST: 새 unknown Chromium 1RED(exit1) 뒤 보관 흐름 최종5/5(2.8분, exit0)를 확인했다. 실행 환경 연결 복구 후 타입·린트·전체 단위585/585(50파일,25.30초) 각각 exit0을 다시 확인했다. 마지막 단위 실행에는 관련 없는 프레임 불명이 top 초안 삭제를 막지 않는 긍정 시험도 포함한다. 브라우저 종료 결과는 연결 단절 전 도구 응답에서 확인했고 해당 /tmp 로그는 복구 후 사라졌다. 보존된 시험 코드와 새 원격 CI로 후속 근거를 남긴다. 독립 읽기 검토에서 추가 actionable P1/P2는 발견하지 않았다. 새 전체 CI 완료는 아직 주장하지 않는다.
+
+## 최종 원격 검증 — 2026-10-04 02:47:26 KST
+
+제품 `62577af2db1216bc25371dee39d94b6267a80a8c`의 [CI113](ci113-final-results.json) success: typecheck/lint·단위585/585(50파일)·Chromium458/458, 실패/flaky/skip0. 원격 job 종료02:45:25 KST, 브라우저77분8.849초. 실제 checkout merge와 제품 tree가 같다. 복구 후 소실된 로컬 로그와 다른 원격 원본 근거다. [리뷰 처분](orphan-review-inventory.json)과 [완료 검사](orphan-completion-check-result.json)를 연결했다. 실제 PC/IME/사용성/실사이트 검증 및 main 병합·배포·ZIP 교체는 하지 않았다.

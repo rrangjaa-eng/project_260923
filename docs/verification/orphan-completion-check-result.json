@@ -1,0 +1,19 @@
+{
+  "command": [
+    "node",
+    "--experimental-strip-types",
+    "scripts/check-completion-evidence.ts",
+    "docs/verification/orphan-completion-report.json",
+    "--reuse-docs-only"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 0.528,
+  "stdout": "보고 근거 정합성 통과: PR39 후속3결함 수정 및 동일 HEAD 전체CI113. 과거 UI101 실행과 실제PC 검증은 별도\nHEAD: 00692c15e578c08d178940c01b28e5e84e7d11d1\n문서만 변경된 기존 근거 재사용: 62577af2db1216bc25371dee39d94b6267a80a8c\n기록 정합성 검사이며 실제 실행·리뷰 누락 없음·지침 준수·제품 무결함을 증명하지 않습니다.\n",
+  "stderr": "",
+  "observed_at": "2026-10-03T17:47:26.566364+00:00",
+  "checked_head": "00692c15e578c08d178940c01b28e5e84e7d11d1",
+  "tested_product_commit": "62577af2db1216bc25371dee39d94b6267a80a8c",
+  "report": "docs/verification/orphan-completion-report.json",
+  "scope": "CI113 실제 근거와 PR39 후속 수정 보고의 정합성. 이 파일 저장 전 HEAD를 검사한 기록",
+  "reproduction": "현재 HEAD에서 재검사할 때 report.productCommit은 실제 현재 HEAD로 생성하고 리뷰/CI 관측도 다시 확인한다. 이 저장된 보고는 위 checked_head 당시 기록이다."
+}

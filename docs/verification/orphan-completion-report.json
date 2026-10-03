@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "productCommit": "00692c15e578c08d178940c01b28e5e84e7d11d1",
+  "observedAt": "2026-10-03T17:46:50.466008+00:00",
+  "scope": "PR39 후속3결함 수정 및 동일 HEAD 전체CI113. 과거 UI101 실행과 실제PC 검증은 별도",
+  "requiredChecks": [
+    "typecheck",
+    "lint",
+    "unit",
+    "browser"
+  ],
+  "checks": [
+    {
+      "name": "typecheck",
+      "status": "completed",
+      "conclusion": "success",
+      "testedCommit": "62577af2db1216bc25371dee39d94b6267a80a8c",
+      "evidence": "docs/verification/ci113-final-results.json"
+    },
+    {
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success",
+      "testedCommit": "62577af2db1216bc25371dee39d94b6267a80a8c",
+      "evidence": "docs/verification/ci113-final-results.json"
+    },
+    {
+      "name": "unit",
+      "status": "completed",
+      "conclusion": "success",
+      "testedCommit": "62577af2db1216bc25371dee39d94b6267a80a8c",
+      "evidence": "docs/verification/ci113-final-results.json"
+    },
+    {
+      "name": "browser",
+      "status": "completed",
+      "conclusion": "success",
+      "testedCommit": "62577af2db1216bc25371dee39d94b6267a80a8c",
+      "evidence": "docs/verification/ci113-final-results.json"
+    }
+  ],
+  "reviewInventory": {
+    "status": "classified",
+    "testedCommit": "62577af2db1216bc25371dee39d94b6267a80a8c",
+    "evidence": "docs/verification/orphan-review-inventory.json",
+    "findings": [
+      {
+        "id": "PR30:4170786719",
+        "classification": "actionable",
+        "status": "resolved",
+        "evidence": "docs/verification/orphan-review-inventory.json"
+      },
+      {
+        "id": "local-delayed-list",
+        "classification": "actionable",
+        "status": "resolved",
+        "evidence": "docs/verification/orphan-review-inventory.json"
+      },
+      {
+        "id": "remote-delayed-list",
+        "classification": "actionable",
+        "status": "resolved",
+        "evidence": "docs/verification/orphan-review-inventory.json"
+      },
+      {
+        "id": "final-frame-visibility-unknown",
+        "classification": "actionable",
+        "status": "resolved",
+        "evidence": "docs/verification/orphan-review-inventory.json"
+      },
+      {
+        "id": "checker-rename-path",
+        "classification": "actionable",
+        "status": "resolved",
+        "evidence": "docs/verification/orphan-review-inventory.json"
+      },
+      {
+        "id": "checker-original-evidence-contradiction",
+        "classification": "actionable",
+        "status": "resolved",
+        "evidence": "docs/verification/orphan-review-inventory.json"
+      }
+    ]
+  },
+  "ciEvidence": "docs/verification/ci113-final-results.json"
+}

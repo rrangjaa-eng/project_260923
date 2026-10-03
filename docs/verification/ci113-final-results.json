@@ -1,0 +1,39 @@
+{
+  "run_number": 113,
+  "run_id": 37136855937,
+  "job_id": 111243077398,
+  "url": "https://github.com/rrangjaa-eng/project_260923/actions/runs/37136855937",
+  "status": "completed",
+  "conclusion": "success",
+  "product_commit": "62577af2db1216bc25371dee39d94b6267a80a8c",
+  "test_merge_commit": "eeb581ad9eec53b5d0f49886f38cc1b9765ebbc8",
+  "product_and_test_merge_tree": "ecf0c7d1c1b8b005c1b303dcfcc2b2c3f93226f0",
+  "completed_at_utc": "2026-10-03T17:45:25Z",
+  "completed_at_kst": "2026-10-04 02:45:25 KST",
+  "observed_at_utc": "2026-10-03T17:46:17.606Z",
+  "typecheck": "success",
+  "lint": "success",
+  "unit": {
+    "passed": 585,
+    "failed": 0,
+    "total": 585,
+    "files": 50
+  },
+  "browser": {
+    "passed": 458,
+    "total": 458,
+    "failed": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "elapsed_seconds_from_log": 4628.849,
+    "reported_duration": "1.3h"
+  },
+  "log_evidence": [
+    "2026-10-03T16:26:50.8130428Z HEAD is now at eeb581a Merge 62577af2db1216bc25371dee39d94b6267a80a8c into f4fc5672468fa28c961e6d08b9f290666c152db2",
+    "2026-10-03T16:27:40.4458341Z  Test Files  50 passed (50)",
+    "2026-10-03T16:27:40.4460939Z       Tests  585 passed (585)",
+    "2026-10-03T16:28:12.6968679Z Running 458 tests using 1 worker",
+    "2026-10-03T17:45:21.5457163Z   458 passed (1.3h)"
+  ],
+  "note": "CI113 원격 원본 job 로그/API 및 로컬 Git tree를 직접 대조했다. 실패 때만 업로드하는 artifact 단계 skipped는 시험 생략이 아니다. 복구 후 소실된 로컬 Chromium 로그를 복원한 기록이 아니다. 실제 PC/IME/운동 사용성/실사이트는 미검증."
+}

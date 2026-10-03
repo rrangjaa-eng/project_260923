@@ -1,5 +1,22 @@
 # 작업 현황표
 
+## PR39 최종 CI113 성공·보고 검사 통과 — 2026-10-04 02:47:26 KST
+
+[draft PR39](https://github.com/rrangjaa-eng/project_260923/pull/39), 제품 `codex-form-orphan-drafts`/`62577af2db1216bc25371dee39d94b6267a80a8c`. [CI113 원본 대조](verification/ci113-final-results.json): **타입·린트·단위585/585(50파일)·Chromium458/458**, 실패/flaky/skip0. 원격 job은 2026-10-04 02:45:25 KST 성공 종료, 브라우저77분8.849초. 실제 checkout merge `eeb581a`와 제품 tree `ecf0c7d` 일치를 확인했다. 이전 fd66053/CI112(cancelled)와 구분한다.
+
+| 최종 대조 | 실제 근거 |
+|---|---|
+| 수정 저장 | 불명 iframe 보존 `9eb8999` + 보고 검사 우회 차단 `62577af`, 일반 push·PR HEAD 확인 |
+| 로컬 검사 | 타입·린트 exit0, unit585/585, 새 Chromium5/5 exit0. 소실된 이전 /tmp 브라우저 로그는 복원됐다고 주장하지 않음 |
+| 리뷰 | PR30 기존1건 및 PR31–39 새댓글0을 최종 재조회. 알려진6개 항목 처분·독립 검토를 [목록](verification/orphan-review-inventory.json)에 연결; GitHub 스레드 수정 없음 |
+| 완료 근거 검사 | [실제 명령/결과](verification/orphan-completion-check-result.json): 문서만 다른 증거 HEAD에서 exit0, 단일 실행0.528초 |
+| 재발 방지 범위 | 현재HEAD/dirty 제품·검사·CI 상태·수치·시각·리뷰 처분과 원본 JSON 충돌, rename 원래 제품 경로를 대조 |
+| 한계 | 허위 원본 생성·실제 실행 진실성·리뷰 목록 완전성·전역 지침 준수·실사용자 합격은 자동 증명하지 않음 |
+
+필수 검사 범위는 후속3결함과 동일 HEAD 전체 CI의 typecheck/lint/unit/browser다. 이전 UI101/101은 당시 UI 근거로만 보존하며 최신 SHA에서 재실행했다고 표시하지 않는다. 새 의존성/CI단계/수동승인 없이 기존 근거를 읽고, 동일 제품 전체CI를 반복하지 않았다. 검사 시간이 항상0이거나 작업속도·품질 영향이 없다고 보장하지 않는다.
+
+main `9394b01`·기존 ZIP hash 보존. draft·미병합 유지, merge/deploy/ZIP 교체 없음. 실제 Windows 한국어 IME·운동 사용성·실사이트·분산 DOM 원자성은 미검증/보장 밖이다. 새 기능은 계속 중지한다. 이하 기록은 당시 상태다.
+
 ## PR39 후속 push 확인·CI113 실행 — 2026-10-04 01:30 KST
 
 현재 제품 HEAD `62577af2db1216bc25371dee39d94b6267a80a8c`, 제품 보완 `9eb8999b47ca39b71ab0553279e67bd4bedceaa0`. 일반 push와 GitHub PR39 HEAD 일치를 확인했다. [CI113](https://github.com/rrangjaa-eng/project_260923/actions/runs/37136855937) job111243077398: 01:27 KST 조회에서 타입·린트·단위 단계 success, Chromium 설치 진행 중. 전체 성공은 아직 확인하지 않았다. [후속 로컬결과](verification/orphan-followup-local-results.json)와 [리뷰 처분](verification/orphan-review-inventory.json)을 연결하며 이전 fd66053 결과는 별도 과거근거로 보존한다.
