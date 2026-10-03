@@ -86,6 +86,26 @@ it('helper address editor composes ASCII through Space groups without applying i
  const f=await fixture(undefined,true);await f.setEnabled(true);await f.capture();await f.choose('영문·주소 쓰기');await f.choose('a b c d e f');await f.choose('a');expect(view.text).toBe('가a나');expect(f.field.value).toBe('가👍🏽나');
 });
 
+it('general editor replaces a selected grapheme with ASCII and undo keeps the page unchanged',async()=>{
+ const f=await fixture();await f.setEnabled(true);await f.capture();await f.choose('영문·숫자 쓰기');await f.choose('a b c d e f');await f.choose('a');
+ expect(view.text).toBe('가a나');expect(f.field.value).toBe('가👍🏽나');
+ await f.choose('수정');await f.choose('입력 되돌리기');expect(view.text).toBe('가👍🏽나');expect(f.field.value).toBe('가👍🏽나');
+});
+
+it('form editor preserves a numeric draft across field movement without applying it',async()=>{
+ const f=await fixture();await f.setEnabled(true);await f.capture();await f.choose('양식 한 장 보기');await f.choose('문장');await f.choose('영문·숫자 쓰기');await f.choose('W X Y Z 0 1');await f.choose('1');
+ const text=view.text;expect(text).toContain('1');expect(f.field.value).toBe('가👍🏽나');await f.choose('다음 칸');await f.choose('이전 칸');expect(view.text).toBe(text);expect(f.field.value).toBe('가👍🏽나');
+});
+
+it.each([false,true])('unfinished Hangul blocks ASCII without moving the draft cursor (helper=%s)',async helper=>{
+ const f=await fixture(undefined,helper);await f.setEnabled(true);await f.capture();await f.choose('한글 쓰기');await f.choose('ㄱ ㄲ ㄴ ㄷ ㄸ ㄹ');await f.choose('ㄱ');await f.choose('ㅏ ㅐ ㅑ ㅒ ㅓ ㅔ');await f.choose('ㅏ');
+ const label=helper?'영문·주소 쓰기':'영문·숫자 쓰기';
+ for(let i=0;i<6&&!view.state?.items.some(item=>item.label===label);i++)await f.choose('상위로');
+ const before=view.text;await f.choose(label);expect(view.notice).toContain('한글 조합을 마치거나 취소');expect(view.text).toBe(before);expect(f.field.value).toBe('가👍🏽나');
+ await f.choose('한글 쓰기');await f.choose('없음 ㄱ ㄲ ㄳ ㄴ ㄵ');await f.choose('없음');expect(view.text).toBe('가가나');
+ await f.choose(label);await f.choose('a b c d e f');await f.choose('a');expect(view.text).toBe('가가a나');expect(f.field.value).toBe('가👍🏽나');
+});
+
 it.each(['unknown','timeout'])('late %s after pause and resume still blocks destructive navigation',async result=>{
  const f=await fixture();await f.setEnabled(true);await f.capture();let release:(value:unknown)=>void=()=>{};f.holdExecute(()=>new Promise(resolve=>{release=resolve;}));await f.choose('입력칸에 적용');f.controller.pause();await f.press();
  if(result==='unknown')release({result:'unknown'});else await vi.advanceTimersByTimeAsync(3100);
