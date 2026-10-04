@@ -1,3 +1,4 @@
+import { legacyGroups, legacyReadingItems } from '@/core/switch-menu-policy';
 import { PinList, PinMutation, uniquePinnedTarget, changedPins, pinName } from '@/core/pin-settings';
 import { SiteEntryV1, siteKey } from '@/core/settings-schema';
 import { capturePinTarget, pinEligible, type PinCapture } from './pin-target';
@@ -25,7 +26,7 @@ import { executeSwitchAction, reportSwitchItem, visibleSwitchChild } from './swi
 const now=()=>performance.now();
 const newSwitchId=()=>Array.from(crypto.getRandomValues(new Uint32Array(4)),(n)=>n.toString(16)).join('-');
 const command=(id:string,label:string):SwitchItem=>({id,label,action:{kind:'command'}});
-const groups=()=>['찾기','페이지 항목','읽기·이동','글쓰기','조절·쉬기'].map((label,i)=>command(`group:${String(i)}`,label));
+const groups=legacyGroups;
 async function requestMessage(message: unknown):Promise<unknown>{
   let timeout:ReturnType<typeof setTimeout>|undefined;
   try{return await Promise.race([chrome.runtime.sendMessage(message),new Promise((_,reject)=>{timeout=setTimeout(()=> { reject(new Error('response-timeout')); },3000);})]);}
@@ -237,7 +238,7 @@ export function createSwitchController(opts:{collector:Collector;pipeline:InputP
     notice=reason;dispatch({type:'pause',now:now()});
   }
   function readingMenu(push=true){
-    menu([command('scroll:down','한 화면 아래'),command('scroll:up','한 화면 위'),command('scroll:auto','자동 스크롤'),command('scroll-regions','세로 스크롤 영역 선택'),command('nav:back','뒤로'),command('nav:forward','앞으로'),command('nav:tabs','열린 탭'),command('nav:new','새 탭'),command('nav:reload','새로고침'),command('nav:close-preview','탭 닫기'),command('pins-list','고정 번호'),command('pins-settings','번호 고정 설정'),command('double-open','더블클릭 · 제한')],`읽기·이동 · ${scrollRegion?.label??'영역 선택 필요'}`,'itemScan',push);
+    menu(legacyReadingItems(),`읽기·이동 · ${scrollRegion?.label??'영역 선택 필요'}`,'itemScan',push);
   }
   function unapplied(){
     stashField();

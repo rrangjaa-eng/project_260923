@@ -1,0 +1,70 @@
+{
+  "scope": "Task1 legacy 메뉴 정의 추출; 전체 B1 완료 아님",
+  "base_commit": "72c183ed548bf5ec6dcf7aa778a2a3b37b12b612",
+  "branch": "codex-switch-menu-b1",
+  "runs": [
+    {
+      "name": "baseline",
+      "command": "pnpm exec vitest run tests/unit/switch-controller-navigation.test.ts tests/unit/switch-controller-scroll.test.ts",
+      "exit_code": 0,
+      "passed": 76
+    },
+    {
+      "name": "RED",
+      "command": "pnpm exec vitest run tests/unit/switch-menu-policy.test.ts",
+      "exit_code": 1,
+      "reason": "계획대로 새 switch-menu-policy 모듈 없음; collection 실패, assertion 실패로 세지 않음"
+    },
+    {
+      "name": "original-controller-trace",
+      "command": "pnpm exec vitest run tests/unit/switch-controller-navigation.test.ts tests/unit/switch-controller-scroll.test.ts",
+      "exit_code": 0,
+      "passed": 78,
+      "note": "원본 controller 임시 복원 후 finally로 추출본 복구"
+    },
+    {
+      "name": "GREEN",
+      "command": "pnpm exec vitest run tests/unit/switch-menu-policy.test.ts tests/unit/switch-controller-navigation.test.ts tests/unit/switch-controller-scroll.test.ts",
+      "exit_code": 0,
+      "passed": 82
+    },
+    {
+      "name": "unit",
+      "command": "pnpm test:unit",
+      "exit_code": 0,
+      "passed": 591,
+      "files": 51,
+      "duration_seconds": 14.06
+    },
+    {
+      "name": "typecheck",
+      "command": "pnpm typecheck",
+      "exit_code": 0
+    },
+    {
+      "name": "lint",
+      "command": "pnpm lint",
+      "exit_code": 0
+    }
+  ],
+  "not_run": [
+    "B1 프로필/새 메뉴 구현",
+    "브라우저 E2E",
+    "전체 CI",
+    "성능 비교",
+    "Windows/실사용자 검사"
+  ],
+  "pause_reason": "선택 원리 대안 검토에 따라 Task1 보존 후 확대 중지",
+  "review": {
+    "status": "read-only independent review",
+    "model_requested": "gpt-6.1-sol/high",
+    "findings": [
+      {
+        "severity": "minor",
+        "status": "deferred",
+        "finding": "tabs fixture는 tabs 배열 없는 응답이라 탭 목록 성공 후 복귀 stack을 실제로 검증하지 않음; canonical 승인 trace는 검사",
+        "reason": "현재 방향 검토 중인 작은 보존 단위이며 제품 menu/up 코드는 불변. 성공 탭 목록 회귀를 통과했다고 주장하지 않음"
+      }
+    ]
+  }
+}

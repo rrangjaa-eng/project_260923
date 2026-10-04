@@ -1,5 +1,11 @@
 # 작업 현황표
 
+## 메뉴 정책 Task1 보존·후속 구현 일시 중지 — 2026-10-04 14:57 KST
+
+B1 세부 명세/순차 구현 승인 후 `codex-switch-menu-b1`에서 Task1만 진행했다. 이후 선택 원리 대안 검토에 따라 **새 프로필·메뉴 배치(Task2 이후)는 시작하지 않고 대기**한다. 기존 순환·메뉴 ID/label/order/실행 권한은 그대로이며 `legacyGroups`/`legacyReadingItems` 순수 정의만 추출했다. 전체 B1 완료·속도 개선으로 보고하지 않는다.
+
+기준72c183ed, [진행 장부](verification/switch-menu-policy/progress.md), [실제 검사 결과](verification/switch-menu-policy/task1-results.json). 원본78개/추출 후82개 trace·정책 검사, 전체단위591/591 통과. 브라우저E2E·전체CI·성능 비교는 미실행이며 현재 중지 지시에 따라 긴 검사를 시작하지 않는다. 원격 저장은 현재 브랜치에서 확인하고 별도 PR/merge/deploy/ZIP 변경 없이 보존한다. 아래는 당시 기록이다.
+
 ## 메뉴 개선 B1 명세·구현 계획 검토 대기 — 2026-10-04 12:45 KST
 
 권장 방향 B에 따라 [구체 설계](superpowers/specs/2026-10-04-switch-menu-policy-design.md)와 [구현 계획](superpowers/plans/2026-10-04-switch-menu-policy.md)을 작성했다. `codex-switch-menu-design`은 측정2835726 위 문서 전용 브랜치다. 첫 범위는 기존 메뉴 정책 추출과 선택 가능한 짧은 고정 진입·안전한 프로필 복귀이며, 문자 키보드·목록 재배치·문구 단축은 후속 별도 단위다. **제품 코드 변경은 이 문서 검토 응답 전 대기**한다. 방향 승인을 세부 명세/실행 승인으로 확대하지 않는다.
