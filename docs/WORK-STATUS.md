@@ -1,5 +1,19 @@
 # 작업 현황표
 
+## 메뉴 개선 B1 명세·구현 계획 검토 대기 — 2026-10-04 12:45 KST
+
+권장 방향 B에 따라 [구체 설계](superpowers/specs/2026-10-04-switch-menu-policy-design.md)와 [구현 계획](superpowers/plans/2026-10-04-switch-menu-policy.md)을 작성했다. `codex-switch-menu-design`은 측정2835726 위 문서 전용 브랜치다. 첫 범위는 기존 메뉴 정책 추출과 선택 가능한 짧은 고정 진입·안전한 프로필 복귀이며, 문자 키보드·목록 재배치·문구 단축은 후속 별도 단위다. **제품 코드 변경은 이 문서 검토 응답 전 대기**한다. 방향 승인을 세부 명세/실행 승인으로 확대하지 않는다.
+
+| 항목 | 실제 상태 |
+|---|---|
+| 기준 재확인 | git ls-remote: 제품62577af / 측정2835726 / main9394b01 유지. 연결된 GitHub 조회: PR39 draft/open/미병합 |
+| 문서 검토 | brainstorming/writing-plans 및 engineering/design 계획 관점으로 자체 검토. 독립 에이전트 검토나 사용자 세부 승인으로 표시하지 않음 |
+| 실행 검사 | `pnpm typecheck`, `pnpm lint` 각각 exit0. 문서 링크·공백·변경 범위 검사 결과는 아래 검증 기록 참조 |
+| 이번 미실행 | 제품 구현·단위/E2E·20쌍 비교·전체CI·merge/deploy/ZIP교체. 문서 변경에 동일 제품 장기CI 반복 안 함 |
+| 다음 | 명세/계획 검토 후 Task1 기존 trace를 고정한 정책 추출. 직접 실행 후 독립 검토 방식 권고 |
+
+20쌍은 안정된 승인 후보의 성능 판정 단계에서만 실행한다. 같은1500/300에서 경로별30% 단축·총 누름 비증가는 **목표 가설**이며 합격 근거가 아니다. 실제 Windows IME·운동 사용성·실사이트는 미검증이다. [이번 문서 검증 기록](verification/2026-10-04-switch-menu-plan.md). 아래는 당시 기록이다.
+
 ## 실제 Chromium 속도 측정 완료 — 2026-10-04 03:30 KST
 
 측정 전용 `codex-browser-speed-benchmark`. 제품은 PR39 `62577af2db1216bc25371dee39d94b6267a80a8c`와 동일하며 main·기존 ZIP의 속도는 측정하지 않았다. [결과·조건·범위·개선 후보](verification/browser-speed/RESULTS.md), [원본69개/제외12개](verification/browser-speed/raw-results.json), [실행 근거](verification/browser-speed/execution-results.json)를 보존한다.
